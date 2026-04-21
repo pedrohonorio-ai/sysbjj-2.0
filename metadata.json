@@ -1,0 +1,8 @@
+{
+  "name": "SYSBJJ 2.0",
+  "description": "Sistema de gestão de elite para Jiu-Jitsu com IA assistiva para pareamento de treinos e análise de técnica.",
+  "requestFramePermissions": [
+    "camera",
+    "microphone"
+  ]
+}

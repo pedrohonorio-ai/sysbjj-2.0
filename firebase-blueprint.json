@@ -1,0 +1,80 @@
+{
+  "entities": {
+    "Student": {
+      "title": "Student",
+      "description": "Academy members and their progression data.",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "name": { "type": "string" },
+        "email": { "type": "string" },
+        "phone": { "type": "string" },
+        "belt": { "type": "string" },
+        "stripes": { "type": "number" },
+        "joinDate": { "type": "string" },
+        "status": { "type": "string", "enum": ["Active", "Inactive", "Suspended"] },
+        "isKid": { "type": "boolean" },
+        "monthlyValue": { "type": "number" },
+        "portalAccessCode": { "type": "string" }
+      },
+      "required": ["id", "name", "belt", "status"]
+    },
+    "Payment": {
+      "title": "Payment",
+      "description": "Financial transactions for student tuitions.",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "studentId": { "type": "string" },
+        "amount": { "type": "number" },
+        "date": { "type": "string" },
+        "method": { "type": "string" },
+        "status": { "type": "string" }
+      }
+    },
+    "SystemLog": {
+      "title": "System Log",
+      "description": "Audit logs for security and tracking.",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "timestamp": { "type": "number" },
+        "userId": { "type": "string" },
+        "action": { "type": "string" },
+        "details": { "type": "string" },
+        "category": { "type": "string" }
+      }
+    },
+    "ClassSchedule": {
+      "title": "Class Schedule",
+      "description": "Weekly training timetable.",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "time": { "type": "string" },
+        "title": { "type": "string" },
+        "instructor": { "type": "string" },
+        "category": { "type": "string" },
+        "days": { "type": "array", "items": { "type": "string" } }
+      }
+    }
+  },
+  "firestore": {
+    "students/{studentId}": {
+      "schema": "Student",
+      "description": "Collection of students."
+    },
+    "payments/{paymentId}": {
+      "schema": "Payment",
+      "description": "Student tuition payments."
+    },
+    "system_logs/{logId}": {
+      "schema": "SystemLog",
+      "description": "Audit trails."
+    },
+    "schedules/{scheduleId}": {
+      "schema": "ClassSchedule",
+      "description": "Class calendar."
+    }
+  }
+}

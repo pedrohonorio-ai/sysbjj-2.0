@@ -1,0 +1,26 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // Helper functions
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+
+    function isMasterAdmin() {
+      return isAuthenticated() && 
+             request.auth.token.email == "dashfire@gmail.com" && 
+             request.auth.token.email_verified == true;
+    }
+
+    // System Logs: Only master admin can read, everyone can create (to log actions)
+    match /system_logs/{logId} {
+      allow read: if isMasterAdmin();
+      allow create: if true; // Allow logging from any client for now, but in production we'd restrict
+    }
+
+    // Default rules for other collections
+    match /{document=**} {
+      allow read, write: if isAuthenticated();
+    }
+  }
+}
