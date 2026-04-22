@@ -19,11 +19,9 @@ import ExhibitionMode from '../pages/ExhibitionMode';
 import SystemAudit from '../pages/SystemAudit';
 import LanguageSelection from '../pages/LanguageSelection';
 import Login from '../pages/Login';
-import { LanguageProvider, useTranslation } from '../contexts/LanguageContext';
-import { ThemeProvider, useTheme } from '../contexts/ThemeContext';
-import { ProfileProvider, useProfile } from '../contexts/ProfileContext';
-import { DataProvider } from '../contexts/DataContext';
-
+import { useTranslation } from '../contexts/LanguageContext';
+import { useTheme } from '../contexts/ThemeContext';
+import { useProfile } from '../contexts/ProfileContext';
 import { useData } from '../contexts/DataContext';
 import { db } from '../firebase';
 import { doc, setDoc } from 'firebase/firestore';
@@ -308,12 +306,24 @@ const App: React.FC = () => {
 
       const updatePresence = async () => {
         try {
+          const ua = navigator.userAgent;
+          let device = "Desktop";
+          if (/Android/i.test(ua)) device = "Android";
+          else if (/iPhone|iPad|iPod/i.test(ua)) device = "iOS";
+          
+          let browser = "Browser";
+          if (/Chrome/i.test(ua)) browser = "Chrome";
+          else if (/Safari/i.test(ua)) browser = "Safari";
+          else if (/Firefox/i.test(ua)) browser = "Firefox";
+          else if (/Edge/i.test(ua)) browser = "Edge";
+          
+          const deviceInfo = `${device} (${browser})`;
           const presenceRef = doc(db, 'presence', `${auth.email!.replace(/\./g, '_')}_${deviceId}`);
           await setDoc(presenceRef, {
             email: auth.email,
             lastSeen: Date.now(),
             role: auth.role,
-            userAgent: navigator.userAgent,
+            userAgent: deviceInfo,
             deviceId: deviceId
           }, { merge: true });
         } catch (e) {
@@ -433,18 +443,4 @@ const App: React.FC = () => {
   );
 };
 
-const RootApp = () => (
-  <BrowserRouter>
-    <ThemeProvider>
-      <LanguageProvider>
-        <ProfileProvider>
-          <DataProvider>
-            <App />
-          </DataProvider>
-        </ProfileProvider>
-      </LanguageProvider>
-    </ThemeProvider>
-  </BrowserRouter>
-);
-
-export default RootApp;
+export default App;

@@ -62,6 +62,7 @@ interface DataContextType {
   presence: { email: string; lastSeen: number; role: string; userAgent: string; id: string }[];
   notifications: { id: string; message: string; type: 'info' | 'success' | 'warning'; timestamp: number }[];
   logAction: (action: string, details: string, category: SystemLog['category']) => void;
+  verifyAuditIntegrity: () => boolean;
   addStudent: (student: Omit<Student, 'id'>) => void;
   updateStudent: (id: string, updates: Partial<Student>) => void;
   deleteStudent: (id: string) => void;
@@ -140,6 +141,14 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   const [logs, setLogs] = useState<SystemLog[]>([]);
   const [presence, setPresence] = useState<{ email: string; lastSeen: number; role: string; userAgent: string; id: string }[]>([]);
   const [notifications, setNotifications] = useState<{ id: string; message: string; type: 'info' | 'success' | 'warning'; timestamp: number }[]>([]);
+  const lastHashRef = React.useRef<string>('0');
+
+  // Update ref whenever logs change from Firestore
+  useEffect(() => {
+    if (logs.length > 0) {
+      lastHashRef.current = logs[0].hash || '0';
+    }
+  }, [logs]);
 
   // Firestore Real-time Sync
   useEffect(() => {
@@ -207,15 +216,47 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
 
   const logAction = useCallback((action: string, details: string, category: SystemLog['category']) => {
     const auth = JSON.parse(localStorage.getItem('oss_auth') || '{}');
+    
+    // Improved Device Identification
+    const getDeviceStr = () => {
+      const ua = navigator.userAgent;
+      let device = "Desktop";
+      if (/Android/i.test(ua)) device = "Android";
+      else if (/iPhone|iPad|iPod/i.test(ua)) device = "iOS";
+      
+      let browser = "Browser";
+      if (/Chrome/i.test(ua)) browser = "Chrome";
+      else if (/Safari/i.test(ua)) browser = "Safari";
+      else if (/Firefox/i.test(ua)) browser = "Firefox";
+      else if (/Edge/i.test(ua)) browser = "Edge";
+      
+      return `${device} (${browser})`;
+    };
+
+    const emailToLog = auth.email || 'system';
+    const previousHash = lastHashRef.current;
+    const timestamp = Date.now();
+    const id = `LOG-${timestamp}-${Math.random().toString(36).substr(2, 5)}`;
+    const deviceInfo = getDeviceStr();
+    
+    // Blockchain Hash
+    const dataToHash = `${id}${timestamp}${emailToLog}${action}${details}${category}${deviceInfo}${previousHash}`;
+    const hash = CryptoJS.SHA256(dataToHash).toString();
+    
+    // Update ref immediately for sequential logs in same render cycle
+    lastHashRef.current = hash;
+
     const newLog: SystemLog = {
-      id: `LOG-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
-      timestamp: Date.now(),
+      id,
+      timestamp,
       userId: auth.uid || 'system',
-      userEmail: auth.email || 'system@pph.com',
+      userEmail: emailToLog,
       action,
       details,
       category,
-      deviceInfo: navigator.userAgent
+      deviceInfo,
+      previousHash,
+      hash
     };
     
     setLogs(prev => [newLog, ...prev]);
@@ -225,7 +266,42 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       const logRef = doc(collection(db, 'system_logs'), newLog.id);
       setDoc(logRef, newLog).catch(err => handleFirestoreError(err, OperationType.CREATE, 'system_logs'));
     }
-  }, []);
+  }, [logs]);
+
+  const verifyAuditIntegrity = useCallback(() => {
+    if (logs.length <= 1) return true;
+    
+    // Check from newest to oldest
+    for (let i = 0; i < logs.length; i++) {
+        const log = logs[i];
+        if (!log.hash || !log.previousHash) continue; // Skip legacy logs
+
+        const dataToHash = `${log.id}${log.timestamp}${log.userEmail}${log.action}${log.details}${log.category}${log.deviceInfo}${log.previousHash}`;
+        let calculatedHash = CryptoJS.SHA256(dataToHash).toString();
+        
+        // Handle legacy "system@pph.com" vs "system" mismatch
+        if (calculatedHash !== log.hash && log.userEmail === 'system@pph.com') {
+             const dataToHashLegacy = `${log.id}${log.timestamp}${'system'}${log.action}${log.details}${log.category}${log.deviceInfo}${log.previousHash}`;
+             calculatedHash = CryptoJS.SHA256(dataToHashLegacy).toString();
+        }
+        
+        if (calculatedHash !== log.hash) {
+            console.warn(`Blockchain Integrity Fail: Hash mismatch at log ${log.id}`);
+            return false;
+        }
+        
+        if (i < logs.length - 1) {
+            const olderLog = logs[i+1];
+            // If the older log has a hash, the current log's previousHash MUST match it
+            // Unless it's a known fork point or legacy transition
+            if (olderLog.hash && log.previousHash !== olderLog.hash) {
+                console.warn(`Blockchain Integrity Fail: Previous hash mismatch at log ${log.id}`);
+                return false;
+            }
+        }
+    }
+    return true;
+  }, [logs]);
 
   const addStudent = (student: Omit<Student, 'id'>) => {
     const id = `STUD-${Date.now()}`;
@@ -557,7 +633,7 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   return (
     <DataContext.Provider value={{ 
       students, payments, schedules, gallery, extraRevenue, orders, lessonPlans, techniques, products, plans, receipts, ledger, logs, presence, notifications,
-      logAction, addStudent, updateStudent, deleteStudent, addPayment, addReceipt, approveReceipt, rejectReceipt, verifyReceiptWithAI, addLedgerEntry, clearNotification, recordAttendance, completeRuleLesson,
+      logAction, verifyAuditIntegrity, addStudent, updateStudent, deleteStudent, addPayment, addReceipt, approveReceipt, rejectReceipt, verifyReceiptWithAI, addLedgerEntry, clearNotification, recordAttendance, completeRuleLesson,
       addSchedule, updateSchedule, deleteSchedule,
       addGalleryImage,
       addExtraRevenue, updateExtraRevenue, deleteExtraRevenue,

@@ -322,6 +322,8 @@ export interface SystemLog {
   details: string;
   category: 'User' | 'Financial' | 'System' | 'Security';
   deviceInfo: string;
+  previousHash?: string;
+  hash?: string;
 }
 
 export interface PaymentReceipt {

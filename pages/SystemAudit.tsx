@@ -13,7 +13,11 @@ import {
   CheckCircle2, 
   Smartphone, 
   Globe,
-  Lock
+  Lock,
+  Calendar,
+  ChevronDown,
+  LayoutList,
+  History
 } from 'lucide-react';
 import { useData } from '../contexts/DataContext';
 import { useTranslation } from '../contexts/LanguageContext';
@@ -21,25 +25,47 @@ import { SystemLog } from '../types';
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
 import { MASTER_ADMINS } from '../constants';
+import { motion, AnimatePresence } from 'motion/react';
 
 const SystemAudit: React.FC = () => {
   const { t } = useTranslation();
-  const { logs, students, ledger, verifyLedgerIntegrity, presence } = useData();
+  const { logs, students, ledger, verifyLedgerIntegrity, verifyAuditIntegrity, presence } = useData();
   const [searchTerm, setSearchTerm] = useState('');
   const [categoryFilter, setCategoryFilter] = useState<SystemLog['category'] | 'All'>('All');
+  const [dateRange, setDateRange] = useState<'Today' | 'Week' | 'Month' | 'All'>('Week');
+  const [viewMode, setViewMode] = useState<'Table' | 'Groups'>('Groups');
 
   const auth = JSON.parse(localStorage.getItem('oss_auth') || '{}');
   const isAdmin = MASTER_ADMINS.includes(auth.email?.toLowerCase());
 
   const filteredLogs = useMemo(() => {
+    const now = Date.now();
+    const ranges = {
+      Today: now - (24 * 60 * 60 * 1000),
+      Week: now - (7 * 24 * 60 * 60 * 1000),
+      Month: now - (30 * 24 * 60 * 60 * 1000),
+      All: 0
+    };
+
     return logs.filter(log => {
       const matchesSearch = log.action.toLowerCase().includes(searchTerm.toLowerCase()) || 
                            log.details.toLowerCase().includes(searchTerm.toLowerCase()) ||
                            log.userEmail.toLowerCase().includes(searchTerm.toLowerCase());
       const matchesCategory = categoryFilter === 'All' || log.category === categoryFilter;
-      return matchesSearch && matchesCategory;
+      const matchesDate = dateRange === 'All' || log.timestamp >= ranges[dateRange];
+      return matchesSearch && matchesCategory && matchesDate;
     });
-  }, [logs, searchTerm, categoryFilter]);
+  }, [logs, searchTerm, categoryFilter, dateRange]);
+
+  const groupedLogs = useMemo(() => {
+    const groups: Record<string, SystemLog[]> = {};
+    filteredLogs.forEach(log => {
+      const date = new Date(log.timestamp).toLocaleDateString();
+      if (!groups[date]) groups[date] = [];
+      groups[date].push(log);
+    });
+    return groups;
+  }, [filteredLogs]);
 
   const stats = useMemo(() => {
     const today = new Date().setHours(0, 0, 0, 0);
@@ -69,6 +95,7 @@ const SystemAudit: React.FC = () => {
       todayActions: todayLogs.length,
       totalStudents: students.length,
       ledgerIntegrity: verifyLedgerIntegrity(),
+      auditIntegrity: verifyAuditIntegrity(),
       uniqueUsers: Object.keys(userActivity).length,
       userActivity,
       categoryUsage
@@ -101,7 +128,8 @@ const SystemAudit: React.FC = () => {
     doc.text(`Total de Alunos: ${stats.totalStudents}`, 14, 52);
     doc.text(`Total de Ações: ${stats.totalActions}`, 14, 57);
     doc.text(`Usuários Ativos: ${stats.uniqueUsers}`, 14, 62);
-    doc.text(`Integridade do Ledger: ${stats.ledgerIntegrity ? 'OK' : 'FALHA'}`, 14, 67);
+    doc.text(`Blockchain Audit Integrity: ${stats.auditIntegrity ? 'VERIFIED' : 'TAMPERED'}`, 14, 67);
+    doc.text(`Financial Ledger Integrity: ${stats.ledgerIntegrity ? 'VERIFIED' : 'TAMPERED'}`, 14, 72);
 
     // Logs Table
     const tableData = filteredLogs.map(log => [
@@ -163,13 +191,15 @@ const SystemAudit: React.FC = () => {
       {/* Dashboard Stats */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
         <div className="bg-white dark:bg-slate-900 p-8 rounded-[2.5rem] border border-slate-200 dark:border-slate-800 shadow-sm space-y-4">
-          <div className="w-12 h-12 bg-blue-50 dark:bg-blue-900/20 rounded-2xl flex items-center justify-center text-blue-600">
-            <Activity size={24} />
+          <div className="w-12 h-12 bg-indigo-50 dark:bg-indigo-900/20 rounded-2xl flex items-center justify-center text-indigo-600">
+            <Lock size={24} />
           </div>
           <div>
-            <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Uso do Sistema</p>
-            <p className="text-3xl font-black dark:text-white tabular-nums">{stats.todayActions}</p>
-            <p className="text-[8px] font-bold text-slate-500 uppercase mt-1">Ações registradas hoje</p>
+            <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Integridade Blockchain</p>
+            <p className={`text-3xl font-black tabular-nums ${stats.auditIntegrity ? 'text-green-600' : 'text-red-600 animate-bounce'}`}>
+              {stats.auditIntegrity ? 'VERIFICADO' : 'FALHA'}
+            </p>
+            <p className="text-[8px] font-bold text-slate-500 uppercase mt-1">Cadeia de logs protegida</p>
           </div>
         </div>
 
@@ -275,23 +305,53 @@ const SystemAudit: React.FC = () => {
       </div>
 
       {/* Filters & Search */}
-      <div className="bg-white dark:bg-slate-900 p-6 rounded-[2rem] border border-slate-200 dark:border-slate-800 flex flex-col md:flex-row gap-4">
-        <div className="relative flex-1">
-          <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" size={18} />
-          <input 
-            type="text" 
-            placeholder="Buscar por ação, detalhes ou email..." 
-            className="w-full pl-12 pr-6 py-4 bg-slate-50 dark:bg-slate-800 border border-slate-100 dark:border-slate-700 rounded-2xl outline-none focus:ring-2 focus:ring-blue-600 dark:text-white font-bold"
-            value={searchTerm}
-            onChange={e => setSearchTerm(e.target.value)}
-          />
+      <div className="bg-white dark:bg-slate-900 p-6 rounded-[2rem] border border-slate-200 dark:border-slate-800 space-y-6">
+        <div className="flex flex-col lg:flex-row gap-6">
+          <div className="relative flex-1">
+            <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" size={18} />
+            <input 
+              type="text" 
+              placeholder="Buscar por ação, detalhes ou email..." 
+              className="w-full pl-12 pr-6 py-4 bg-slate-50 dark:bg-slate-800 border border-slate-100 dark:border-slate-700 rounded-2xl outline-none focus:ring-2 focus:ring-blue-600 dark:text-white font-bold transition-all"
+              value={searchTerm}
+              onChange={e => setSearchTerm(e.target.value)}
+            />
+          </div>
+          <div className="flex flex-wrap gap-2">
+            <div className="flex bg-slate-50 dark:bg-slate-800 p-1 rounded-2xl border border-slate-100 dark:border-slate-700">
+              <button 
+                onClick={() => setViewMode('Table')}
+                className={`p-2 sm:px-4 sm:py-3 rounded-xl flex items-center gap-2 text-[10px] font-black uppercase tracking-widest transition-all ${viewMode === 'Table' ? 'bg-white dark:bg-slate-700 text-blue-600 shadow-sm' : 'text-slate-400 hover:text-slate-600'}`}
+              >
+                <LayoutList size={14} /> <span className="hidden sm:inline">Tabela</span>
+              </button>
+              <button 
+                onClick={() => setViewMode('Groups')}
+                className={`p-2 sm:px-4 sm:py-3 rounded-xl flex items-center gap-2 text-[10px] font-black uppercase tracking-widest transition-all ${viewMode === 'Groups' ? 'bg-white dark:bg-slate-700 text-blue-600 shadow-sm' : 'text-slate-400 hover:text-slate-600'}`}
+              >
+                <Filter size={14} /> <span className="hidden sm:inline">Datas</span>
+              </button>
+            </div>
+            <div className="flex bg-slate-50 dark:bg-slate-800 p-1 rounded-2xl border border-slate-100 dark:border-slate-700">
+              {(['Today', 'Week', 'Month', 'All'] as const).map(range => (
+                <button
+                  key={range}
+                  onClick={() => setDateRange(range)}
+                  className={`px-3 py-2 sm:px-4 sm:py-3 rounded-xl text-[9px] font-black uppercase tracking-widest transition-all ${dateRange === range ? 'bg-white dark:bg-slate-700 text-blue-600 shadow-sm' : 'text-slate-400 hover:text-slate-600'}`}
+                >
+                  {range === 'Today' ? 'Hoje' : range === 'Week' ? '7D' : range === 'Month' ? '30D' : 'Tudo'}
+                </button>
+              ))}
+            </div>
+          </div>
         </div>
-        <div className="flex gap-2">
+
+        <div className="flex flex-wrap gap-2 border-t border-slate-50 dark:border-slate-800 pt-6">
           {['All', 'User', 'Financial', 'System', 'Security'].map(cat => (
             <button
               key={cat}
               onClick={() => setCategoryFilter(cat as any)}
-              className={`px-6 py-4 rounded-2xl font-black uppercase text-[9px] tracking-widest transition-all ${categoryFilter === cat ? 'bg-blue-600 text-white shadow-lg' : 'bg-slate-50 dark:bg-slate-800 text-slate-400 hover:text-slate-600'}`}
+              className={`px-6 py-3 rounded-xl font-black uppercase text-[9px] tracking-widest transition-all ${categoryFilter === cat ? 'bg-blue-600 text-white shadow-lg shadow-blue-500/20' : 'bg-slate-50 dark:bg-slate-800 text-slate-400 hover:text-slate-600'}`}
             >
               {cat}
             </button>
@@ -299,62 +359,153 @@ const SystemAudit: React.FC = () => {
         </div>
       </div>
 
-      {/* Logs Table */}
-      <div className="bg-white dark:bg-slate-900 rounded-[2rem] border border-slate-200 dark:border-slate-800 shadow-xl overflow-hidden">
-        <div className="overflow-x-auto">
-          <table className="w-full text-left border-collapse">
-            <thead className="bg-slate-50 dark:bg-slate-900/50">
-              <tr>
-                <th className="px-8 py-5 text-[9px] font-black text-slate-400 uppercase tracking-[0.3em]">Data / Hora</th>
-                <th className="px-8 py-5 text-[9px] font-black text-slate-400 uppercase tracking-[0.3em]">Usuário</th>
-                <th className="px-8 py-5 text-[9px] font-black text-slate-400 uppercase tracking-[0.3em]">Ação</th>
-                <th className="px-8 py-5 text-[9px] font-black text-slate-400 uppercase tracking-[0.3em]">Categoria</th>
-                <th className="px-8 py-5 text-[9px] font-black text-slate-400 uppercase tracking-[0.3em]">Dispositivo</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-slate-50 dark:divide-slate-700/50">
-              {filteredLogs.map((log) => (
-                <tr key={log.id} className="hover:bg-slate-50 dark:hover:bg-slate-700/30 transition-all group">
-                  <td className="px-8 py-5">
-                    <p className="text-xs font-bold dark:text-white">{new Date(log.timestamp).toLocaleString()}</p>
-                    <p className="text-[8px] font-black text-slate-400 uppercase tracking-widest mt-1">{log.id}</p>
-                  </td>
-                  <td className="px-8 py-5">
-                    <p className="text-xs font-black text-slate-900 dark:text-white uppercase tracking-tighter">{log.userEmail}</p>
-                    <p className="text-[8px] font-bold text-blue-500 uppercase tracking-widest mt-1">ID: {log.userId}</p>
-                  </td>
-                  <td className="px-8 py-5">
-                    <p className="text-xs font-black text-slate-900 dark:text-white uppercase tracking-tight">{log.action}</p>
-                    <p className="text-[10px] text-slate-500 dark:text-slate-400 font-medium mt-1">{log.details}</p>
-                  </td>
-                  <td className="px-8 py-5">
-                    <span className={`px-3 py-1 rounded-lg text-[8px] font-black uppercase tracking-widest ${
-                      log.category === 'Security' ? 'bg-red-100 text-red-600' :
-                      log.category === 'Financial' ? 'bg-green-100 text-green-600' :
-                      log.category === 'User' ? 'bg-blue-100 text-blue-600' : 'bg-slate-100 text-slate-600'
-                    }`}>
-                      {log.category}
-                    </span>
-                  </td>
-                  <td className="px-8 py-5">
-                    <div className="flex items-center gap-2 text-slate-400">
-                      {log.deviceInfo.includes('Mobile') ? <Smartphone size={14} /> : <Globe size={14} />}
-                      <span className="text-[8px] font-bold uppercase tracking-widest truncate max-w-[150px]">{log.deviceInfo}</span>
+      {/* Logs View */}
+      <AnimatePresence mode="wait">
+        {viewMode === 'Table' ? (
+          <motion.div 
+            key="table"
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -10 }}
+            className="bg-white dark:bg-slate-900 rounded-[2rem] border border-slate-200 dark:border-slate-800 shadow-xl overflow-hidden"
+          >
+            <div className="overflow-x-auto">
+              <table className="w-full text-left border-collapse">
+                <thead className="bg-slate-50 dark:bg-slate-900/50">
+                  <tr>
+                    <th className="px-8 py-5 text-[9px] font-black text-slate-400 uppercase tracking-[0.3em]">Data / Hora</th>
+                    <th className="px-8 py-5 text-[9px] font-black text-slate-400 uppercase tracking-[0.3em]">Usuário</th>
+                    <th className="px-8 py-5 text-[9px] font-black text-slate-400 uppercase tracking-[0.3em]">Ação</th>
+                    <th className="px-8 py-5 text-[9px] font-black text-slate-400 uppercase tracking-[0.3em]">Status Blockchain</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-slate-50 dark:divide-slate-700/50">
+                  {filteredLogs.map((log) => (
+                    <tr key={log.id} className="hover:bg-slate-50 dark:hover:bg-slate-700/30 transition-all group">
+                      <td className="px-8 py-5">
+                        <p className="text-xs font-bold dark:text-white">{new Date(log.timestamp).toLocaleString()}</p>
+                        <span className="text-[8px] font-black text-slate-400 uppercase tracking-widest mt-1 block">{log.id}</span>
+                      </td>
+                      <td className="px-8 py-5">
+                        <p className="text-xs font-black text-slate-900 dark:text-white uppercase tracking-tighter">{log.userEmail}</p>
+                        <div className="flex items-center gap-2 mt-1">
+                          {log.deviceInfo.includes('Mobile') || log.deviceInfo.includes('Android') || log.deviceInfo.includes('iOS') ? <Smartphone size={12} className="text-slate-400" /> : <Globe size={12} className="text-slate-400" />}
+                          <span className="text-[8px] font-bold text-slate-400 uppercase tracking-widest truncate max-w-[120px]">{log.deviceInfo}</span>
+                        </div>
+                      </td>
+                      <td className="px-8 py-5">
+                        <div className="flex items-center gap-2 mb-1">
+                           <span className={`px-2 py-0.5 rounded text-[7px] font-black uppercase tracking-widest ${
+                            log.category === 'Security' ? 'bg-red-100 text-red-600' :
+                            log.category === 'Financial' ? 'bg-green-100 text-green-600' :
+                            log.category === 'User' ? 'bg-blue-100 text-blue-600' : 'bg-slate-100 text-slate-600'
+                          }`}>
+                            {log.category}
+                          </span>
+                          <p className="text-xs font-black text-slate-900 dark:text-white uppercase tracking-tight">{log.action}</p>
+                        </div>
+                        <p className="text-[10px] text-slate-500 dark:text-slate-400 font-medium italic">{log.details}</p>
+                      </td>
+                      <td className="px-8 py-5 border-l border-slate-50 dark:border-slate-800/50">
+                        <div className="space-y-1">
+                           <div className="flex items-center gap-1.5">
+                             {log.hash ? (
+                               <div className="flex items-center gap-1 px-1.5 py-0.5 bg-green-500/10 text-green-500 rounded border border-green-500/20 text-[7px] font-black uppercase tracking-tighter">
+                                 <CheckCircle2 size={8} /> INTEGRITY VERIFIED
+                               </div>
+                             ) : (
+                               <div className="flex items-center gap-1 px-1.5 py-0.5 bg-slate-500/10 text-slate-500 rounded border border-slate-500/20 text-[7px] font-black uppercase tracking-tighter">
+                                 Legacy Log
+                               </div>
+                             )}
+                           </div>
+                           <p className="text-[7px] font-mono text-slate-400 truncate max-w-[100px]" title={log.hash}>ID: {log.hash?.substring(0, 16)}...</p>
+                        </div>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </motion.div>
+        ) : (
+          <motion.div 
+            key="groups"
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -10 }}
+            className="space-y-8"
+          >
+            {Object.entries(groupedLogs).map(([date, dateLogs]) => (
+              <div key={date} className="space-y-4">
+                <div className="flex items-center gap-4">
+                  <div className="h-px flex-1 bg-slate-200 dark:bg-slate-800" />
+                  <div className="flex items-center gap-2 px-6 py-2 bg-slate-100 dark:bg-slate-800 rounded-full border border-slate-200 dark:border-slate-700">
+                    <Calendar size={14} className="text-blue-600" />
+                    <span className="text-[10px] font-black text-slate-600 dark:text-slate-300 uppercase tracking-widest">{date}</span>
+                    <span className="ml-2 px-1.5 py-0.5 bg-slate-200 dark:bg-slate-700 rounded text-[8px] font-black text-slate-500">{dateLogs.length}</span>
+                  </div>
+                  <div className="h-px flex-1 bg-slate-200 dark:bg-slate-800" />
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
+                  {dateLogs.map((log) => (
+                    <div key={log.id} className="bg-white dark:bg-slate-900 p-6 rounded-[2rem] border border-slate-200 dark:border-slate-800 shadow-sm hover:shadow-xl hover:border-blue-500/30 transition-all group relative overflow-hidden">
+                      <div className="absolute top-0 right-0 p-4 opacity-5 group-hover:opacity-20 transition-opacity">
+                         <History size={40} className="text-slate-400" />
+                      </div>
+                      
+                      <div className="flex justify-between items-start mb-4">
+                        <span className={`px-2 py-0.5 rounded text-[7px] font-black uppercase tracking-widest ${
+                          log.category === 'Security' ? 'bg-red-100 text-red-600' :
+                          log.category === 'Financial' ? 'bg-green-100 text-green-600' :
+                          log.category === 'User' ? 'bg-blue-100 text-blue-600' : 'bg-slate-100 text-slate-600'
+                        }`}>
+                          {log.category}
+                        </span>
+                        <span className="text-[8px] font-black text-slate-400 uppercase tracking-widest">
+                          {new Date(log.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                        </span>
+                      </div>
+
+                      <div className="space-y-3">
+                        <div>
+                          <h4 className="text-sm font-black dark:text-white uppercase tracking-tighter leading-tight group-hover:text-blue-600 transition-colors">{log.action}</h4>
+                          <p className="text-[11px] text-slate-500 dark:text-slate-400 font-medium italic mt-1">{log.details}</p>
+                        </div>
+
+                        <div className="pt-4 border-t border-slate-50 dark:border-slate-800 space-y-2">
+                          <div className="flex items-center gap-2">
+                             <div className="w-6 h-6 bg-slate-100 dark:bg-slate-800 rounded-lg flex items-center justify-center text-slate-500">
+                               <Users size={12} />
+                             </div>
+                             <span className="text-[9px] font-black text-slate-600 dark:text-slate-400 truncate">{log.userEmail}</span>
+                          </div>
+                          <div className="flex items-center justify-between">
+                             <div className="flex items-center gap-1.5 px-2 py-0.5 bg-indigo-500/5 text-indigo-500 rounded-lg border border-indigo-500/10 text-[7px] font-black uppercase tracking-tighter">
+                                <Lock size={8} /> Blockchain Secured
+                             </div>
+                             <span className="text-[7px] font-mono text-slate-300">ID: {log.hash?.substring(0, 8)}</span>
+                          </div>
+                        </div>
+                      </div>
                     </div>
-                  </td>
-                </tr>
-              ))}
-              {filteredLogs.length === 0 && (
-                <tr>
-                  <td colSpan={5} className="py-20 text-center text-slate-400 italic font-bold uppercase tracking-widest">
-                    Nenhum registro encontrado para os filtros aplicados.
-                  </td>
-                </tr>
-              )}
-            </tbody>
-          </table>
+                  ))}
+                </div>
+              </div>
+            ))}
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {filteredLogs.length === 0 && (
+        <div className="bg-white dark:bg-slate-900 p-20 text-center rounded-[3rem] border border-slate-200 dark:border-slate-800">
+          <AlertCircle className="mx-auto text-slate-300 mb-4" size={48} />
+          <p className="text-slate-400 italic font-bold uppercase tracking-widest text-xs">
+            Nenhum registro encontrado para o período de {dateRange === 'Today' ? 'Hoje' : dateRange === 'Week' ? '7 dias' : dateRange === 'Month' ? '30 dias' : 'todo o tempo'}.
+          </p>
         </div>
-      </div>
+      )}
     </div>
   );
 };
