@@ -106,35 +106,35 @@ const ExhibitionMode: React.FC = () => {
       <div className="relative z-10 flex-1 grid grid-cols-1 lg:grid-cols-12 gap-4 sm:gap-8 p-4 sm:p-12 overflow-y-auto lg:overflow-hidden">
         
         {/* Left: Mat Status */}
-        <div className="lg:col-span-8 space-y-8 flex flex-col">
-          <div className="flex-1 bg-white/5 rounded-[2.5rem] sm:rounded-[3.5rem] border border-white/10 p-6 sm:p-12 flex flex-col justify-center relative overflow-hidden group">
-            <div className="absolute top-0 right-0 w-96 h-96 bg-blue-600 rounded-full blur-[120px] opacity-[0.03]" />
+        <div className="lg:col-span-8 flex flex-col">
+          <div className="flex-1 bg-white/5 px-6 py-6 sm:px-12 sm:py-12 rounded-[2.5rem] sm:rounded-[4rem] border border-white/5 flex flex-col justify-center relative overflow-hidden group shadow-2xl">
+            <div className="absolute top-0 right-0 w-[400px] h-[400px] bg-blue-600 rounded-full blur-[150px] opacity-[0.05] group-hover:opacity-[0.08] transition-opacity duration-1000" />
             
             {currentClass ? (
-              <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-700">
-                <div className="inline-flex items-center gap-3 px-6 py-2 bg-blue-600 rounded-full text-xs font-black uppercase tracking-widest shadow-xl shadow-blue-500/20">
-                  <Activity size={16} className="animate-pulse" /> {t('exhibition.currentClass')}
+              <div className="space-y-6 sm:space-y-10 animate-in fade-in slide-in-from-bottom-8 duration-1000 ease-out">
+                <div className="inline-flex items-center gap-3 px-6 py-2.5 bg-blue-600 rounded-full text-[10px] font-black uppercase tracking-[0.3em] shadow-2xl shadow-blue-500/40">
+                  <Activity size={14} className="animate-pulse" /> {t('exhibition.currentClass')}
                 </div>
-                <h2 className="text-5xl md:text-7xl lg:text-8xl font-black tracking-tighter uppercase leading-none max-w-3xl">
+                <h2 className="text-5xl md:text-7xl lg:text-[10rem] font-black tracking-tighter uppercase leading-[0.8] max-w-4xl text-transparent bg-clip-text bg-gradient-to-br from-white via-white to-white/40 drop-shadow-sm">
                   {currentClass.title}
                 </h2>
-                <div className="flex items-center gap-12">
-                  <div className="flex items-center gap-4">
-                    <div className="w-16 h-16 bg-white/10 rounded-2xl flex items-center justify-center text-blue-400">
-                      <Clock size={32} />
+                <div className="flex flex-wrap items-center gap-8 sm:gap-16 pt-4">
+                  <div className="flex items-center gap-4 sm:gap-6">
+                    <div className="w-16 h-16 sm:w-24 sm:h-24 bg-white/5 rounded-[2rem] flex items-center justify-center text-blue-400 border border-white/5 shadow-inner backdrop-blur-sm">
+                      <Clock size={40} className="sm:w-12 sm:h-12" />
                     </div>
                     <div>
-                      <p className="text-xs font-black text-slate-500 uppercase tracking-widest mb-1">{t('classes.time')}</p>
-                    <p className="text-xl sm:text-3xl font-black tabular-nums">{currentClass.time}</p>
+                      <p className="text-[10px] sm:text-xs font-black text-slate-500 uppercase tracking-widest mb-1 sm:mb-2">{t('classes.time')}</p>
+                      <p className="text-xl sm:text-5xl font-black tabular-nums tracking-tighter">{currentClass.time}</p>
                     </div>
                   </div>
-                  <div className="flex items-center gap-4">
-                    <div className="w-16 h-16 bg-white/10 rounded-2xl flex items-center justify-center text-cyan-400">
-                      <Shield size={32} />
+                  <div className="flex items-center gap-4 sm:gap-6">
+                    <div className="w-16 h-16 sm:w-24 sm:h-24 bg-white/5 rounded-[2rem] flex items-center justify-center text-cyan-400 border border-white/5 shadow-inner backdrop-blur-sm">
+                      <Shield size={40} className="sm:w-12 sm:h-12" />
                     </div>
                     <div>
-                      <p className="text-xs font-black text-slate-500 uppercase tracking-widest mb-1">{t('common.instructor')}</p>
-                    <p className="text-xl sm:text-3xl font-black uppercase tracking-tight">{currentClass.instructor}</p>
+                      <p className="text-[10px] sm:text-xs font-black text-slate-500 uppercase tracking-widest mb-1 sm:mb-2">{t('common.instructor')}</p>
+                      <p className="text-xl sm:text-5xl font-black uppercase tracking-tighter">{currentClass.instructor}</p>
                     </div>
                   </div>
                 </div>

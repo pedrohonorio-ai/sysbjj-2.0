@@ -19,19 +19,22 @@ const StatCard = ({ title, value, icon, color, trend, trendUp, delay = 0 }: any)
     initial={{ opacity: 0, y: 20 }}
     animate={{ opacity: 1, y: 0 }}
     transition={{ delay, duration: 0.5, ease: [0.2, 0.8, 0.2, 1] }}
-    className="bg-white dark:bg-slate-900 p-5 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm hover:shadow-xl hover:-translate-y-1 transition-all duration-500 group"
+    className="bg-white dark:bg-slate-900 px-6 py-6 rounded-3xl border border-slate-200 dark:border-slate-800/50 shadow-sm hover:shadow-2xl hover:-translate-y-1 transition-all duration-500 group relative overflow-hidden"
   >
-    <div className="flex items-center justify-between mb-4">
-      <div className={`p-3 rounded-xl ${color} bg-opacity-10 text-slate-900 dark:text-white group-hover:scale-110 transition-transform`}>
-        {React.cloneElement(icon, { className: color.replace('bg-', 'text-'), size: 20 })}
+    <div className="absolute top-0 right-0 w-24 h-24 bg-gradient-to-br from-white/10 to-transparent pointer-events-none opacity-0 group-hover:opacity-100 transition-opacity" />
+    <div className="flex items-center justify-between mb-6">
+      <div className={`p-3.5 rounded-2xl ${color} bg-opacity-5 text-slate-900 dark:text-white group-hover:scale-110 group-hover:rotate-3 transition-all duration-500`}>
+        {React.cloneElement(icon, { className: color.replace('bg-', 'text-'), size: 24 })}
       </div>
-      <div className={`flex items-center gap-1.5 text-[9px] font-black px-2.5 py-1 rounded-lg uppercase tracking-wider ${trendUp ? 'bg-green-50 dark:bg-green-900/20 text-green-700 dark:text-green-400' : 'bg-red-50 dark:bg-red-900/20 text-red-700 dark:text-red-400'}`}>
-        {trendUp ? <ArrowUpRight size={10} /> : <ArrowDownRight size={10} />}
+      <div className={`flex items-center gap-1.5 text-[10px] font-black px-3 py-1.5 rounded-xl uppercase tracking-widest ${trendUp ? 'bg-green-500/10 text-green-600 dark:text-green-400' : 'bg-red-500/10 text-red-600 dark:text-red-400'}`}>
+        {trendUp ? <ArrowUpRight size={12} /> : <ArrowDownRight size={12} />}
         {trend}
       </div>
     </div>
-    <h3 className="text-slate-400 dark:text-slate-500 text-[10px] font-black uppercase tracking-[0.2em] mb-1.5">{title}</h3>
-    <p className="text-3xl font-display font-black text-slate-900 dark:text-white leading-none tracking-tight">{value}</p>
+    <div>
+      <h3 className="text-slate-400 dark:text-slate-500 text-[10px] font-black uppercase tracking-[0.25em] mb-2 leading-none">{title}</h3>
+      <p className="text-4xl font-display font-black text-slate-900 dark:text-white leading-none tracking-tighter">{value}</p>
+    </div>
   </motion.div>
 );
 
@@ -97,44 +100,44 @@ const Dashboard: React.FC = () => {
   }, [schedules, now]);
 
   return (
-    <div className="space-y-8 pb-20 w-full animate-in fade-in duration-700 overflow-x-hidden max-w-[1600px] mx-auto px-1 sm:px-0">
+    <div className="space-y-8 pb-20 w-full animate-in fade-in duration-700 overflow-x-hidden max-w-[1600px] mx-auto px-4 sm:px-0">
       {/* Welcome Section / Hero */}
       <motion.div 
         initial={{ opacity: 0, scale: 0.98 }}
         animate={{ opacity: 1, scale: 1 }}
         transition={{ duration: 0.7, ease: [0.2, 0.8, 0.2, 1] }}
-        className="relative overflow-hidden bg-slate-900 dark:bg-blue-950 rounded-[3rem] p-8 sm:p-16 text-white shadow-3xl group border border-white/5"
+        className="relative overflow-hidden bg-slate-900 dark:bg-blue-950 rounded-[2.5rem] sm:rounded-[3rem] p-6 sm:p-16 text-white shadow-3xl group border border-white/5"
       >
         <div className="absolute inset-0 bg-gradient-to-tr from-blue-600/10 via-transparent to-transparent z-10" />
         <div className="absolute top-0 right-0 w-[500px] h-[500px] bg-blue-500/10 rounded-full blur-[150px] -translate-y-1/2 translate-x-1/2 pointer-events-none group-hover:bg-blue-400/20 transition-all duration-1000" />
         
-        <div className="relative z-20 flex flex-col md:flex-row md:items-end justify-between gap-12 h-full min-h-[250px]">
-          <div className="max-w-2xl space-y-6">
-            <div className="inline-flex items-center gap-2 px-3 py-1 bg-white/5 border border-white/10 rounded-full text-[9px] font-black text-blue-400 uppercase tracking-[0.3em] mb-2 animate-pulse">
-              <Zap size={10} /> {t('dashboard.welcomeBack')}
+        <div className="relative z-20 flex flex-col md:flex-row md:items-end justify-between gap-8 sm:gap-12 h-full min-h-[auto] sm:min-h-[300px]">
+          <div className="max-w-3xl space-y-4 sm:space-y-8">
+            <div className="inline-flex items-center gap-2 px-4 py-1.5 bg-white/5 border border-white/10 rounded-full text-[10px] font-black text-blue-400 uppercase tracking-[0.3em] mb-2 animate-pulse">
+              <Zap size={12} /> {t('dashboard.welcomeBack')}
             </div>
-            <h2 className="text-5xl sm:text-7xl font-display font-black uppercase leading-[0.85] tracking-tighter mb-4">
+            <h2 className="text-4xl sm:text-6xl md:text-8xl font-display font-black uppercase leading-[0.85] tracking-tighter mb-4 sm:mb-6">
               {t('dashboard.oss')} <br />
               <span className="text-transparent bg-clip-text bg-gradient-to-r from-white to-blue-400">
                 {profile.name.split(' ')[0]}!
               </span>
             </h2>
-            <p className="text-slate-400 text-sm sm:text-base font-medium max-w-lg leading-relaxed flex items-center gap-3">
+            <p className="text-slate-400 text-sm sm:text-lg font-medium max-w-xl leading-relaxed flex items-center gap-3">
               <Shield size={20} className="text-blue-500 shrink-0" />
-              {profile.academyName || 'PPH BJJ ACADEMY'} • {t('dashboard.evolutionReady')}
+              {profile.academyName || 'SYSBJJ 2.0'} • {t('dashboard.evolutionReady')}
             </p>
           </div>
           
-          <div className="flex flex-wrap gap-4">
+          <div className="flex flex-wrap sm:flex-nowrap gap-3 sm:gap-6">
             <button 
               onClick={() => navigate('/classes')}
-              className="px-8 py-4 bg-white text-slate-900 text-[10px] font-black uppercase tracking-[0.2em] rounded-2xl hover:bg-blue-50 hover:scale-105 active:scale-95 transition-all shadow-2xl flex items-center gap-3"
+              className="flex-1 sm:flex-none px-6 sm:px-10 py-4 sm:py-5 bg-white text-slate-900 text-[10px] sm:text-xs font-black uppercase tracking-[0.2em] rounded-2xl hover:bg-blue-50 hover:scale-105 active:scale-95 transition-all shadow-3xl flex items-center justify-center gap-4 whitespace-nowrap"
             >
-              {t('dashboard.startClass')} <ChevronRight size={14} />
+              {t('dashboard.startClass')} <ChevronRight size={16} />
             </button>
             <button 
               onClick={() => navigate('/students')}
-              className="px-8 py-4 bg-slate-800/50 backdrop-blur-md text-white text-[10px] font-black uppercase tracking-[0.2em] rounded-2xl border border-white/10 hover:bg-slate-700 hover:border-white/20 transition-all active:scale-95"
+              className="flex-1 sm:flex-none px-6 sm:px-10 py-4 sm:py-5 bg-slate-800/50 backdrop-blur-md text-white text-[10px] sm:text-xs font-black uppercase tracking-[0.2em] rounded-2xl border border-white/10 hover:bg-slate-700 hover:border-white/20 transition-all active:scale-95 whitespace-nowrap"
             >
               {t('dashboard.manageStudents').toUpperCase()}
             </button>
@@ -200,7 +203,7 @@ const Dashboard: React.FC = () => {
       </div>
 
       {/* Stats Grid */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-4 sm:gap-6">
+      <div className="grid grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-3 sm:gap-6">
         <StatCard title={t('dashboard.stats.total')} value={totalStudents} icon={<Users size={24} />} color="bg-blue-600" trend={t('dashboard.stats.registrations')} trendUp={true} delay={0.1} />
         <StatCard title={t('dashboard.stats.active')} value={activeStudents} icon={<CheckCircle2 size={24} />} color="bg-cyan-600" trend={t('dashboard.stats.frequent')} trendUp={true} delay={0.2} />
         <StatCard title={t('students.isCompetitor')} value={competitorsCount} icon={<TrophyIcon size={24} />} color="bg-yellow-500" trend="Atletas" trendUp={true} delay={0.3} />
@@ -214,46 +217,46 @@ const Dashboard: React.FC = () => {
         {/* Left Column: QTD & Schedule */}
         <div className="lg:col-span-8 space-y-8">
           {/* QTD Card */}
-          <div className="bg-white dark:bg-slate-900 p-6 sm:p-8 rounded-[2rem] sm:rounded-[2.5rem] border border-slate-200 dark:border-slate-800 shadow-sm relative overflow-hidden group">
+          <div className="bg-white dark:bg-slate-900 p-8 sm:p-10 rounded-[2.5rem] sm:rounded-[3rem] border border-slate-200 dark:border-slate-800 shadow-sm relative overflow-hidden group">
             <div className="absolute top-0 right-0 w-64 h-64 bg-blue-600 rounded-full blur-[100px] opacity-[0.03]" />
-            <div className="flex items-center justify-between mb-6">
+            <div className="flex items-center justify-between mb-8">
               <div className="space-y-1">
-                <h3 className="text-xl font-black dark:text-white uppercase tracking-tighter flex items-center gap-2">
-                  <BookOpen size={24} className="text-blue-600" /> {t('curriculum.title')}
+                <h3 className="text-2xl font-black dark:text-white uppercase tracking-tighter flex items-center gap-2">
+                  <BookOpen size={28} className="text-blue-600" /> {t('curriculum.title')}
                 </h3>
-                <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest ml-8">{t('curriculum.subtitle')}</p>
+                <p className="text-xs font-black text-slate-400 uppercase tracking-widest ml-9">{t('curriculum.subtitle')}</p>
               </div>
               <button 
                 onClick={() => navigate('/curriculum')} 
-                className="group flex items-center gap-2 text-[9px] font-black text-blue-600 uppercase tracking-widest bg-blue-50 dark:bg-blue-900/20 px-4 py-2.5 rounded-xl hover:bg-blue-600 hover:text-white transition-all"
+                className="group flex items-center gap-3 text-xs font-black text-blue-600 uppercase tracking-widest bg-blue-50 dark:bg-blue-900/20 px-6 py-3 rounded-xl hover:bg-blue-600 hover:text-white transition-all"
               >
-                {t('curriculum.plannerTab')} <ArrowRight size={12} className="group-hover:translate-x-1 transition-transform" />
+                {t('curriculum.plannerTab')} <ArrowRight size={14} className="group-hover:translate-x-1 transition-transform" />
               </button>
             </div>
             
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               <div 
                 onClick={() => navigate('/curriculum')}
-                className="p-6 bg-slate-50 dark:bg-slate-800 rounded-[1.5rem] border border-slate-100 dark:border-slate-700 relative group cursor-pointer hover:border-blue-200 dark:hover:border-blue-800 transition-all"
+                className="p-8 bg-slate-50 dark:bg-slate-800 rounded-[2rem] border border-slate-100 dark:border-slate-700 relative group cursor-pointer hover:border-blue-200 dark:hover:border-blue-800 transition-all shadow-sm"
               >
-                <div className="flex items-center gap-4 mb-4">
-                   <div className="w-12 h-12 bg-blue-600 rounded-xl flex items-center justify-center text-white shadow-lg rotate-3 group-hover:rotate-6 transition-transform">
-                      <Zap size={24} />
+                <div className="flex items-center gap-5 mb-6">
+                   <div className="w-14 h-14 bg-blue-600 rounded-2xl flex items-center justify-center text-white shadow-xl rotate-3 group-hover:rotate-6 transition-transform">
+                      <Zap size={28} />
                    </div>
                    <div>
-                      <p className="font-black text-lg dark:text-white uppercase tracking-tight leading-none mb-1">{t('curriculum.techFocus')}</p>
-                      <p className="text-[9px] text-slate-400 font-bold uppercase tracking-widest truncate max-w-[150px]">
+                      <p className="font-black text-xl dark:text-white uppercase tracking-tight leading-none mb-1.5">{t('curriculum.techFocus')}</p>
+                      <p className="text-xs text-slate-400 font-bold uppercase tracking-widest truncate max-w-[200px]">
                         {latestPlan ? latestPlan.title : t('curriculum.noActivePlan')}
                       </p>
                    </div>
                 </div>
-                <div className="space-y-2">
+                <div className="space-y-3">
                   {latestPlan ? (
                     <>
-                      {latestPlan.techniques.slice(0, 2).map(tech => (
-                        <div key={tech.id} className="flex items-center gap-2">
-                          <div className="w-1 h-1 bg-blue-600 rounded-full" />
-                          <span className="text-[11px] font-bold text-slate-600 dark:text-slate-300 truncate">{tech.name}</span>
+                      {latestPlan.techniques.slice(0, 3).map(tech => (
+                        <div key={tech.id} className="flex items-center gap-3">
+                          <div className="w-1.5 h-1.5 bg-blue-600 rounded-full" />
+                          <span className="text-sm font-bold text-slate-600 dark:text-slate-300 truncate">{tech.name}</span>
                         </div>
                       ))}
                       {latestPlan.ruleFocus && (

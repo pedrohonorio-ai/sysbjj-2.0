@@ -28,7 +28,7 @@ const Login: React.FC<LoginProps> = ({ onLogin }) => {
   const [setupStep, setSetupStep] = useState(1);
 
   useEffect(() => {
-    const savedPin = localStorage.getItem('pph_admin_pin');
+    const savedPin = localStorage.getItem('sysbjj_admin_pin');
     if (!savedPin) {
       setNeedsSetup(true);
       setAccessMode('admin');
@@ -36,7 +36,7 @@ const Login: React.FC<LoginProps> = ({ onLogin }) => {
   }, []);
 
   const handleAdminLogin = () => {
-    const savedPin = localStorage.getItem('pph_admin_pin');
+    const savedPin = localStorage.getItem('sysbjj_admin_pin');
 
     if (!MASTER_ADMINS.includes(email.toLowerCase())) {
       setError('Acesso negado: Email não autorizado.');
@@ -62,7 +62,7 @@ const Login: React.FC<LoginProps> = ({ onLogin }) => {
       return;
     }
 
-    localStorage.setItem('pph_admin_pin', setupPin);
+    localStorage.setItem('sysbjj_admin_pin', setupPin);
     setNeedsSetup(false);
     setError('');
     // Feedback de sucesso
@@ -80,7 +80,7 @@ const Login: React.FC<LoginProps> = ({ onLogin }) => {
   };
 
   const simulateBiometry = () => {
-    const savedPin = localStorage.getItem('pph_admin_pin');
+    const savedPin = localStorage.getItem('sysbjj_admin_pin');
     if (!savedPin) return;
 
     if (!MASTER_ADMINS.includes(email.toLowerCase())) {
@@ -249,7 +249,7 @@ const Login: React.FC<LoginProps> = ({ onLogin }) => {
                   <User className="absolute left-5 top-1/2 -translate-y-1/2 text-slate-600" size={20} />
                   <input 
                     type="text"
-                    placeholder="PPH-XXX-000"
+                    placeholder="SYS-XXX-000"
                     className="w-full bg-slate-950 border border-white/5 rounded-2xl py-5 pl-14 pr-6 text-white font-black uppercase tracking-widest outline-none focus:border-blue-500/50 transition-all"
                     value={studentCode}
                     onChange={e => setStudentCode(e.target.value)}

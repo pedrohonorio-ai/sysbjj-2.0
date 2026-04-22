@@ -296,21 +296,21 @@ const BusinessHub: React.FC = () => {
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-6">
         <div>
-          <h1 className="text-4xl font-black text-slate-900 dark:text-white tracking-tighter uppercase leading-none">{t('business.title')}</h1>
-          <p className="text-slate-500 font-medium italic mt-2 uppercase text-[10px] tracking-widest">{t('business.subtitle')}</p>
+          <h1 className="text-4xl sm:text-6xl font-black text-slate-900 dark:text-white tracking-tighter uppercase leading-[0.9]">{t('business.title')}</h1>
+          <p className="text-slate-500 font-medium italic mt-4 uppercase text-xs tracking-widest">{t('business.subtitle')}</p>
         </div>
-        <div className="flex gap-3">
+        <div className="flex flex-wrap gap-4">
           <button 
             onClick={handleGenerateFullReport}
-            className="flex items-center justify-center gap-3 bg-slate-900 text-white px-6 py-4 rounded-2xl font-black text-[10px] uppercase tracking-widest shadow-xl hover:bg-slate-800 transition-all active:scale-95"
+            className="flex-1 sm:flex-none flex items-center justify-center gap-3 bg-slate-900 text-white px-8 py-5 rounded-2xl font-black text-xs uppercase tracking-widest shadow-xl hover:bg-slate-800 transition-all active:scale-95"
           >
-            <FileDown size={18} /> {t('business.exportReport')}
+            <FileDown size={20} /> {t('business.exportReport')}
           </button>
           <button 
             onClick={handleExportOverdue}
-            className="flex items-center justify-center gap-3 bg-red-600 text-white px-6 py-4 rounded-2xl font-black text-[10px] uppercase tracking-widest shadow-xl shadow-red-500/20 hover:bg-red-700 transition-all active:scale-95"
+            className="flex-1 sm:flex-none flex items-center justify-center gap-3 bg-red-600 text-white px-8 py-5 rounded-2xl font-black text-xs uppercase tracking-widest shadow-xl shadow-red-500/20 hover:bg-red-700 transition-all active:scale-95"
           >
-            <UserX size={18} /> {t('financial.exportOverdue').toUpperCase()}
+            <UserX size={20} /> {t('financial.exportOverdue').toUpperCase()}
           </button>
         </div>
       </div>
@@ -318,21 +318,21 @@ const BusinessHub: React.FC = () => {
       {/* Navigation Tabs */}
       <div className="flex flex-wrap p-1 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-[2rem] shadow-sm gap-1">
         {[
-          { id: 'dashboard', icon: <LayoutDashboard size={16} />, label: t('common.dashboard'), color: 'text-blue-600' },
-          { id: 'monthly', icon: <Users size={16} />, label: t('financial.monthlyFees'), color: 'text-emerald-600' },
-          { id: 'sales', icon: <ShoppingBag size={16} />, label: t('business.shopItems'), color: 'text-amber-600' },
-          { id: 'catalog', icon: <Layers size={16} />, label: t('business.catalog'), color: 'text-indigo-600' },
-          { id: 'receipts', icon: <FileText size={16} />, label: t('common.receipts'), color: 'text-purple-600', count: receipts.filter(r => r.status === 'Pending').length },
-          { id: 'ledger', icon: <ShieldCheck size={16} />, label: t('common.ledger'), color: 'text-slate-600' },
-          { id: 'analytics', icon: <BarChartIcon size={16} />, label: t('business.analytics'), color: 'text-pink-600' },
-          { id: 'birthdays', icon: <Cake size={16} />, label: t('reports.birthdaysTab'), color: 'text-orange-600' }
+          { id: 'dashboard', icon: <LayoutDashboard size={18} />, label: t('common.dashboard'), color: 'text-blue-600' },
+          { id: 'monthly', icon: <Users size={18} />, label: t('financial.monthlyFees'), color: 'text-emerald-600' },
+          { id: 'sales', icon: <ShoppingBag size={18} />, label: t('business.shopItems'), color: 'text-amber-600' },
+          { id: 'catalog', icon: <Layers size={18} />, label: t('business.catalog'), color: 'text-indigo-600' },
+          { id: 'receipts', icon: <FileText size={18} />, label: t('common.receipts'), color: 'text-purple-600', count: receipts.filter(r => r.status === 'Pending').length },
+          { id: 'ledger', icon: <ShieldCheck size={18} />, label: t('common.ledger'), color: 'text-slate-600' },
+          { id: 'analytics', icon: <BarChartIcon size={18} />, label: t('business.analytics'), color: 'text-pink-600' },
+          { id: 'birthdays', icon: <Cake size={18} />, label: t('reports.birthdaysTab'), color: 'text-orange-600' }
         ].map(tab => (
           <button 
             key={tab.id}
             onClick={() => setReportTab(tab.id as any)}
-            className={`flex-1 min-w-[120px] flex items-center justify-center gap-2 py-3 rounded-xl font-black text-[10px] uppercase tracking-widest transition-all ${reportTab === tab.id ? `bg-slate-100 dark:bg-slate-800 ${tab.color} shadow-sm` : 'text-slate-400 hover:text-slate-600'}`}
+            className={`flex-1 min-w-[140px] flex items-center justify-center gap-3 py-4 rounded-xl font-black text-xs uppercase tracking-widest transition-all ${reportTab === tab.id ? `bg-slate-100 dark:bg-slate-800 ${tab.color} shadow-sm` : 'text-slate-400 hover:text-slate-600'}`}
           >
-            {tab.icon} {tab.label} {tab.count !== undefined && tab.count > 0 && <span className="bg-red-500 text-white px-1.5 py-0.5 rounded-full text-[8px]">{tab.count}</span>}
+            {tab.icon} {tab.label} {tab.count !== undefined && tab.count > 0 && <span className="bg-red-500 text-white px-2 py-0.5 rounded-full text-[9px]">{tab.count}</span>}
           </button>
         ))}
       </div>
@@ -340,21 +340,21 @@ const BusinessHub: React.FC = () => {
       {reportTab === 'dashboard' && (
         <div className="space-y-8">
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-            <div className="bg-white dark:bg-slate-900 p-8 rounded-[2.5rem] border border-slate-200 dark:border-slate-800 shadow-sm">
-               <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2">{t('financial.collected')} ({monthName})</p>
-               <p className="text-4xl font-black text-emerald-600 tracking-tighter tabular-nums">{t('common.currencySymbol')} {monthPaidTotal.toFixed(2)}</p>
+            <div className="bg-white dark:bg-slate-900 p-10 rounded-[3rem] border border-slate-200 dark:border-slate-800 shadow-sm">
+               <p className="text-xs font-black text-slate-400 uppercase tracking-widest mb-3">{t('financial.collected')} ({monthName})</p>
+               <p className="text-5xl font-black text-emerald-600 tracking-tighter tabular-nums">{t('common.currencySymbol')} {monthPaidTotal.toFixed(2)}</p>
             </div>
-            <div className="bg-white dark:bg-slate-900 p-8 rounded-[2.5rem] border border-slate-200 dark:border-slate-800 shadow-sm">
-               <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2">{t('financial.pending')}</p>
-               <p className="text-4xl font-black text-red-600 tracking-tighter tabular-nums">{t('common.currencySymbol')} {monthUnpaidTotal.toFixed(2)}</p>
+            <div className="bg-white dark:bg-slate-900 p-10 rounded-[3rem] border border-slate-200 dark:border-slate-800 shadow-sm">
+               <p className="text-xs font-black text-slate-400 uppercase tracking-widest mb-3">{t('financial.pending')}</p>
+               <p className="text-5xl font-black text-red-600 tracking-tighter tabular-nums">{t('common.currencySymbol')} {monthUnpaidTotal.toFixed(2)}</p>
             </div>
-            <div className="bg-slate-900 p-8 rounded-[2.5rem] text-white shadow-2xl relative overflow-hidden">
+            <div className="bg-slate-900 p-10 rounded-[3rem] text-white shadow-2xl relative overflow-hidden">
               <div className="absolute top-0 right-0 w-24 h-24 bg-blue-600 rounded-full blur-[60px] opacity-20" />
-              <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-4">{t('financial.health')}</p>
-              <div className="flex items-center gap-4">
-                <span className="text-4xl font-black tracking-tighter tabular-nums">{healthPercentage}%</span>
-                <div className="flex-1 h-3 bg-white/10 rounded-full overflow-hidden">
-                   <div className="h-full bg-blue-500 transition-all duration-1000" style={{ width: `${healthPercentage}%` }} />
+              <p className="text-xs font-black text-slate-400 uppercase tracking-widest mb-6">{t('financial.health')}</p>
+              <div className="flex items-center gap-6">
+                <span className="text-5xl font-black tracking-tighter tabular-nums">{healthPercentage}%</span>
+                <div className="flex-1 h-4 bg-white/10 rounded-full overflow-hidden">
+                   <div className="h-full bg-blue-500 transition-all duration-1000 shadow-lg shadow-blue-500/50" style={{ width: `${healthPercentage}%` }} />
                 </div>
               </div>
             </div>
@@ -759,7 +759,7 @@ const BusinessHub: React.FC = () => {
              {isAiLoading ? (
                <div className="py-20 flex flex-col items-center justify-center gap-6">
                  <div className="w-16 h-16 border-4 border-emerald-500 border-t-transparent rounded-full animate-spin" />
-                 <p className="text-sm font-bold text-slate-500 animate-pulse uppercase tracking-widest">IA PPH Analisando seu Dojo...</p>
+                 <p className="text-sm font-bold text-slate-500 animate-pulse uppercase tracking-widest">IA SYSBJJ Analisando seu Dojo...</p>
                </div>
              ) : (
                <div className="space-y-6">

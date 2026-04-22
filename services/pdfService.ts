@@ -71,7 +71,7 @@ export const generateReceiptPdf = (data: ReceiptData) => {
   doc.line(20, 110, 190, 110);
   
   doc.setFontSize(10);
-  doc.text('Assinado digitalmente pelo Sistema PPH Academy', 105, 120, { align: 'center' });
+  doc.text('Assinado digitalmente pelo Sistema SYSBJJ 2.0', 105, 120, { align: 'center' });
   doc.text(`Professor Responsável: ${data.professorName}`, 105, 126, { align: 'center' });
   
   // Integrity Hash (Simulated)

@@ -54,26 +54,28 @@ const Sidebar = ({ isOpen, toggle, onLogout }: { isOpen: boolean, toggle: () => 
         onClick={toggle}
       />
       
-      <aside className={`fixed inset-y-0 left-0 z-[60] bg-white dark:bg-slate-950 border-r border-slate-200 dark:border-slate-800 text-slate-900 dark:text-slate-100 transform transition-all duration-500 ease-[cubic-bezier(0.2,0.8,0.2,1)] flex flex-col overflow-y-auto scrollbar-hide
-        ${isOpen ? 'translate-x-0 w-72 shadow-2xl shadow-blue-500/10' : '-translate-x-full lg:translate-x-0 lg:w-20 xl:w-20'}`}>
+      <aside className={`fixed inset-y-0 left-0 z-[60] bg-white dark:bg-slate-950 border-r border-slate-200 dark:border-slate-800 text-slate-900 dark:text-slate-100 transform transition-all duration-700 ease-[cubic-bezier(0.2,0.8,0.2,1)] flex flex-col overflow-y-auto scrollbar-hide
+        ${isOpen ? 'translate-x-0 w-72 shadow-3xl shadow-blue-500/10' : '-translate-x-full lg:translate-x-0 lg:w-20 xl:w-64'}`}>
         
-        <div className="flex-none flex items-center justify-between p-6 h-20 overflow-hidden shrink-0 border-b border-slate-100 dark:border-slate-800/50">
-          <div className="flex items-center gap-3">
+        <div className="flex-none flex items-center justify-between p-6 h-24 overflow-hidden shrink-0 border-b border-slate-100 dark:border-slate-800/50">
+          <div className="flex items-center gap-4">
             {profile.logoUrl ? (
-              <div className="w-10 h-10 rounded-xl overflow-hidden shadow-xl shadow-blue-500/10 shrink-0">
-                <img src={profile.logoUrl} alt="Logo" className="w-full h-full object-contain" referrerPolicy="no-referrer" />
+              <div className="w-12 h-12 rounded-2xl overflow-hidden shadow-xl shadow-blue-500/10 shrink-0 group">
+                <img src={profile.logoUrl} alt="Logo" className="w-full h-full object-contain group-hover:scale-110 transition-transform duration-500" referrerPolicy="no-referrer" />
               </div>
             ) : (
-              <div className="w-10 h-10 bg-slate-900 dark:bg-blue-600 rounded-xl flex items-center justify-center font-bold text-xl text-white shadow-xl shadow-blue-500/10 shrink-0">
-                {profile.academyName[0] || 'P'}
+              <div className="w-12 h-12 bg-slate-950 dark:bg-blue-600 rounded-2xl flex items-center justify-center font-black text-2xl text-white shadow-2xl shadow-blue-500/20 shrink-0 group">
+                <span className="group-hover:scale-110 transition-transform duration-500">
+                  {profile.academyName[0] || 'S'}
+                </span>
               </div>
             )}
-            <div className={`overflow-hidden transition-all duration-500 ${isOpen ? 'opacity-100 translate-x-0' : 'lg:opacity-0 xl:opacity-100 lg:-translate-x-4 xl:translate-x-0'}`}>
-              <h1 className="font-display font-black leading-none tracking-tight text-slate-900 dark:text-white uppercase text-sm">{(profile.academyName || 'PPH BJJ ACADEMY').toUpperCase()}</h1>
-              <p className="text-[9px] text-slate-500 dark:text-slate-400 uppercase tracking-widest font-black mt-1">Elite Management</p>
+            <div className={`overflow-hidden transition-all duration-700 ${isOpen ? 'opacity-100 translate-x-0' : 'lg:opacity-0 xl:opacity-0 lg:-translate-x-4 xl:translate-x-0'}`}>
+              <h1 className="font-display font-black leading-none tracking-tight text-slate-900 dark:text-white uppercase text-base whitespace-nowrap">{(profile.academyName || 'SYSBJJ 2.0').toUpperCase()}</h1>
+              <p className="text-[10px] text-blue-600 dark:text-blue-400 uppercase tracking-[0.3em] font-black mt-1">Academy Suite</p>
             </div>
           </div>
-          <button onClick={toggle} className="lg:hidden text-slate-400 hover:text-slate-900 dark:hover:text-white p-2">
+          <button onClick={toggle} className="lg:hidden text-slate-400 hover:text-red-500 p-2">
             <X size={24} />
           </button>
         </div>
@@ -85,11 +87,11 @@ const Sidebar = ({ isOpen, toggle, onLogout }: { isOpen: boolean, toggle: () => 
               <Link
                 key={item.id}
                 to={`/${item.id}`}
-                className={`flex items-center gap-4 px-4 py-3.5 rounded-xl transition-all duration-300 group relative ${isActive ? 'bg-blue-600 text-white shadow-xl shadow-blue-500/20' : 'text-slate-500 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800/50 hover:text-slate-900 dark:hover:text-white'}`}
+                className={`flex items-center gap-4 px-4 py-3.5 rounded-xl transition-all duration-300 group relative ${isActive ? 'bg-blue-600 text-white shadow-xl shadow-blue-500/30 ring-1 ring-white/10' : 'text-slate-500 dark:text-slate-500 hover:bg-slate-50 dark:hover:bg-slate-800/50 hover:text-slate-900 dark:hover:text-white'}`}
                 onClick={() => { if(window.innerWidth < 1024) toggle(); }}
               >
-                <div className={`shrink-0 transition-transform duration-300 ${isActive ? 'scale-110' : 'group-hover:scale-110'}`}>{item.icon}</div>
-                <span className={`font-black tracking-tight uppercase text-[10px] truncate transition-all duration-500 ${isOpen ? 'opacity-100 translate-x-0' : 'lg:opacity-0 xl:opacity-100 lg:-translate-x-4 xl:translate-x-0'}`}>
+                <div className={`shrink-0 transition-all duration-500 ${isActive ? 'scale-110 rotate-0' : 'group-hover:scale-110 group-hover:-rotate-3'}`}>{item.icon}</div>
+                <span className={`font-black tracking-widest uppercase text-[11px] truncate transition-all duration-700 ${isOpen ? 'opacity-100 translate-x-0' : 'lg:opacity-0 xl:opacity-0 lg:-translate-x-4'}`}>
                   {t(`common.${item.id}`)}
                 </span>
                 {isActive && (
@@ -100,7 +102,7 @@ const Sidebar = ({ isOpen, toggle, onLogout }: { isOpen: boolean, toggle: () => 
                   />
                 )}
                 {!isOpen && (
-                  <div className="absolute left-full ml-4 px-3 py-2 bg-slate-900 dark:bg-slate-800 text-white text-[10px] font-black uppercase tracking-widest rounded-lg shadow-2xl opacity-0 group-hover:opacity-100 pointer-events-none transition-all z-50 whitespace-nowrap lg:block xl:hidden hidden border border-slate-800 dark:border-slate-700">
+                  <div className="absolute left-full ml-4 px-4 py-2 bg-slate-900 dark:bg-slate-800 text-white text-[10px] font-black uppercase tracking-[0.2em] rounded-xl shadow-2xl opacity-0 group-hover:opacity-100 pointer-events-none transition-all z-50 whitespace-nowrap lg:block hidden border border-slate-800 dark:border-slate-700">
                     {t(`common.${item.id}`)}
                   </div>
                 )}
@@ -209,11 +211,11 @@ const Header = ({ toggleSidebar, auth, onLogout }: { toggleSidebar: () => void, 
           </div>
         ) : (
           <div className="w-10 h-10 bg-blue-600 rounded-xl flex items-center justify-center font-black text-white">
-            {profile.academyName[0] || 'P'}
+            {profile.academyName[0] || 'S'}
           </div>
         )}
         <div>
-          <h2 className="text-sm font-black text-white uppercase tracking-tighter leading-none">{profile.academyName || 'PPH BJJ ACADEMY'}</h2>
+          <h2 className="text-sm font-black text-white uppercase tracking-tighter leading-none">{profile.academyName || 'SYSBJJ 2.0'}</h2>
           <p className="text-[8px] font-bold text-blue-400 uppercase tracking-widest">{t('portal.studentPortal')}</p>
         </div>
       </div>
@@ -244,29 +246,29 @@ const Header = ({ toggleSidebar, auth, onLogout }: { toggleSidebar: () => void, 
   );
   
   return (
-    <header className="h-16 sm:h-20 bg-white/70 dark:bg-slate-950/70 backdrop-blur-xl border-b border-slate-200 dark:border-slate-800/50 flex items-center justify-between px-4 sm:px-8 sticky top-0 z-40 w-full transition-all duration-300">
+    <header className="h-16 sm:h-20 bg-white/70 dark:bg-slate-950/70 backdrop-blur-xl border-b border-slate-200 dark:border-slate-800/50 flex items-center justify-between px-4 sm:px-12 sticky top-0 z-40 w-full transition-all duration-300">
       <div className="flex items-center gap-4 flex-1">
         <button onClick={toggleSidebar} className="lg:hidden p-2.5 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-slate-500 dark:text-slate-400 rounded-xl active:scale-95 transition-all">
           <Menu size={20} />
         </button>
         
         <div className="hidden sm:flex flex-col">
-           <h2 className="text-[10px] font-black text-slate-900 dark:text-white uppercase tracking-[0.2em] leading-none mb-1">
-             {currentTime.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' })}
+           <h2 className="text-[10px] font-black text-blue-600 dark:text-blue-400 uppercase tracking-[0.2em] leading-none mb-1">
+             {currentTime.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
            </h2>
-           <p className="text-[8px] font-black text-slate-400 uppercase tracking-widest">
+           <p className="text-[8px] font-black text-slate-400 uppercase tracking-widest leading-none">
              {currentTime.toLocaleDateString(t('common.dateLocale'), { weekday: 'long', day: 'numeric', month: 'short' })}
            </p>
         </div>
       </div>
 
-      <div className="flex items-center gap-3 sm:gap-4">
-        <div className="hidden md:flex items-center gap-2 px-4 py-2.5 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl group focus-within:ring-2 focus-within:ring-blue-500/30 transition-all">
-          <Search size={16} className="text-slate-400 group-focus-within:text-blue-500" />
+      <div className="flex items-center gap-3 sm:gap-6">
+        <div className="hidden lg:flex items-center gap-2 px-5 py-2.5 bg-slate-50/50 dark:bg-slate-900/50 border border-slate-200 dark:border-slate-800 rounded-2xl group focus-within:ring-4 focus-within:ring-blue-500/5 focus-within:border-blue-500/50 transition-all">
+          <Search size={14} className="text-slate-400 group-focus-within:text-blue-500 transition-colors" />
           <input 
             type="text" 
             placeholder={t('common.search')} 
-            className="bg-transparent border-none outline-none text-[10px] font-bold uppercase tracking-widest w-48 text-slate-900 dark:text-white placeholder:text-slate-400"
+            className="bg-transparent border-none outline-none text-[10px] font-black uppercase tracking-[0.2em] w-32 xl:w-48 text-slate-900 dark:text-white placeholder:text-slate-400 focus:ring-0"
           />
         </div>
 
@@ -399,12 +401,12 @@ const App: React.FC = () => {
       <div className={`flex-1 flex flex-col w-full min-h-screen transition-all duration-500 ease-[cubic-bezier(0.2,0.8,0.2,1)]
         ${(isPortal || auth.role === 'student' || !isAdmin) 
           ? 'pl-0' 
-          : (sidebarOpen ? 'lg:pl-72' : 'lg:pl-20 xl:pl-20')}`}>
+          : (sidebarOpen ? 'lg:pl-72' : 'lg:pl-24 xl:pl-24')}`}>
         {showHeader && <Header toggleSidebar={() => setSidebarOpen(!sidebarOpen)} auth={auth} onLogout={handleLogout} />}
-        <main className={`p-4 sm:p-8 pt-24 lg:pt-28 flex-1 w-full ${isPortal ? 'max-w-full' : 'max-w-full xl:max-w-[1800px]'} mx-auto overflow-x-hidden pb-24 lg:pb-8 relative group`}>
+        <main className={`p-4 sm:p-8 lg:p-12 pt-24 lg:pt-32 flex-1 w-full ${isPortal ? 'max-w-full' : 'max-w-[1920px]'} mx-auto overflow-x-hidden pb-24 lg:pb-12 relative group`}>
           {/* Version Tracking for Sync Verification */}
-          <div className="fixed bottom-4 right-4 pointer-events-none opacity-0 group-hover:opacity-30 transition-opacity z-[100]">
-            <span className="text-[9px] font-mono font-black text-slate-400 bg-white/50 dark:bg-slate-900/50 backdrop-blur-sm px-2 py-1 rounded border border-slate-200 dark:border-slate-800 tracking-tighter">v2.1.2-master</span>
+          <div className="fixed bottom-6 right-6 pointer-events-none opacity-0 group-hover:opacity-30 transition-opacity z-[100]">
+            <span className="text-[10px] font-mono font-black text-slate-400 bg-white/50 dark:bg-slate-900/50 backdrop-blur-sm px-3 py-1.5 rounded-lg border border-slate-200 dark:border-slate-800 tracking-tighter">SYSBJJ-V2.1.2</span>
           </div>
           <div className="page-transition" key={location.pathname}>
             <Routes>

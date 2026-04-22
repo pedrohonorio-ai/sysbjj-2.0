@@ -46,7 +46,7 @@ const AttendancePage: React.FC = () => {
     const selectedClass = schedules.find(s => s.id === selectedClassId);
     
     doc.setFontSize(20);
-    doc.text(`PPH BJJ - Chamada Diária`, 14, 22);
+    doc.text(`SYSBJJ 2.0 - Chamada Diária`, 14, 22);
     doc.setFontSize(12);
     doc.text(`Data: ${today}`, 14, 32);
     doc.text(`Turma: ${selectedClass ? selectedClass.title : 'Todas'}`, 14, 40);
@@ -73,7 +73,7 @@ const AttendancePage: React.FC = () => {
     const month = new Date().toLocaleString('default', { month: 'long', year: 'numeric' });
     
     doc.setFontSize(20);
-    doc.text(`PPH BJJ - Controle Mensal de Frequência`, 14, 22);
+    doc.text(`SYSBJJ 2.0 - Controle Mensal de Frequência`, 14, 22);
     doc.setFontSize(12);
     doc.text(`Mês: ${month}`, 14, 32);
 
@@ -135,43 +135,39 @@ const AttendancePage: React.FC = () => {
     setTimeout(() => setIsSaved(false), 3000);
   };
 
-  const sessionQRCode = `PPH-ATTENDANCE-${new Date().toISOString().split('T')[0]}`;
+  const sessionQRCode = `SYSBJJ-ATTENDANCE-${new Date().toISOString().split('T')[0]}`;
 
   return (
     <div className="space-y-8 animate-in fade-in duration-500 max-w-7xl mx-auto pb-12">
-      <div className="flex flex-col lg:flex-row items-start lg:items-center justify-between gap-6">
-        <div>
-          <h1 className="text-3xl font-black text-slate-900 dark:text-white tracking-tighter uppercase">{t('attendance.title')}</h1>
-          <p className="text-slate-500 font-medium italic mt-1">{t('attendance.subtitle')}</p>
+      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-6">
+        <div className="animate-in slide-in-from-left duration-700">
+          <h1 className="text-4xl font-black text-slate-900 dark:text-white tracking-tighter uppercase leading-none">{t('attendance.title')}</h1>
+          <p className="text-slate-500 font-bold italic mt-2 text-xs opacity-70">{t('attendance.subtitle')}</p>
         </div>
-        <div className="flex flex-wrap gap-4 w-full lg:w-auto">
-          <button 
-            onClick={handleExportDaily}
-            className="flex-1 sm:flex-none bg-white dark:bg-slate-800 text-slate-600 dark:text-slate-300 px-6 py-4 rounded-2xl flex items-center justify-center gap-3 border border-slate-200 dark:border-slate-700 shadow-sm hover:bg-slate-50 transition-all font-black text-[10px] uppercase tracking-widest"
-          >
-            <Download size={18} /> {t('attendance.exportDaily')}
-          </button>
-          <button 
-            onClick={handleExportMonthly}
-            className="flex-1 sm:flex-none bg-white dark:bg-slate-800 text-slate-600 dark:text-slate-300 px-6 py-4 rounded-2xl flex items-center justify-center gap-3 border border-slate-200 dark:border-slate-700 shadow-sm hover:bg-slate-50 transition-all font-black text-[10px] uppercase tracking-widest"
-          >
-            <FileSpreadsheet size={18} /> {t('attendance.exportMonthly')}
-          </button>
-          <button 
-            onClick={handlePhotoAttendance}
-            disabled={isAnalyzingPhoto}
-            className="flex-1 sm:flex-none bg-slate-900 text-white px-8 py-4 rounded-[1.5rem] flex items-center justify-center gap-3 shadow-xl hover:bg-slate-800 transition-all font-black text-[10px] uppercase tracking-widest disabled:opacity-50"
-          >
-            <Camera size={20} className={isAnalyzingPhoto ? 'animate-pulse' : ''} />
-            {isAnalyzingPhoto ? t('attendance.analyzing').toUpperCase() : t('attendance.photoBtn').toUpperCase()}
-          </button>
+        <div className="flex flex-wrap gap-3 w-full sm:w-auto">
           <button 
             onClick={() => setShowQRGenerator(true)}
-            className="flex-1 sm:flex-none bg-blue-600 text-white px-8 py-4 rounded-[1.5rem] flex items-center justify-center gap-3 shadow-xl shadow-blue-500/20 hover:bg-blue-700 transition-all font-black text-[10px] uppercase tracking-widest"
+            className="flex-1 sm:flex-none bg-blue-600 text-white px-8 py-4 rounded-2xl flex items-center justify-center gap-3 shadow-2xl shadow-blue-500/25 hover:bg-blue-700 active:scale-95 transition-all font-black text-[10px] uppercase tracking-widest"
           >
-            <QrCode size={20} />
-            {t('attendance.qrBtn').toUpperCase()}
+            <QrCode size={18} />
+            {t('attendance.qrBtn')}
           </button>
+          <div className="flex gap-2 flex-1 sm:flex-none">
+            <button 
+              onClick={handleExportDaily}
+              className="flex-1 p-4 bg-white dark:bg-slate-900 text-slate-600 dark:text-slate-400 rounded-2xl flex items-center justify-center border border-slate-100 dark:border-slate-800 shadow-sm hover:bg-slate-50 transition-all group"
+              title={t('attendance.exportDaily')}
+            >
+              <Download size={18} className="group-hover:scale-110 transition-transform" />
+            </button>
+            <button 
+              onClick={handleExportMonthly}
+              className="flex-1 p-4 bg-white dark:bg-slate-900 text-slate-600 dark:text-slate-400 rounded-2xl flex items-center justify-center border border-slate-100 dark:border-slate-800 shadow-sm hover:bg-slate-50 transition-all group"
+              title={t('attendance.exportMonthly')}
+            >
+              <FileSpreadsheet size={18} className="group-hover:scale-110 transition-transform" />
+            </button>
+          </div>
         </div>
       </div>
 

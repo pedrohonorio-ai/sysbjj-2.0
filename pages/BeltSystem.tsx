@@ -339,7 +339,7 @@ const BeltSystem: React.FC = () => {
         <div className="space-y-2">
           <div className="flex items-center gap-3 text-blue-600 mb-2">
             <Award size={24} />
-            <span className="text-[10px] font-black uppercase tracking-[0.3em]">Sistema de Progressão PPH</span>
+            <span className="text-[10px] font-black uppercase tracking-[0.3em]">Sistema de Progressão SYSBJJ</span>
           </div>
           <h1 className="text-5xl font-black text-slate-900 dark:text-white tracking-tighter uppercase leading-none">{t('beltSystem.title')}</h1>
           <p className="text-slate-500 font-medium italic text-lg">{t('beltSystem.subtitle')}</p>

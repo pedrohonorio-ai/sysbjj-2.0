@@ -66,17 +66,17 @@ const Classes: React.FC = () => {
 
   return (
     <div className="space-y-8 animate-in fade-in duration-500 max-w-7xl mx-auto pb-12">
-      <div className="flex flex-col lg:flex-row items-start lg:items-center justify-between gap-6">
-        <div>
-          <h1 className="text-3xl font-black text-slate-900 dark:text-white tracking-tighter uppercase">{t('classes.title')}</h1>
-          <p className="text-slate-500 font-medium italic mt-1">{t('classes.subtitle')}</p>
+      <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-6 mb-12">
+        <div className="animate-in slide-in-from-left duration-700">
+          <h1 className="text-4xl font-black text-slate-900 dark:text-white tracking-tighter uppercase leading-none">{t('classes.title')}</h1>
+          <p className="text-slate-500 font-bold italic mt-2 text-xs opacity-70">{t('classes.subtitle')}</p>
         </div>
         <button 
           onClick={() => { setIsAdding(true); setEditingId(null); setFormData({ time: '09:00', title: '', instructor: '', category: t('common.adult'), days: [] }); }}
-          className="w-full lg:w-auto bg-blue-600 text-white px-8 py-4 rounded-[1.5rem] flex items-center justify-center gap-3 shadow-xl shadow-blue-500/20 hover:bg-blue-700 transition-all font-black text-[10px] uppercase tracking-widest"
+          className="w-full lg:w-auto bg-blue-600 text-white px-8 py-4 rounded-2xl flex items-center justify-center gap-3 shadow-2xl shadow-blue-500/25 hover:bg-blue-700 active:scale-95 transition-all font-black text-[10px] uppercase tracking-widest"
         >
           <Plus size={20} />
-          {t('classes.addBtn').toUpperCase()}
+          {t('classes.addBtn')}
         </button>
       </div>
 

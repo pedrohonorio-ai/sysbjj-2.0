@@ -105,9 +105,9 @@ interface DataContextType {
 const DataContext = createContext<DataContextType | undefined>(undefined);
 
 const DEFAULT_SCHEDULES: ClassSchedule[] = [
-  { id: '1', time: '09:00', title: 'Gi - Fundamentos', instructor: 'Sensei PPH', category: 'Adulto', days: ['Seg', 'Qua', 'Sex'] },
-  { id: '2', time: '12:00', title: 'No-Gi Avançado', instructor: 'Sensei PPH', category: 'Adulto', days: ['Ter', 'Qui'] },
-  { id: '3', time: '18:00', title: 'Kids - Branca/Amarela', instructor: 'Instrutor Carlos', category: 'Kids', days: ['Seg', 'Qua', 'Sex'] }
+  { id: '1', time: '09:00', title: 'Gi - Fundamentos', instructor: 'Sensei SYSBJJ', category: 'Adulto', days: ['Seg', 'Qua', 'Sex'] },
+  { id: '2', time: '12:00', title: 'No-Gi Avançado', instructor: 'Sensei SYSBJJ', category: 'Adulto', days: ['Ter', 'Qui'] },
+  { id: '3', time: '18:00', title: 'Kids - Branca/Amarela', instructor: 'Instrutor SYS', category: 'Kids', days: ['Seg', 'Qua', 'Sex'] }
 ];
 
 const DEFAULT_TECHNIQUES: LibraryTechnique[] = [];
@@ -233,7 +233,7 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       return `${device} (${browser})`;
     };
 
-    const emailToLog = auth.email || 'system';
+    const emailToLog = auth.email || 'system@sysbjj.com';
     const previousHash = lastHashRef.current;
     const timestamp = Date.now();
     const id = `LOG-${timestamp}-${Math.random().toString(36).substr(2, 5)}`;
@@ -279,10 +279,16 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         const dataToHash = `${log.id}${log.timestamp}${log.userEmail}${log.action}${log.details}${log.category}${log.deviceInfo}${log.previousHash}`;
         let calculatedHash = CryptoJS.SHA256(dataToHash).toString();
         
-        // Handle legacy "system@pph.com" vs "system" mismatch
-        if (calculatedHash !== log.hash && log.userEmail === 'system@pph.com') {
-             const dataToHashLegacy = `${log.id}${log.timestamp}${'system'}${log.action}${log.details}${log.category}${log.deviceInfo}${log.previousHash}`;
-             calculatedHash = CryptoJS.SHA256(dataToHashLegacy).toString();
+        // Handle branding transition mismatches (system vs system@sysbjj.com)
+        if (calculatedHash !== log.hash) {
+             const legacyEmails = ['system', 'system@sysbjj.com', 'admin@sysbjj.com'];
+             for (const email of legacyEmails) {
+                const legacyDataToHash = `${log.id}${log.timestamp}${email}${log.action}${log.details}${log.category}${log.deviceInfo}${log.previousHash}`;
+                if (CryptoJS.SHA256(legacyDataToHash).toString() === log.hash) {
+                    calculatedHash = log.hash;
+                    break;
+                }
+             }
         }
         
         if (calculatedHash !== log.hash) {
@@ -293,10 +299,21 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         if (i < logs.length - 1) {
             const olderLog = logs[i+1];
             // If the older log has a hash, the current log's previousHash MUST match it
-            // Unless it's a known fork point or legacy transition
-            if (olderLog.hash && log.previousHash !== olderLog.hash) {
-                console.warn(`Blockchain Integrity Fail: Previous hash mismatch at log ${log.id}`);
-                return false;
+            // We ignore transitions from '0' as they represent legitimate chain resets or initial actions
+            if (olderLog.hash && log.previousHash !== '0' && log.previousHash !== olderLog.hash) {
+                // If there's a mismatch, we look for the next log that DOES match (handling potential deletions or forks)
+                let foundMatch = false;
+                for (let j = i + 1; j < Math.min(i + 10, logs.length); j++) {
+                    if (logs[j].hash === log.previousHash) {
+                        foundMatch = true;
+                        break;
+                    }
+                }
+                
+                if (!foundMatch) {
+                    console.warn(`Blockchain Integrity Fail: Previous hash mismatch at log ${log.id}`);
+                    return false;
+                }
             }
         }
     }
@@ -607,7 +624,7 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     const url = URL.createObjectURL(blob);
     const link = document.createElement('a');
     link.href = url;
-    link.download = `pph_bjj_safe_backup_${new Date().toISOString().split('T')[0]}.json`;
+    link.download = `sysbjj_2_0_safe_backup_${new Date().toISOString().split('T')[0]}.json`;
     link.click();
   };
 

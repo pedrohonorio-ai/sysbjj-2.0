@@ -61,8 +61,8 @@ export const BELT_COLORS: Record<string, string> = {
 };
 
 export const PIX_CONFIG = {
-  key: 'financeiro@pphbjj.com.br',
-  name: 'PPH BJJ ACADEMY',
+  key: 'financeiro@sysbjj.com.br',
+  name: 'SYSBJJ ACADEMY',
   city: 'SAO PAULO'
 };
 

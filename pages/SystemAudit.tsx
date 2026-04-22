@@ -33,7 +33,9 @@ const SystemAudit: React.FC = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [categoryFilter, setCategoryFilter] = useState<SystemLog['category'] | 'All'>('All');
   const [dateRange, setDateRange] = useState<'Today' | 'Week' | 'Month' | 'All'>('Week');
-  const [viewMode, setViewMode] = useState<'Table' | 'Groups'>('Groups');
+  const [viewMode, setViewMode] = useState<'Table' | 'Groups'>('Table');
+  const [itemsPerPage, setItemsPerPage] = useState(25);
+  const [currentPage, setCurrentPage] = useState(1);
 
   const auth = JSON.parse(localStorage.getItem('oss_auth') || '{}');
   const isAdmin = MASTER_ADMINS.includes(auth.email?.toLowerCase());
@@ -57,15 +59,27 @@ const SystemAudit: React.FC = () => {
     });
   }, [logs, searchTerm, categoryFilter, dateRange]);
 
+  const totalPages = Math.ceil(filteredLogs.length / itemsPerPage);
+  const paginatedLogs = useMemo(() => {
+    const startIndex = (currentPage - 1) * itemsPerPage;
+    return filteredLogs.slice(startIndex, startIndex + itemsPerPage);
+  }, [filteredLogs, currentPage, itemsPerPage]);
+
   const groupedLogs = useMemo(() => {
     const groups: Record<string, SystemLog[]> = {};
-    filteredLogs.forEach(log => {
+    // Only group the first 100 filtered logs to prevent UI lag
+    filteredLogs.slice(0, 100).forEach(log => {
       const date = new Date(log.timestamp).toLocaleDateString();
       if (!groups[date]) groups[date] = [];
       groups[date].push(log);
     });
     return groups;
   }, [filteredLogs]);
+
+  // Reset page when filters change
+  React.useEffect(() => {
+    setCurrentPage(1);
+  }, [searchTerm, categoryFilter, dateRange, viewMode]);
 
   const stats = useMemo(() => {
     const today = new Date().setHours(0, 0, 0, 0);
@@ -116,7 +130,7 @@ const SystemAudit: React.FC = () => {
 
     // Header
     doc.setFontSize(20);
-    doc.text('Relatório de Auditoria PPH BJJ', 14, 22);
+    doc.text('Relatório de Auditoria SYSBJJ 2.0', 14, 22);
     doc.setFontSize(10);
     doc.text(`Gerado em: ${today}`, 14, 30);
     doc.text(`Administrador: ${auth.email || 'Master'}`, 14, 35);
@@ -149,7 +163,7 @@ const SystemAudit: React.FC = () => {
       styles: { fontSize: 8 },
     });
 
-    doc.save(`pph_audit_report_${new Date().toISOString().split('T')[0]}.pdf`);
+    doc.save(`sysbjj_audit_report_${new Date().toISOString().split('T')[0]}.pdf`);
   };
 
   if (!isAdmin) {
@@ -369,18 +383,19 @@ const SystemAudit: React.FC = () => {
             exit={{ opacity: 0, y: -10 }}
             className="bg-white dark:bg-slate-900 rounded-[2rem] border border-slate-200 dark:border-slate-800 shadow-xl overflow-hidden"
           >
-            <div className="overflow-x-auto">
+            {/* Desktop View Table */}
+            <div className="hidden lg:block overflow-x-auto scrollbar-thin scrollbar-thumb-slate-200 dark:scrollbar-thumb-slate-700">
               <table className="w-full text-left border-collapse">
                 <thead className="bg-slate-50 dark:bg-slate-900/50">
                   <tr>
-                    <th className="px-8 py-5 text-[9px] font-black text-slate-400 uppercase tracking-[0.3em]">Data / Hora</th>
-                    <th className="px-8 py-5 text-[9px] font-black text-slate-400 uppercase tracking-[0.3em]">Usuário</th>
-                    <th className="px-8 py-5 text-[9px] font-black text-slate-400 uppercase tracking-[0.3em]">Ação</th>
-                    <th className="px-8 py-5 text-[9px] font-black text-slate-400 uppercase tracking-[0.3em]">Status Blockchain</th>
+                    <th className="px-8 py-5 text-[9px] font-black text-slate-400 uppercase tracking-[0.3em]">{t('common.date') || 'Data / Hora'}</th>
+                    <th className="px-8 py-5 text-[9px] font-black text-slate-400 uppercase tracking-[0.3em]">{t('common.user') || 'Usuário'}</th>
+                    <th className="px-8 py-5 text-[9px] font-black text-slate-400 uppercase tracking-[0.3em]">{t('common.action') || 'Ação'}</th>
+                    <th className="px-8 py-5 text-[9px] font-black text-slate-400 uppercase tracking-[0.3em]">{t('common.status') || 'Status Blockchain'}</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-50 dark:divide-slate-700/50">
-                  {filteredLogs.map((log) => (
+                  {paginatedLogs.map((log) => (
                     <tr key={log.id} className="hover:bg-slate-50 dark:hover:bg-slate-700/30 transition-all group">
                       <td className="px-8 py-5">
                         <p className="text-xs font-bold dark:text-white">{new Date(log.timestamp).toLocaleString()}</p>
@@ -427,6 +442,94 @@ const SystemAudit: React.FC = () => {
                 </tbody>
               </table>
             </div>
+
+            {/* Mobile View Card List */}
+            <div className="lg:hidden divide-y divide-slate-100 dark:divide-slate-800">
+              {paginatedLogs.map((log) => (
+                <div key={log.id} className="p-4 space-y-3">
+                  <div className="flex justify-between items-start">
+                    <div className="space-y-1">
+                      <p className="text-[10px] font-black text-slate-900 dark:text-white uppercase leading-none">{log.action}</p>
+                      <p className="text-[9px] text-slate-500 font-medium italic">{log.details}</p>
+                    </div>
+                    <span className={`px-2 py-0.5 rounded text-[7px] font-black uppercase tracking-widest shrink-0 ${
+                      log.category === 'Security' ? 'bg-red-100 text-red-600' :
+                      log.category === 'Financial' ? 'bg-green-100 text-green-600' :
+                      log.category === 'User' ? 'bg-blue-100 text-blue-600' : 'bg-slate-100 text-slate-600'
+                    }`}>
+                      {log.category}
+                    </span>
+                  </div>
+
+                  <div className="flex items-center justify-between gap-2 pt-1 border-t border-slate-50 dark:border-slate-800/50 pt-2">
+                    <div className="flex items-center gap-2">
+                       <div className="w-6 h-6 bg-slate-50 dark:bg-slate-800 rounded-lg flex items-center justify-center">
+                          {log.deviceInfo.includes('Mobile') || log.deviceInfo.includes('Android') || log.deviceInfo.includes('iOS') ? <Smartphone size={12} className="text-slate-400" /> : <Globe size={12} className="text-slate-400" />}
+                       </div>
+                       <p className="text-[8px] font-black text-slate-400 uppercase tracking-tighter truncate max-w-[120px]">{log.userEmail}</p>
+                    </div>
+                    <p className="text-[9px] font-bold text-slate-400 uppercase tracking-widest">{new Date(log.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</p>
+                  </div>
+                  
+                  <div className="flex items-center justify-between pt-1">
+                    {log.hash ? (
+                      <div className="flex items-center gap-1 text-green-500 text-[7px] font-black uppercase">
+                        <CheckCircle2 size={8} /> INTEGRITY VERIFIED
+                      </div>
+                    ) : (
+                      <span className="text-[7px] text-slate-400 uppercase font-black">Legacy Log</span>
+                    )}
+                    <span className="text-[7px] font-mono text-slate-300">ID: {log.id.substring(0, 8)}</span>
+                  </div>
+                </div>
+              ))}
+            </div>
+
+            {/* Pagination Table */}
+            {totalPages > 1 && (
+              <div className="flex flex-col sm:flex-row items-center justify-between px-8 py-4 bg-slate-50 dark:bg-slate-900/50 border-t border-slate-100 dark:border-slate-800 gap-4">
+                <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">
+                  Mostrando {((currentPage - 1) * itemsPerPage) + 1} - {Math.min(currentPage * itemsPerPage, filteredLogs.length)} de {filteredLogs.length}
+                </p>
+                <div className="flex items-center gap-2">
+                  <button 
+                    onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
+                    disabled={currentPage === 1}
+                    className="p-2 text-slate-400 hover:text-blue-600 disabled:opacity-30 transition-colors"
+                  >
+                    Anterior
+                  </button>
+                  <div className="flex items-center gap-1">
+                    {Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
+                      let pageNum = i + 1;
+                      if (totalPages > 5 && currentPage > 3) {
+                        pageNum = currentPage - 2 + i;
+                        if (pageNum + (4-i) > totalPages) pageNum = totalPages - 4 + i;
+                      }
+                      if (pageNum <= 0) return null;
+                      if (pageNum > totalPages) return null;
+
+                      return (
+                        <button
+                          key={pageNum}
+                          onClick={() => setCurrentPage(pageNum)}
+                          className={`w-8 h-8 rounded-lg text-[10px] font-black transition-all ${currentPage === pageNum ? 'bg-blue-600 text-white' : 'text-slate-400 hover:bg-slate-200 dark:hover:bg-slate-800'}`}
+                        >
+                          {pageNum}
+                        </button>
+                      );
+                    })}
+                  </div>
+                  <button 
+                    onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
+                    disabled={currentPage === totalPages}
+                    className="p-2 text-slate-400 hover:text-blue-600 disabled:opacity-30 transition-colors"
+                  >
+                    Próximo
+                  </button>
+                </div>
+              </div>
+            )}
           </motion.div>
         ) : (
           <motion.div 
@@ -494,6 +597,20 @@ const SystemAudit: React.FC = () => {
                 </div>
               </div>
             ))}
+            
+            {filteredLogs.length > 100 && (
+              <div className="p-8 text-center bg-blue-500/5 rounded-[2rem] border border-blue-500/10">
+                <p className="text-[10px] font-black text-blue-500 uppercase tracking-widest">
+                  Visualização de datas limitada aos últimos 100 registros para economia de recursos.
+                </p>
+                <button 
+                  onClick={() => setViewMode('Table')}
+                  className="mt-2 text-[10px] font-black text-slate-400 hover:text-blue-600 uppercase tracking-widest underline underline-offset-4"
+                >
+                  Ver lista completa com paginação na Tabela
+                </button>
+              </div>
+            )}
           </motion.div>
         )}
       </AnimatePresence>

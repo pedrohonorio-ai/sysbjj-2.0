@@ -10,13 +10,13 @@ interface ProfileContextType {
 }
 
 const DEFAULT_PROFILE: ProfessorProfile = {
-  name: 'Sensei PPH',
-  academyName: 'PPH BJJ',
+  name: 'Sensei SYSBJJ',
+  academyName: 'SYSBJJ 2.0',
   belt: BeltColor.BLACK,
   stripes: 6,
   specialization: 'Jiu-Jitsu de Elite',
-  pixKey: 'financeiro@pphbjj.com.br',
-  pixName: 'PPH BJJ ACADEMY',
+  pixKey: 'financeiro@sysbjj.com.br',
+  pixName: 'SYSBJJ ACADEMY',
   pixCity: 'SAO PAULO',
   graduationRules: `# Critérios de Graduação da Equipe\n\nPara avançar em sua jornada, o aluno deve cumprir os seguintes requisitos:\n\n1. **Frequência Mínima**: Presença em pelo menos 3 aulas semanais.\n2. **Conhecimento Técnico**: Domínio das técnicas base de sua faixa atual.\n3. **Comportamento**: Disciplina, respeito aos colegas e professores (OSS).\n4. **Participação em Seminários**: Recomendado pelo menos 1 seminário técnico por ano.\n5. **Tempo de Faixa**: Seguir os tempos mínimos exigidos pela IBJJF.\n\n*A decisão final de graduação cabe sempre ao Professor Responsável.*`,
   customCriteria: [

@@ -61,7 +61,7 @@ const IBJJFRules: React.FC = () => {
       }
       const ai = new GoogleGenAI({ apiKey: apiKey.trim() });
       const response = await ai.models.generateContent({
-        model: "gemini-3-flash-preview",
+        model: "gemini-1.5-flash",
         contents: userMessage,
         config: {
           systemInstruction: `Você é um especialista em regras de Jiu-Jitsu da CBJJ/IBJJF. 
