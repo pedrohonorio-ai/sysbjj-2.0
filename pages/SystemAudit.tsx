@@ -28,7 +28,7 @@ const SystemAudit: React.FC = () => {
   const [categoryFilter, setCategoryFilter] = useState<SystemLog['category'] | 'All'>('All');
 
   const auth = JSON.parse(localStorage.getItem('oss_auth') || '{}');
-  const isAdmin = auth.email === 'dashfire@gmail.com';
+  const isAdmin = ['dashfire@gmail.com', 'pedro.honorio@gm.rio'].includes(auth.email?.toLowerCase());
 
   const filteredLogs = useMemo(() => {
     return logs.filter(log => {
