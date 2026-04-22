@@ -494,7 +494,7 @@ const StudentDetailsModal = ({ student, onClose }: { student: Student; onClose: 
                 {student.photoUrl ? (
                   <img src={student.photoUrl} alt={student.name} className="w-full h-full object-cover" />
                 ) : (
-                  student.name[0]
+                  (student?.name || '?')[0]
                 )}
               </div>
               <div className="text-left space-y-1 sm:space-y-2">
@@ -502,7 +502,7 @@ const StudentDetailsModal = ({ student, onClose }: { student: Student; onClose: 
                    <h2 className="text-2xl sm:text-4xl font-black tracking-tighter uppercase leading-none truncate max-w-[200px] sm:max-w-none">{student.name}</h2>
                    {student.nickname && <span className="px-3 py-1 sm:px-4 sm:py-1.5 bg-white/20 rounded-xl text-[10px] sm:text-xs font-black uppercase tracking-widest italic w-fit">"{student.nickname}"</span>}
                    <span className="px-3 py-1 sm:px-4 sm:py-1.5 bg-white/10 rounded-xl text-[10px] sm:text-xs font-black uppercase tracking-widest w-fit">
-                     {calculateAge(student.birthDate)} {t('students.athleteAge').split(' ')[1].toLowerCase()}
+                     {calculateAge(student.birthDate)} {(t('students.athleteAge') || 'Idade').split(' ')[1]?.toLowerCase() || ''}
                    </span>
                 </div>
                 <div className="flex flex-wrap gap-2 sm:gap-3">
@@ -1141,8 +1141,10 @@ const Students: React.FC = () => {
 
   const filteredStudents = useMemo(() => {
     return students.filter(s => {
-      const nameMatch = s.name.toLowerCase().includes(searchTerm.toLowerCase());
-      const nicknameMatch = s.nickname?.toLowerCase().includes(searchTerm.toLowerCase());
+      const name = s?.name || '';
+      const nickname = s?.nickname || '';
+      const nameMatch = name.toLowerCase().includes(searchTerm.toLowerCase());
+      const nicknameMatch = nickname.toLowerCase().includes(searchTerm.toLowerCase());
       const matchesSearch = nameMatch || nicknameMatch;
       
       if (activeView === 'competitors') return matchesSearch && s.isCompetitor;
@@ -1234,7 +1236,7 @@ const Students: React.FC = () => {
                         {student.photoUrl ? (
                           <img src={student.photoUrl} alt={student.name} className="w-full h-full object-cover" referrerPolicy="no-referrer" />
                         ) : (
-                          student.name[0]
+                          (student?.name || '?')[0]
                         )}
                       </div>
                       <div className="min-w-0">
@@ -1293,7 +1295,7 @@ const Students: React.FC = () => {
                     {student.photoUrl ? (
                       <img src={student.photoUrl} alt={student.name} className="w-full h-full object-cover" referrerPolicy="no-referrer" />
                     ) : (
-                      <span className="text-xl">{student.name[0]}</span>
+                      <span className="text-xl">{(student?.name || '?')[0]}</span>
                     )}
                   </div>
                   <div className="min-w-0">

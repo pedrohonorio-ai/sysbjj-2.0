@@ -126,6 +126,19 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     }
   }, []);
 
+  // Função auxiliar para salvar com segurança
+  const saveSafely = useCallback((key: string, value: any) => {
+    try {
+      localStorage.setItem(key, JSON.stringify(value));
+    } catch (e) {
+      if (e instanceof Error && e.name === 'QuotaExceededError') {
+        console.warn(`Local Storage quota exceeded for ${key}. Data will not be persisted locally.`);
+      } else {
+        console.error(`Error saving ${key} to local storage:`, e);
+      }
+    }
+  }, []);
+
   const [students, setStudents] = useState<Student[]>(() => loadSafely('oss_students', []));
   const [payments, setPayments] = useState<Payment[]>(() => loadSafely('oss_payments', []));
   const [schedules, setSchedules] = useState<ClassSchedule[]>(() => loadSafely('oss_schedules', DEFAULT_SCHEDULES));
@@ -201,18 +214,18 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   }, []);
 
   // Persistência automática em cada mudança (Local Storage as fallback for UI smoothness)
-  useEffect(() => { localStorage.setItem('oss_students', JSON.stringify(students)); }, [students]);
-  useEffect(() => { localStorage.setItem('oss_payments', JSON.stringify(payments)); }, [payments]);
-  useEffect(() => { localStorage.setItem('oss_schedules', JSON.stringify(schedules)); }, [schedules]);
-  useEffect(() => { localStorage.setItem('oss_gallery', JSON.stringify(gallery)); }, [gallery]);
-  useEffect(() => { localStorage.setItem('oss_extra_revenue', JSON.stringify(extraRevenue)); }, [extraRevenue]);
-  useEffect(() => { localStorage.setItem('oss_orders', JSON.stringify(orders)); }, [orders]);
-  useEffect(() => { localStorage.setItem('oss_lesson_plans', JSON.stringify(lessonPlans)); }, [lessonPlans]);
-  useEffect(() => { localStorage.setItem('oss_techniques', JSON.stringify(techniques)); }, [techniques]);
-  useEffect(() => { localStorage.setItem('oss_products', JSON.stringify(products)); }, [products]);
-  useEffect(() => { localStorage.setItem('oss_plans', JSON.stringify(plans)); }, [plans]);
-  useEffect(() => { localStorage.setItem('oss_receipts', JSON.stringify(receipts)); }, [receipts]);
-  useEffect(() => { localStorage.setItem('oss_ledger', JSON.stringify(ledger)); }, [ledger]);
+  useEffect(() => { saveSafely('oss_students', students); }, [students, saveSafely]);
+  useEffect(() => { saveSafely('oss_payments', payments); }, [payments, saveSafely]);
+  useEffect(() => { saveSafely('oss_schedules', schedules); }, [schedules, saveSafely]);
+  useEffect(() => { saveSafely('oss_gallery', gallery); }, [gallery, saveSafely]);
+  useEffect(() => { saveSafely('oss_extra_revenue', extraRevenue); }, [extraRevenue, saveSafely]);
+  useEffect(() => { saveSafely('oss_orders', orders); }, [orders, saveSafely]);
+  useEffect(() => { saveSafely('oss_lesson_plans', lessonPlans); }, [lessonPlans, saveSafely]);
+  useEffect(() => { saveSafely('oss_techniques', techniques); }, [techniques, saveSafely]);
+  useEffect(() => { saveSafely('oss_products', products); }, [products, saveSafely]);
+  useEffect(() => { saveSafely('oss_plans', plans); }, [plans, saveSafely]);
+  useEffect(() => { saveSafely('oss_receipts', receipts); }, [receipts, saveSafely]);
+  useEffect(() => { saveSafely('oss_ledger', ledger); }, [ledger, saveSafely]);
 
   const logAction = useCallback((action: string, details: string, category: SystemLog['category']) => {
     const auth = JSON.parse(localStorage.getItem('oss_auth') || '{}');
