@@ -11,6 +11,8 @@
   --color-bjj-slate: #0F172A;
 }
 
+@variant dark (&:where(.dark, .dark *));
+
 :root {
   --sat: env(safe-area-inset-top);
   --sar: env(safe-area-inset-right);
@@ -25,6 +27,7 @@ body {
   -webkit-tap-highlight-color: transparent;
   overscroll-behavior-y: contain;
   padding: var(--sat) var(--sar) var(--sab) var(--sal);
+  transition: background-color 0.4s cubic-bezier(0.4, 0, 0.2, 1), border-color 0.4s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 .dark body {

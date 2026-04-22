@@ -275,13 +275,17 @@ const App: React.FC = () => {
   }
 
   const isPortal = location.pathname.startsWith('/portal/');
+  const isAdmin = auth.role === 'admin';
 
   return (
-    <div className="min-h-screen flex bg-slate-50 dark:bg-slate-950 text-slate-900 dark:text-slate-100 transition-colors duration-300 selection:bg-blue-100 selection:text-blue-900 overflow-x-hidden">
-      {auth.role === 'admin' && <Sidebar isOpen={sidebarOpen} toggle={() => setSidebarOpen(!sidebarOpen)} onLogout={handleLogout} />}
-      <div className={`flex-1 flex flex-col ${isPortal || auth.role === 'student' ? 'lg:pl-0' : 'lg:pl-20 xl:pl-72'} w-full min-h-screen transition-all duration-300`}>
-        {auth.role === 'admin' && <Header toggleSidebar={() => setSidebarOpen(!sidebarOpen)} />}
-        <main className={`p-4 sm:p-8 pt-24 lg:pt-28 flex-1 w-full ${isPortal ? '' : 'max-w-full xl:max-w-[1800px]'} mx-auto overflow-x-hidden pb-24 lg:pb-8`}>
+    <div className="min-h-screen flex bg-slate-50 dark:bg-slate-950 text-slate-900 dark:text-slate-100 transition-colors duration-400 selection:bg-blue-100 selection:text-blue-900 overflow-x-hidden">
+      {isAdmin && <Sidebar isOpen={sidebarOpen} toggle={() => setSidebarOpen(!sidebarOpen)} onLogout={handleLogout} />}
+      <div className={`flex-1 flex flex-col w-full min-h-screen transition-all duration-500 ease-[cubic-bezier(0.2,0.8,0.2,1)]
+        ${(isPortal || auth.role === 'student' || !isAdmin) 
+          ? 'pl-0' 
+          : (sidebarOpen ? 'lg:pl-72' : 'lg:pl-20 xl:pl-72')}`}>
+        {isAdmin && <Header toggleSidebar={() => setSidebarOpen(!sidebarOpen)} />}
+        <main className={`p-4 sm:p-8 pt-24 lg:pt-28 flex-1 w-full ${isPortal ? 'max-w-full' : 'max-w-full 2xl:max-w-7xl'} mx-auto overflow-x-hidden pb-24 lg:pb-8`}>
           <div className="page-transition">
             <Routes>
               {auth.role === 'admin' ? (
