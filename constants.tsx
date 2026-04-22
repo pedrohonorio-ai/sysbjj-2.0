@@ -17,6 +17,8 @@ import {
   Store
 } from 'lucide-react';
 
+export const MASTER_ADMINS = ['dahfire@gmail.com', 'dashfire@gmail.com', 'pedro.honorio@gm.rio'];
+
 export const NAVIGATION_ITEMS = [
   { id: 'dashboard', label: 'Painel', icon: <LayoutDashboard size={20} /> },
   { id: 'students', label: 'Alunos', icon: <Users size={20} /> },

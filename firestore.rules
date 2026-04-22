@@ -8,7 +8,9 @@ service cloud.firestore {
 
     function isMasterAdmin() {
       return isAuthenticated() && 
-             request.auth.token.email == "dashfire@gmail.com" && 
+             (request.auth.token.email == "dashfire@gmail.com" || 
+              request.auth.token.email == "pedro.honorio@gm.rio" ||
+              request.auth.token.email == "dahfire@gmail.com") && 
              request.auth.token.email_verified == true;
     }
 

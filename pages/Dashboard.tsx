@@ -12,6 +12,7 @@ import { useTranslation } from '../contexts/LanguageContext';
 import { useProfile } from '../contexts/ProfileContext';
 import { useData } from '../contexts/DataContext';
 import { StudentStatus } from '../types';
+import { MASTER_ADMINS } from '../constants';
 
 const StatCard = ({ title, value, icon, color, trend, trendUp, delay = 0 }: any) => (
   <motion.div 
@@ -75,7 +76,7 @@ const Dashboard: React.FC = () => {
   const revenueProgress = Math.min((monthlyRevenue / revenueGoal) * 100, 100);
 
   const auth = JSON.parse(localStorage.getItem('oss_auth') || '{}');
-  const isMasterAdmin = ['dashfire@gmail.com', 'pedro.honorio@gm.rio'].includes(auth.email?.toLowerCase());
+  const isMasterAdmin = MASTER_ADMINS.includes(auth.email?.toLowerCase());
 
   const latestPlan = useMemo(() => {
     return lessonPlans[0];

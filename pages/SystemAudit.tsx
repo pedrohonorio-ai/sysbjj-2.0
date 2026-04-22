@@ -20,15 +20,16 @@ import { useTranslation } from '../contexts/LanguageContext';
 import { SystemLog } from '../types';
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
+import { MASTER_ADMINS } from '../constants';
 
 const SystemAudit: React.FC = () => {
   const { t } = useTranslation();
-  const { logs, students, ledger, verifyLedgerIntegrity } = useData();
+  const { logs, students, ledger, verifyLedgerIntegrity, presence } = useData();
   const [searchTerm, setSearchTerm] = useState('');
   const [categoryFilter, setCategoryFilter] = useState<SystemLog['category'] | 'All'>('All');
 
   const auth = JSON.parse(localStorage.getItem('oss_auth') || '{}');
-  const isAdmin = ['dashfire@gmail.com', 'pedro.honorio@gm.rio'].includes(auth.email?.toLowerCase());
+  const isAdmin = MASTER_ADMINS.includes(auth.email?.toLowerCase());
 
   const filteredLogs = useMemo(() => {
     return logs.filter(log => {
@@ -74,6 +75,11 @@ const SystemAudit: React.FC = () => {
     };
   }, [logs, students, verifyLedgerIntegrity]);
 
+  const onlineUsers = useMemo(() => {
+    const fiveMinutesAgo = Date.now() - (5 * 60 * 1000);
+    return presence.filter(p => p.lastSeen > fiveMinutesAgo);
+  }, [presence]);
+
   const userActivityEntries = Object.entries(stats.userActivity) as [string, { count: number, lastAction: number, actions: string[] }][];
   const categoryUsageEntries = Object.entries(stats.categoryUsage) as [string, number][];
 
@@ -86,7 +92,7 @@ const SystemAudit: React.FC = () => {
     doc.text('Relatório de Auditoria PPH BJJ', 14, 22);
     doc.setFontSize(10);
     doc.text(`Gerado em: ${today}`, 14, 30);
-    doc.text(`Administrador: dashfire@gmail.com`, 14, 35);
+    doc.text(`Administrador: ${auth.email || 'Master'}`, 14, 35);
 
     // Stats Summary
     doc.setFontSize(14);
@@ -180,23 +186,23 @@ const SystemAudit: React.FC = () => {
 
         <div className="bg-white dark:bg-slate-900 p-8 rounded-[2.5rem] border border-slate-200 dark:border-slate-800 shadow-sm space-y-4">
           <div className="w-12 h-12 bg-green-50 dark:bg-green-900/20 rounded-2xl flex items-center justify-center text-green-600">
+            <Globe size={24} className="animate-pulse" />
+          </div>
+          <div>
+            <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Usuários Online</p>
+            <p className="text-3xl font-black dark:text-white tabular-nums">{onlineUsers.length}</p>
+            <p className="text-[8px] font-bold text-slate-500 uppercase mt-1">Sessões ativas agora</p>
+          </div>
+        </div>
+
+        <div className="bg-white dark:bg-slate-900 p-8 rounded-[2.5rem] border border-slate-200 dark:border-slate-800 shadow-sm space-y-4">
+          <div className="w-12 h-12 bg-amber-50 dark:bg-amber-900/20 rounded-2xl flex items-center justify-center text-amber-600">
             <Database size={24} />
           </div>
           <div>
             <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Usuários do Sistema</p>
             <p className="text-3xl font-black dark:text-white tabular-nums">{stats.uniqueUsers}</p>
             <p className="text-[8px] font-bold text-slate-500 uppercase mt-1">Contas com atividade logada</p>
-          </div>
-        </div>
-
-        <div className="bg-white dark:bg-slate-900 p-8 rounded-[2.5rem] border border-slate-200 dark:border-slate-800 shadow-sm space-y-4">
-          <div className="w-12 h-12 bg-amber-50 dark:bg-amber-900/20 rounded-2xl flex items-center justify-center text-amber-600">
-            <Clock size={24} />
-          </div>
-          <div>
-            <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Total de Ações</p>
-            <p className="text-3xl font-black dark:text-white tabular-nums">{stats.totalActions}</p>
-            <p className="text-[8px] font-bold text-slate-500 uppercase mt-1">Histórico completo de logs</p>
           </div>
         </div>
       </div>
@@ -233,25 +239,37 @@ const SystemAudit: React.FC = () => {
 
         {/* User Activity Summary */}
         <div className="bg-white dark:bg-slate-900 p-8 rounded-[2.5rem] border border-slate-200 dark:border-slate-800 shadow-sm">
-          <h3 className="text-xl font-black dark:text-white uppercase tracking-tighter mb-6 flex items-center gap-2">
-            <Users className="text-purple-600" size={20} />
-            Usuários e Atividade
-          </h3>
+          <div className="flex items-center justify-between mb-6">
+            <h3 className="text-xl font-black dark:text-white uppercase tracking-tighter flex items-center gap-2">
+              <Users className="text-purple-600" size={20} />
+              Usuários Online
+            </h3>
+            <span className="flex items-center gap-1 text-[8px] font-black text-green-500 uppercase tracking-widest">
+              <span className="w-1.5 h-1.5 bg-green-500 rounded-full animate-ping" />
+              Real-time
+            </span>
+          </div>
           <div className="space-y-4 max-h-[300px] overflow-y-auto pr-2 scrollbar-hide">
-            {userActivityEntries.map(([email, data]) => (
-              <div key={email} className="p-4 bg-slate-50 dark:bg-slate-800/50 rounded-2xl border border-slate-100 dark:border-slate-700 flex justify-between items-center">
-                <div>
-                  <p className="text-xs font-black dark:text-white uppercase tracking-tight">{email}</p>
-                  <p className="text-[8px] font-bold text-slate-400 uppercase mt-1">
-                    Última ação: {new Date(data.lastAction).toLocaleString()}
-                  </p>
+            {onlineUsers.length > 0 ? onlineUsers.map((user) => (
+              <div key={user.id} className="p-4 bg-green-500/5 dark:bg-green-500/10 rounded-2xl border border-green-500/20 flex justify-between items-center animate-in slide-in-from-bottom-2 duration-300">
+                <div className="flex items-center gap-3">
+                  <div className="w-2 h-2 bg-green-500 rounded-full shadow-[0_0_8px_rgba(34,197,94,0.5)]" />
+                  <div>
+                    <p className="text-xs font-black dark:text-white uppercase tracking-tight">{user.email}</p>
+                    <p className="text-[8px] font-bold text-slate-400 uppercase mt-1">
+                      {user.userAgent.includes('Mobile') ? 'Smartphone' : 'Desktop'} • Expira em breve
+                    </p>
+                  </div>
                 </div>
-                <div className="text-right">
-                  <p className="text-lg font-black text-blue-600 tabular-nums">{data.count}</p>
-                  <p className="text-[8px] font-bold text-slate-400 uppercase tracking-widest">Ações</p>
+                <div className="px-3 py-1 bg-green-500 text-white rounded-lg text-[8px] font-black uppercase tracking-widest">
+                  ONLINE
                 </div>
               </div>
-            ))}
+            )) : (
+              <div className="py-12 text-center text-slate-400 italic font-bold uppercase tracking-widest text-[10px]">
+                Nenhum usuário detectado nos últimos 5 min.
+              </div>
+            )}
           </div>
         </div>
       </div>

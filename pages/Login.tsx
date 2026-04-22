@@ -4,6 +4,7 @@ import { Shield, Fingerprint, Key, User, ArrowRight, Zap, Info, Lock, CheckCircl
 import { useProfile } from '../contexts/ProfileContext';
 import { useData } from '../contexts/DataContext';
 import { useTranslation } from '../contexts/LanguageContext';
+import { MASTER_ADMINS } from '../constants';
 
 interface LoginProps {
   onLogin: (role: 'admin' | 'student', studentCode?: string, email?: string) => void;
@@ -36,9 +37,8 @@ const Login: React.FC<LoginProps> = ({ onLogin }) => {
 
   const handleAdminLogin = () => {
     const savedPin = localStorage.getItem('pph_admin_pin');
-    const allowedEmails = ['dashfire@gmail.com', 'pedro.honorio@gm.rio'];
 
-    if (!allowedEmails.includes(email.toLowerCase())) {
+    if (!MASTER_ADMINS.includes(email.toLowerCase())) {
       setError('Acesso negado: Email não autorizado.');
       return;
     }
@@ -81,10 +81,9 @@ const Login: React.FC<LoginProps> = ({ onLogin }) => {
 
   const simulateBiometry = () => {
     const savedPin = localStorage.getItem('pph_admin_pin');
-    const allowedEmails = ['dashfire@gmail.com', 'pedro.honorio@gm.rio'];
     if (!savedPin) return;
 
-    if (!allowedEmails.includes(email.toLowerCase())) {
+    if (!MASTER_ADMINS.includes(email.toLowerCase())) {
       setError('Biometria requer email autorizado.');
       return;
     }

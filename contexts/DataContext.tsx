@@ -59,6 +59,7 @@ interface DataContextType {
   receipts: PaymentReceipt[];
   ledger: TransactionLedger[];
   logs: SystemLog[];
+  presence: { email: string; lastSeen: number; role: string; userAgent: string; id: string }[];
   notifications: { id: string; message: string; type: 'info' | 'success' | 'warning'; timestamp: number }[];
   logAction: (action: string, details: string, category: SystemLog['category']) => void;
   addStudent: (student: Omit<Student, 'id'>) => void;
@@ -137,6 +138,7 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   const [receipts, setReceipts] = useState<PaymentReceipt[]>(() => loadSafely('oss_receipts', []));
   const [ledger, setLedger] = useState<TransactionLedger[]>(() => loadSafely('oss_ledger', []));
   const [logs, setLogs] = useState<SystemLog[]>([]);
+  const [presence, setPresence] = useState<{ email: string; lastSeen: number; role: string; userAgent: string; id: string }[]>([]);
   const [notifications, setNotifications] = useState<{ id: string; message: string; type: 'info' | 'success' | 'warning'; timestamp: number }[]>([]);
 
   // Firestore Real-time Sync
@@ -173,6 +175,10 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       setLessonPlans(snap.docs.map(doc => doc.data() as LessonPlan));
     });
 
+    const unsubPresence = onSnapshot(collection(db, 'presence'), (snap) => {
+      setPresence(snap.docs.map(doc => ({ ...doc.data(), id: doc.id } as any)));
+    });
+
     return () => {
       unsubStudents();
       unsubPayments();
@@ -181,6 +187,7 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       unsubReceipts();
       unsubSchedules();
       unsubLessonPlans();
+      unsubPresence();
     };
   }, []);
 
@@ -549,7 +556,7 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
 
   return (
     <DataContext.Provider value={{ 
-      students, payments, schedules, gallery, extraRevenue, orders, lessonPlans, techniques, products, plans, receipts, ledger, logs, notifications,
+      students, payments, schedules, gallery, extraRevenue, orders, lessonPlans, techniques, products, plans, receipts, ledger, logs, presence, notifications,
       logAction, addStudent, updateStudent, deleteStudent, addPayment, addReceipt, approveReceipt, rejectReceipt, verifyReceiptWithAI, addLedgerEntry, clearNotification, recordAttendance, completeRuleLesson,
       addSchedule, updateSchedule, deleteSchedule,
       addGalleryImage,

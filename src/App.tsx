@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { BrowserRouter, Routes, Route, Link, useLocation, useNavigate, Navigate } from 'react-router-dom';
 import { Menu, X, Bell, Sun, Moon, Search, Shield, LogOut, Clock, CheckCircle2, Instagram, ChevronRight } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
-import { NAVIGATION_ITEMS, BELT_COLORS } from '../constants';
+import { NAVIGATION_ITEMS, BELT_COLORS, MASTER_ADMINS } from '../constants';
 import Dashboard from '../pages/Dashboard';
 import Students from '../pages/Students';
 import Classes from '../pages/Classes';
@@ -24,6 +24,10 @@ import { ThemeProvider, useTheme } from '../contexts/ThemeContext';
 import { ProfileProvider, useProfile } from '../contexts/ProfileContext';
 import { DataProvider } from '../contexts/DataContext';
 
+import { useData } from '../contexts/DataContext';
+import { db } from '../firebase';
+import { doc, setDoc } from 'firebase/firestore';
+
 interface AuthState {
   isLoggedIn: boolean;
   role: 'admin' | 'student' | null;
@@ -35,8 +39,15 @@ const Sidebar = ({ isOpen, toggle, onLogout }: { isOpen: boolean, toggle: () => 
   const location = useLocation();
   const { t } = useTranslation();
   const { profile } = useProfile();
+  const auth = JSON.parse(localStorage.getItem('oss_auth') || '{}');
+  const isMasterAdmin = MASTER_ADMINS.includes(auth.email?.toLowerCase());
 
   if (location.pathname.startsWith('/portal/')) return null;
+
+  const filteredItems = NAVIGATION_ITEMS.filter(item => {
+    if (item.id === 'audit') return isMasterAdmin;
+    return true;
+  });
 
   return (
     <>
@@ -70,7 +81,7 @@ const Sidebar = ({ isOpen, toggle, onLogout }: { isOpen: boolean, toggle: () => 
         </div>
         
         <nav className="flex-1 mt-6 px-3 space-y-1 scrollbar-hide">
-          {NAVIGATION_ITEMS.map((item) => {
+          {filteredItems.map((item) => {
             const isActive = location.pathname === `/${item.id}` || (location.pathname === '/' && item.id === 'dashboard');
             return (
               <Link
@@ -138,8 +149,15 @@ const Sidebar = ({ isOpen, toggle, onLogout }: { isOpen: boolean, toggle: () => 
 const BottomNav = ({ onLogout }: { onLogout: () => void }) => {
   const location = useLocation();
   const { t } = useTranslation();
+  const auth = JSON.parse(localStorage.getItem('oss_auth') || '{}');
+  const isMasterAdmin = MASTER_ADMINS.includes(auth.email?.toLowerCase());
   
-  const items = NAVIGATION_ITEMS.slice(0, 5); // Dashboard, Students, Classes, Business, Curriculum
+  const filteredNavItems = NAVIGATION_ITEMS.filter(item => {
+    if (item.id === 'audit') return isMasterAdmin;
+    return true;
+  });
+
+  const items = filteredNavItems.slice(0, 5); // Dashboard, Students, Classes, Business, Curriculum
 
   if (location.pathname.startsWith('/portal/')) return null;
   return (
@@ -275,23 +293,62 @@ const App: React.FC = () => {
   const location = useLocation();
   const navigate = useNavigate();
   const { profile } = useProfile();
+  const { logAction } = useData();
   
   const [auth, setAuth] = useState<AuthState>(() => {
     const saved = localStorage.getItem('oss_auth');
     return saved ? JSON.parse(saved) : { isLoggedIn: false, role: null };
   });
 
+  // Track Online Status
+  useEffect(() => {
+    if (auth.isLoggedIn && auth.email && db) {
+      const deviceId = localStorage.getItem('oss_device_id') || Math.random().toString(36).substring(2, 15);
+      if (!localStorage.getItem('oss_device_id')) localStorage.setItem('oss_device_id', deviceId);
+
+      const updatePresence = async () => {
+        try {
+          const presenceRef = doc(db, 'presence', `${auth.email!.replace(/\./g, '_')}_${deviceId}`);
+          await setDoc(presenceRef, {
+            email: auth.email,
+            lastSeen: Date.now(),
+            role: auth.role,
+            userAgent: navigator.userAgent,
+            deviceId: deviceId
+          }, { merge: true });
+        } catch (e) {
+          console.error("Presence update failed", e);
+        }
+      };
+
+      updatePresence();
+      const interval = setInterval(updatePresence, 30000); // 30 seconds
+      return () => clearInterval(interval);
+    }
+  }, [auth.isLoggedIn, auth.email, auth.role]);
+
+  useEffect(() => {
+    if (auth.isLoggedIn && auth.email) {
+      logAction('Sessão Restaurada', `Usuário ${auth.email} acessou o sistema`, 'System');
+    }
+  }, []);
+
   useEffect(() => {
     window.scrollTo(0, 0);
     if (auth.isLoggedIn && auth.role === 'student' && !location.pathname.startsWith('/portal/')) {
       navigate(`/portal/${auth.studentCode}`);
     }
-  }, [location.pathname, auth]);
+  }, [location.pathname, auth, navigate]);
 
   const handleLogin = (role: 'admin' | 'student', studentCode?: string, email?: string) => {
     const newAuth: AuthState = { isLoggedIn: true, role, studentCode, email };
     setAuth(newAuth);
     localStorage.setItem('oss_auth', JSON.stringify(newAuth));
+    
+    // Log direct login
+    if (email) {
+      logAction('Login', `Usuário ${email} entrou no sistema (${role})`, 'Security');
+    }
     
     if (role === 'admin') {
       navigate('/dashboard');
