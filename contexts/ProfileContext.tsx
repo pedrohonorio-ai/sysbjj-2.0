@@ -1,6 +1,8 @@
 
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 import { ProfessorProfile, BeltColor } from '../types';
+import { db } from '../firebase';
+import { doc, onSnapshot, setDoc } from 'firebase/firestore';
 
 interface ProfileContextType {
   profile: ProfessorProfile;
@@ -37,12 +39,31 @@ export const ProfileProvider: React.FC<{ children: ReactNode }> = ({ children })
     }
   });
 
-  const updateProfile = (newProfile: Partial<ProfessorProfile>) => {
-    setProfileState(prev => {
-      const updated = { ...prev, ...newProfile };
-      localStorage.setItem('professor_profile', JSON.stringify(updated));
-      return updated;
+  // Firestore Sync for Profile
+  useEffect(() => {
+    if (!db) return;
+    const unsub = onSnapshot(doc(db, 'settings', 'profile'), (docSnap) => {
+      if (docSnap.exists()) {
+        const data = docSnap.data() as ProfessorProfile;
+        setProfileState(data);
+        localStorage.setItem('professor_profile', JSON.stringify(data));
+      }
     });
+    return () => unsub();
+  }, []);
+
+  const updateProfile = async (newProfile: Partial<ProfessorProfile>) => {
+    const updated = { ...profile, ...newProfile };
+    setProfileState(updated);
+    localStorage.setItem('professor_profile', JSON.stringify(updated));
+
+    if (db) {
+      try {
+        await setDoc(doc(db, 'settings', 'profile'), updated);
+      } catch (e) {
+        console.error("Erro ao salvar perfil no Firestore:", e);
+      }
+    }
   };
 
   return (

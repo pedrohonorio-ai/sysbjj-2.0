@@ -81,6 +81,96 @@ const Settings: React.FC = () => {
       </div>
 
       <div className="bg-white dark:bg-slate-900 rounded-[2rem] sm:rounded-[2.5rem] border border-slate-200 dark:border-slate-800 shadow-sm overflow-hidden transition-all">
+        <div className="p-6 sm:p-8 border-b border-slate-100 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-800/50 flex items-center justify-between">
+          <h3 className="text-xs sm:text-sm font-black text-slate-400 uppercase tracking-[0.3em] flex items-center gap-3">
+            <Globe size={18} className="text-blue-600" /> Identidade Visual
+          </h3>
+          <button onClick={handleSave} className="flex items-center gap-2 bg-blue-600 text-white px-4 py-2 rounded-xl font-black uppercase text-[10px] tracking-widest shadow-lg hover:bg-blue-700 transition-all">
+            <Save size={14} /> Salvar
+          </button>
+        </div>
+        <div className="p-6 sm:p-8 space-y-6 sm:space-y-8">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6 sm:gap-8">
+            {/* Logo Upload */}
+            <div className="space-y-4">
+              <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Logo da Academia</label>
+              <div className="flex items-center gap-6">
+                <div className="w-24 h-24 bg-slate-50 dark:bg-slate-800 rounded-2xl border-2 border-dashed border-slate-200 dark:border-slate-700 flex items-center justify-center overflow-hidden shrink-0">
+                  {formData.logoUrl ? (
+                    <img src={formData.logoUrl} alt="Logo Preview" className="w-full h-full object-contain" referrerPolicy="no-referrer" />
+                  ) : (
+                    <Upload size={24} className="text-slate-300" />
+                  )}
+                </div>
+                <div className="space-y-2 flex-1">
+                  <label className="block w-full text-center px-4 py-2 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 rounded-xl cursor-pointer transition-colors">
+                    <span className="text-[10px] font-black text-slate-500 uppercase tracking-widest">Escolher nos arquivos</span>
+                    <input 
+                      type="file" 
+                      accept="image/*" 
+                      className="hidden" 
+                      onChange={(e) => {
+                        const file = e.target.files?.[0];
+                        if (file) {
+                          const reader = new FileReader();
+                          reader.onloadend = () => setFormData({ ...formData, logoUrl: reader.result as string });
+                          reader.readAsDataURL(file);
+                        }
+                      }}
+                    />
+                  </label>
+                  <button 
+                    onClick={() => setFormData({ ...formData, logoUrl: '' })}
+                    className="w-full text-[9px] font-bold text-red-500 uppercase tracking-tighter"
+                  >
+                    Remover Logo
+                  </button>
+                </div>
+              </div>
+            </div>
+
+            {/* Background Upload */}
+            <div className="space-y-4">
+              <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Fundo do Sistema (Background)</label>
+              <div className="flex items-center gap-6">
+                <div className="w-24 h-24 bg-slate-50 dark:bg-slate-800 rounded-2xl border-2 border-dashed border-slate-200 dark:border-slate-700 flex items-center justify-center overflow-hidden shrink-0">
+                  {formData.backgroundImageUrl ? (
+                    <img src={formData.backgroundImageUrl} alt="BG Preview" className="w-full h-full object-cover" referrerPolicy="no-referrer" />
+                  ) : (
+                    <Globe size={24} className="text-slate-300" />
+                  )}
+                </div>
+                <div className="space-y-2 flex-1">
+                  <label className="block w-full text-center px-4 py-2 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 rounded-xl cursor-pointer transition-colors">
+                    <span className="text-[10px] font-black text-slate-500 uppercase tracking-widest">Carregar Fundo</span>
+                    <input 
+                      type="file" 
+                      accept="image/*" 
+                      className="hidden" 
+                      onChange={(e) => {
+                        const file = e.target.files?.[0];
+                        if (file) {
+                          const reader = new FileReader();
+                          reader.onloadend = () => setFormData({ ...formData, backgroundImageUrl: reader.result as string });
+                          reader.readAsDataURL(file);
+                        }
+                      }}
+                    />
+                  </label>
+                  <button 
+                    onClick={() => setFormData({ ...formData, backgroundImageUrl: '' })}
+                    className="w-full text-[9px] font-bold text-red-500 uppercase tracking-tighter"
+                  >
+                    Remover Fundo
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div className="bg-white dark:bg-slate-900 rounded-[2rem] sm:rounded-[2.5rem] border border-slate-200 dark:border-slate-800 shadow-sm overflow-hidden transition-all">
         <div className="p-6 sm:p-8 border-b border-slate-100 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-800/50">
           <h3 className="text-xs sm:text-sm font-black text-slate-400 uppercase tracking-[0.3em] flex items-center gap-3">
             <CreditCard size={18} className="text-blue-600" /> {t('settings.financialSection')}

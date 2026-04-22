@@ -17,9 +17,6 @@ import StudentPortal from '../pages/StudentPortal';
 import Curriculum from '../pages/Curriculum';
 import ExhibitionMode from '../pages/ExhibitionMode';
 import SystemAudit from '../pages/SystemAudit';
-import KidsSystem from '../pages/KidsSystem';
-import Kimonos from '../pages/Kimonos';
-import MusicPlayer from '../pages/MusicPlayer';
 import LanguageSelection from '../pages/LanguageSelection';
 import Login from '../pages/Login';
 import { LanguageProvider, useTranslation } from '../contexts/LanguageContext';
@@ -53,9 +50,15 @@ const Sidebar = ({ isOpen, toggle, onLogout }: { isOpen: boolean, toggle: () => 
         
         <div className="flex-none flex items-center justify-between p-6 h-20 overflow-hidden shrink-0 border-b border-slate-100 dark:border-slate-800/50">
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 bg-slate-900 dark:bg-blue-600 rounded-xl flex items-center justify-center font-bold text-xl text-white shadow-xl shadow-blue-500/10 shrink-0">
-              {profile.academyName[0] || 'P'}
-            </div>
+            {profile.logoUrl ? (
+              <div className="w-10 h-10 rounded-xl overflow-hidden shadow-xl shadow-blue-500/10 shrink-0">
+                <img src={profile.logoUrl} alt="Logo" className="w-full h-full object-contain" referrerPolicy="no-referrer" />
+              </div>
+            ) : (
+              <div className="w-10 h-10 bg-slate-900 dark:bg-blue-600 rounded-xl flex items-center justify-center font-bold text-xl text-white shadow-xl shadow-blue-500/10 shrink-0">
+                {profile.academyName[0] || 'P'}
+              </div>
+            )}
             <div className={`overflow-hidden transition-all duration-500 ${isOpen ? 'opacity-100 translate-x-0' : 'lg:opacity-0 xl:opacity-100 lg:-translate-x-4 xl:translate-x-0'}`}>
               <h1 className="font-display font-black leading-none tracking-tight text-slate-900 dark:text-white uppercase text-sm">{(profile.academyName || 'PPH BJJ ACADEMY').toUpperCase()}</h1>
               <p className="text-[9px] text-slate-500 dark:text-slate-400 uppercase tracking-widest font-black mt-1">Elite Management</p>
@@ -184,7 +187,15 @@ const Header = ({ toggleSidebar, auth, onLogout }: { toggleSidebar: () => void, 
   if (isPortal) return (
     <header className="h-20 bg-slate-900 border-b border-white/5 flex items-center justify-between px-4 sm:px-8 sticky top-0 z-50 w-full transition-all duration-500">
       <div className="flex items-center gap-3">
-        <div className="w-10 h-10 bg-blue-600 rounded-xl flex items-center justify-center font-black text-white">{profile.academyName[0] || 'P'}</div>
+        {profile.logoUrl ? (
+          <div className="w-10 h-10 rounded-xl overflow-hidden shadow-xl shrink-0">
+            <img src={profile.logoUrl} alt="Logo" className="w-full h-full object-contain" referrerPolicy="no-referrer" />
+          </div>
+        ) : (
+          <div className="w-10 h-10 bg-blue-600 rounded-xl flex items-center justify-center font-black text-white">
+            {profile.academyName[0] || 'P'}
+          </div>
+        )}
         <div>
           <h2 className="text-sm font-black text-white uppercase tracking-tighter leading-none">{profile.academyName || 'PPH BJJ ACADEMY'}</h2>
           <p className="text-[8px] font-bold text-blue-400 uppercase tracking-widest">{t('portal.studentPortal')}</p>
@@ -263,6 +274,7 @@ const App: React.FC = () => {
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const location = useLocation();
   const navigate = useNavigate();
+  const { profile } = useProfile();
   
   const [auth, setAuth] = useState<AuthState>(() => {
     const saved = localStorage.getItem('oss_auth');
@@ -303,7 +315,19 @@ const App: React.FC = () => {
   const showHeader = isAdmin || isPortal;
 
   return (
-    <div className="min-h-screen flex bg-slate-50 dark:bg-slate-950 text-slate-900 dark:text-slate-100 transition-colors duration-400 selection:bg-blue-600 selection:text-white overflow-x-hidden font-sans group/app">
+    <div 
+      className="min-h-screen flex bg-slate-50 dark:bg-slate-950 text-slate-900 dark:text-slate-100 transition-colors duration-400 selection:bg-blue-600 selection:text-white overflow-x-hidden font-sans group/app relative"
+      style={profile.backgroundImageUrl ? {
+        backgroundImage: `linear-gradient(rgba(var(--bg-overlay), 0.94), rgba(var(--bg-overlay), 0.94)), url(${profile.backgroundImageUrl})`,
+        backgroundSize: 'cover',
+        backgroundPosition: 'center',
+        backgroundAttachment: 'fixed'
+      } : {}}
+    >
+      <style>{`
+        :root { --bg-overlay: 248, 250, 252; }
+        .dark { --bg-overlay: 2, 6, 23; }
+      `}</style>
       {(isAdmin && !isPortal) && <Sidebar isOpen={sidebarOpen} toggle={() => setSidebarOpen(!sidebarOpen)} onLogout={handleLogout} />}
       <div className={`flex-1 flex flex-col w-full min-h-screen transition-all duration-500 ease-[cubic-bezier(0.2,0.8,0.2,1)]
         ${(isPortal || auth.role === 'student' || !isAdmin) 
@@ -328,9 +352,6 @@ const App: React.FC = () => {
                   <Route path="/curriculum" element={<Curriculum />} />
                   <Route path="/attendance" element={<AttendancePage />} />
                   <Route path="/promotions" element={<BeltSystem />} />
-                  <Route path="/kids" element={<KidsSystem />} />
-                  <Route path="/kimonos" element={<Kimonos />} />
-                  <Route path="/music" element={<MusicPlayer />} />
                   <Route path="/language" element={<LanguageSelection />} />
                   <Route path="/timer" element={<FightTimer />} />
                   <Route path="/assistant" element={<AICoach />} />

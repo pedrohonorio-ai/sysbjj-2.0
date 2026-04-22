@@ -141,11 +141,50 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
 
   // Firestore Real-time Sync
   useEffect(() => {
+    if (!db) return;
+
+    const unsubStudents = onSnapshot(collection(db, 'students'), (snap) => {
+      setStudents(snap.docs.map(doc => ({ ...doc.data(), id: doc.id } as Student)));
+    });
+
+    const unsubPayments = onSnapshot(collection(db, 'payments'), (snap) => {
+      setPayments(snap.docs.map(doc => ({ ...doc.data(), id: doc.id } as Payment)));
+    });
+
+    const unsubLogs = onSnapshot(collection(db, 'system_logs'), (snap) => {
+      const logsData = snap.docs.map(doc => doc.data() as SystemLog);
+      setLogs(logsData.sort((a, b) => b.timestamp - a.timestamp));
+    });
+
+    const unsubLedger = onSnapshot(collection(db, 'ledger'), (snap) => {
+      const ledgerData = snap.docs.map(doc => doc.data() as TransactionLedger);
+      setLedger(ledgerData.sort((a, b) => b.timestamp - a.timestamp));
+    });
+
+    const unsubReceipts = onSnapshot(collection(db, 'receipts'), (snap) => {
+      setReceipts(snap.docs.map(doc => doc.data() as PaymentReceipt));
+    });
+
+    const unsubSchedules = onSnapshot(collection(db, 'schedules'), (snap) => {
+      setSchedules(snap.docs.map(doc => doc.data() as ClassSchedule));
+    });
+
+    const unsubLessonPlans = onSnapshot(collection(db, 'lesson_plans'), (snap) => {
+      setLessonPlans(snap.docs.map(doc => doc.data() as LessonPlan));
+    });
+
     return () => {
+      unsubStudents();
+      unsubPayments();
+      unsubLogs();
+      unsubLedger();
+      unsubReceipts();
+      unsubSchedules();
+      unsubLessonPlans();
     };
   }, []);
 
-  // Persistência automática em cada mudança (Local Storage as backup)
+  // Persistência automática em cada mudança (Local Storage as fallback for UI smoothness)
   useEffect(() => { localStorage.setItem('oss_students', JSON.stringify(students)); }, [students]);
   useEffect(() => { localStorage.setItem('oss_payments', JSON.stringify(payments)); }, [payments]);
   useEffect(() => { localStorage.setItem('oss_schedules', JSON.stringify(schedules)); }, [schedules]);
@@ -181,29 +220,32 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     }
   }, []);
 
-  useEffect(() => {
-    if (!db) return;
-    const unsubLogs = onSnapshot(collection(db, 'system_logs'), (snapshot) => {
-      const logsData = snapshot.docs.map(doc => doc.data() as SystemLog);
-      setLogs(logsData.sort((a, b) => b.timestamp - a.timestamp));
-    });
-    return () => unsubLogs();
-  }, []);
-
   const addStudent = (student: Omit<Student, 'id'>) => {
     const id = `STUD-${Date.now()}`;
     const newStudent = { ...student, id } as Student;
-    setStudents(prev => [...prev, newStudent]);
-    logAction('Novo Cadastro', `Aluno ${student.name} cadastrado`, 'User');
+    if (db) {
+      setDoc(doc(db, 'students', id), newStudent).catch(err => handleFirestoreError(err, OperationType.CREATE, 'students'));
+    } else {
+      setStudents(prev => [...prev, newStudent]);
+    }
+    logAction('Novo Cadastro', `Alunos ${student.name} cadastrado`, 'User');
   };
 
   const updateStudent = (id: string, updates: Partial<Student>) => {
-    setStudents(prev => prev.map(s => s.id === id ? { ...s, ...updates } : s));
+    if (db) {
+      updateDoc(doc(db, 'students', id), updates).catch(err => handleFirestoreError(err, OperationType.UPDATE, `students/${id}`));
+    } else {
+      setStudents(prev => prev.map(s => s.id === id ? { ...s, ...updates } : s));
+    }
     logAction('Atualização de Cadastro', `Dados do aluno ID ${id} atualizados`, 'User');
   };
 
   const deleteStudent = (id: string) => {
-    setStudents(prev => prev.filter(s => s.id !== id));
+    if (db) {
+      deleteDoc(doc(db, 'students', id)).catch(err => handleFirestoreError(err, OperationType.DELETE, `students/${id}`));
+    } else {
+      setStudents(prev => prev.filter(s => s.id !== id));
+    }
     logAction('Exclusão de Cadastro', `Aluno ID ${id} removido do sistema`, 'Security');
   };
 

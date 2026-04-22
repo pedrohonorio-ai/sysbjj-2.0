@@ -171,6 +171,8 @@ export interface ProfessorProfile {
   pixCity: string;
   graduationRules?: string;
   customCriteria?: GraduationCriterion[];
+  logoUrl?: string;
+  backgroundImageUrl?: string;
 }
 
 export interface ProgressRecord {

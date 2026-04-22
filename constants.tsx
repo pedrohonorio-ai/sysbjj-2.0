@@ -11,12 +11,10 @@ import {
   MessageSquare,
   BarChart3,
   BookOpenCheck,
-  Medal,
-  Store,
   Calendar,
   Shield,
   BookOpen,
-  Radio
+  Store
 } from 'lucide-react';
 
 export const NAVIGATION_ITEMS = [
@@ -27,9 +25,6 @@ export const NAVIGATION_ITEMS = [
   { id: 'curriculum', label: 'Quadro de Trabalho do Dia (QTD)', icon: <BookOpenCheck size={20} /> },
   { id: 'attendance', label: 'Chamada', icon: <CalendarCheck size={20} /> },
   { id: 'promotions', label: 'Graduação', icon: <Trophy size={20} /> },
-  { id: 'kids', label: 'Pequenos Guerreiros', icon: <Medal size={20} /> },
-  { id: 'kimonos', label: 'Loja PPH', icon: <Store size={20} /> },
-  { id: 'music', label: 'Som do Tatame', icon: <Radio size={20} /> },
   { id: 'ibjjf-rules', label: 'Regras IBJJF', icon: <Shield size={20} /> },
   { id: 'timer', label: 'Cronômetro', icon: <Timer size={20} /> },
   { id: 'assistant', label: 'Coach IA', icon: <MessageSquare size={20} /> },
