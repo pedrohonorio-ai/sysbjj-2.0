@@ -55,9 +55,9 @@ const Sidebar = ({ isOpen, toggle, onLogout }: { isOpen: boolean, toggle: () => 
       />
       
       <aside className={`fixed inset-y-0 left-0 z-[60] bg-white dark:bg-slate-950 border-r border-slate-200 dark:border-slate-800 text-slate-900 dark:text-slate-100 transform transition-all duration-700 ease-[cubic-bezier(0.2,0.8,0.2,1)] flex flex-col overflow-y-auto scrollbar-hide
-        ${isOpen ? 'translate-x-0 w-72 shadow-3xl shadow-blue-500/10' : '-translate-x-full lg:translate-x-0 lg:w-20 xl:w-64'}`}>
+        ${isOpen ? 'translate-x-0 w-72 shadow-3xl shadow-blue-500/10' : '-translate-x-full shadow-none'}`}>
         
-        <div className="flex-none flex items-center justify-between p-6 h-24 overflow-hidden shrink-0 border-b border-slate-100 dark:border-slate-800/50">
+        <div className={`flex-none flex items-center ${isOpen ? 'justify-between' : 'justify-center'} p-6 h-24 overflow-hidden shrink-0 border-b border-slate-100 dark:border-slate-800/50`}>
           <div className="flex items-center gap-4">
             {profile.logoUrl ? (
               <div className="w-12 h-12 rounded-2xl overflow-hidden shadow-xl shadow-blue-500/10 shrink-0 group">
@@ -70,11 +70,22 @@ const Sidebar = ({ isOpen, toggle, onLogout }: { isOpen: boolean, toggle: () => 
                 </span>
               </div>
             )}
-            <div className={`overflow-hidden transition-all duration-700 ${isOpen ? 'opacity-100 translate-x-0' : 'lg:opacity-0 xl:opacity-0 lg:-translate-x-4 xl:translate-x-0'}`}>
-              <h1 className="font-display font-black leading-none tracking-tight text-slate-900 dark:text-white uppercase text-base whitespace-nowrap">{(profile.academyName || 'SYSBJJ 2.0').toUpperCase()}</h1>
-              <p className="text-[10px] text-blue-600 dark:text-blue-400 uppercase tracking-[0.3em] font-black mt-1">Academy Suite</p>
-            </div>
+            {isOpen && (
+              <motion.div 
+                initial={{ opacity: 0, x: -10 }}
+                animate={{ opacity: 1, x: 0 }}
+                className="overflow-hidden transition-all duration-700"
+              >
+                <h1 className="font-display font-black leading-none tracking-tight text-slate-900 dark:text-white uppercase text-base whitespace-nowrap">{(profile.academyName || 'SYSBJJ 2.0').toUpperCase()}</h1>
+                <p className="text-[10px] text-blue-600 dark:text-blue-400 uppercase tracking-[0.3em] font-black mt-1">Academy Suite</p>
+              </motion.div>
+            )}
           </div>
+          {isOpen && (
+            <button onClick={toggle} className="text-slate-400 hover:text-red-500 p-2 transition-colors lg:block hidden">
+              <X size={24} />
+            </button>
+          )}
           <button onClick={toggle} className="lg:hidden text-slate-400 hover:text-red-500 p-2">
             <X size={24} />
           </button>
@@ -91,7 +102,7 @@ const Sidebar = ({ isOpen, toggle, onLogout }: { isOpen: boolean, toggle: () => 
                 onClick={() => { if(window.innerWidth < 1024) toggle(); }}
               >
                 <div className={`shrink-0 transition-all duration-500 ${isActive ? 'scale-110 rotate-0' : 'group-hover:scale-110 group-hover:-rotate-3'}`}>{item.icon}</div>
-                <span className={`font-black tracking-widest uppercase text-[11px] truncate transition-all duration-700 ${isOpen ? 'opacity-100 translate-x-0' : 'lg:opacity-0 xl:opacity-0 lg:-translate-x-4'}`}>
+                <span className={`font-black tracking-widest uppercase text-[11px] truncate transition-all duration-700 ${isOpen ? 'opacity-100 translate-x-0' : 'opacity-0 -translate-x-4'}`}>
                   {t(`common.${item.id}`)}
                 </span>
                 {isActive && (
@@ -113,12 +124,12 @@ const Sidebar = ({ isOpen, toggle, onLogout }: { isOpen: boolean, toggle: () => 
         
         <div className="flex-none p-3 mt-8 mb-24 lg:mb-6 space-y-2 overflow-hidden shrink-0 border-t border-slate-100 dark:border-slate-800/50 pt-6">
           <Link to="/settings" onClick={() => { if(window.innerWidth < 1024) toggle(); }}>
-            <div className={`p-3 bg-slate-50 dark:bg-slate-800/50 rounded-2xl border border-slate-200 dark:border-slate-800 hover:bg-white dark:hover:bg-slate-800 hover:border-slate-300 dark:hover:border-slate-700 transition-all group ${!isOpen ? 'lg:p-2' : ''}`}>
+            <div className="p-3 bg-slate-50 dark:bg-slate-800/50 rounded-2xl border border-slate-200 dark:border-slate-800 hover:bg-white dark:hover:bg-slate-800 hover:border-slate-300 dark:hover:border-slate-700 transition-all group">
                <div className="flex items-center gap-3">
                  <div className={`w-8 h-8 rounded-xl flex items-center justify-center border border-slate-200 dark:border-slate-700 shadow-sm shrink-0 ${BELT_COLORS[profile.belt] || 'bg-slate-700'}`}>
                    <span className="font-black text-[10px] text-white tracking-tighter">{profile.stripes}º</span>
                  </div>
-                 <div className={`overflow-hidden flex-1 transition-all duration-500 ${isOpen ? 'opacity-100 translate-x-0' : 'lg:opacity-0 xl:opacity-100 lg:-translate-x-4 xl:translate-x-0'}`}>
+                 <div className={`overflow-hidden flex-1 transition-all duration-500 ${isOpen ? 'opacity-100 translate-x-0' : 'opacity-0 -translate-x-4'}`}>
                    <p className="text-[11px] font-black underline decoration-blue-500/30 underline-offset-2 truncate text-slate-900 dark:text-white group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors uppercase">{profile.name}</p>
                    <p className="text-[8px] text-slate-400 font-black uppercase tracking-widest truncate">{profile.specialization}</p>
                  </div>
@@ -127,16 +138,16 @@ const Sidebar = ({ isOpen, toggle, onLogout }: { isOpen: boolean, toggle: () => 
           </Link>
           <button 
             onClick={onLogout}
-            className={`w-full flex items-center gap-4 px-4 py-3.5 rounded-xl text-slate-400 hover:text-red-500 dark:hover:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/10 transition-all uppercase font-black text-[10px] tracking-widest ${!isOpen ? 'lg:justify-center xl:justify-start' : ''}`}
+            className="w-full flex items-center gap-4 px-4 py-3.5 rounded-xl text-slate-400 hover:text-red-500 dark:hover:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/10 transition-all uppercase font-black text-[10px] tracking-widest"
           >
             <LogOut size={18} className="shrink-0 group-hover:rotate-12 transition-transform" /> 
-            <span className={`transition-all duration-500 ${isOpen ? 'opacity-100 translate-x-0' : 'lg:opacity-0 xl:opacity-100 lg:-translate-x-4 xl:translate-x-0'}`}>
+            <span className={`transition-all duration-500 ${isOpen ? 'opacity-100 translate-x-0' : 'opacity-0 -translate-x-4'}`}>
               {t('common.logout')}
             </span>
           </button>
         </div>
         
-        <div className={`mt-auto px-6 py-4 border-t border-slate-100 dark:border-slate-800/50 transition-all duration-500 overflow-hidden ${isOpen ? 'opacity-100' : 'lg:opacity-0 xl:opacity-100'}`}>
+        <div className={`mt-auto px-6 py-4 border-t border-slate-100 dark:border-slate-800/50 transition-all duration-500 overflow-hidden ${isOpen ? 'opacity-100' : 'opacity-0'}`}>
           <p className="text-[7px] font-black text-slate-300 dark:text-slate-600 uppercase tracking-[0.2em] whitespace-nowrap">
             SYSBJJ v2.1.2 • ELITE EDITION
           </p>
@@ -248,7 +259,7 @@ const Header = ({ toggleSidebar, auth, onLogout }: { toggleSidebar: () => void, 
   return (
     <header className="h-16 sm:h-20 bg-white/70 dark:bg-slate-950/70 backdrop-blur-xl border-b border-slate-200 dark:border-slate-800/50 flex items-center justify-between px-4 sm:px-12 sticky top-0 z-40 w-full transition-all duration-300">
       <div className="flex items-center gap-4 flex-1">
-        <button onClick={toggleSidebar} className="lg:hidden p-2.5 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-slate-500 dark:text-slate-400 rounded-xl active:scale-95 transition-all">
+        <button onClick={toggleSidebar} className="p-2.5 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-slate-500 dark:text-slate-400 rounded-xl active:scale-95 transition-all">
           <Menu size={20} />
         </button>
         
@@ -289,7 +300,7 @@ const Header = ({ toggleSidebar, auth, onLogout }: { toggleSidebar: () => void, 
 };
 
 const App: React.FC = () => {
-  const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [sidebarOpen, setSidebarOpen] = useState(window.innerWidth > 1024);
   const location = useLocation();
   const navigate = useNavigate();
   const { profile } = useProfile();
@@ -401,7 +412,7 @@ const App: React.FC = () => {
       <div className={`flex-1 flex flex-col w-full min-h-screen transition-all duration-500 ease-[cubic-bezier(0.2,0.8,0.2,1)]
         ${(isPortal || auth.role === 'student' || !isAdmin) 
           ? 'pl-0' 
-          : (sidebarOpen ? 'lg:pl-72' : 'lg:pl-24 xl:pl-24')}`}>
+          : (sidebarOpen ? 'lg:pl-72' : 'lg:pl-0')}`}>
         {showHeader && <Header toggleSidebar={() => setSidebarOpen(!sidebarOpen)} auth={auth} onLogout={handleLogout} />}
         <main className={`p-4 sm:p-8 lg:p-12 pt-24 lg:pt-32 flex-1 w-full ${isPortal ? 'max-w-full' : 'max-w-[1920px]'} mx-auto overflow-x-hidden pb-24 lg:pb-12 relative group`}>
           {/* Version Tracking for Sync Verification */}
