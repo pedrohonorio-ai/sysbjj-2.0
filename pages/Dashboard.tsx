@@ -32,8 +32,8 @@ const StatCard = ({ title, value, icon, color, trend, trendUp, delay = 0 }: any)
       </div>
     </div>
     <div>
-      <h3 className="text-slate-400 dark:text-slate-500 text-[10px] font-black uppercase tracking-[0.25em] mb-2 leading-none">{title}</h3>
-      <p className="text-4xl font-display font-black text-slate-900 dark:text-white leading-none tracking-tighter">{value}</p>
+      <h3 className="text-slate-400 dark:text-slate-500 text-[10px] font-black uppercase tracking-[0.25em] mb-2 leading-none line-clamp-1 overflow-hidden">{title}</h3>
+      <p className="text-4xl font-display font-black text-slate-900 dark:text-white leading-none tracking-tighter truncate">{value}</p>
     </div>
   </motion.div>
 );
@@ -221,8 +221,9 @@ const Dashboard: React.FC = () => {
             <div className="absolute top-0 right-0 w-64 h-64 bg-blue-600 rounded-full blur-[100px] opacity-[0.03]" />
             <div className="flex items-center justify-between mb-8">
               <div className="space-y-1">
-                <h3 className="text-2xl font-black dark:text-white uppercase tracking-tighter flex items-center gap-2">
-                  <BookOpen size={28} className="text-blue-600" /> {t('curriculum.title')}
+                <h3 className="text-2xl font-black dark:text-white uppercase tracking-tighter flex items-center gap-2 overflow-hidden">
+                  <BookOpen size={28} className="text-blue-600 shrink-0" /> 
+                  <span className="truncate">{t('curriculum.title')}</span>
                 </h3>
                 <p className="text-xs font-black text-slate-400 uppercase tracking-widest ml-9">{t('curriculum.subtitle')}</p>
               </div>

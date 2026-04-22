@@ -115,7 +115,7 @@ const ExhibitionMode: React.FC = () => {
                 <div className="inline-flex items-center gap-3 px-6 py-2.5 bg-blue-600 rounded-full text-[10px] font-black uppercase tracking-[0.3em] shadow-2xl shadow-blue-500/40">
                   <Activity size={14} className="animate-pulse" /> {t('exhibition.currentClass')}
                 </div>
-                <h2 className="text-5xl md:text-7xl lg:text-[10rem] font-black tracking-tighter uppercase leading-[0.8] max-w-4xl text-transparent bg-clip-text bg-gradient-to-br from-white via-white to-white/40 drop-shadow-sm">
+                <h2 className="text-5xl md:text-7xl lg:text-[6rem] xl:text-[8rem] font-black tracking-tighter uppercase leading-[0.9] max-w-4xl text-transparent bg-clip-text bg-gradient-to-br from-white via-white to-white/40 drop-shadow-sm line-clamp-3">
                   {currentClass.title}
                 </h2>
                 <div className="flex flex-wrap items-center gap-8 sm:gap-16 pt-4">

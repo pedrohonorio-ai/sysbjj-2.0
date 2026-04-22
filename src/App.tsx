@@ -98,11 +98,11 @@ const Sidebar = ({ isOpen, toggle, onLogout }: { isOpen: boolean, toggle: () => 
               <Link
                 key={item.id}
                 to={`/${item.id}`}
-                className={`flex items-center gap-4 px-4 py-3.5 rounded-xl transition-all duration-300 group relative ${isActive ? 'bg-blue-600 text-white shadow-xl shadow-blue-500/30 ring-1 ring-white/10' : 'text-slate-500 dark:text-slate-500 hover:bg-slate-50 dark:hover:bg-slate-800/50 hover:text-slate-900 dark:hover:text-white'}`}
+                className={`flex items-center gap-4 px-4 py-3.5 rounded-xl transition-all duration-300 group relative overflow-hidden ${isActive ? 'bg-blue-600 text-white shadow-xl shadow-blue-500/30 ring-1 ring-white/10' : 'text-slate-500 dark:text-slate-500 hover:bg-slate-50 dark:hover:bg-slate-800/50 hover:text-slate-900 dark:hover:text-white'}`}
                 onClick={() => { if(window.innerWidth < 1024) toggle(); }}
               >
                 <div className={`shrink-0 transition-all duration-500 ${isActive ? 'scale-110 rotate-0' : 'group-hover:scale-110 group-hover:-rotate-3'}`}>{item.icon}</div>
-                <span className={`font-black tracking-widest uppercase text-[11px] truncate transition-all duration-700 ${isOpen ? 'opacity-100 translate-x-0' : 'opacity-0 -translate-x-4'}`}>
+                <span className={`font-black tracking-wider uppercase text-[10px] truncate transition-all duration-700 flex-1 min-w-0 ${isOpen ? 'opacity-100 translate-x-0' : 'opacity-0 -translate-x-4'}`}>
                   {t(`common.${item.id}`)}
                 </span>
                 {isActive && (
@@ -129,9 +129,9 @@ const Sidebar = ({ isOpen, toggle, onLogout }: { isOpen: boolean, toggle: () => 
                  <div className={`w-8 h-8 rounded-xl flex items-center justify-center border border-slate-200 dark:border-slate-700 shadow-sm shrink-0 ${BELT_COLORS[profile.belt] || 'bg-slate-700'}`}>
                    <span className="font-black text-[10px] text-white tracking-tighter">{profile.stripes}º</span>
                  </div>
-                 <div className={`overflow-hidden flex-1 transition-all duration-500 ${isOpen ? 'opacity-100 translate-x-0' : 'opacity-0 -translate-x-4'}`}>
+                 <div className={`overflow-hidden flex-1 min-w-0 transition-all duration-500 ${isOpen ? 'opacity-100 translate-x-0' : 'opacity-0 -translate-x-4'}`}>
                    <p className="text-[11px] font-black underline decoration-blue-500/30 underline-offset-2 truncate text-slate-900 dark:text-white group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors uppercase">{profile.name}</p>
-                   <p className="text-[8px] text-slate-400 font-black uppercase tracking-widest truncate">{profile.specialization}</p>
+                   <p className="text-[8px] text-slate-400 font-black uppercase tracking-wider truncate">{profile.specialization}</p>
                  </div>
                </div>
             </div>
@@ -141,7 +141,7 @@ const Sidebar = ({ isOpen, toggle, onLogout }: { isOpen: boolean, toggle: () => 
             className="w-full flex items-center gap-4 px-4 py-3.5 rounded-xl text-slate-400 hover:text-red-500 dark:hover:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/10 transition-all uppercase font-black text-[10px] tracking-widest"
           >
             <LogOut size={18} className="shrink-0 group-hover:rotate-12 transition-transform" /> 
-            <span className={`transition-all duration-500 ${isOpen ? 'opacity-100 translate-x-0' : 'opacity-0 -translate-x-4'}`}>
+            <span className={`transition-all duration-500 flex-1 truncate min-w-0 ${isOpen ? 'opacity-100 translate-x-0' : 'opacity-0 -translate-x-4'}`}>
               {t('common.logout')}
             </span>
           </button>
@@ -180,10 +180,10 @@ const BottomNav = ({ onLogout }: { onLogout: () => void }) => {
             <Link
               key={item.id}
               to={`/${item.id}`}
-              className={`flex flex-col items-center justify-center gap-1 h-full transition-all ${isActive ? 'text-slate-900 dark:text-blue-500 border-t-2 border-slate-900 dark:border-blue-500' : 'text-slate-400 dark:text-slate-500'}`}
+              className={`flex flex-col items-center justify-center gap-1 h-full transition-all overflow-hidden ${isActive ? 'text-slate-900 dark:text-blue-500 border-t-2 border-slate-900 dark:border-blue-500' : 'text-slate-400 dark:text-slate-500'}`}
             >
               <div className={isActive ? 'scale-110 transition-transform' : ''}>{item.icon}</div>
-              <span className={`text-[8px] font-bold uppercase tracking-tight truncate w-full px-1 text-center ${isActive ? 'text-slate-900 dark:text-blue-500' : ''}`}>
+              <span className={`text-[7px] font-black uppercase tracking-tight truncate w-full px-1 text-center ${isActive ? 'text-slate-900 dark:text-blue-500' : ''}`}>
                 {item.id === 'curriculum' ? t('common.curriculumShort') : t(`common.${item.id}`)}
               </span>
             </Link>

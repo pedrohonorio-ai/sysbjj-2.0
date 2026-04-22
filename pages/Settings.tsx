@@ -59,7 +59,7 @@ const Settings: React.FC = () => {
 
       <div className="bg-white dark:bg-slate-900 rounded-[2rem] sm:rounded-[2.5rem] border border-slate-200 dark:border-slate-800 shadow-sm overflow-hidden transition-all">
         <div className="p-6 sm:p-8 border-b border-slate-100 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-800/50 flex items-center justify-between">
-          <h3 className="text-xs sm:text-sm font-black text-slate-400 uppercase tracking-[0.3em] flex items-center gap-3">
+          <h3 className="text-xs sm:text-sm font-black text-slate-400 uppercase tracking-[0.15em] flex items-center gap-3">
             <User size={18} className="text-blue-600" /> {t('settings.profileSection')}
           </h3>
           {showSuccess && (
@@ -172,7 +172,7 @@ const Settings: React.FC = () => {
 
       <div className="bg-white dark:bg-slate-900 rounded-[2rem] sm:rounded-[2.5rem] border border-slate-200 dark:border-slate-800 shadow-sm overflow-hidden transition-all">
         <div className="p-6 sm:p-8 border-b border-slate-100 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-800/50">
-          <h3 className="text-xs sm:text-sm font-black text-slate-400 uppercase tracking-[0.3em] flex items-center gap-3">
+          <h3 className="text-xs sm:text-sm font-black text-slate-400 uppercase tracking-[0.15em] flex items-center gap-3">
             <CreditCard size={18} className="text-blue-600" /> {t('settings.financialSection')}
           </h3>
         </div>
@@ -237,7 +237,7 @@ const Settings: React.FC = () => {
 
       <div className="bg-white dark:bg-slate-900 rounded-[2rem] sm:rounded-[2.5rem] border border-slate-200 dark:border-slate-800 shadow-sm overflow-hidden transition-all">
         <div className="p-6 sm:p-8 border-b border-slate-100 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-800/50">
-          <h3 className="text-xs sm:text-sm font-black text-slate-400 uppercase tracking-[0.3em] flex items-center gap-3">
+          <h3 className="text-xs sm:text-sm font-black text-slate-400 uppercase tracking-[0.15em] flex items-center gap-3">
             <Database size={18} className="text-blue-600" /> {t('settings.dataSection')}
           </h3>
         </div>
@@ -276,7 +276,9 @@ const Settings: React.FC = () => {
 
       <div className="bg-white dark:bg-slate-900 rounded-[2rem] sm:rounded-[2.5rem] border border-slate-200 dark:border-slate-800 shadow-sm overflow-hidden transition-all">
         <div className="p-6 sm:p-8 border-b border-slate-100 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-800/50">
-          <h3 className="text-xs sm:text-sm font-black text-slate-400 uppercase tracking-[0.3em] flex items-center gap-3"><Globe size={18} className="text-blue-600" /> {t('settings.languageSection')}</h3>
+          <h3 className="text-xs sm:text-sm font-black text-slate-400 uppercase tracking-[0.15em] flex items-center gap-3">
+            <Globe size={18} className="text-blue-600" /> {t('settings.languageSection')}
+          </h3>
         </div>
         <div className="divide-y divide-slate-100 dark:divide-slate-800">
           {languages.map((lang) => {
