@@ -1,6 +1,6 @@
 
 import React, { useState, useEffect, useRef } from 'react';
-import { Play, Pause, RotateCcw, Timer as TimerIcon, ChevronUp, ChevronDown, BellRing, BellOff, Music, Trophy, Plus, Trash2, Save, Loader2 } from 'lucide-react';
+import { Play, Pause, RotateCcw, Timer as TimerIcon, ChevronUp, ChevronDown, BellRing, BellOff, Music, Trophy, Plus, Trash2, Save, Loader2, Shield } from 'lucide-react';
 import { useTranslation } from '../contexts/LanguageContext';
 import { GoogleGenAI, Modality } from "@google/genai";
 

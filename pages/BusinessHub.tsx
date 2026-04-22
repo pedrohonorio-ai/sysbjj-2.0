@@ -183,14 +183,16 @@ const BusinessHub: React.FC = () => {
   const paidStudents = useMemo(() => {
     return students.filter(s => 
       s.status === StudentStatus.ACTIVE && 
-      s.lastPaymentDate?.startsWith(currentMonth)
+      (s.monthlyValue === 0 || s.lastPaymentDate?.startsWith(currentMonth))
     );
   }, [students, currentMonth]);
 
   const unpaidStudents = useMemo(() => {
     return students.filter(s => 
-      s.status === StudentStatus.OVERDUE || 
-      (s.status === StudentStatus.ACTIVE && !s.lastPaymentDate?.startsWith(currentMonth) && s.dueDay < new Date().getDate())
+      s.monthlyValue > 0 && (
+        s.status === StudentStatus.OVERDUE || 
+        (s.status === StudentStatus.ACTIVE && !s.lastPaymentDate?.startsWith(currentMonth) && s.dueDay < new Date().getDate())
+      )
     );
   }, [students, currentMonth]);
 

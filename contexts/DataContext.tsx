@@ -117,7 +117,7 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   const loadSafely = useCallback((key: string, fallback: any) => {
     try {
       const saved = localStorage.getItem(key);
-      if (!saved) return fallback;
+      if (!saved || saved === 'undefined') return fallback;
       const parsed = JSON.parse(saved);
       return Array.isArray(parsed) ? parsed : fallback;
     } catch (e) {
@@ -128,6 +128,7 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
 
   // Função auxiliar para salvar com segurança
   const saveSafely = useCallback((key: string, value: any) => {
+    if (value === undefined) return;
     try {
       localStorage.setItem(key, JSON.stringify(value));
     } catch (e) {
@@ -334,37 +335,56 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   }, [logs]);
 
   const addStudent = (student: Omit<Student, 'id'>) => {
-    const id = `STUD-${Date.now()}`;
-    const newStudent = { ...student, id } as Student;
-    if (db) {
-      setDoc(doc(db, 'students', id), newStudent).catch(err => handleFirestoreError(err, OperationType.CREATE, 'students'));
-    } else {
+    try {
+      const id = `STUD-${Date.now()}`;
+      const monthlyValue = typeof student.monthlyValue === 'number' ? student.monthlyValue : 0;
+      const newStudent = { ...student, id, monthlyValue } as Student;
+      
+      // Optimistic Update
       setStudents(prev => [...prev, newStudent]);
+      
+      if (db) {
+        setDoc(doc(db, 'students', id), newStudent).catch(err => handleFirestoreError(err, OperationType.CREATE, 'students'));
+      }
+      
+      logAction('Novo Cadastro', `Alunos ${student.name} cadastrado`, 'User');
+    } catch (err) {
+      console.error("Critical error adding student:", err);
+      throw err; // Re-throw to be caught by UI
     }
-    logAction('Novo Cadastro', `Alunos ${student.name} cadastrado`, 'User');
   };
 
   const updateStudent = (id: string, updates: Partial<Student>) => {
+    // Optimistic Update
+    setStudents(prev => prev.map(s => s.id === id ? { ...s, ...updates } : s));
+    
     if (db) {
       updateDoc(doc(db, 'students', id), updates).catch(err => handleFirestoreError(err, OperationType.UPDATE, `students/${id}`));
-    } else {
-      setStudents(prev => prev.map(s => s.id === id ? { ...s, ...updates } : s));
     }
     logAction('Atualização de Cadastro', `Dados do aluno ID ${id} atualizados`, 'User');
   };
 
   const deleteStudent = (id: string) => {
+    // Optimistic Update
+    setStudents(prev => prev.filter(s => s.id !== id));
+    
     if (db) {
       deleteDoc(doc(db, 'students', id)).catch(err => handleFirestoreError(err, OperationType.DELETE, `students/${id}`));
-    } else {
-      setStudents(prev => prev.filter(s => s.id !== id));
     }
     logAction('Exclusão de Cadastro', `Aluno ID ${id} removido do sistema`, 'Security');
   };
 
   const addPayment = (payment: Omit<Payment, 'id'>) => {
-    const newPayment = { ...payment, id: `PAY-${Date.now()}` } as Payment;
+    const id = `PAY-${Date.now()}`;
+    const newPayment = { ...payment, id } as Payment;
+    
+    // Optimistic Update
     setPayments(prev => [newPayment, ...prev]);
+    
+    if (db) {
+      setDoc(doc(db, 'payments', id), newPayment).catch(err => handleFirestoreError(err, OperationType.CREATE, 'payments'));
+    }
+
     logAction('Pagamento Registrado', `Mensalidade de ${payment.name} no valor de R$ ${payment.amount}`, 'Financial');
     
     // Auto-add to ledger for integrity
@@ -377,13 +397,21 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   };
 
   const addReceipt = (receipt: Omit<PaymentReceipt, 'id' | 'status' | 'timestamp'>) => {
+    const id = `RCP-${Date.now()}`;
     const newReceipt: PaymentReceipt = {
       ...receipt,
-      id: `RCP-${Date.now()}`,
+      id,
       status: 'Pending',
       timestamp: Date.now()
     };
+    
+    // Optimistic Update
     setReceipts(prev => [newReceipt, ...prev]);
+    
+    if (db) {
+      setDoc(doc(db, 'receipts', id), newReceipt).catch(err => handleFirestoreError(err, OperationType.CREATE, 'receipts'));
+    }
+
     logAction('Comprovante Enviado', `Aluno ${receipt.studentName} enviou comprovante de R$ ${receipt.amount}`, 'Financial');
     setNotifications(prev => [{
       id: `NOT-${Date.now()}`,
@@ -397,7 +425,13 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     const receipt = receipts.find(r => r.id === id);
     if (!receipt) return;
 
+    // Optimistic Update
     setReceipts(prev => prev.map(r => r.id === id ? { ...r, status: 'Approved' } : r));
+    
+    if (db) {
+      updateDoc(doc(db, 'receipts', id), { status: 'Approved' }).catch(err => handleFirestoreError(err, OperationType.UPDATE, `receipts/${id}`));
+    }
+
     logAction('Comprovante Aprovado', `Comprovante ID ${id} aprovado pelo administrador`, 'Financial');
     
     // Register the actual payment
@@ -421,7 +455,13 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   };
 
   const rejectReceipt = (id: string) => {
+    // Optimistic Update
     setReceipts(prev => prev.map(r => r.id === id ? { ...r, status: 'Rejected' } : r));
+    
+    if (db) {
+      updateDoc(doc(db, 'receipts', id), { status: 'Rejected' }).catch(err => handleFirestoreError(err, OperationType.UPDATE, `receipts/${id}`));
+    }
+
     logAction('Comprovante Rejeitado', `Comprovante ID ${id} rejeitado pelo administrador`, 'Security');
   };
 
@@ -474,7 +514,13 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       hash
     };
 
+    // Optimistic Update
     setLedger(prev => [newEntry, ...prev]);
+
+    if (db) {
+      setDoc(doc(db, 'ledger', id), newEntry).catch(err => handleFirestoreError(err, OperationType.CREATE, 'ledger'));
+    }
+
     logAction('Movimentação Ledger', `Nova entrada no ledger: ${entry.description}`, 'Financial');
   };
 
@@ -532,16 +578,35 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   };
 
   const addSchedule = (schedule: Omit<ClassSchedule, 'id'>) => {
-    setSchedules(prev => [...prev, { ...schedule, id: `SCH-${Date.now()}` }].sort((a, b) => a.time.localeCompare(b.time)));
+    const id = `SCH-${Date.now()}`;
+    const newSchedule = { ...schedule, id };
+    
+    // Optimistic Update
+    setSchedules(prev => [...prev, newSchedule].sort((a, b) => a.time.localeCompare(b.time)));
+    
+    if (db) {
+      setDoc(doc(db, 'schedules', id), newSchedule).catch(err => handleFirestoreError(err, OperationType.CREATE, 'schedules'));
+    }
+    
     logAction('Novo Horário', `Aula de ${schedule.title} adicionada ao cronograma`, 'System');
   };
 
   const updateSchedule = (id: string, updates: Partial<ClassSchedule>) => {
+    // Optimistic Update
     setSchedules(prev => prev.map(s => s.id === id ? { ...s, ...updates } : s).sort((a, b) => a.time.localeCompare(b.time)));
+    
+    if (db) {
+      updateDoc(doc(db, 'schedules', id), updates).catch(err => handleFirestoreError(err, OperationType.UPDATE, `schedules/${id}`));
+    }
   };
 
   const deleteSchedule = (id: string) => {
+    // Optimistic Update
     setSchedules(prev => prev.filter(s => s.id !== id));
+    
+    if (db) {
+      deleteDoc(doc(db, 'schedules', id)).catch(err => handleFirestoreError(err, OperationType.DELETE, `schedules/${id}`));
+    }
   };
 
   const addGalleryImage = (image: Omit<GalleryImage, 'id'>) => {
@@ -549,8 +614,15 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   };
 
   const addExtraRevenue = (rev: Omit<ExtraRevenue, 'id'>) => {
-    const newRev = { ...rev, id: `REV-${Date.now()}` } as ExtraRevenue;
+    const id = `REV-${Date.now()}`;
+    const newRev = { ...rev, id } as ExtraRevenue;
+    
+    // Optimistic Update
     setExtraRevenue(prev => [newRev, ...prev]);
+    
+    if (db) {
+      setDoc(doc(db, 'extra_revenue', id), newRev).catch(err => handleFirestoreError(err, OperationType.CREATE, 'extra_revenue'));
+    }
     
     // Auto-add to ledger for integrity
     addLedgerEntry({
@@ -562,11 +634,21 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   };
 
   const updateExtraRevenue = (id: string, updates: Partial<ExtraRevenue>) => {
+    // Optimistic Update
     setExtraRevenue(prev => prev.map(r => r.id === id ? { ...r, ...updates } : r));
+    
+    if (db) {
+      updateDoc(doc(db, 'extra_revenue', id), updates).catch(err => handleFirestoreError(err, OperationType.UPDATE, `extra_revenue/${id}`));
+    }
   };
 
   const deleteExtraRevenue = (id: string) => {
+    // Optimistic Update
     setExtraRevenue(prev => prev.filter(r => r.id !== id));
+    
+    if (db) {
+      deleteDoc(doc(db, 'extra_revenue', id)).catch(err => handleFirestoreError(err, OperationType.DELETE, `extra_revenue/${id}`));
+    }
   };
 
   const addOrder = (order: Omit<KimonoOrder, 'id'>) => {

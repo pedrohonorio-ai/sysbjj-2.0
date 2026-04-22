@@ -159,6 +159,61 @@ const Dashboard: React.FC = () => {
         </div>
       )}
 
+      {/* Quick Action Navigation Bar - Alta Visibilidade */}
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+        <button 
+          onClick={() => navigate('/attendance')}
+          className="flex items-center gap-4 p-5 bg-white dark:bg-slate-900 rounded-3xl border border-slate-200 dark:border-slate-800 shadow-sm hover:shadow-xl hover:-translate-y-1 transition-all group"
+        >
+          <div className="w-12 h-12 bg-blue-50 dark:bg-blue-900/20 rounded-[1.25rem] flex items-center justify-center text-blue-600 group-hover:scale-110 transition-transform shadow-inner">
+            <QrCode size={24} />
+          </div>
+          <div className="flex flex-col text-left">
+            <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest leading-none mb-1">{t('common.operation')}</span>
+            <span className="text-sm font-black text-slate-900 dark:text-white uppercase tracking-tighter leading-none">{t('common.attendance')}</span>
+          </div>
+        </button>
+
+        <button 
+          onClick={() => navigate('/exhibition')}
+          className="flex items-center gap-4 p-5 bg-white dark:bg-slate-900 rounded-3xl border border-slate-200 dark:border-slate-800 shadow-sm hover:shadow-xl hover:-translate-y-1 transition-all group"
+        >
+          <div className="w-12 h-12 bg-emerald-50 dark:bg-emerald-900/20 rounded-[1.25rem] flex items-center justify-center text-emerald-600 group-hover:scale-110 transition-transform shadow-inner">
+            <Monitor size={24} />
+          </div>
+          <div className="flex flex-col text-left">
+            <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest leading-none mb-1">{t('common.display')}</span>
+            <span className="text-sm font-black text-slate-900 dark:text-white uppercase tracking-tighter leading-none">{t('common.exhibitionMode')}</span>
+          </div>
+        </button>
+
+        <button 
+          onClick={() => navigate('/timer')}
+          className="flex items-center gap-4 p-5 bg-white dark:bg-slate-900 rounded-3xl border border-slate-200 dark:border-slate-800 shadow-sm hover:shadow-xl hover:-translate-y-1 transition-all group"
+        >
+          <div className="w-12 h-12 bg-rose-50 dark:bg-rose-900/20 rounded-[1.25rem] flex items-center justify-center text-rose-600 group-hover:scale-110 transition-transform shadow-inner">
+            <Timer size={24} />
+          </div>
+          <div className="flex flex-col text-left">
+            <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest leading-none mb-1">{t('dashboard.training')}</span>
+            <span className="text-sm font-black text-slate-900 dark:text-white uppercase tracking-tighter leading-none">{t('common.timer')}</span>
+          </div>
+        </button>
+
+        <button 
+          onClick={() => navigate('/assistant')}
+          className="flex items-center gap-4 p-5 bg-white dark:bg-slate-900 rounded-3xl border border-slate-200 dark:border-slate-800 shadow-sm hover:shadow-xl hover:-translate-y-1 transition-all group"
+        >
+          <div className="w-12 h-12 bg-amber-50 dark:bg-amber-900/20 rounded-[1.25rem] flex items-center justify-center text-amber-600 group-hover:scale-110 transition-transform shadow-inner">
+            <Zap size={24} />
+          </div>
+          <div className="flex flex-col text-left">
+            <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest leading-none mb-1">{t('dashboard.ia')}</span>
+            <span className="text-sm font-black text-slate-900 dark:text-white uppercase tracking-tighter leading-none">{t('common.assistant')}</span>
+          </div>
+        </button>
+      </div>
+
       {/* Stats Quick Grid - Consolidada */}
       <div className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-6 gap-4">
         <StatCard title={t('dashboard.stats.total')} value={totalStudents} icon={<Users size={20} />} color="bg-blue-600" trend={t('dashboard.stats.registrations')} trendUp={true} delay={0.1} />
@@ -169,24 +224,27 @@ const Dashboard: React.FC = () => {
         <StatCard title={t('dashboard.stats.pending')} value={pendingPaymentsCount} icon={<AlertCircle size={20} />} color="bg-red-600" trend={t('dashboard.stats.billing')} trendUp={false} delay={0.6} />
       </div>
 
-      {/* Instagram Premium Destaque */}
+      {/* Instagram Premium Destaque - Redesigned for High Impact */}
       <motion.div 
-        initial={{ opacity: 0, x: -20 }}
-        animate={{ opacity: 1, x: 0 }}
-        transition={{ delay: 0.5 }}
-        className="relative overflow-hidden bg-gradient-to-r from-pink-600 via-purple-600 to-blue-600 p-1 rounded-[2rem] shadow-2xl shadow-pink-500/20 group"
+        initial={{ opacity: 0, y: 30 }}
+        whileInView={{ opacity: 1, y: 0 }}
+        viewport={{ once: true }}
+        className="relative group h-full"
       >
-        <div className="bg-slate-950/90 backdrop-blur-3xl rounded-[1.9rem] p-6 sm:p-8 flex flex-col md:flex-row items-center justify-between gap-6 relative overflow-hidden">
-          <div className="absolute top-0 right-0 w-64 h-64 bg-pink-500/10 rounded-full blur-[80px] -mr-32 -mt-32" />
+        <div className="absolute -inset-1 bg-gradient-to-r from-pink-600 via-purple-600 to-blue-600 rounded-[2.5rem] blur opacity-25 group-hover:opacity-100 transition duration-1000 group-hover:duration-200 animate-pulse" />
+        <div className="relative overflow-hidden bg-slate-950 rounded-[2.5rem] p-8 sm:p-12 flex flex-col md:flex-row items-center justify-between gap-10 border border-white/5 shadow-3xl">
+          <div className="absolute top-0 right-0 w-[500px] h-[500px] bg-gradient-to-br from-pink-500/20 to-transparent rounded-full blur-[100px] -mr-64 -mt-64 group-hover:scale-110 transition-transform duration-[2000ms]" />
           
-          <div className="flex items-center gap-6 relative z-10">
-            <div className="w-16 h-16 bg-gradient-to-tr from-yellow-400 via-pink-500 to-purple-600 rounded-2xl flex items-center justify-center text-white shadow-2xl rotate-3 group-hover:rotate-6 transition-transform duration-500">
-              <Instagram size={32} />
+          <div className="flex items-center gap-8 relative z-10">
+            <div className="w-20 h-20 bg-gradient-to-tr from-yellow-400 via-pink-500 to-purple-600 rounded-[1.75rem] flex items-center justify-center text-white shadow-3xl rotate-6 group-hover:rotate-12 group-hover:scale-110 transition-all duration-500 ring-4 ring-white/10 shrink-0">
+              <Instagram size={40} />
             </div>
             <div>
-              <p className="text-[10px] font-black text-pink-500 uppercase tracking-[0.4em] mb-1">Evolução SYSBJJ</p>
-              <h3 className="text-xl sm:text-2xl font-black text-white uppercase tracking-tight leading-none mb-2">Comunidade de Elite no Instagram</h3>
-              <p className="text-slate-400 text-xs font-medium">Acompanhe novidades, atualizações e sugira novos recursos em tempo real.</p>
+              <div className="flex items-center gap-3 mb-2">
+                <span className="px-3 py-1 bg-pink-500/10 border border-pink-500/20 rounded-full text-[9px] font-black text-pink-500 uppercase tracking-[0.3em]">Comunidade VIP</span>
+              </div>
+              <h3 className="text-2xl sm:text-4xl font-display font-black text-white uppercase tracking-tighter leading-none mb-3">Siga o <span className="text-transparent bg-clip-text bg-gradient-to-r from-pink-500 to-purple-400">Império SYSBJJ</span> no Instagram</h3>
+              <p className="text-slate-400 text-sm font-medium opacity-80 max-w-lg">Ocupe seu lugar na elite mundial. Acompanhe seminários, atualizações do sistema e conecte-se com mestres em todo o globo.</p>
             </div>
           </div>
 
@@ -194,10 +252,10 @@ const Dashboard: React.FC = () => {
             href="https://instagram.com/sysbjj.26" 
             target="_blank" 
             rel="noopener noreferrer"
-            className="relative z-10 px-10 py-4 bg-white text-slate-900 rounded-xl font-black text-xs uppercase tracking-widest hover:scale-105 active:scale-95 transition-all shadow-xl shadow-white/10 flex items-center gap-3 group/btn"
+            className="relative z-10 px-12 py-5 bg-white text-slate-900 rounded-2xl font-black text-sm uppercase tracking-[0.2em] hover:bg-slate-100 active:scale-95 transition-all shadow-2xl shadow-white/10 flex items-center gap-4 group/btn shrink-0"
           >
             @sysbjj.26 
-            <Instagram size={16} className="group-hover/btn:rotate-12 transition-transform" />
+            <ChevronRight size={20} className="group-hover/btn:translate-x-1 transition-transform" />
           </a>
         </div>
       </motion.div>
@@ -341,77 +399,19 @@ const Dashboard: React.FC = () => {
 
         {/* Right Column: Operações & Atividades */}
         <div className="lg:col-span-4 space-y-6">
-          {/* Action Center */}
-          <div className="grid grid-cols-2 gap-4">
-            <button 
-              onClick={() => navigate('/attendance')}
-              className="p-5 bg-white dark:bg-slate-900 rounded-[2rem] border border-slate-200 dark:border-slate-800 shadow-sm hover:shadow-xl transition-all group text-left relative overflow-hidden"
-            >
-              <div className="absolute top-0 right-0 p-2 opacity-5 scale-150">
-                <QrCode size={40} />
-              </div>
-              <div className="w-10 h-10 bg-blue-50 dark:bg-blue-900/20 rounded-xl flex items-center justify-center text-blue-600 mb-3 group-hover:scale-110 transition-transform">
-                <QrCode size={20} />
-              </div>
-              <p className="text-[8px] font-black text-slate-400 uppercase tracking-widest mb-1">{t('common.operation')}</p>
-              <p className="font-black text-slate-900 dark:text-white uppercase tracking-tight text-[11px] truncate">{t('common.attendance')}</p>
-            </button>
-
-            <button 
-              onClick={() => navigate('/exhibition')}
-              className="p-5 bg-white dark:bg-slate-900 rounded-[2rem] border border-slate-200 dark:border-slate-800 shadow-sm hover:shadow-xl transition-all group text-left relative overflow-hidden"
-            >
-              <div className="absolute top-0 right-0 p-2 opacity-5 scale-150">
-                <Monitor size={40} />
-              </div>
-              <div className="w-10 h-10 bg-emerald-50 dark:bg-emerald-900/20 rounded-xl flex items-center justify-center text-emerald-600 mb-3 group-hover:scale-110 transition-transform">
-                <Monitor size={20} />
-              </div>
-              <p className="text-[8px] font-black text-slate-400 uppercase tracking-widest mb-1">{t('common.display')}</p>
-              <p className="font-black text-slate-900 dark:text-white uppercase tracking-tight text-[11px] truncate">{t('common.exhibitionMode')}</p>
-            </button>
-
-            <button 
-              onClick={() => navigate('/timer')}
-              className="p-5 bg-white dark:bg-slate-900 rounded-[2rem] border border-slate-200 dark:border-slate-800 shadow-sm hover:shadow-xl transition-all group text-left relative overflow-hidden"
-            >
-              <div className="absolute top-0 right-0 p-2 opacity-5 scale-150">
-                <Timer size={40} />
-              </div>
-              <div className="w-10 h-10 bg-rose-50 dark:bg-rose-900/20 rounded-xl flex items-center justify-center text-rose-600 mb-3 group-hover:scale-110 transition-transform">
-                <Timer size={20} />
-              </div>
-              <p className="text-[8px] font-black text-slate-400 uppercase tracking-widest mb-1">{t('dashboard.training')}</p>
-              <p className="font-black text-slate-900 dark:text-white uppercase tracking-tight text-[11px] truncate">{t('common.timer')}</p>
-            </button>
-            
-            <button 
-              onClick={() => navigate('/assistant')}
-              className="p-5 bg-white dark:bg-slate-900 rounded-[2rem] border border-slate-200 dark:border-slate-800 shadow-sm hover:shadow-xl transition-all group text-left relative overflow-hidden"
-            >
-              <div className="absolute top-0 right-0 p-2 opacity-5 scale-150">
-                <Zap size={40} />
-              </div>
-              <div className="w-10 h-10 bg-amber-50 dark:bg-amber-900/20 rounded-xl flex items-center justify-center text-amber-600 mb-3 group-hover:scale-110 transition-transform">
-                <Zap size={20} />
-              </div>
-              <p className="text-[8px] font-black text-slate-400 uppercase tracking-widest mb-1">{t('dashboard.ia')}</p>
-              <p className="font-black text-slate-900 dark:text-white uppercase tracking-tight text-[11px] truncate">{t('common.assistant')}</p>
-            </button>
-          </div>
-
           {isMasterAdmin && (
             <button 
               onClick={() => navigate('/audit')}
-              className="w-full p-5 bg-slate-900 dark:bg-blue-600 rounded-2xl border border-white/5 shadow-xl hover:-translate-y-1 transition-all group flex items-center gap-4"
+              className="w-full p-6 bg-slate-950 dark:bg-blue-600 rounded-3xl border border-white/5 shadow-2xl hover:-translate-y-1 transition-all group flex items-center gap-5"
             >
-              <div className="w-10 h-10 bg-white/10 rounded-xl flex items-center justify-center text-white backdrop-blur-md">
-                <Shield size={20} />
+              <div className="w-12 h-12 bg-white/10 rounded-2xl flex items-center justify-center text-white backdrop-blur-md shadow-inner group-hover:rotate-12 transition-transform">
+                <Shield size={24} />
               </div>
-              <div className="text-left">
-                <p className="text-[8px] font-black text-white/50 uppercase tracking-widest">Master Admin</p>
-                <p className="text-xs font-black text-white uppercase tracking-tight">Auditoria do Sistema</p>
+              <div className="text-left flex-1">
+                <p className="text-[10px] font-black text-white/50 uppercase tracking-[0.3em] mb-1">Master Access</p>
+                <p className="text-base font-black text-white uppercase tracking-tight leading-none">Security Auditor</p>
               </div>
+              <ArrowRight size={20} className="text-white/20 group-hover:text-white group-hover:translate-x-1 transition-all" />
             </button>
           )}
 

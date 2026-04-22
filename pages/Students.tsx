@@ -93,20 +93,25 @@ const NewStudentModal = ({ onClose, defaultIsKid }: { onClose: () => void, defau
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    addStudent({
-      ...formData,
-      stripes: 0,
-      attendanceCount: 0,
-      history: [],
-      techniques: [],
-      goals: [],
-      feedbacks: [],
-      currentStreak: 0,
-      rewardPoints: 0,
-      behaviorScore: 100,
-      portalAccessCode: `SYS-${formData.name.substring(0, 3).toUpperCase()}-${Math.floor(Math.random()*1000)}`,
-    });
-    onClose();
+    try {
+      addStudent({
+        ...formData,
+        stripes: 0,
+        attendanceCount: 0,
+        history: [],
+        techniques: [],
+        goals: [],
+        feedbacks: [],
+        currentStreak: 0,
+        rewardPoints: 0,
+        behaviorScore: 100,
+        portalAccessCode: `SYS-${formData.name.substring(0, 3).toUpperCase()}-${Math.floor(Math.random()*1000)}`,
+      });
+      onClose();
+    } catch (err) {
+      console.error("Error submitting student form:", err);
+      alert(t('common.errorOccurred') || 'Ocorreu um erro ao cadastrar o aluno. Por favor, tente novamente.');
+    }
   };
 
   return (

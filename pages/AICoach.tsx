@@ -3,7 +3,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { 
   Send, Bot, Sparkles, Wand2, BrainCircuit, 
   MessageCircle, Loader2, RotateCcw, Users, 
-  Camera, Upload, Zap, Info, ShieldCheck, 
+  Camera, Upload, Zap, Info, ShieldCheck, Shield,
   BookOpen, Clock, Target, Search, Timer, ArrowRight
 } from 'lucide-react';
 import { 

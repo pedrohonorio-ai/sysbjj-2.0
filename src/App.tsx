@@ -281,22 +281,22 @@ const Header = ({ toggleSidebar, auth, onLogout }: { toggleSidebar: () => void, 
           <Menu size={20} />
         </button>
         
-        <div className="hidden sm:flex items-center gap-5 border-l border-slate-200 dark:border-slate-800/80 pl-8 h-12 ml-2">
+        <div className="hidden sm:flex items-center gap-6 border-l border-slate-200 dark:border-slate-800/80 pl-8 h-12 ml-2">
            <div className="flex flex-col items-start justify-center h-full">
-             <div className="flex items-baseline gap-1.5 leading-none">
-               <h2 className="text-2xl font-display font-black text-slate-900 dark:text-white tracking-tighter tabular-nums">
+             <div className="flex items-baseline gap-2 leading-none group/time">
+               <h2 className="text-3xl font-display font-black text-slate-900 dark:text-white tracking-tighter tabular-nums drop-shadow-sm group-hover/time:text-blue-600 transition-colors duration-500">
                  {currentTime.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                </h2>
                <div className="flex flex-col">
-                 <span className="text-[10px] font-black text-blue-600 dark:text-blue-500 font-mono tabular-nums leading-none mb-[1px]">
+                 <span className="text-[11px] font-black text-blue-600 dark:text-blue-500 font-mono tabular-nums leading-none mb-[2px] animate-pulse">
                    {currentTime.toLocaleTimeString([], { second: '2-digit' })}
                  </span>
-                 <div className="w-full h-[1px] bg-blue-500/20" />
+                 <div className="w-full h-[1.5px] bg-gradient-to-r from-blue-500 to-transparent" />
                </div>
              </div>
-             <p className="text-[7.5px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-[0.35em] whitespace-nowrap flex items-center gap-2 mt-1.5 leading-none">
-               <span className="w-1 h-1 rounded-full bg-blue-500 animate-pulse shadow-[0_0_8px_rgba(59,130,246,0.5)]" />
-               {currentTime.toLocaleDateString(t('common.dateLocale'), { weekday: 'short', day: '2-digit', month: 'short', year: 'numeric' }).toUpperCase()}
+             <p className="text-[8px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-[0.45em] whitespace-nowrap flex items-center gap-2 mt-2 leading-none">
+               <span className="w-1.5 h-1.5 rounded-full bg-blue-500 animate-pulse shadow-[0_0_12px_rgba(59,130,246,0.6)]" />
+               {currentTime.toLocaleDateString(t('common.dateLocale'), { weekday: 'long', day: '2-digit', month: 'short', year: 'numeric' }).toUpperCase()}
              </p>
            </div>
         </div>
