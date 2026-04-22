@@ -31,7 +31,6 @@ export const NAVIGATION_ITEMS = [
   { id: 'timer', label: 'Cronômetro', icon: <Timer size={20} /> },
   { id: 'assistant', label: 'Coach IA', icon: <MessageSquare size={20} /> },
   { id: 'audit', label: 'Auditoria', icon: <BarChart3 size={20} /> },
-  { id: 'settings', label: 'Sistema', icon: <Settings size={20} /> },
 ];
 
 export const BELT_COLORS: Record<string, string> = {

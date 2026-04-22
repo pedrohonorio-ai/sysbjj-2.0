@@ -84,12 +84,18 @@ const ExhibitionMode: React.FC = () => {
         </div>
 
         <div className="flex items-center gap-12">
-          <div className="text-right">
-            <p className="text-6xl font-black tracking-tighter tabular-nums leading-none mb-1">
-              {now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-            </p>
-            <p className="text-sm font-black text-slate-500 uppercase tracking-widest">
-              {now.toLocaleDateString(t('common.dateLocale'), { weekday: 'long', day: 'numeric', month: 'long' })}
+          <div className="text-right flex flex-col items-end gap-1">
+            <div className="flex items-baseline gap-2">
+              <p className="text-7xl font-display font-black tracking-tighter tabular-nums leading-none text-white drop-shadow-2xl">
+                {now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+              </p>
+              <span className="text-2xl font-mono font-black text-blue-500 tabular-nums opacity-80 border-b-2 border-blue-500/20 pb-1">
+                {now.toLocaleTimeString([], { second: '2-digit' })}
+              </span>
+            </div>
+            <p className="text-xs font-black text-slate-500 uppercase tracking-[0.4em] flex items-center gap-2">
+              <span className="w-2 h-2 rounded-full bg-blue-600 animate-pulse" />
+              {now.toLocaleDateString(t('common.dateLocale'), { weekday: 'long', day: '2-digit', month: 'long', year: 'numeric' }).toUpperCase()}
             </p>
           </div>
           <button 

@@ -105,6 +105,8 @@ const en = {
     supportViaPix: "Support this project via PIX",
     logout: "Logout",
     synced: "Synced",
+    masterConsole: "Master Console",
+    evolution: "Evolution",
     months: {
       january: "January", february: "February", march: "March", april: "April",
       may: "May", june: "June", july: "July", august: "August",
@@ -779,6 +781,8 @@ const pt = {
     supportViaPix: "Apoie este projeto via PIX",
     logout: "Sair do Sistema",
     synced: "Sincronizado",
+    masterConsole: "Console Mestre",
+    evolution: "Evolução",
     months: {
       january: "Janeiro", february: "Fevereiro", march: "Março", april: "Abril",
       may: "Maio", june: "Junho", july: "Julho", august: "Agosto",

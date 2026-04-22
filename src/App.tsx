@@ -47,6 +47,39 @@ const Sidebar = ({ isOpen, toggle, onLogout }: { isOpen: boolean, toggle: () => 
     return true;
   });
 
+  const coreItems = filteredItems.filter(item => ['dashboard', 'students', 'classes', 'business', 'curriculum', 'attendance'].includes(item.id));
+  const evolutionItems = filteredItems.filter(item => ['promotions', 'ibjjf-rules'].includes(item.id));
+  const masterItems = filteredItems.filter(item => ['timer', 'assistant', 'audit'].includes(item.id));
+
+  const renderNavItem = (item: any) => {
+    const isActive = location.pathname === `/${item.id}` || (location.pathname === '/' && item.id === 'dashboard');
+    return (
+      <Link
+        key={item.id}
+        to={`/${item.id}`}
+        className={`flex items-center gap-4 px-4 py-3.5 rounded-xl transition-all duration-300 group relative overflow-hidden ${isActive ? 'bg-blue-600 text-white shadow-xl shadow-blue-500/30 ring-1 ring-white/10' : 'text-slate-500 dark:text-slate-500 hover:bg-slate-50 dark:hover:bg-slate-800/50 hover:text-slate-900 dark:hover:text-white'}`}
+        onClick={() => { if(window.innerWidth < 1024) toggle(); }}
+      >
+        <div className={`shrink-0 transition-all duration-500 ${isActive ? 'scale-110 rotate-0' : 'group-hover:scale-110 group-hover:-rotate-3'}`}>{item.icon}</div>
+        <span className={`font-black tracking-wider uppercase text-[10px] truncate transition-all duration-700 flex-1 min-w-0 ${isOpen ? 'opacity-100 translate-x-0' : 'opacity-0 -translate-x-4'}`}>
+          {t(`common.${item.id}`)}
+        </span>
+        {isActive && (
+          <motion.div 
+            layoutId="active-indicator"
+            className="absolute left-0 w-1 h-6 bg-white rounded-full ml-1"
+            transition={{ type: "spring", stiffness: 300, damping: 30 }}
+          />
+        )}
+        {!isOpen && (
+          <div className="absolute left-full ml-4 px-4 py-2 bg-slate-900 dark:bg-slate-800 text-white text-[10px] font-black uppercase tracking-[0.2em] rounded-xl shadow-2xl opacity-0 group-hover:opacity-100 pointer-events-none transition-all z-50 whitespace-nowrap lg:block hidden border border-slate-800 dark:border-slate-700">
+            {t(`common.${item.id}`)}
+          </div>
+        )}
+      </Link>
+    );
+  };
+
   return (
     <>
       <div 
@@ -91,35 +124,39 @@ const Sidebar = ({ isOpen, toggle, onLogout }: { isOpen: boolean, toggle: () => 
           </button>
         </div>
         
-        <nav className="flex-1 mt-6 px-3 space-y-1 scrollbar-hide">
-          {filteredItems.map((item) => {
-            const isActive = location.pathname === `/${item.id}` || (location.pathname === '/' && item.id === 'dashboard');
-            return (
-              <Link
-                key={item.id}
-                to={`/${item.id}`}
-                className={`flex items-center gap-4 px-4 py-3.5 rounded-xl transition-all duration-300 group relative overflow-hidden ${isActive ? 'bg-blue-600 text-white shadow-xl shadow-blue-500/30 ring-1 ring-white/10' : 'text-slate-500 dark:text-slate-500 hover:bg-slate-50 dark:hover:bg-slate-800/50 hover:text-slate-900 dark:hover:text-white'}`}
-                onClick={() => { if(window.innerWidth < 1024) toggle(); }}
-              >
-                <div className={`shrink-0 transition-all duration-500 ${isActive ? 'scale-110 rotate-0' : 'group-hover:scale-110 group-hover:-rotate-3'}`}>{item.icon}</div>
-                <span className={`font-black tracking-wider uppercase text-[10px] truncate transition-all duration-700 flex-1 min-w-0 ${isOpen ? 'opacity-100 translate-x-0' : 'opacity-0 -translate-x-4'}`}>
-                  {t(`common.${item.id}`)}
-                </span>
-                {isActive && (
-                  <motion.div 
-                    layoutId="active-indicator"
-                    className="absolute left-0 w-1 h-6 bg-white rounded-full ml-1"
-                    transition={{ type: "spring", stiffness: 300, damping: 30 }}
-                  />
-                )}
-                {!isOpen && (
-                  <div className="absolute left-full ml-4 px-4 py-2 bg-slate-900 dark:bg-slate-800 text-white text-[10px] font-black uppercase tracking-[0.2em] rounded-xl shadow-2xl opacity-0 group-hover:opacity-100 pointer-events-none transition-all z-50 whitespace-nowrap lg:block hidden border border-slate-800 dark:border-slate-700">
-                    {t(`common.${item.id}`)}
-                  </div>
-                )}
-              </Link>
-            );
-          })}
+        <nav className="flex-1 mt-6 px-3 space-y-8 scrollbar-hide pb-10">
+          <div>
+            <div className={`mb-3 px-4 flex items-center gap-3 transition-all duration-500 ${isOpen ? 'opacity-100' : 'opacity-0'}`}>
+               <span className="text-[10px] font-black text-slate-400 uppercase tracking-[0.25em] whitespace-nowrap">{t('dashboard.training')}</span>
+               <div className="h-px bg-slate-100 dark:bg-slate-800/50 flex-1" />
+            </div>
+            <div className="space-y-1">
+              {coreItems.map(renderNavItem)}
+            </div>
+          </div>
+
+          <div>
+            <div className={`mb-3 px-4 flex items-center gap-3 transition-all duration-500 ${isOpen ? 'opacity-100' : 'opacity-0'}`}>
+               <span className="text-[10px] font-black text-slate-400 uppercase tracking-[0.25em] whitespace-nowrap">{t('common.evolution')}</span>
+               <div className="h-px bg-slate-100 dark:bg-slate-800/50 flex-1" />
+            </div>
+            <div className="space-y-1">
+              {evolutionItems.map(renderNavItem)}
+            </div>
+          </div>
+
+          <div className={`mx-2 p-4 bg-blue-50/50 dark:bg-blue-900/10 rounded-[2rem] border border-blue-100 dark:border-blue-900/20 transition-all duration-700 ${isOpen ? 'opacity-100' : 'opacity-0 translate-y-4'}`}>
+            <div className={`mb-4 px-2 flex items-center gap-2`}>
+               <div className="h-px bg-blue-200 dark:bg-blue-800 flex-1" />
+               <span className="text-[9px] font-black text-blue-600 dark:text-blue-400 uppercase tracking-[0.2em] whitespace-nowrap flex items-center gap-2">
+                 <Shield size={10} /> {t('common.masterConsole')}
+               </span>
+               <div className="h-px bg-blue-200 dark:bg-blue-800 flex-1" />
+            </div>
+            <div className="space-y-1">
+              {masterItems.map(renderNavItem)}
+            </div>
+          </div>
         </nav>
         
         <div className="flex-none p-3 mt-8 mb-24 lg:mb-6 space-y-2 overflow-hidden shrink-0 border-t border-slate-100 dark:border-slate-800/50 pt-6">
@@ -263,13 +300,21 @@ const Header = ({ toggleSidebar, auth, onLogout }: { toggleSidebar: () => void, 
           <Menu size={20} />
         </button>
         
-        <div className="hidden sm:flex flex-col">
-           <h2 className="text-[10px] font-black text-blue-600 dark:text-blue-400 uppercase tracking-[0.2em] leading-none mb-1">
-             {currentTime.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-           </h2>
-           <p className="text-[8px] font-black text-slate-400 uppercase tracking-widest leading-none">
-             {currentTime.toLocaleDateString(t('common.dateLocale'), { weekday: 'long', day: 'numeric', month: 'short' })}
-           </p>
+        <div className="hidden sm:flex items-center gap-4 border-l border-slate-200 dark:border-slate-800/80 pl-6 h-10 ml-2">
+           <div className="flex flex-col items-start leading-none gap-1">
+             <div className="flex items-baseline gap-1">
+               <h2 className="text-xl font-display font-black text-slate-900 dark:text-white tracking-tighter tabular-nums">
+                 {currentTime.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+               </h2>
+               <span className="text-[10px] font-black text-blue-600 dark:text-blue-500 font-mono tabular-nums opacity-80 decoration-blue-500/20 underline underline-offset-2">
+                 {currentTime.toLocaleTimeString([], { second: '2-digit' })}
+               </span>
+             </div>
+             <p className="text-[7px] font-black text-slate-400 uppercase tracking-[0.3em] whitespace-nowrap flex items-center gap-1.5 translate-y-[-2px]">
+               <span className="w-1 h-1 rounded-full bg-blue-500/50 animate-pulse" />
+               {currentTime.toLocaleDateString(t('common.dateLocale'), { weekday: 'short', day: '2-digit', month: 'short', year: 'numeric' }).toUpperCase()}
+             </p>
+           </div>
         </div>
       </div>
 

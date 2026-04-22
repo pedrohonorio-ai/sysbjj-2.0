@@ -141,7 +141,7 @@ const AICoach: React.FC = () => {
             </div>
             <div>
               <h1 className="text-xl font-black dark:text-white uppercase tracking-tighter flex items-center gap-2">
-                {t('aiCoach.title')}
+                <Shield className="text-blue-600" size={18} /> Console Sensei IA Master
                 <Sparkles className="text-amber-500" size={16} />
               </h1>
               <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">{t('aiCoach.subtitle')}</p>

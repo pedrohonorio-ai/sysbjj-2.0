@@ -186,8 +186,8 @@ const SystemAudit: React.FC = () => {
         <div className="space-y-1">
           <h1 className="text-4xl font-black text-slate-900 dark:text-white tracking-tighter uppercase leading-none flex items-center gap-4">
             <Shield className="text-blue-600" size={40} />
-            Auditoria de Sistema
-            <span className="flex items-center gap-1.5 px-3 py-1 bg-green-500/10 text-green-500 rounded-full border border-green-500/20 text-[9px] tracking-widest animate-pulse">
+            Console de Auditoria Mestre
+            <span className="flex items-center gap-1.5 px-3 py-1 bg-green-500/10 text-green-500 rounded-full border border-green-500/20 text-[9px] tracking-widest animate-pulse font-mono">
               <span className="w-1.5 h-1.5 bg-green-500 rounded-full" />
               LIVE SYNC
             </span>

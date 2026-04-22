@@ -289,9 +289,11 @@ const AttendancePage: React.FC = () => {
               <h3 className="text-2xl font-black text-slate-900 uppercase tracking-tighter">{t('attendance.qrTitle')}</h3>
               <p className="text-slate-500 text-xs font-medium">{t('attendance.qrInstructions')}</p>
             </div>
-            <div className="p-4 bg-blue-50 rounded-2xl border border-blue-100 flex items-center justify-center gap-3">
+            <div className="p-4 bg-blue-50 dark:bg-blue-900/10 rounded-2xl border border-blue-100 dark:border-blue-900/20 flex items-center justify-center gap-3">
               <div className="w-2 h-2 bg-blue-600 rounded-full animate-ping" />
-              <span className="text-[10px] font-black text-blue-600 uppercase tracking-widest">{t('attendance.sessionActive')}: {new Date().toLocaleTimeString()}</span>
+              <span className="text-[10px] font-black text-blue-600 dark:text-blue-400 uppercase tracking-[0.2em] tabular-nums">
+                {t('attendance.sessionActive')}: {new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' })} • {new Date().getFullYear()}
+              </span>
             </div>
           </div>
         </div>

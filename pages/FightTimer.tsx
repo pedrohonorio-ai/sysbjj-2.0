@@ -301,8 +301,8 @@ const FightTimer: React.FC = () => {
         <div className="flex items-center justify-between flex-wrap gap-4">
           <div className="flex flex-col">
             <h1 className="text-2xl font-black flex items-center gap-3 dark:text-white uppercase tracking-tighter">
-              <TimerIcon className={isAlarming ? "text-red-500 animate-bounce" : "text-red-600"} size={32} />
-              {t('timer.title')}
+              <Shield className={isAlarming ? "text-red-500 animate-bounce" : "text-blue-600"} size={32} />
+              Console Cronômetro Elite
             </h1>
             <p className="text-[9px] font-black uppercase text-blue-500/60 ml-10 mt-1 tracking-widest">{t('timer.audioNotice')}</p>
           </div>
