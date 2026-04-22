@@ -146,35 +146,6 @@ const StudentPortal: React.FC = () => {
 
   return (
     <div className="min-h-screen bg-slate-50 dark:bg-slate-950 pb-24 transition-colors">
-      <header className="bg-slate-900 text-white p-6 sticky top-0 z-50 border-b border-white/5 flex items-center justify-between">
-        <div className="flex items-center gap-3">
-          <div className="w-10 h-10 bg-blue-600 rounded-xl flex items-center justify-center font-black">{profile.academyName[0]}</div>
-          <div>
-            <h2 className="text-sm font-black uppercase tracking-tighter leading-none">{profile.academyName}</h2>
-            <p className="text-[8px] font-bold text-blue-400 uppercase tracking-widest">{t('portal.studentPortal')}</p>
-          </div>
-        </div>
-        <div className="flex items-center gap-4">
-          <button 
-            onClick={() => {
-              const auth = JSON.parse(localStorage.getItem('oss_auth') || '{}');
-              if (auth.role === 'admin') {
-                navigate('/dashboard');
-              } else {
-                localStorage.removeItem('oss_auth');
-                window.location.href = '/';
-              }
-            }}
-            className="p-2 text-white/60 hover:text-white transition-colors flex items-center gap-2"
-          >
-            <LogOut size={20} />
-            <span className="text-[10px] font-black uppercase tracking-widest hidden sm:block">
-              {JSON.parse(localStorage.getItem('oss_auth') || '{}').role === 'admin' ? t('common.back') : t('common.logout')}
-            </span>
-          </button>
-        </div>
-      </header>
-
       <main className="max-w-md mx-auto p-4 space-y-6">
         {activeTab === 'home' && (
           <>

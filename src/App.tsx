@@ -156,10 +156,12 @@ const BottomNav = ({ onLogout }: { onLogout: () => void }) => {
   );
 };
 
-const Header = ({ toggleSidebar }: { toggleSidebar: () => void }) => {
+const Header = ({ toggleSidebar, auth, onLogout }: { toggleSidebar: () => void, auth: AuthState, onLogout: () => void }) => {
   const { setTheme, resolvedTheme } = useTheme();
   const { t } = useTranslation();
+  const { profile } = useProfile();
   const location = useLocation();
+  const navigate = useNavigate();
   const [currentTime, setCurrentTime] = useState(new Date());
 
   useEffect(() => {
@@ -171,22 +173,38 @@ const Header = ({ toggleSidebar }: { toggleSidebar: () => void }) => {
     setTheme(resolvedTheme === 'dark' ? 'light' : 'dark');
   };
 
-  if (location.pathname.startsWith('/portal/')) return (
-    <header className="h-20 bg-slate-900 border-b border-white/5 flex items-center justify-between px-8 sticky top-0 z-40 w-full">
+  const isPortal = location.pathname.startsWith('/portal/');
+
+  if (isPortal) return (
+    <header className="h-20 bg-slate-900 border-b border-white/5 flex items-center justify-between px-4 sm:px-8 sticky top-0 z-50 w-full transition-all duration-500">
       <div className="flex items-center gap-3">
-        <div className="w-8 h-8 bg-blue-600 rounded-lg flex items-center justify-center font-black text-white text-sm">PPH</div>
-        <span className="text-white font-black text-xs uppercase tracking-widest">{t('portal.title')}</span>
-      </div>
-      <div className="flex items-center gap-4">
-        <div className="hidden sm:flex flex-col items-end">
-           <p className="text-[10px] font-black text-white uppercase tracking-widest">{currentTime.toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}</p>
-           <p className="text-[8px] font-bold text-slate-500 uppercase">{currentTime.toLocaleDateString(t('common.dateLocale'))}</p>
+        <div className="w-10 h-10 bg-blue-600 rounded-xl flex items-center justify-center font-black text-white">{profile.academyName[0] || 'P'}</div>
+        <div>
+          <h2 className="text-sm font-black text-white uppercase tracking-tighter leading-none">{profile.academyName || 'PPH BJJ ACADEMY'}</h2>
+          <p className="text-[8px] font-bold text-blue-400 uppercase tracking-widest">{t('portal.studentPortal')}</p>
         </div>
+      </div>
+      <div className="flex items-center gap-2 sm:gap-4">
         <button 
           onClick={handleThemeToggle}
           className="p-2 text-slate-400 hover:text-white transition-colors"
         >
           {resolvedTheme === 'dark' ? <Sun size={20} /> : <Moon size={20} />}
+        </button>
+        <button 
+          onClick={() => {
+            if (auth.role === 'admin') {
+              navigate('/dashboard');
+            } else {
+              onLogout();
+            }
+          }}
+          className="p-2 text-white/60 hover:text-white transition-colors flex items-center gap-2"
+        >
+          <LogOut size={20} />
+          <span className="text-[10px] font-black uppercase tracking-widest hidden sm:block">
+            {auth.role === 'admin' ? t('common.back') : t('common.logout')}
+          </span>
         </button>
       </div>
     </header>
@@ -276,17 +294,18 @@ const App: React.FC = () => {
 
   const isPortal = location.pathname.startsWith('/portal/');
   const isAdmin = auth.role === 'admin';
+  const showHeader = isAdmin || isPortal;
 
   return (
     <div className="min-h-screen flex bg-slate-50 dark:bg-slate-950 text-slate-900 dark:text-slate-100 transition-colors duration-400 selection:bg-blue-100 selection:text-blue-900 overflow-x-hidden">
-      {isAdmin && <Sidebar isOpen={sidebarOpen} toggle={() => setSidebarOpen(!sidebarOpen)} onLogout={handleLogout} />}
+      {(isAdmin && !isPortal) && <Sidebar isOpen={sidebarOpen} toggle={() => setSidebarOpen(!sidebarOpen)} onLogout={handleLogout} />}
       <div className={`flex-1 flex flex-col w-full min-h-screen transition-all duration-500 ease-[cubic-bezier(0.2,0.8,0.2,1)]
         ${(isPortal || auth.role === 'student' || !isAdmin) 
           ? 'pl-0' 
           : (sidebarOpen ? 'lg:pl-72' : 'lg:pl-20 xl:pl-72')}`}>
-        {isAdmin && <Header toggleSidebar={() => setSidebarOpen(!sidebarOpen)} />}
+        {showHeader && <Header toggleSidebar={() => setSidebarOpen(!sidebarOpen)} auth={auth} onLogout={handleLogout} />}
         <main className={`p-4 sm:p-8 pt-24 lg:pt-28 flex-1 w-full ${isPortal ? 'max-w-full' : 'max-w-full 2xl:max-w-7xl'} mx-auto overflow-x-hidden pb-24 lg:pb-8`}>
-          <div className="page-transition">
+          <div className="page-transition" key={location.pathname}>
             <Routes>
               {auth.role === 'admin' ? (
                 <>
