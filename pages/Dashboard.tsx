@@ -169,6 +169,39 @@ const Dashboard: React.FC = () => {
         <StatCard title={t('dashboard.stats.pending')} value={pendingPaymentsCount} icon={<AlertCircle size={20} />} color="bg-red-600" trend={t('dashboard.stats.billing')} trendUp={false} delay={0.6} />
       </div>
 
+      {/* Instagram Premium Destaque */}
+      <motion.div 
+        initial={{ opacity: 0, x: -20 }}
+        animate={{ opacity: 1, x: 0 }}
+        transition={{ delay: 0.5 }}
+        className="relative overflow-hidden bg-gradient-to-r from-pink-600 via-purple-600 to-blue-600 p-1 rounded-[2rem] shadow-2xl shadow-pink-500/20 group"
+      >
+        <div className="bg-slate-950/90 backdrop-blur-3xl rounded-[1.9rem] p-6 sm:p-8 flex flex-col md:flex-row items-center justify-between gap-6 relative overflow-hidden">
+          <div className="absolute top-0 right-0 w-64 h-64 bg-pink-500/10 rounded-full blur-[80px] -mr-32 -mt-32" />
+          
+          <div className="flex items-center gap-6 relative z-10">
+            <div className="w-16 h-16 bg-gradient-to-tr from-yellow-400 via-pink-500 to-purple-600 rounded-2xl flex items-center justify-center text-white shadow-2xl rotate-3 group-hover:rotate-6 transition-transform duration-500">
+              <Instagram size={32} />
+            </div>
+            <div>
+              <p className="text-[10px] font-black text-pink-500 uppercase tracking-[0.4em] mb-1">Evolução SYSBJJ</p>
+              <h3 className="text-xl sm:text-2xl font-black text-white uppercase tracking-tight leading-none mb-2">Comunidade de Elite no Instagram</h3>
+              <p className="text-slate-400 text-xs font-medium">Acompanhe novidades, atualizações e sugira novos recursos em tempo real.</p>
+            </div>
+          </div>
+
+          <a 
+            href="https://instagram.com/sysbjj.26" 
+            target="_blank" 
+            rel="noopener noreferrer"
+            className="relative z-10 px-10 py-4 bg-white text-slate-900 rounded-xl font-black text-xs uppercase tracking-widest hover:scale-105 active:scale-95 transition-all shadow-xl shadow-white/10 flex items-center gap-3 group/btn"
+          >
+            @sysbjj.26 
+            <Instagram size={16} className="group-hover/btn:rotate-12 transition-transform" />
+          </a>
+        </div>
+      </motion.div>
+
       {/* Main Content Grid */}
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
         {/* Left Column: QTD & Schedule */}
@@ -438,16 +471,6 @@ const Dashboard: React.FC = () => {
         </div>
       </div>
 
-      {/* Instagram Banner - Discreto no final */}
-      <div className="mt-8 bg-gradient-to-r from-pink-600/5 to-purple-600/5 border border-pink-500/10 rounded-2xl p-4 flex flex-col md:flex-row items-center justify-between gap-4 opacity-50 hover:opacity-100 transition-opacity">
-        <div className="flex items-center gap-3">
-          <div className="w-8 h-8 bg-gradient-to-tr from-yellow-400 via-pink-500 to-purple-600 rounded-lg flex items-center justify-center text-white scale-75">
-            <Instagram size={16} />
-          </div>
-          <p className="text-[10px] font-bold dark:text-white">Acompanhe as atualizações em <span className="text-pink-500 font-black">@sysbjj.26</span></p>
-        </div>
-        <a href="https://instagram.com/sysbjj.26" target="_blank" rel="noopener noreferrer" className="text-[9px] font-black text-pink-600 uppercase tracking-widest hover:underline">Seguir Agora</a>
-      </div>
     </div>
   );
 };
