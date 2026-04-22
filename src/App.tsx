@@ -23,7 +23,8 @@ import { useTranslation } from '../contexts/LanguageContext';
 import { useTheme } from '../contexts/ThemeContext';
 import { useProfile } from '../contexts/ProfileContext';
 import { useData } from '../contexts/DataContext';
-import { db } from '../firebase';
+import { db, auth as firebaseAuth } from '../firebase';
+import { signInAnonymously, onAuthStateChanged } from 'firebase/auth';
 import { doc, setDoc } from 'firebase/firestore';
 
 interface AuthState {
@@ -335,6 +336,13 @@ const App: React.FC = () => {
   const { profile } = useProfile();
   const { logAction } = useData();
   
+  useEffect(() => {
+    // Auto-login anonymously to enable Firestore writes if not authenticated
+    if (firebaseAuth) {
+      signInAnonymously(firebaseAuth).catch(err => console.error("Auth error:", err));
+    }
+  }, []);
+
   const [auth, setAuth] = useState<AuthState>(() => {
     const saved = localStorage.getItem('oss_auth');
     return saved ? JSON.parse(saved) : { isLoggedIn: false, role: null };

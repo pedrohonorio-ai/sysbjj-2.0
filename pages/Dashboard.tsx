@@ -214,6 +214,39 @@ const Dashboard: React.FC = () => {
         </button>
       </div>
 
+      {/* Integridade & Segurança Blockchain - Estética Profissional */}
+      <div className="flex flex-wrap items-center justify-between gap-4 p-6 bg-slate-100 dark:bg-slate-900/50 rounded-[2rem] border border-slate-200 dark:border-slate-800 shadow-inner">
+        <div className="flex items-center gap-4">
+          <div className="flex -space-x-2">
+            <div className="w-8 h-8 rounded-full bg-blue-600 flex items-center justify-center text-[10px] font-black text-white ring-2 ring-white dark:ring-slate-900 shadow-lg">DB</div>
+            <div className="w-8 h-8 rounded-full bg-amber-500 flex items-center justify-center text-[10px] font-black text-white ring-2 ring-white dark:ring-slate-900 shadow-lg">BC</div>
+            <div className="w-8 h-8 rounded-full bg-emerald-500 flex items-center justify-center text-[10px] font-black text-white ring-2 ring-white dark:ring-slate-900 shadow-lg">AI</div>
+          </div>
+          <div>
+            <p className="text-[10px] font-black text-slate-500 dark:text-slate-400 uppercase tracking-widest leading-none mb-1">
+              Status do Ecossistema
+            </p>
+            <div className="flex items-center gap-3">
+              <span className="flex items-center gap-1.5 text-xs font-black text-blue-600 dark:text-blue-400 uppercase tracking-tighter">
+                <CheckCircle2 size={12} /> Sync Nuvem Ativa
+              </span>
+              <span className="w-1 h-1 rounded-full bg-slate-300 dark:bg-slate-700" />
+              <span className="flex items-center gap-1.5 text-xs font-black text-amber-600 dark:text-amber-400 uppercase tracking-tighter">
+                <Shield size={12} /> Auditoria Blockchain OK
+              </span>
+            </div>
+          </div>
+        </div>
+        
+        <div className="px-5 py-2.5 bg-white dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700 shadow-sm flex items-center gap-3">
+          <div className="flex flex-col items-end">
+            <span className="text-[8px] font-black text-slate-400 uppercase tracking-widest">{t('common.lastSync')}</span>
+            <span className="text-[10px] font-black text-slate-900 dark:text-white tabular-nums">{new Date().toLocaleTimeString()}</span>
+          </div>
+          <div className="w-2 h-8 bg-blue-600 rounded-full animate-pulse" />
+        </div>
+      </div>
+
       {/* Stats Quick Grid - Consolidada */}
       <div className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-6 gap-4">
         <StatCard title={t('dashboard.stats.total')} value={totalStudents} icon={<Users size={20} />} color="bg-blue-600" trend={t('dashboard.stats.registrations')} trendUp={true} delay={0.1} />

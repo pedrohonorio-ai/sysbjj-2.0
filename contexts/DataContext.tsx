@@ -169,33 +169,58 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     if (!db) return;
 
     const unsubStudents = onSnapshot(collection(db, 'students'), (snap) => {
-      setStudents(snap.docs.map(doc => ({ ...doc.data(), id: doc.id } as Student)));
+      const cloudData = snap.docs.map(doc => ({ ...doc.data(), id: doc.id } as Student));
+      // Only overwrite local state if cloud data has items OR if we are explicitly synced
+      // This prevents the "empty cloud wipes local cache" issue on first load
+      if (cloudData.length > 0) {
+        setStudents(cloudData);
+      } else {
+        // If cloud is empty but we have local data, we should probably upload local to cloud
+        // but for now we just don't wipe local state
+        // setStudents(prev => prev.length > 0 ? prev : []);
+      }
     });
 
     const unsubPayments = onSnapshot(collection(db, 'payments'), (snap) => {
-      setPayments(snap.docs.map(doc => ({ ...doc.data(), id: doc.id } as Payment)));
+      const cloudData = snap.docs.map(doc => ({ ...doc.data(), id: doc.id } as Payment));
+      if (cloudData.length > 0) {
+        setPayments(cloudData);
+      }
     });
 
     const unsubLogs = onSnapshot(collection(db, 'system_logs'), (snap) => {
       const logsData = snap.docs.map(doc => doc.data() as SystemLog);
-      setLogs(logsData.sort((a, b) => b.timestamp - a.timestamp));
+      if (logsData.length > 0) {
+        setLogs(logsData.sort((a, b) => b.timestamp - a.timestamp));
+      }
     });
 
     const unsubLedger = onSnapshot(collection(db, 'ledger'), (snap) => {
       const ledgerData = snap.docs.map(doc => doc.data() as TransactionLedger);
-      setLedger(ledgerData.sort((a, b) => b.timestamp - a.timestamp));
+      if (ledgerData.length > 0) {
+        setLedger(ledgerData.sort((a, b) => b.timestamp - a.timestamp));
+      }
     });
 
     const unsubReceipts = onSnapshot(collection(db, 'receipts'), (snap) => {
-      setReceipts(snap.docs.map(doc => doc.data() as PaymentReceipt));
+      const cloudData = snap.docs.map(doc => doc.data() as PaymentReceipt);
+      if (cloudData.length > 0) {
+        setReceipts(cloudData);
+      }
     });
 
     const unsubSchedules = onSnapshot(collection(db, 'schedules'), (snap) => {
-      setSchedules(snap.docs.map(doc => doc.data() as ClassSchedule));
+      const cloudData = snap.docs.map(doc => doc.data() as ClassSchedule);
+      if (cloudData.length > 0) {
+        setSchedules(cloudData);
+      }
     });
 
     const unsubLessonPlans = onSnapshot(collection(db, 'lesson_plans'), (snap) => {
-      setLessonPlans(snap.docs.map(doc => doc.data() as LessonPlan));
+      const cloudData = snap.docs.map(doc => doc.data() as LessonPlan);
+      if (cloudData.length > 0) {
+        setLessonPlans(cloudData);
+      }
     });
 
     const unsubPresence = onSnapshot(collection(db, 'presence'), (snap) => {
@@ -337,7 +362,8 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   const addStudent = (student: Omit<Student, 'id'>) => {
     try {
       const id = `STUD-${Date.now()}`;
-      const monthlyValue = typeof student.monthlyValue === 'number' ? student.monthlyValue : 0;
+      const rawValue = student.monthlyValue;
+      const monthlyValue = typeof rawValue === 'number' ? rawValue : (typeof rawValue === 'string' ? parseFloat(rawValue) || 0 : 0);
       const newStudent = { ...student, id, monthlyValue } as Student;
       
       // Optimistic Update
