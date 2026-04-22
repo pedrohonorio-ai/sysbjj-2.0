@@ -106,6 +106,9 @@ const en = {
     logout: "Logout",
     synced: "Synced",
     masterConsole: "Master Console",
+    exhibitionMode: "Academy Mode",
+    operation: "Operation",
+    display: "Display",
     evolution: "Evolution",
     months: {
       january: "January", february: "February", march: "March", april: "April",
@@ -782,6 +785,9 @@ const pt = {
     logout: "Sair do Sistema",
     synced: "Sincronizado",
     masterConsole: "Console Mestre",
+    exhibitionMode: "Modo Academia",
+    operation: "Operação",
+    display: "Exibição",
     evolution: "Evolução",
     months: {
       january: "Janeiro", february: "Fevereiro", march: "Março", april: "Abril",

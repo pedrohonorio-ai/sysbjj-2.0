@@ -49,7 +49,6 @@ const Sidebar = ({ isOpen, toggle, onLogout }: { isOpen: boolean, toggle: () => 
 
   const coreItems = filteredItems.filter(item => ['dashboard', 'students', 'classes', 'business', 'curriculum', 'attendance'].includes(item.id));
   const evolutionItems = filteredItems.filter(item => ['promotions', 'ibjjf-rules'].includes(item.id));
-  const masterItems = filteredItems.filter(item => ['timer', 'assistant', 'audit'].includes(item.id));
 
   const renderNavItem = (item: any) => {
     const isActive = location.pathname === `/${item.id}` || (location.pathname === '/' && item.id === 'dashboard');
@@ -87,10 +86,10 @@ const Sidebar = ({ isOpen, toggle, onLogout }: { isOpen: boolean, toggle: () => 
         onClick={toggle}
       />
       
-      <aside className={`fixed inset-y-0 left-0 z-[60] bg-white dark:bg-slate-950 border-r border-slate-200 dark:border-slate-800 text-slate-900 dark:text-slate-100 transform transition-all duration-700 ease-[cubic-bezier(0.2,0.8,0.2,1)] flex flex-col overflow-y-auto scrollbar-hide
+      <aside className={`fixed inset-y-0 left-0 z-[60] bg-white dark:bg-slate-950 border-r border-slate-200 dark:border-slate-800 text-slate-900 dark:text-slate-100 transform transition-all duration-500 ease-[cubic-bezier(0.2,0.8,0.2,1)] flex flex-col overflow-y-auto scrollbar-hide
         ${isOpen ? 'translate-x-0 w-72 shadow-3xl shadow-blue-500/10' : '-translate-x-full shadow-none'}`}>
         
-        <div className={`flex-none flex items-center ${isOpen ? 'justify-between' : 'justify-center'} p-6 h-24 overflow-hidden shrink-0 border-b border-slate-100 dark:border-slate-800/50`}>
+        <div className={`flex-none flex items-center justify-between p-6 h-24 overflow-hidden shrink-0 border-b border-slate-100 dark:border-slate-800/50`}>
           <div className="flex items-center gap-4">
             {profile.logoUrl ? (
               <div className="w-12 h-12 rounded-2xl overflow-hidden shadow-xl shadow-blue-500/10 shrink-0 group">
@@ -114,19 +113,14 @@ const Sidebar = ({ isOpen, toggle, onLogout }: { isOpen: boolean, toggle: () => 
               </motion.div>
             )}
           </div>
-          {isOpen && (
-            <button onClick={toggle} className="text-slate-400 hover:text-red-500 p-2 transition-colors lg:block hidden">
-              <X size={24} />
-            </button>
-          )}
-          <button onClick={toggle} className="lg:hidden text-slate-400 hover:text-red-500 p-2">
+          <button onClick={toggle} className="text-slate-400 hover:text-red-500 p-2 transition-colors">
             <X size={24} />
           </button>
         </div>
         
         <nav className="flex-1 mt-6 px-3 space-y-8 scrollbar-hide pb-10">
-          <div>
-            <div className={`mb-3 px-4 flex items-center gap-3 transition-all duration-500 ${isOpen ? 'opacity-100' : 'opacity-0'}`}>
+          <div className={!isOpen ? 'opacity-0' : 'opacity-100 transition-opacity duration-300'}>
+            <div className="mb-3 px-4 flex items-center gap-3">
                <span className="text-[10px] font-black text-slate-400 uppercase tracking-[0.25em] whitespace-nowrap">{t('dashboard.training')}</span>
                <div className="h-px bg-slate-100 dark:bg-slate-800/50 flex-1" />
             </div>
@@ -135,26 +129,13 @@ const Sidebar = ({ isOpen, toggle, onLogout }: { isOpen: boolean, toggle: () => 
             </div>
           </div>
 
-          <div>
-            <div className={`mb-3 px-4 flex items-center gap-3 transition-all duration-500 ${isOpen ? 'opacity-100' : 'opacity-0'}`}>
+          <div className={!isOpen ? 'opacity-0' : 'opacity-100 transition-opacity duration-300'}>
+            <div className="mb-3 px-4 flex items-center gap-3">
                <span className="text-[10px] font-black text-slate-400 uppercase tracking-[0.25em] whitespace-nowrap">{t('common.evolution')}</span>
                <div className="h-px bg-slate-100 dark:bg-slate-800/50 flex-1" />
             </div>
             <div className="space-y-1">
               {evolutionItems.map(renderNavItem)}
-            </div>
-          </div>
-
-          <div className={`mx-2 p-4 bg-blue-50/50 dark:bg-blue-900/10 rounded-[2rem] border border-blue-100 dark:border-blue-900/20 transition-all duration-700 ${isOpen ? 'opacity-100' : 'opacity-0 translate-y-4'}`}>
-            <div className={`mb-4 px-2 flex items-center gap-2`}>
-               <div className="h-px bg-blue-200 dark:bg-blue-800 flex-1" />
-               <span className="text-[9px] font-black text-blue-600 dark:text-blue-400 uppercase tracking-[0.2em] whitespace-nowrap flex items-center gap-2">
-                 <Shield size={10} /> {t('common.masterConsole')}
-               </span>
-               <div className="h-px bg-blue-200 dark:bg-blue-800 flex-1" />
-            </div>
-            <div className="space-y-1">
-              {masterItems.map(renderNavItem)}
             </div>
           </div>
         </nav>
@@ -300,18 +281,21 @@ const Header = ({ toggleSidebar, auth, onLogout }: { toggleSidebar: () => void, 
           <Menu size={20} />
         </button>
         
-        <div className="hidden sm:flex items-center gap-4 border-l border-slate-200 dark:border-slate-800/80 pl-6 h-10 ml-2">
-           <div className="flex flex-col items-start leading-none gap-1">
-             <div className="flex items-baseline gap-1">
-               <h2 className="text-xl font-display font-black text-slate-900 dark:text-white tracking-tighter tabular-nums">
+        <div className="hidden sm:flex items-center gap-5 border-l border-slate-200 dark:border-slate-800/80 pl-8 h-12 ml-2">
+           <div className="flex flex-col items-start justify-center h-full">
+             <div className="flex items-baseline gap-1.5 leading-none">
+               <h2 className="text-2xl font-display font-black text-slate-900 dark:text-white tracking-tighter tabular-nums">
                  {currentTime.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                </h2>
-               <span className="text-[10px] font-black text-blue-600 dark:text-blue-500 font-mono tabular-nums opacity-80 decoration-blue-500/20 underline underline-offset-2">
-                 {currentTime.toLocaleTimeString([], { second: '2-digit' })}
-               </span>
+               <div className="flex flex-col">
+                 <span className="text-[10px] font-black text-blue-600 dark:text-blue-500 font-mono tabular-nums leading-none mb-[1px]">
+                   {currentTime.toLocaleTimeString([], { second: '2-digit' })}
+                 </span>
+                 <div className="w-full h-[1px] bg-blue-500/20" />
+               </div>
              </div>
-             <p className="text-[7px] font-black text-slate-400 uppercase tracking-[0.3em] whitespace-nowrap flex items-center gap-1.5 translate-y-[-2px]">
-               <span className="w-1 h-1 rounded-full bg-blue-500/50 animate-pulse" />
+             <p className="text-[7.5px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-[0.35em] whitespace-nowrap flex items-center gap-2 mt-1.5 leading-none">
+               <span className="w-1 h-1 rounded-full bg-blue-500 animate-pulse shadow-[0_0_8px_rgba(59,130,246,0.5)]" />
                {currentTime.toLocaleDateString(t('common.dateLocale'), { weekday: 'short', day: '2-digit', month: 'short', year: 'numeric' }).toUpperCase()}
              </p>
            </div>

@@ -6,7 +6,7 @@ import {
   Users, TrendingUp, AlertCircle, Calendar, CreditCard,
   Timer, UserPlus, CheckCircle2, Trophy as TrophyIcon, Plus,
   ArrowUpRight, ArrowDownRight, BarChart3, ArrowRight, Baby,
-  Edit2, X, Trash2, Clock, BookOpen, QrCode, Scan, Zap, Cake, Store, Activity, History, Shield, Instagram, ChevronRight
+  Edit2, X, Trash2, Clock, BookOpen, QrCode, Scan, Zap, Cake, Store, Activity, History, Shield, Instagram, ChevronRight, Monitor
 } from 'lucide-react';
 import { useTranslation } from '../contexts/LanguageContext';
 import { useProfile } from '../contexts/ProfileContext';
@@ -128,7 +128,7 @@ const Dashboard: React.FC = () => {
             </p>
           </div>
           
-          <div className="flex flex-wrap sm:flex-nowrap gap-3 sm:gap-6">
+          <div className="flex flex-wrap sm:flex-nowrap gap-3 sm:gap-6 mt-6 md:mt-0">
             <button 
               onClick={() => navigate('/classes')}
               className="flex-1 sm:flex-none px-6 sm:px-10 py-4 sm:py-5 bg-white text-slate-900 text-[10px] sm:text-xs font-black uppercase tracking-[0.2em] rounded-2xl hover:bg-blue-50 hover:scale-105 active:scale-95 transition-all shadow-3xl flex items-center justify-center gap-4 whitespace-nowrap"
@@ -165,21 +165,6 @@ const Dashboard: React.FC = () => {
           </button>
         </div>
       )}
-
-      <div className="flex flex-wrap gap-3">
-        <button 
-          onClick={() => navigate('/exhibition')}
-          className="flex-1 sm:flex-none flex items-center justify-center gap-3 bg-white dark:bg-slate-900 text-slate-900 dark:text-white border border-slate-200 dark:border-slate-800 px-6 py-3.5 rounded-xl text-[10px] font-bold uppercase tracking-widest hover:bg-slate-50 dark:hover:bg-slate-800 transition-all shadow-sm group"
-        >
-          <Activity size={18} className="text-slate-400 group-hover:text-blue-500 transition-colors" /> {t('exhibition.title')}
-        </button>
-        <button 
-          onClick={() => navigate('/attendance')}
-          className="flex-1 sm:flex-none flex items-center justify-center gap-3 bg-white dark:bg-slate-900 text-slate-900 dark:text-white border border-slate-200 dark:border-slate-800 px-6 py-3.5 rounded-xl text-[10px] font-bold uppercase tracking-widest hover:bg-slate-50 dark:hover:bg-slate-800 transition-all shadow-sm group"
-        >
-          <QrCode size={18} className="text-slate-400 group-hover:text-amber-500 transition-colors" /> {t('common.attendance')}
-        </button>
-      </div>
 
       {/* Instagram Update Banner */}
       <div className="bg-gradient-to-r from-pink-600/10 to-purple-600/10 border border-pink-500/20 rounded-3xl p-4 flex flex-col sm:flex-row items-center justify-between gap-4">
@@ -352,38 +337,82 @@ const Dashboard: React.FC = () => {
         {/* Right Column: Celebrations & Flow */}
         <div className="lg:col-span-4 space-y-8">
           {/* Quick Actions Grid */}
-          <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
-            <button 
-              onClick={() => navigate('/timer')}
-              className="p-6 bg-white dark:bg-slate-900 rounded-[2rem] border border-slate-200 dark:border-slate-800 shadow-sm hover:shadow-xl hover:-translate-y-1 transition-all group text-left"
-            >
-              <div className="w-12 h-12 bg-red-50 dark:bg-red-900/20 rounded-xl flex items-center justify-center text-red-600 mb-4 group-hover:scale-110 transition-transform">
-                <Timer size={24} />
-              </div>
-              <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">{t('dashboard.training')}</p>
-              <p className="font-black text-slate-900 dark:text-white uppercase tracking-tight">{t('common.timer')}</p>
-            </button>
-            <button 
-              onClick={() => navigate('/assistant')}
-              className="p-6 bg-white dark:bg-slate-900 rounded-[2rem] border border-slate-200 dark:border-slate-800 shadow-sm hover:shadow-xl hover:-translate-y-1 transition-all group text-left"
-            >
-              <div className="w-12 h-12 bg-purple-50 dark:bg-purple-900/20 rounded-xl flex items-center justify-center text-purple-600 mb-4 group-hover:scale-110 transition-transform">
-                <Zap size={24} />
-              </div>
-              <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">{t('dashboard.ia')}</p>
-              <p className="font-black text-slate-900 dark:text-white uppercase tracking-tight">{t('common.assistant')}</p>
-            </button>
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-1 xl:grid-cols-1 gap-6">
+            <div className="grid grid-cols-2 gap-4">
+              <button 
+                onClick={() => navigate('/attendance')}
+                className="p-6 bg-white dark:bg-slate-900 rounded-[2.5rem] border border-slate-200 dark:border-slate-800 shadow-sm hover:shadow-xl hover:-translate-y-1 transition-all group text-left relative overflow-hidden"
+              >
+                <div className="absolute top-0 right-0 p-2 opacity-5 group-hover:opacity-10 transition-opacity">
+                  <QrCode size={40} />
+                </div>
+                <div className="w-12 h-12 bg-blue-50 dark:bg-blue-900/20 rounded-xl flex items-center justify-center text-blue-600 mb-4 group-hover:scale-110 transition-transform">
+                  <QrCode size={24} />
+                </div>
+                <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-1">{t('common.operation')}</p>
+                <p className="font-black text-slate-900 dark:text-white uppercase tracking-tight text-xs sm:text-sm truncate">{t('common.attendance')}</p>
+              </button>
+
+              <button 
+                onClick={() => navigate('/exhibition')}
+                className="p-6 bg-white dark:bg-slate-900 rounded-[2.5rem] border border-slate-200 dark:border-slate-800 shadow-sm hover:shadow-xl hover:-translate-y-1 transition-all group text-left relative overflow-hidden"
+              >
+                <div className="absolute top-0 right-0 p-2 opacity-5 group-hover:opacity-10 transition-opacity">
+                  <Monitor size={40} />
+                </div>
+                <div className="w-12 h-12 bg-emerald-50 dark:bg-emerald-900/20 rounded-xl flex items-center justify-center text-emerald-600 mb-4 group-hover:scale-110 transition-transform">
+                  <Monitor size={24} />
+                </div>
+                <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-1">{t('common.display')}</p>
+                <p className="font-black text-slate-900 dark:text-white uppercase tracking-tight text-xs sm:text-sm truncate">{t('common.exhibitionMode')}</p>
+              </button>
+
+              <button 
+                onClick={() => navigate('/timer')}
+                className="p-6 bg-white dark:bg-slate-900 rounded-[2.5rem] border border-slate-200 dark:border-slate-800 shadow-sm hover:shadow-xl hover:-translate-y-1 transition-all group text-left relative overflow-hidden"
+              >
+                <div className="absolute top-0 right-0 p-2 opacity-5 group-hover:opacity-10 transition-opacity">
+                  <Timer size={40} />
+                </div>
+                <div className="w-12 h-12 bg-rose-50 dark:bg-rose-900/20 rounded-xl flex items-center justify-center text-rose-600 mb-4 group-hover:scale-110 transition-transform">
+                  <Timer size={24} />
+                </div>
+                <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-1">{t('dashboard.training')}</p>
+                <p className="font-black text-slate-900 dark:text-white uppercase tracking-tight text-xs sm:text-sm truncate">{t('common.timer')}</p>
+              </button>
+              
+              <button 
+                onClick={() => navigate('/assistant')}
+                className="p-6 bg-white dark:bg-slate-900 rounded-[2.5rem] border border-slate-200 dark:border-slate-800 shadow-sm hover:shadow-xl hover:-translate-y-1 transition-all group text-left relative overflow-hidden"
+              >
+                <div className="absolute top-0 right-0 p-2 opacity-5 group-hover:opacity-10 transition-opacity">
+                  <Zap size={40} />
+                </div>
+                <div className="w-12 h-12 bg-amber-50 dark:bg-amber-900/20 rounded-xl flex items-center justify-center text-amber-600 mb-4 group-hover:scale-110 transition-transform">
+                  <Zap size={24} />
+                </div>
+                <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-1">{t('dashboard.ia')}</p>
+                <p className="font-black text-slate-900 dark:text-white uppercase tracking-tight text-xs sm:text-sm truncate">{t('common.assistant')}</p>
+              </button>
+            </div>
 
             {isMasterAdmin && (
               <button 
                 onClick={() => navigate('/audit')}
-                className="p-6 bg-slate-900 dark:bg-blue-600 rounded-[2rem] border border-slate-800 dark:border-blue-500 shadow-sm hover:shadow-xl hover:-translate-y-1 transition-all group text-left"
+                className="p-6 bg-slate-900 dark:bg-blue-600 rounded-[2.5rem] border border-slate-800 dark:border-blue-500 shadow-2xl shadow-blue-500/20 hover:shadow-blue-500/40 hover:-translate-y-1 transition-all group text-left relative overflow-hidden"
               >
-                <div className="w-12 h-12 bg-white/10 rounded-xl flex items-center justify-center text-white mb-4 group-hover:scale-110 transition-transform">
-                  <Shield size={24} />
+                <div className="absolute top-0 right-0 p-4 opacity-10 group-hover:opacity-20 transition-opacity">
+                  <Shield size={60} />
                 </div>
-                <p className="text-[10px] font-black text-blue-200 uppercase tracking-widest mb-1">Master Admin</p>
-                <p className="font-black text-white uppercase tracking-tight">Auditoria</p>
+                <div className="flex items-center gap-6">
+                  <div className="w-14 h-14 bg-white/10 backdrop-blur-md rounded-2xl flex items-center justify-center text-white shrink-0 group-hover:scale-110 transition-transform border border-white/20">
+                    <Shield size={28} />
+                  </div>
+                  <div className="min-w-0">
+                    <p className="text-[10px] font-black text-blue-200 uppercase tracking-[0.3em] mb-1">Master Admin</p>
+                    <p className="font-black text-white uppercase tracking-tighter text-lg leading-none truncate">Auditoria do Sistema</p>
+                  </div>
+                </div>
               </button>
             )}
           </div>
