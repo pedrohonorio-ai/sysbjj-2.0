@@ -49,7 +49,7 @@ const Sidebar = ({ isOpen, toggle, onLogout }: { isOpen: boolean, toggle: () => 
       />
       
       <aside className={`fixed inset-y-0 left-0 z-[60] bg-white dark:bg-slate-950 border-r border-slate-200 dark:border-slate-800 text-slate-900 dark:text-slate-100 transform transition-all duration-500 ease-[cubic-bezier(0.2,0.8,0.2,1)] flex flex-col overflow-y-auto scrollbar-hide
-        ${isOpen ? 'translate-x-0 w-72' : '-translate-x-full lg:translate-x-0 lg:w-20 xl:w-72'}`}>
+        ${isOpen ? 'translate-x-0 w-72 shadow-2xl shadow-blue-500/10' : '-translate-x-full lg:translate-x-0 lg:w-20 xl:w-20'}`}>
         
         <div className="flex-none flex items-center justify-between p-6 h-20 overflow-hidden shrink-0 border-b border-slate-100 dark:border-slate-800/50">
           <div className="flex items-center gap-3">
@@ -297,14 +297,18 @@ const App: React.FC = () => {
   const showHeader = isAdmin || isPortal;
 
   return (
-    <div className="min-h-screen flex bg-slate-50 dark:bg-slate-950 text-slate-900 dark:text-slate-100 transition-colors duration-400 selection:bg-blue-100 selection:text-blue-900 overflow-x-hidden">
+    <div className="min-h-screen flex bg-slate-50 dark:bg-slate-950 text-slate-900 dark:text-slate-100 transition-colors duration-400 selection:bg-blue-600 selection:text-white overflow-x-hidden font-sans">
       {(isAdmin && !isPortal) && <Sidebar isOpen={sidebarOpen} toggle={() => setSidebarOpen(!sidebarOpen)} onLogout={handleLogout} />}
       <div className={`flex-1 flex flex-col w-full min-h-screen transition-all duration-500 ease-[cubic-bezier(0.2,0.8,0.2,1)]
         ${(isPortal || auth.role === 'student' || !isAdmin) 
           ? 'pl-0' 
-          : (sidebarOpen ? 'lg:pl-72' : 'lg:pl-20 xl:pl-72')}`}>
+          : (sidebarOpen ? 'lg:pl-72' : 'lg:pl-20 xl:pl-20')}`}>
         {showHeader && <Header toggleSidebar={() => setSidebarOpen(!sidebarOpen)} auth={auth} onLogout={handleLogout} />}
-        <main className={`p-4 sm:p-8 pt-24 lg:pt-28 flex-1 w-full ${isPortal ? 'max-w-full' : 'max-w-full 2xl:max-w-7xl'} mx-auto overflow-x-hidden pb-24 lg:pb-8`}>
+        <main className={`p-4 sm:p-8 pt-24 lg:pt-28 flex-1 w-full ${isPortal ? 'max-w-full' : 'max-w-full xl:max-w-[1800px]'} mx-auto overflow-x-hidden pb-24 lg:pb-8 relative`}>
+          {/* Version Tracking for Sync Verification */}
+          <div className="fixed bottom-4 right-4 pointer-events-none opacity-0 group-hover:opacity-10 transition-opacity">
+            <span className="text-[8px] font-mono text-slate-400">v2.1.2-master</span>
+          </div>
           <div className="page-transition" key={location.pathname}>
             <Routes>
               {auth.role === 'admin' ? (

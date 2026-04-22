@@ -75,7 +75,7 @@ const Dashboard: React.FC = () => {
   const revenueProgress = Math.min((monthlyRevenue / revenueGoal) * 100, 100);
 
   const auth = JSON.parse(localStorage.getItem('oss_auth') || '{}');
-  const isMasterAdmin = auth.email === 'dashfire@gmail.com';
+  const isMasterAdmin = ['dashfire@gmail.com', 'pedro.honorio@gm.rio'].includes(auth.email?.toLowerCase());
 
   const latestPlan = useMemo(() => {
     return lessonPlans[0];
