@@ -121,6 +121,12 @@ const Sidebar = ({ isOpen, toggle, onLogout }: { isOpen: boolean, toggle: () => 
             </span>
           </button>
         </div>
+        
+        <div className={`mt-auto px-6 py-4 border-t border-slate-100 dark:border-slate-800/50 transition-all duration-500 overflow-hidden ${isOpen ? 'opacity-100' : 'lg:opacity-0 xl:opacity-100'}`}>
+          <p className="text-[7px] font-black text-slate-300 dark:text-slate-600 uppercase tracking-[0.2em] whitespace-nowrap">
+            SYSBJJ v2.1.2 • ELITE EDITION
+          </p>
+        </div>
       </aside>
     </>
   );
@@ -297,17 +303,17 @@ const App: React.FC = () => {
   const showHeader = isAdmin || isPortal;
 
   return (
-    <div className="min-h-screen flex bg-slate-50 dark:bg-slate-950 text-slate-900 dark:text-slate-100 transition-colors duration-400 selection:bg-blue-600 selection:text-white overflow-x-hidden font-sans">
+    <div className="min-h-screen flex bg-slate-50 dark:bg-slate-950 text-slate-900 dark:text-slate-100 transition-colors duration-400 selection:bg-blue-600 selection:text-white overflow-x-hidden font-sans group/app">
       {(isAdmin && !isPortal) && <Sidebar isOpen={sidebarOpen} toggle={() => setSidebarOpen(!sidebarOpen)} onLogout={handleLogout} />}
       <div className={`flex-1 flex flex-col w-full min-h-screen transition-all duration-500 ease-[cubic-bezier(0.2,0.8,0.2,1)]
         ${(isPortal || auth.role === 'student' || !isAdmin) 
           ? 'pl-0' 
           : (sidebarOpen ? 'lg:pl-72' : 'lg:pl-20 xl:pl-20')}`}>
         {showHeader && <Header toggleSidebar={() => setSidebarOpen(!sidebarOpen)} auth={auth} onLogout={handleLogout} />}
-        <main className={`p-4 sm:p-8 pt-24 lg:pt-28 flex-1 w-full ${isPortal ? 'max-w-full' : 'max-w-full xl:max-w-[1800px]'} mx-auto overflow-x-hidden pb-24 lg:pb-8 relative`}>
+        <main className={`p-4 sm:p-8 pt-24 lg:pt-28 flex-1 w-full ${isPortal ? 'max-w-full' : 'max-w-full xl:max-w-[1800px]'} mx-auto overflow-x-hidden pb-24 lg:pb-8 relative group`}>
           {/* Version Tracking for Sync Verification */}
-          <div className="fixed bottom-4 right-4 pointer-events-none opacity-0 group-hover:opacity-10 transition-opacity">
-            <span className="text-[8px] font-mono text-slate-400">v2.1.2-master</span>
+          <div className="fixed bottom-4 right-4 pointer-events-none opacity-0 group-hover:opacity-30 transition-opacity z-[100]">
+            <span className="text-[9px] font-mono font-black text-slate-400 bg-white/50 dark:bg-slate-900/50 backdrop-blur-sm px-2 py-1 rounded border border-slate-200 dark:border-slate-800 tracking-tighter">v2.1.2-master</span>
           </div>
           <div className="page-transition" key={location.pathname}>
             <Routes>
