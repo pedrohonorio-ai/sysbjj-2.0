@@ -63,8 +63,8 @@ interface DataContextType {
   notifications: { id: string; message: string; type: 'info' | 'success' | 'warning'; timestamp: number }[];
   logAction: (action: string, details: string, category: SystemLog['category']) => void;
   verifyAuditIntegrity: () => boolean;
-  addStudent: (student: Omit<Student, 'id'>) => void;
-  updateStudent: (id: string, updates: Partial<Student>) => void;
+  addStudent: (student: Omit<Student, 'id'>) => Promise<void>;
+  updateStudent: (id: string, updates: Partial<Student>) => Promise<void>;
   deleteStudent: (id: string) => void;
   addPayment: (payment: Omit<Payment, 'id'>) => void;
   addReceipt: (receipt: Omit<PaymentReceipt, 'id' | 'status' | 'timestamp'>) => void;
@@ -111,6 +111,35 @@ const DEFAULT_SCHEDULES: ClassSchedule[] = [
 ];
 
 const DEFAULT_TECHNIQUES: LibraryTechnique[] = [];
+
+// Helper to compress base64 images to save LocalStorage space
+const compressImage = (base64: string, maxWidth = 400, quality = 0.7): Promise<string> => {
+  return new Promise((resolve) => {
+    if (!base64 || !base64.startsWith('data:image')) {
+      resolve(base64);
+      return;
+    }
+    const img = new Image();
+    img.src = base64;
+    img.onload = () => {
+      const canvas = document.createElement('canvas');
+      let width = img.width;
+      let height = img.height;
+
+      if (width > maxWidth) {
+        height = (maxWidth / width) * height;
+        width = maxWidth;
+      }
+
+      canvas.width = width;
+      canvas.height = height;
+      const ctx = canvas.getContext('2d');
+      ctx?.drawImage(img, 0, 0, width, height);
+      resolve(canvas.toDataURL('image/jpeg', quality));
+    };
+    img.onerror = () => resolve(base64);
+  });
+};
 
 export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
   // Função auxiliar para carregar com segurança
@@ -359,18 +388,25 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     return true;
   }, [logs]);
 
-  const addStudent = (student: Omit<Student, 'id'>) => {
+  const addStudent = async (student: Omit<Student, 'id'>) => {
     try {
       const id = `STUD-${Date.now()}`;
+      
+      // Compress photo if exists to save space
+      let photoUrl = student.photoUrl;
+      if (photoUrl && photoUrl.startsWith('data:image')) {
+        photoUrl = await compressImage(photoUrl);
+      }
+
       const rawValue = student.monthlyValue;
       const monthlyValue = typeof rawValue === 'number' ? rawValue : (typeof rawValue === 'string' ? parseFloat(rawValue) || 0 : 0);
-      const newStudent = { ...student, id, monthlyValue } as Student;
+      const newStudent = { ...student, id, photoUrl, monthlyValue } as Student;
       
       // Optimistic Update
       setStudents(prev => [...prev, newStudent]);
       
       if (db) {
-        setDoc(doc(db, 'students', id), newStudent).catch(err => handleFirestoreError(err, OperationType.CREATE, 'students'));
+        await setDoc(doc(db, 'students', id), newStudent).catch(err => handleFirestoreError(err, OperationType.CREATE, 'students'));
       }
       
       logAction('Novo Cadastro', `Alunos ${student.name} cadastrado`, 'User');
@@ -380,12 +416,18 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     }
   };
 
-  const updateStudent = (id: string, updates: Partial<Student>) => {
+  const updateStudent = async (id: string, updates: Partial<Student>) => {
+    // Compress photo if exists in updates
+    let finalUpdates = { ...updates };
+    if (finalUpdates.photoUrl && finalUpdates.photoUrl.startsWith('data:image')) {
+      finalUpdates.photoUrl = await compressImage(finalUpdates.photoUrl);
+    }
+
     // Optimistic Update
-    setStudents(prev => prev.map(s => s.id === id ? { ...s, ...updates } : s));
+    setStudents(prev => prev.map(s => s.id === id ? { ...s, ...finalUpdates } : s));
     
     if (db) {
-      updateDoc(doc(db, 'students', id), updates).catch(err => handleFirestoreError(err, OperationType.UPDATE, `students/${id}`));
+      await updateDoc(doc(db, 'students', id), finalUpdates).catch(err => handleFirestoreError(err, OperationType.UPDATE, `students/${id}`));
     }
     logAction('Atualização de Cadastro', `Dados do aluno ID ${id} atualizados`, 'User');
   };

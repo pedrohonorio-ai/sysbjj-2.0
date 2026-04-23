@@ -7,6 +7,7 @@ import {
   X, 
   User, 
   Plus,
+  RefreshCw,
   ThumbsUp,
   ThumbsDown,
   Save,
@@ -98,10 +99,10 @@ const NewStudentModal = ({ onClose, defaultIsKid }: { onClose: () => void, defau
     }));
   }, [formData.birthDate, formData.gender, formData.weight, formData.isKid]);
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     try {
-      addStudent({
+      await addStudent({
         ...formData,
         stripes: 0,
         attendanceCount: 0,
@@ -526,7 +527,7 @@ const StudentDetailsModal = ({ student, onClose }: { student: Student; onClose: 
                    <h2 className="text-2xl sm:text-4xl font-black tracking-tighter uppercase leading-none truncate max-w-[200px] sm:max-w-none">{student.name}</h2>
                    {student.nickname && <span className="px-3 py-1 sm:px-4 sm:py-1.5 bg-white/20 rounded-xl text-[10px] sm:text-xs font-black uppercase tracking-widest italic w-fit">"{student.nickname}"</span>}
                    <span className="px-3 py-1 sm:px-4 sm:py-1.5 bg-white/10 rounded-xl text-[10px] sm:text-xs font-black uppercase tracking-widest w-fit">
-                     {calculateAge(student.birthDate)} {(t('students.athleteAge') || 'Idade').split(' ')[1]?.toLowerCase() || ''}
+                     {calculateAge(student.birthDate)} {t('common.years')}
                    </span>
                 </div>
                 <div className="flex flex-wrap gap-2 sm:gap-3">
@@ -1322,6 +1323,13 @@ const Students: React.FC = () => {
             title="Exportar CSV"
           >
             <Download size={24} />
+          </button>
+          <button 
+            onClick={() => window.location.reload()}
+            className="p-4 bg-white dark:bg-slate-800 border-2 border-emerald-100 dark:border-emerald-900/30 text-emerald-600 rounded-2xl hover:bg-emerald-50 transition-all shadow-xl active:scale-95 group"
+            title="Sincronizar Manualmente"
+          >
+            <RefreshCw size={24} className="group-hover:rotate-180 transition-transform duration-700" />
           </button>
           <button 
             onClick={() => setIsAddingStudent(true)} 

@@ -28,13 +28,27 @@ export const LanguageProvider: React.FC<{ children: ReactNode }> = ({ children }
   };
 
   const t = (path: string): string => {
+    if (!path) return '';
     const keys = path.split('.');
-    let result = translations[language];
+    let result: any = translations[language];
+    
     for (const key of keys) {
-      if (result && result[key]) {
+      if (result && Object.prototype.hasOwnProperty.call(result, key)) {
         result = result[key];
       } else {
-        return path; // Fallback to key name if translation is missing
+        // Fallback to English if translation is missing in current language
+        if (language !== AppLanguage.ENGLISH_US) {
+           let fallbackResult: any = translations[AppLanguage.ENGLISH_US];
+           for (const fallbackKey of keys) {
+             if (fallbackResult && Object.prototype.hasOwnProperty.call(fallbackResult, fallbackKey)) {
+               fallbackResult = fallbackResult[fallbackKey];
+             } else {
+               return path;
+             }
+           }
+           return typeof fallbackResult === 'string' ? fallbackResult : path;
+        }
+        return path;
       }
     }
     return typeof result === 'string' ? result : path;

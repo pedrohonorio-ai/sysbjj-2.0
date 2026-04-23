@@ -234,7 +234,7 @@ const StudentPortal: React.FC = () => {
                   <div className="flex gap-2 mt-2">
                     <span className={`px-3 py-1 rounded-lg text-[8px] font-black uppercase tracking-widest ${BELT_COLORS[student.belt]}`}>{t(`belts.${student.belt}`)}</span>
                     <span className="px-3 py-1 rounded-lg text-[8px] font-black uppercase tracking-widest bg-white/10 text-white">
-                      {calculateAge(student.birthDate)} ANOS
+                      {calculateAge(student.birthDate)} {t('common.years').toUpperCase()}
                     </span>
                     {student.isCompetitor && (
                       <span className="px-3 py-1 rounded-lg text-[8px] font-black uppercase tracking-widest bg-yellow-500 text-slate-900 flex items-center gap-1">
