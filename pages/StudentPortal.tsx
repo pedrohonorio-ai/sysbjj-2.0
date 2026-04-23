@@ -4,7 +4,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { useParams, useNavigate } from 'react-router-dom';
 import { 
   Trophy, Flame, Calendar, BookOpen, 
-  ArrowRight, Shield, Zap, Plus, LogOut, Scale,
+  ArrowRight, Shield, Zap, Plus, LogOut, Scale, Gamepad2, Award, Play,
   QrCode, Clock, Info, Camera, CheckCircle2, AlertTriangle, X, Copy, Image as ImageIcon, Download, Maximize2,
   RefreshCw, FileText, Upload, ShieldCheck, AlertCircle, ShieldAlert, ChevronRight
 } from 'lucide-react';
@@ -41,6 +41,39 @@ const StudentPortal: React.FC = () => {
   const { updateStudent } = useData();
 
   const student = useMemo(() => students.find(s => s.portalAccessCode === code), [students, code]);
+
+  const [currentRuleLessonId, setCurrentRuleLessonId] = useState<string | null>(null);
+  const [quizMode, setQuizMode] = useState(false);
+  const [selectedOption, setSelectedOption] = useState<number | null>(null);
+  const [quizState, setQuizState] = useState<'idle' | 'answering' | 'correct' | 'wrong'>('idle');
+
+  const currentLesson = useMemo(() => 
+    IBJJF_LESSONS.find(l => l.id === currentRuleLessonId), 
+  [currentRuleLessonId]);
+
+  const handleStartQuiz = () => {
+    setQuizMode(true);
+    setQuizState('answering');
+    setSelectedOption(null);
+  };
+
+  const handleAnswer = (index: number) => {
+    if (!student || !currentLesson?.questions?.[0]) return;
+    setSelectedOption(index);
+    if (index === currentLesson.questions[0].correctAnswer) {
+      setQuizState('correct');
+      completeRuleLesson(student.id, currentLesson.id, currentLesson.points);
+    } else {
+      setQuizState('wrong');
+    }
+  };
+
+  const handleCloseRuleDetail = () => {
+    setCurrentRuleLessonId(null);
+    setQuizMode(false);
+    setQuizState('idle');
+    setSelectedOption(null);
+  };
 
   const monthlyBirthdays = useMemo(() => {
     const currentMonth = new Date().getMonth() + 1;
@@ -445,78 +478,223 @@ const StudentPortal: React.FC = () => {
 
         {activeTab === 'rules' && (
           <div className="space-y-6">
-            <div className="bg-white dark:bg-slate-900 rounded-[2rem] p-6 border border-blue-200 dark:border-blue-900 shadow-xl overflow-hidden">
-              <div className="flex items-center gap-3 mb-6">
-                <div className="w-10 h-10 bg-blue-600 rounded-xl flex items-center justify-center text-white shadow-lg">
-                  <Shield size={20} />
-                </div>
-                <div>
-                  <h3 className="text-sm font-black text-slate-900 dark:text-white uppercase tracking-tighter leading-none">{profile.academyName}</h3>
-                  <p className="text-[8px] font-black text-blue-500 uppercase tracking-widest mt-1">Regras e Graduação</p>
-                </div>
-              </div>
-              <div className="prose dark:prose-invert prose-slate max-w-none prose-sm prose-p:font-medium prose-headings:uppercase prose-headings:tracking-tighter prose-headings:font-black">
-                <ReactMarkdown>{profile.graduationRules || 'As regras da academia serão exibidas aqui.'}</ReactMarkdown>
-              </div>
-            </div>
-
-            <div className="bg-slate-900 rounded-[2.5rem] p-8 text-white relative overflow-hidden">
-              <div className="absolute top-0 right-0 w-32 h-32 bg-blue-600 rounded-full blur-[60px] opacity-20" />
-              <div className="relative z-10">
-                <h3 className="text-xl font-black uppercase tracking-tighter leading-none mb-2">{t('portal.rulesAcademy')}</h3>
-                <p className="text-[10px] font-medium text-slate-400 leading-relaxed">{t('portal.rulesAcademyDesc')}</p>
-                <div className="mt-6 flex items-center gap-4">
-                  <div className="flex-1 h-2 bg-white/10 rounded-full overflow-hidden">
-                    <div 
-                      className="h-full bg-blue-500 transition-all duration-1000" 
-                      style={{ width: `${(student.completedRuleLessons?.length || 0) / IBJJF_LESSONS.length * 100}%` }} 
-                    />
-                  </div>
-                  <span className="text-[10px] font-black text-blue-400 uppercase tracking-widest">
-                    {student.completedRuleLessons?.length || 0}/{IBJJF_LESSONS.length}
-                  </span>
-                </div>
-              </div>
-            </div>
-
-            <div className="space-y-4">
-              {IBJJF_LESSONS.map((lesson) => {
-                const isCompleted = student.completedRuleLessons?.includes(lesson.id);
-                const IconComponent = (Icons as any)[lesson.icon] || Icons.BookOpen;
-
-                return (
-                  <div key={lesson.id} className={`bg-white dark:bg-slate-900 p-6 rounded-[2rem] border transition-all ${isCompleted ? 'border-green-500/30 bg-green-50/10' : 'border-slate-200 dark:border-slate-800'}`}>
-                    <div className="flex items-start gap-4">
-                      <div className={`w-12 h-12 rounded-2xl flex items-center justify-center shrink-0 ${isCompleted ? 'bg-green-100 text-green-600' : 'bg-slate-100 dark:bg-slate-800 text-slate-400'}`}>
-                        <IconComponent size={24} />
+            <AnimatePresence mode="wait">
+              {!currentRuleLessonId ? (
+                <motion.div 
+                  key="lesson-list"
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0, y: -20 }}
+                  className="space-y-6"
+                >
+                  <div className="bg-white dark:bg-slate-900 rounded-[2rem] p-6 border border-blue-200 dark:border-blue-900 shadow-xl overflow-hidden relative group">
+                    <div className="absolute top-0 right-0 w-32 h-32 bg-blue-600 rounded-full blur-[60px] opacity-10 group-hover:scale-150 transition-transform duration-1000" />
+                    <div className="flex items-center gap-3 mb-6 relative z-10">
+                      <div className="w-10 h-10 bg-blue-600 rounded-xl flex items-center justify-center text-white shadow-lg">
+                        <Shield size={20} />
                       </div>
-                      <div className="flex-1 space-y-2">
-                        <div className="flex items-center justify-between">
-                          <span className="text-[8px] font-black text-blue-600 uppercase tracking-widest">{lesson.category}</span>
-                          <span className="text-[8px] font-black text-amber-600 uppercase tracking-widest">+{lesson.points} PTS</span>
+                      <div>
+                        <h3 className="text-sm font-black text-slate-900 dark:text-white uppercase tracking-tighter leading-none">{profile.academyName}</h3>
+                        <p className="text-[8px] font-black text-blue-500 uppercase tracking-widest mt-1">Manual de Conduta & Regras</p>
+                      </div>
+                    </div>
+                    <div className="prose dark:prose-invert prose-slate max-w-none prose-sm prose-p:font-medium prose-headings:uppercase prose-headings:tracking-tighter prose-headings:font-black relative z-10">
+                      <ReactMarkdown>{profile.graduationRules || 'As regras da academia serão exibidas aqui.'}</ReactMarkdown>
+                    </div>
+                  </div>
+
+                  <div className="bg-slate-950 rounded-[2.5rem] p-8 text-white relative overflow-hidden shadow-2xl">
+                    <div className="absolute top-0 right-0 w-64 h-64 bg-blue-600 rounded-full blur-[100px] opacity-20" />
+                    <div className="relative z-10">
+                      <div className="flex items-center gap-3 mb-4">
+                        <div className="px-3 py-1 bg-blue-600/20 border border-blue-600/30 rounded-full text-[8px] font-black uppercase tracking-widest text-blue-400">IBJJF & FJJRIO</div>
+                      </div>
+                      <h3 className="text-2xl font-black uppercase tracking-tighter leading-none mb-3">Academia de Regras</h3>
+                      <p className="text-[10px] font-medium text-slate-400 leading-relaxed mb-8">Domine o regulamento oficial e evite erros fatais em competições. Complete o curso para ganhar selos de mérito.</p>
+                      
+                      <div className="space-y-3">
+                        <div className="flex justify-between items-center px-1">
+                          <span className="text-[9px] font-black text-slate-500 uppercase tracking-widest">Nível de Conhecimento</span>
+                          <span className="text-xs font-black text-blue-500">{(student.completedRuleLessons?.length || 0) / IBJJF_LESSONS.length * 100}%</span>
                         </div>
-                        <h4 className="text-sm font-black dark:text-white uppercase tracking-tight leading-tight">{lesson.title}</h4>
-                        <p className="text-xs text-slate-500 dark:text-slate-400 font-medium leading-relaxed">{lesson.content}</p>
-                        
-                        {!isCompleted ? (
-                          <button 
-                            onClick={() => handleCompleteLesson(lesson.id, lesson.points)}
-                            className="w-full mt-4 py-3 bg-slate-900 dark:bg-white dark:text-slate-900 text-white rounded-xl font-black uppercase text-[9px] tracking-widest hover:scale-[1.02] active:scale-95 transition-all"
-                          >
-                            {t('portal.markAsStudied')}
-                          </button>
-                        ) : (
-                          <div className="mt-4 flex items-center gap-2 text-green-600">
-                            <CheckCircle2 size={16} />
-                            <span className="text-[9px] font-black uppercase tracking-widest">{t('portal.lessonCompleted')}</span>
-                          </div>
-                        )}
+                        <div className="h-3 bg-white/5 rounded-full overflow-hidden border border-white/5">
+                          <motion.div 
+                            initial={{ width: 0 }}
+                            animate={{ width: `${(student.completedRuleLessons?.length || 0) / IBJJF_LESSONS.length * 100}%` }}
+                            className="h-full bg-gradient-to-r from-blue-600 to-blue-400"
+                          />
+                        </div>
+                        <div className="flex justify-center">
+                          <p className="text-[9px] font-black text-blue-400 uppercase tracking-widest mt-4">
+                            {student.completedRuleLessons?.length || 0} de {IBJJF_LESSONS.length} Módulos Concluídos
+                          </p>
+                        </div>
                       </div>
                     </div>
                   </div>
-                );
-              })}
-            </div>
+
+                  <div className="grid grid-cols-1 gap-4">
+                    {IBJJF_LESSONS.map((lesson) => {
+                      const isCompleted = student.completedRuleLessons?.includes(lesson.id);
+                      const IconComponent = (Icons as any)[lesson.icon] || Icons.BookOpen;
+
+                      return (
+                        <motion.button 
+                          key={lesson.id}
+                          whileHover={{ scale: 1.02, x: 4 }}
+                          whileTap={{ scale: 0.98 }}
+                          onClick={() => setCurrentRuleLessonId(lesson.id)}
+                          className={`flex items-center gap-5 p-5 rounded-[2rem] border text-left transition-all relative overflow-hidden group ${
+                            isCompleted 
+                              ? 'bg-green-50/10 border-green-500/20' 
+                              : 'bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800'
+                          }`}
+                        >
+                          <div className={`w-14 h-14 rounded-2xl flex items-center justify-center shrink-0 shadow-lg ${
+                            isCompleted ? 'bg-green-100 text-green-600' : 'bg-slate-100 dark:bg-slate-800 text-slate-400'
+                          }`}>
+                            <IconComponent size={24} />
+                          </div>
+                          <div className="flex-1 min-w-0">
+                            <div className="flex items-center gap-2 mb-1">
+                              <span className="text-[8px] font-black text-blue-500 uppercase tracking-[0.15em]">{lesson.category}</span>
+                              {isCompleted && (
+                                <span className="flex items-center gap-1 text-[8px] font-black text-green-500 uppercase tracking-widest bg-green-500/10 px-2 py-0.5 rounded-full">
+                                  <CheckCircle2 size={8} /> OK
+                                </span>
+                              )}
+                            </div>
+                            <h4 className="text-sm font-black dark:text-white uppercase tracking-tight truncate leading-none mb-1">{lesson.title}</h4>
+                            <p className="text-[10px] text-slate-500 dark:text-slate-400 font-medium truncate opacity-60 italic">+{lesson.points} Pontos de Mérito</p>
+                          </div>
+                          <ChevronRight size={18} className="text-slate-300 group-hover:text-blue-500 transition-colors" />
+                        </motion.button>
+                      );
+                    })}
+                  </div>
+                </motion.div>
+              ) : (
+                <motion.div 
+                  key="lesson-detail"
+                  initial={{ opacity: 0, x: 20 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  exit={{ opacity: 0, x: -20 }}
+                  className="space-y-6"
+                >
+                  <button 
+                    onClick={handleCloseRuleDetail}
+                    className="flex items-center gap-2 text-[10px] font-black text-slate-500 uppercase tracking-widest group"
+                  >
+                    <ArrowRight size={16} className="rotate-180 group-hover:-translate-x-1 transition-transform" /> {t('common.cancel')}
+                  </button>
+
+                  <div className="bg-white dark:bg-slate-900 rounded-[2.5rem] p-8 border border-slate-200 dark:border-slate-800 shadow-xl space-y-8">
+                    <div className="space-y-6">
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-2">
+                          <span className="px-3 py-1 bg-blue-100 text-blue-600 rounded-lg text-[8px] font-black uppercase tracking-widest">
+                            {currentLesson?.category}
+                          </span>
+                          <span className="px-3 py-1 bg-amber-100 text-amber-600 rounded-lg text-[8px] font-black uppercase tracking-widest">
+                            +{currentLesson?.points} PTS
+                          </span>
+                        </div>
+                      </div>
+                      
+                      <h2 className="text-2xl font-black text-slate-900 dark:text-white uppercase tracking-tighter leading-none">
+                        {currentLesson?.title}
+                      </h2>
+                      
+                      <div className="p-6 bg-slate-50 dark:bg-slate-800/50 rounded-3xl border border-slate-100 dark:border-slate-700/50 relative overflow-hidden group">
+                        <div className="relative z-10">
+                          <p className="text-sm text-slate-600 dark:text-slate-300 font-medium leading-relaxed">
+                            {currentLesson?.content}
+                          </p>
+                        </div>
+                        <Scale className="absolute -bottom-4 -right-4 text-slate-100 dark:text-slate-800/50 group-hover:scale-110 transition-transform duration-700" size={100} />
+                      </div>
+                    </div>
+
+                    {!quizMode ? (
+                      <div className="space-y-4 pt-4 border-t border-slate-100 dark:border-slate-800">
+                        <h4 className="text-[10px] font-black text-slate-400 uppercase tracking-widest text-center">Teste seus conhecimentos</h4>
+                        <button 
+                          onClick={handleStartQuiz}
+                          className="w-full py-5 bg-blue-600 text-white rounded-2xl font-black uppercase text-xs tracking-widest shadow-xl shadow-blue-600/20 hover:bg-blue-700 flex items-center justify-center gap-3 active:scale-95 transition-all"
+                        >
+                          <Gamepad2 size={20} /> {t('portal.startQuiz').toUpperCase()}
+                        </button>
+                      </div>
+                    ) : (
+                      <div className="space-y-6 pt-4 border-t border-slate-100 dark:border-slate-800">
+                        <div className="flex items-center gap-3">
+                          <div className="p-2 bg-amber-100 text-amber-600 rounded-lg">
+                            <Info size={16} />
+                          </div>
+                          <h4 className="text-[11px] font-black text-slate-900 dark:text-white uppercase tracking-tight">Desafio Prático</h4>
+                        </div>
+                        
+                        <p className="text-sm font-bold text-slate-900 dark:text-white leading-tight">
+                          {currentLesson?.questions?.[0].question}
+                        </p>
+
+                        <div className="space-y-3">
+                          {currentLesson?.questions?.[0].options.map((option, idx) => (
+                            <button
+                              key={idx}
+                              onClick={() => quizState === 'answering' && handleAnswer(idx)}
+                              disabled={quizState !== 'answering'}
+                              className={`w-full p-5 rounded-2xl text-left text-xs font-black uppercase tracking-tight transition-all border-2 flex items-center justify-between group ${
+                                selectedOption === idx 
+                                  ? (quizState === 'correct' ? 'bg-green-500 border-green-600 text-white' : 'bg-red-500 border-red-600 text-white')
+                                  : (quizState !== 'answering' && idx === currentLesson?.questions?.[0].correctAnswer ? 'bg-green-500/20 border-green-600 text-green-600' : 'bg-slate-50 dark:bg-slate-800 border-transparent text-slate-600 dark:text-slate-400 hover:border-blue-500/50')
+                              }`}
+                            >
+                              {option}
+                              {selectedOption === idx && (
+                                quizState === 'correct' ? <CheckCircle2 size={16} /> : <AlertTriangle size={16} />
+                              )}
+                            </button>
+                          ))}
+                        </div>
+
+                        {quizState !== 'answering' && (
+                          <motion.div 
+                            initial={{ height: 0, opacity: 0 }}
+                            animate={{ height: 'auto', opacity: 1 }}
+                            className={`p-6 rounded-3xl ${quizState === 'correct' ? 'bg-green-500/10 border border-green-500/20' : 'bg-red-500/10 border border-red-500/20'}`}
+                          >
+                            <div className="flex gap-4">
+                              <div className={`p-3 rounded-2xl hidden sm:block ${quizState === 'correct' ? 'bg-green-100 text-green-600' : 'bg-red-100 text-red-600'}`}>
+                                {quizState === 'correct' ? <Award size={24} /> : <BookOpen size={24} />}
+                              </div>
+                              <div className="space-y-1">
+                                <p className={`text-[10px] font-black uppercase tracking-widest ${quizState === 'correct' ? 'text-green-600' : 'text-red-600'}`}>
+                                  {quizState === 'correct' ? t('portal.quizCompleted') : t('portal.wrongAnswer')}
+                                </p>
+                                <p className="text-xs font-bold text-slate-600 dark:text-slate-400 leading-relaxed italic">
+                                  {currentLesson?.questions?.[0].explanation}
+                                </p>
+                                {quizState === 'correct' && (
+                                  <div className="mt-4">
+                                    <button 
+                                      onClick={handleCloseRuleDetail}
+                                      className="px-6 py-3 bg-slate-900 dark:bg-white text-white dark:text-slate-900 rounded-xl font-black uppercase text-[10px] tracking-widest shadow-xl flex items-center gap-2"
+                                    >
+                                      {t('portal.nextLesson')} <Play size={12} fill="currentColor" />
+                                    </button>
+                                  </div>
+                                )}
+                              </div>
+                            </div>
+                          </motion.div>
+                        )}
+                      </div>
+                    )}
+                  </div>
+                </motion.div>
+              )}
+            </AnimatePresence>
           </div>
         )}
         {activeTab === 'gallery' && (

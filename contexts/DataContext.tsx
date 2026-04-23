@@ -3,6 +3,7 @@ import React, { createContext, useContext, useState, useEffect, ReactNode, useCa
 import { Student, Payment, ClassSchedule, GalleryImage, ExtraRevenue, KimonoOrder, LessonPlan, LibraryTechnique, TechniqueCategory, BeltColor, Product, Plan, PaymentReceipt, TransactionLedger, SystemLog } from '../types';
 import CryptoJS from 'crypto-js';
 import { verifyPaymentProof } from '../services/gemini';
+import { IBJJF_LESSONS } from '../constants/rulesData';
 import { db } from '../firebase';
 import { 
   collection, 
@@ -630,19 +631,37 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   };
 
   const completeRuleLesson = (studentId: string, lessonId: string, points: number) => {
-    setStudents(prev => prev.map(s => s.id === studentId ? {
-      ...s,
-      rewardPoints: (s.rewardPoints || 0) + points,
-      rulesKnowledge: Math.min(100, (s.rulesKnowledge || 0) + 5),
-      completedRuleLessons: [...(s.completedRuleLessons || []), lessonId]
-    } : s));
+    const student = students.find(s => s.id === studentId);
+    if (!student) return;
+
+    const alreadyCompleted = student.completedRuleLessons?.includes(lessonId);
+    if (alreadyCompleted) return;
+
+    const newCompletedLessons = [...(student.completedRuleLessons || []), lessonId];
+    const newKnowledge = Math.round((newCompletedLessons.length / IBJJF_LESSONS.length) * 100);
+    const newPoints = (student.rewardPoints || 0) + points;
+
+    const updates = {
+      rewardPoints: newPoints,
+      rulesKnowledge: newKnowledge,
+      completedRuleLessons: newCompletedLessons
+    };
+
+    // Optimistic Update
+    setStudents(prev => prev.map(s => s.id === studentId ? { ...s, ...updates } : s));
     
+    if (db) {
+      updateDoc(doc(db, 'students', studentId), updates).catch(err => handleFirestoreError(err, OperationType.UPDATE, `students/${studentId}`));
+    }
+
     setNotifications(prev => [{
       id: `NOT-${Date.now()}`,
       message: `Lição concluída! Você ganhou ${points} pontos de mérito.`,
       type: 'success',
       timestamp: Date.now()
     }, ...prev]);
+
+    logAction('Regra Concluída', `Aluno ${student.name} concluiu lição de regra ${lessonId}`, 'System');
   };
 
   const addSchedule = (schedule: Omit<ClassSchedule, 'id'>) => {
