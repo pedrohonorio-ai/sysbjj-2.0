@@ -14,9 +14,10 @@ import { useData } from '../contexts/DataContext';
 import { useProfile } from '../contexts/ProfileContext';
 import { StudentStatus, GalleryImage, BeltColor } from '../types';
 import { BELT_COLORS } from '../constants';
-import { IBJJF_LESSONS } from '../constants/rulesData';
+import { IBJJF_LESSONS, RuleLesson, RuleScenario } from '../constants/rulesData';
 import ReactMarkdown from 'react-markdown';
 import * as Icons from 'lucide-react';
+import { GoogleGenAI } from "@google/genai";
 
 const StudentPortal: React.FC = () => {
   const { code } = useParams();
@@ -70,35 +71,107 @@ const StudentPortal: React.FC = () => {
   };
 
   const [quizMode, setQuizMode] = useState(false);
+  const [scenarioMode, setScenarioMode] = useState(false);
+  const [currentScenarioIdx, setCurrentScenarioIdx] = useState(0);
   const [selectedOption, setSelectedOption] = useState<number | null>(null);
   const [quizState, setQuizState] = useState<'idle' | 'answering' | 'correct' | 'wrong'>('idle');
+  const [aiTip, setAiTip] = useState<string | null>(null);
+  const [loadingAi, setLoadingAi] = useState(false);
 
   const currentLesson = useMemo(() => 
     IBJJF_LESSONS.find(l => l.id === currentRuleLessonId), 
   [currentRuleLessonId]);
 
+  const currentScenario = useMemo(() => 
+    currentLesson?.scenarios?.[currentScenarioIdx],
+  [currentLesson, currentScenarioIdx]);
+
+  const getAISenseiTip = async (prompt?: string) => {
+    if (!prompt) return;
+    setLoadingAi(true);
+    try {
+      const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
+      const response = await ai.models.generateContent({
+        model: "gemini-3-flash-preview",
+        contents: prompt,
+        config: {
+          systemInstruction: "Você é um Mestre de Jiu-Jitsu (Sensei) especialista em regras da IBJJF. Seja didático, use termos técnicos e motive o aluno. Responda em português de forma concisa (máximo 300 caracteres)."
+        }
+      });
+      setAiTip(response.text);
+    } catch (error) {
+      console.error("Erro AI Sensei:", error);
+    } finally {
+      setLoadingAi(false);
+    }
+  };
+
+  useEffect(() => {
+    if (currentRuleLessonId && currentLesson?.aiSenseiPrompt) {
+      getAISenseiTip(currentLesson.aiSenseiPrompt);
+    } else {
+      setAiTip(null);
+    }
+  }, [currentRuleLessonId, currentLesson]);
+
   const handleStartQuiz = () => {
     setQuizMode(true);
+    setScenarioMode(false);
     setQuizState('answering');
     setSelectedOption(null);
   };
 
+  const handleStartScenarios = () => {
+    setScenarioMode(true);
+    setQuizMode(false);
+    setQuizState('answering');
+    setSelectedOption(null);
+    setCurrentScenarioIdx(0);
+  };
+
   const handleAnswer = (index: number) => {
-    if (!student || !currentLesson?.questions?.[0]) return;
+    if (!student || !currentLesson) return;
     setSelectedOption(index);
-    if (index === currentLesson.questions[0].correctAnswer) {
+    
+    let isCorrect = false;
+    if (quizMode && currentLesson.questions?.[0]) {
+      isCorrect = index === currentLesson.questions[0].correctAnswer;
+    } else if (scenarioMode && currentScenario) {
+      isCorrect = index === currentScenario.correctAnswer;
+    }
+
+    if (isCorrect) {
       setQuizState('correct');
-      completeRuleLesson(student.id, currentLesson.id, currentLesson.points);
+      if (quizMode) {
+        completeRuleLesson(student.id, currentLesson.id, currentLesson.points);
+      } else if (scenarioMode) {
+        // If it's the last scenario, complete the lesson
+        if (currentScenarioIdx === (currentLesson.scenarios?.length || 0) - 1) {
+          completeRuleLesson(student.id, currentLesson.id, currentLesson.points);
+        }
+      }
     } else {
       setQuizState('wrong');
+    }
+  };
+
+  const handleNextScenario = () => {
+    if (currentLesson?.scenarios && currentScenarioIdx < currentLesson.scenarios.length - 1) {
+      setCurrentScenarioIdx(prev => prev + 1);
+      setQuizState('answering');
+      setSelectedOption(null);
+    } else {
+      handleCloseRuleDetail();
     }
   };
 
   const handleCloseRuleDetail = () => {
     setCurrentRuleLessonId(null);
     setQuizMode(false);
+    setScenarioMode(false);
     setQuizState('idle');
     setSelectedOption(null);
+    setAiTip(null);
   };
 
   const monthlyBirthdays = useMemo(() => {
@@ -605,17 +678,29 @@ const StudentPortal: React.FC = () => {
 
                   <div className="bg-slate-950 rounded-[2.5rem] p-8 text-white relative overflow-hidden shadow-2xl">
                     <div className="absolute top-0 right-0 w-64 h-64 bg-blue-600 rounded-full blur-[100px] opacity-20" />
+                    <div className="absolute bottom-0 left-0 w-full h-1 bg-white/5" />
                     <div className="relative z-10">
                       <div className="flex items-center gap-3 mb-4">
-                        <div className="px-3 py-1 bg-blue-600/20 border border-blue-600/30 rounded-full text-[8px] font-black uppercase tracking-widest text-blue-400">IBJJF & FJJRIO</div>
+                        <div className="px-3 py-1 bg-blue-600/20 border border-blue-600/30 rounded-full text-[8px] font-black uppercase tracking-widest text-blue-400">IBJJF & CBJJ</div>
                       </div>
-                      <h3 className="text-2xl font-black uppercase tracking-tighter leading-none mb-3">Academia de Regras</h3>
-                      <p className="text-[10px] font-medium text-slate-400 leading-relaxed mb-8">Domine o regulamento oficial e evite erros fatais em competições. Complete o curso para ganhar selos de mérito.</p>
+                      <h3 className="text-2xl font-black uppercase tracking-tighter leading-none mb-3">Rules Academy</h3>
+                      <p className="text-[10px] font-medium text-slate-400 leading-relaxed mb-8 italic">"A técnica sem a regra é como um barco sem leme. Domine o regulamento e conquiste o ouro."</p>
                       
+                      <div className="grid grid-cols-2 gap-4 mb-8">
+                         <div className="bg-white/5 p-4 rounded-2xl border border-white/5 text-center">
+                            <p className="text-[8px] font-black text-slate-500 uppercase mb-1">Total de Pontos</p>
+                            <p className="text-xl font-black text-blue-400">{student.rewardPoints || 0}</p>
+                         </div>
+                         <div className="bg-white/5 p-4 rounded-2xl border border-white/5 text-center">
+                            <p className="text-[8px] font-black text-slate-500 uppercase mb-1">Módulos</p>
+                            <p className="text-xl font-black text-blue-400">{student.completedRuleLessons?.length || 0}/{IBJJF_LESSONS.length}</p>
+                         </div>
+                      </div>
+
                       <div className="space-y-3">
                         <div className="flex justify-between items-center px-1">
-                          <span className="text-[9px] font-black text-slate-500 uppercase tracking-widest">Nível de Conhecimento</span>
-                          <span className="text-xs font-black text-blue-500">{(student.completedRuleLessons?.length || 0) / IBJJF_LESSONS.length * 100}%</span>
+                          <span className="text-[9px] font-black text-slate-500 uppercase tracking-widest">Mastery Progress</span>
+                          <span className="text-xs font-black text-blue-500">{Math.round((student.completedRuleLessons?.length || 0) / IBJJF_LESSONS.length * 100)}%</span>
                         </div>
                         <div className="h-3 bg-white/5 rounded-full overflow-hidden border border-white/5">
                           <motion.div 
@@ -623,11 +708,6 @@ const StudentPortal: React.FC = () => {
                             animate={{ width: `${(student.completedRuleLessons?.length || 0) / IBJJF_LESSONS.length * 100}%` }}
                             className="h-full bg-gradient-to-r from-blue-600 to-blue-400"
                           />
-                        </div>
-                        <div className="flex justify-center">
-                          <p className="text-[9px] font-black text-blue-400 uppercase tracking-widest mt-4">
-                            {student.completedRuleLessons?.length || 0} de {IBJJF_LESSONS.length} Módulos Concluídos
-                          </p>
                         </div>
                       </div>
                     </div>
@@ -646,11 +726,11 @@ const StudentPortal: React.FC = () => {
                           onClick={() => setCurrentRuleLessonId(lesson.id)}
                           className={`flex items-center gap-5 p-5 rounded-[2rem] border text-left transition-all relative overflow-hidden group ${
                             isCompleted 
-                              ? 'bg-green-50/10 border-green-500/20' 
-                              : 'bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800'
+                              ? 'bg-green-50/10 border-green-500/20 shadow-lg shadow-green-500/5' 
+                              : 'bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800 hover:border-blue-500/30'
                           }`}
                         >
-                          <div className={`w-14 h-14 rounded-2xl flex items-center justify-center shrink-0 shadow-lg ${
+                          <div className={`w-14 h-14 rounded-2xl flex items-center justify-center shrink-0 shadow-xl transition-all duration-500 group-hover:rotate-6 ${
                             isCompleted ? 'bg-green-100 text-green-600' : 'bg-slate-100 dark:bg-slate-800 text-slate-400'
                           }`}>
                             <IconComponent size={24} />
@@ -660,12 +740,17 @@ const StudentPortal: React.FC = () => {
                               <span className="text-[8px] font-black text-blue-500 uppercase tracking-[0.15em]">{lesson.category}</span>
                               {isCompleted && (
                                 <span className="flex items-center gap-1 text-[8px] font-black text-green-500 uppercase tracking-widest bg-green-500/10 px-2 py-0.5 rounded-full">
-                                  <CheckCircle2 size={8} /> OK
+                                  <CheckCircle2 size={8} /> MASTERED
+                                </span>
+                              )}
+                              {lesson.scenarios && (
+                                <span className="flex items-center gap-1 text-[8px] font-black text-amber-500 uppercase tracking-widest bg-amber-500/10 px-2 py-0.5 rounded-full">
+                                  <Gamepad2 size={8} /> CASE MODE
                                 </span>
                               )}
                             </div>
                             <h4 className="text-sm font-black dark:text-white uppercase tracking-tight truncate leading-none mb-1">{lesson.title}</h4>
-                            <p className="text-[10px] text-slate-500 dark:text-slate-400 font-medium truncate opacity-60 italic">+{lesson.points} Pontos de Mérito</p>
+                            <p className="text-[10px] text-slate-500 dark:text-slate-400 font-medium truncate opacity-60 italic">+{lesson.points} Lifelong Points</p>
                           </div>
                           <ChevronRight size={18} className="text-slate-300 group-hover:text-blue-500 transition-colors" />
                         </motion.button>
@@ -688,66 +773,110 @@ const StudentPortal: React.FC = () => {
                     <ArrowRight size={16} className="rotate-180 group-hover:-translate-x-1 transition-transform" /> {t('common.cancel')}
                   </button>
 
-                  <div className="bg-white dark:bg-slate-900 rounded-[2.5rem] p-8 border border-slate-200 dark:border-slate-800 shadow-xl space-y-8">
-                    <div className="space-y-6">
+                  <div className="bg-white dark:bg-slate-900 rounded-[2.5rem] p-8 border border-slate-200 dark:border-slate-800 shadow-2xl space-y-8 relative overflow-hidden">
+                    <div className="absolute top-0 right-0 w-32 h-32 bg-blue-600 rounded-full blur-[80px] opacity-10" />
+                    
+                    <div className="space-y-6 relative z-10">
                       <div className="flex items-center justify-between">
                         <div className="flex items-center gap-2">
-                          <span className="px-3 py-1 bg-blue-100 text-blue-600 rounded-lg text-[8px] font-black uppercase tracking-widest">
+                          <span className="px-3 py-1 bg-blue-100 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 rounded-lg text-[8px] font-black uppercase tracking-widest">
                             {currentLesson?.category}
                           </span>
-                          <span className="px-3 py-1 bg-amber-100 text-amber-600 rounded-lg text-[8px] font-black uppercase tracking-widest">
-                            +{currentLesson?.points} PTS
+                          <span className="px-3 py-1 bg-amber-100 dark:bg-amber-900/30 text-amber-600 dark:text-amber-400 rounded-lg text-[8px] font-black uppercase tracking-widest">
+                            +{currentLesson?.points} XP
                           </span>
                         </div>
                       </div>
                       
-                      <h2 className="text-2xl font-black text-slate-900 dark:text-white uppercase tracking-tighter leading-none">
+                      <h2 className="text-3xl font-black text-slate-900 dark:text-white uppercase tracking-tighter leading-none">
                         {currentLesson?.title}
                       </h2>
-                      
-                      <div className="p-6 bg-slate-50 dark:bg-slate-800/50 rounded-3xl border border-slate-100 dark:border-slate-700/50 relative overflow-hidden group">
-                        <div className="relative z-10">
-                          <p className="text-sm text-slate-600 dark:text-slate-300 font-medium leading-relaxed">
-                            {currentLesson?.content}
-                          </p>
+
+                      {aiTip && (
+                        <motion.div 
+                          initial={{ opacity: 0, y: 10 }}
+                          animate={{ opacity: 1, y: 0 }}
+                          className="p-5 bg-blue-600/5 dark:bg-blue-600/10 rounded-3xl border border-blue-600/10 flex gap-4"
+                        >
+                           <div className="w-10 h-10 bg-blue-600 rounded-2xl flex items-center justify-center text-white shrink-0 shadow-lg">
+                              <Icons.Cpu size={20} />
+                           </div>
+                           <div className="space-y-1">
+                              <p className="text-[8px] font-black text-blue-500 uppercase tracking-widest">AI Senseis Tip</p>
+                              <p className="text-xs font-bold text-slate-700 dark:text-slate-300 italic leading-relaxed">
+                                "{aiTip}"
+                              </p>
+                           </div>
+                        </motion.div>
+                      )}
+
+                      {!quizMode && !scenarioMode && (
+                        <div className="p-6 bg-slate-50 dark:bg-slate-800/50 rounded-3xl border border-slate-100 dark:border-slate-700/50 relative overflow-hidden group">
+                          <div className="relative z-10">
+                            <p className="text-sm text-slate-600 dark:text-slate-300 font-medium leading-relaxed">
+                              {currentLesson?.content}
+                            </p>
+                          </div>
+                          <Scale className="absolute -bottom-4 -right-4 text-slate-100 dark:text-slate-800/50 group-hover:scale-110 transition-transform duration-700" size={100} />
                         </div>
-                        <Scale className="absolute -bottom-4 -right-4 text-slate-100 dark:text-slate-800/50 group-hover:scale-110 transition-transform duration-700" size={100} />
-                      </div>
+                      )}
                     </div>
 
-                    {!quizMode ? (
-                      <div className="space-y-4 pt-4 border-t border-slate-100 dark:border-slate-800">
-                        <h4 className="text-[10px] font-black text-slate-400 uppercase tracking-widest text-center">Teste seus conhecimentos</h4>
-                        <button 
-                          onClick={handleStartQuiz}
-                          className="w-full py-5 bg-blue-600 text-white rounded-2xl font-black uppercase text-xs tracking-widest shadow-xl shadow-blue-600/20 hover:bg-blue-700 flex items-center justify-center gap-3 active:scale-95 transition-all"
-                        >
-                          <Gamepad2 size={20} /> {t('portal.startQuiz').toUpperCase()}
-                        </button>
+                    {!quizMode && !scenarioMode ? (
+                      <div className="grid grid-cols-1 gap-4 pt-4 border-t border-slate-100 dark:border-slate-800">
+                        <h4 className="text-[10px] font-black text-slate-400 uppercase tracking-widest text-center">How do you want to learn?</h4>
+                        {currentLesson?.questions && (
+                          <button 
+                            onClick={handleStartQuiz}
+                            className="w-full py-5 bg-blue-600 text-white rounded-2xl font-black uppercase text-xs tracking-widest shadow-xl shadow-blue-600/20 hover:bg-blue-700 flex items-center justify-center gap-3 active:scale-95 transition-all"
+                          >
+                            <Gamepad2 size={20} /> THEORY QUIZ
+                          </button>
+                        )}
+                        {currentLesson?.scenarios && (
+                          <button 
+                            onClick={handleStartScenarios}
+                            className="w-full py-5 bg-slate-900 dark:bg-white text-white dark:text-slate-900 rounded-2xl font-black uppercase text-xs tracking-widest shadow-xl flex items-center justify-center gap-3 active:scale-95 transition-all"
+                          >
+                            <Play size={20} /> REAL SCENARIOS
+                          </button>
+                        )}
                       </div>
                     ) : (
                       <div className="space-y-6 pt-4 border-t border-slate-100 dark:border-slate-800">
-                        <div className="flex items-center gap-3">
-                          <div className="p-2 bg-amber-100 text-amber-600 rounded-lg">
-                            <Info size={16} />
+                        <div className="flex items-center justify-between">
+                          <div className="flex items-center gap-3">
+                            <div className={`p-2 rounded-lg ${quizMode ? 'bg-blue-100 text-blue-600' : 'bg-amber-100 text-amber-600'}`}>
+                              {quizMode ? <Shield size={16} /> : <Icons.Target size={16} />}
+                            </div>
+                            <h4 className="text-[11px] font-black text-slate-900 dark:text-white uppercase tracking-tight">
+                              {quizMode ? 'Knowledge Check' : `Scenario ${currentScenarioIdx + 1}/${currentLesson?.scenarios?.length}`}
+                            </h4>
                           </div>
-                          <h4 className="text-[11px] font-black text-slate-900 dark:text-white uppercase tracking-tight">Desafio Prático</h4>
+                          {scenarioMode && (
+                            <span className="text-[9px] font-black text-slate-400 uppercase">{currentScenario?.title}</span>
+                          )}
                         </div>
                         
-                        <p className="text-sm font-bold text-slate-900 dark:text-white leading-tight">
-                          {currentLesson?.questions?.[0].question}
-                        </p>
+                        <div className="p-6 bg-slate-50 dark:bg-slate-800 rounded-3xl border border-slate-100 dark:border-slate-700">
+                          <p className="text-sm font-black text-slate-900 dark:text-white leading-tight">
+                            {quizMode ? currentLesson?.questions?.[0].question : currentScenario?.situation}
+                          </p>
+                          {scenarioMode && currentScenario?.description && (
+                             <p className="text-[10px] text-slate-500 mt-2 italic font-bold">CONTEXT: {currentScenario.description}</p>
+                          )}
+                        </div>
 
                         <div className="space-y-3">
-                          {currentLesson?.questions?.[0].options.map((option, idx) => (
+                          {(quizMode ? currentLesson?.questions?.[0].options : currentScenario?.options)?.map((option, idx) => (
                             <button
                               key={idx}
                               onClick={() => quizState === 'answering' && handleAnswer(idx)}
                               disabled={quizState !== 'answering'}
-                              className={`w-full p-5 rounded-2xl text-left text-xs font-black uppercase tracking-tight transition-all border-2 flex items-center justify-between group ${
+                              className={`w-full p-5 rounded-3xl text-left text-xs font-black uppercase tracking-tight transition-all border-2 flex items-center justify-between group ${
                                 selectedOption === idx 
                                   ? (quizState === 'correct' ? 'bg-green-500 border-green-600 text-white' : 'bg-red-500 border-red-600 text-white')
-                                  : (quizState !== 'answering' && idx === currentLesson?.questions?.[0].correctAnswer ? 'bg-green-500/20 border-green-600 text-green-600' : 'bg-slate-50 dark:bg-slate-800 border-transparent text-slate-600 dark:text-slate-400 hover:border-blue-500/50')
+                                  : (quizState !== 'answering' && idx === (quizMode ? currentLesson?.questions?.[0].correctAnswer : currentScenario?.correctAnswer) ? 'bg-green-500/20 border-green-600 text-green-600' : 'bg-white dark:bg-slate-800 border-slate-100 dark:border-slate-700 text-slate-600 dark:text-slate-400 hover:border-blue-500/50')
                               }`}
                             >
                               {option}
@@ -762,7 +891,7 @@ const StudentPortal: React.FC = () => {
                           <motion.div 
                             initial={{ height: 0, opacity: 0 }}
                             animate={{ height: 'auto', opacity: 1 }}
-                            className={`p-6 rounded-3xl ${quizState === 'correct' ? 'bg-green-500/10 border border-green-500/20' : 'bg-red-500/10 border border-red-500/20'}`}
+                            className={`p-6 rounded-[2rem] ${quizState === 'correct' ? 'bg-green-500/10 border border-green-500/20' : 'bg-red-500/10 border border-red-500/20'}`}
                           >
                             <div className="flex gap-4">
                               <div className={`p-3 rounded-2xl hidden sm:block ${quizState === 'correct' ? 'bg-green-100 text-green-600' : 'bg-red-100 text-red-600'}`}>
@@ -770,18 +899,19 @@ const StudentPortal: React.FC = () => {
                               </div>
                               <div className="space-y-1">
                                 <p className={`text-[10px] font-black uppercase tracking-widest ${quizState === 'correct' ? 'text-green-600' : 'text-red-600'}`}>
-                                  {quizState === 'correct' ? t('portal.quizCompleted') : t('portal.wrongAnswer')}
+                                  {quizState === 'correct' ? 'EXCELLENT JUDGMENT' : 'INCORRECT ANALYSIS'}
                                 </p>
-                                <p className="text-xs font-bold text-slate-600 dark:text-slate-400 leading-relaxed italic">
-                                  {currentLesson?.questions?.[0].explanation}
+                                <p className="text-[11px] font-bold text-slate-600 dark:text-slate-400 leading-relaxed italic">
+                                  {quizMode ? currentLesson?.questions?.[0].explanation : currentScenario?.explanation}
                                 </p>
+                                
                                 {quizState === 'correct' && (
-                                  <div className="mt-4">
+                                  <div className="mt-4 flex gap-2">
                                     <button 
-                                      onClick={handleCloseRuleDetail}
-                                      className="px-6 py-3 bg-slate-900 dark:bg-white text-white dark:text-slate-900 rounded-xl font-black uppercase text-[10px] tracking-widest shadow-xl flex items-center gap-2"
+                                      onClick={quizMode ? handleCloseRuleDetail : handleNextScenario}
+                                      className="px-6 py-3 bg-slate-900 dark:bg-white text-white dark:text-slate-900 rounded-xl font-black uppercase text-[9px] tracking-widest shadow-xl flex items-center gap-2 active:scale-95 transition-transform"
                                     >
-                                      {t('portal.nextLesson')} <Play size={12} fill="currentColor" />
+                                      {quizMode || (currentScenarioIdx === (currentLesson?.scenarios?.length || 0) - 1) ? 'Complete Module' : 'Next Scenario'} <Play size={12} fill="currentColor" />
                                     </button>
                                   </div>
                                 )}

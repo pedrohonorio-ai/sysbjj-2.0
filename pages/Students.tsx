@@ -1028,25 +1028,50 @@ const StudentDetailsModal = ({ student, onClose }: { student: Student; onClose: 
                      </div>
                   </div>
 
-                  {/* Rules Academy Progress */}
-                  <div className="p-6 bg-slate-50 dark:bg-slate-800 rounded-[2rem] border border-slate-200 dark:border-slate-700">
-                     <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-3">{t('portal.rulesAcademy')}</p>
-                     <div className="space-y-4">
-                       <div className="flex justify-between items-end">
-                          <div>
-                             <p className="text-2xl font-black text-blue-500 leading-none tabular-nums">{student.rulesKnowledge || 0}%</p>
-                             <p className="text-[8px] font-bold uppercase text-slate-400">{t('portal.rulesKnowledge')}</p>
+                  {/* Evolution & Rules Mastery */}
+                  <div className="p-6 bg-slate-900 rounded-[2rem] text-white shadow-xl relative overflow-hidden">
+                     <div className="absolute top-0 right-0 w-32 h-32 bg-blue-600 rounded-full blur-[60px] opacity-20" />
+                     <div className="relative z-10">
+                        <p className="text-[9px] font-black text-blue-400 uppercase tracking-widest mb-4 flex items-center gap-2">
+                           <Shield size={14} /> {t('portal.rulesAcademy') || 'ACADEMIA DE REGRAS'}
+                        </p>
+                        <div className="space-y-4">
+                          <div className="flex justify-between items-end">
+                             <div>
+                                <p className="text-3xl font-black text-white leading-none tabular-nums">{student.rulesKnowledge || 0}%</p>
+                                <p className="text-[8px] font-bold uppercase text-blue-400 mt-1">NÍVEL DE MESTRIA</p>
+                             </div>
+                             <div className="text-right">
+                                <p className="text-lg font-black text-white tabular-nums">{student.rewardPoints || 0}</p>
+                                <p className="text-[8px] font-bold uppercase text-slate-400">PONTOS VITALÍCIOS</p>
+                             </div>
                           </div>
-                          <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">
-                            {student.completedRuleLessons?.length || 0} / {IBJJF_LESSONS.length} {t('common.lessons') || 'Lições'}
+                          <div className="w-full h-2 bg-white/10 rounded-full overflow-hidden">
+                             <div 
+                               className="h-full bg-gradient-to-r from-blue-600 to-blue-400 transition-all duration-1000" 
+                               style={{ width: `${student.rulesKnowledge || 0}%` }} 
+                             />
+                          </div>
+                          <p className="text-[9px] font-bold text-slate-400 uppercase tracking-widest leading-relaxed">
+                             {student.completedRuleLessons?.length || 0} de {IBJJF_LESSONS.length} módulos concluídos. 
+                             {student.rulesKnowledge && student.rulesKnowledge >= 90 ? ' 🔥 PRONTO PARA PROFESSOR' : ''}
                           </p>
-                       </div>
-                       <div className="w-full h-2 bg-slate-200 dark:bg-slate-700 rounded-full overflow-hidden">
-                          <div 
-                            className="h-full bg-blue-500 transition-all duration-1000" 
-                            style={{ width: `${student.rulesKnowledge || 0}%` }} 
-                          />
-                       </div>
+                        </div>
+                     </div>
+                  </div>
+
+                  <div className="p-6 bg-slate-50 dark:bg-slate-800 rounded-[2rem] border border-slate-200 dark:border-slate-700">
+                     <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-3">{t('students.attendanceMetrics')}</p>
+                     <div className="flex justify-between items-center">
+                        <div>
+                           <p className="text-2xl font-black dark:text-white leading-none tabular-nums">{student.attendanceCount}</p>
+                           <p className="text-[8px] font-bold uppercase text-slate-400">{t('students.totalClasses')}</p>
+                        </div>
+                        <div className="h-10 w-px bg-slate-200 dark:bg-slate-700" />
+                        <div>
+                           <p className="text-2xl font-black text-orange-500 leading-none tabular-nums">{student.currentStreak || 0}</p>
+                           <p className="text-[8px] font-bold uppercase text-slate-400">{t('students.streak')}</p>
+                        </div>
                      </div>
                   </div>
               </div>
@@ -1538,8 +1563,8 @@ const Students: React.FC = () => {
               <tr>
                 <th className="px-8 py-4 text-[9px] font-black text-slate-400 uppercase tracking-[0.3em]">{t('common.name')}</th>
                 <th className="px-8 py-4 text-[9px] font-black text-slate-400 uppercase tracking-[0.3em]">{t('students.currentBelt')}</th>
-                <th className="px-8 py-4 text-[9px] font-black text-slate-400 uppercase tracking-[0.3em]">{t('students.status')} / {t('students.performance')}</th>
-                <th className="px-8 py-4 text-[9px] font-black text-slate-400 uppercase tracking-[0.3em] text-center">{t('students.totalClasses')}</th>
+                <th className="px-8 py-4 text-[9px] font-black text-slate-400 uppercase tracking-[0.3em]">Status / Mestria</th>
+                <th className="px-8 py-4 text-[9px] font-black text-slate-400 uppercase tracking-[0.3em] text-center">Frequência</th>
                 <th className="px-8 py-4 text-[9px] font-black text-slate-400 uppercase tracking-[0.3em] text-right">{t('common.actions')}</th>
               </tr>
             </thead>
@@ -1574,30 +1599,23 @@ const Students: React.FC = () => {
                     </span>
                   </td>
                   <td className="px-8 py-4">
-                    <div className="flex items-center gap-2">
-                      {activeView === 'kids' ? (
-                        <div className="flex items-center gap-1.5">
-                          <Medal size={12} className="text-yellow-500 shrink-0" />
-                          <span className="font-black text-slate-900 dark:text-white whitespace-nowrap tabular-nums text-[10px]">{student.rewardPoints || 0} OSS PTS</span>
-                        </div>
-                      ) : (
-                        <span className={`px-3 py-1 rounded-full text-[8px] font-black uppercase tracking-[0.2em] shadow-sm whitespace-nowrap ${
-                          student.status === StudentStatus.ACTIVE ? 'bg-green-100 text-green-700 dark:bg-green-900/20 dark:text-green-500' : 
-                          student.status === StudentStatus.OVERDUE ? 'bg-red-100 text-red-700 dark:bg-red-900/20 dark:text-red-500' : 'bg-slate-100 text-slate-500 dark:bg-slate-800 dark:text-slate-400'
+                    <div className="flex flex-col gap-2">
+                      <div className="flex items-center gap-2">
+                        <span className={`px-2 py-0.5 rounded-full text-[8px] font-black uppercase tracking-[0.2em] ${
+                          student.status === StudentStatus.ACTIVE ? 'bg-green-100 text-green-700' : 
+                          student.status === StudentStatus.OVERDUE ? 'bg-red-100 text-red-700' : 'bg-slate-100 text-slate-500'
                         }`}>
                           {t(`status.${student.status}`)}
                         </span>
-                      )}
-
-                      {/* Medical/Waiver indicators */}
-                      {(!student.liabilityWaiverAccepted || !student.medicalCertificateUrl || (student.medicalCertificateExpiration && new Date(student.medicalCertificateExpiration) < new Date())) && (
-                        <div className="flex items-center gap-1 ml-1">
-                          {!student.liabilityWaiverAccepted && <ShieldAlert size={12} className="text-amber-500" />}
-                          {(!student.medicalCertificateUrl || (student.medicalCertificateExpiration && new Date(student.medicalCertificateExpiration) < new Date())) && (
-                            <FileWarning size={12} className="text-rose-500" />
-                          )}
+                        <div className="flex items-center gap-1">
+                          <Shield size={10} className="text-blue-500" />
+                          <span className="text-[10px] font-black text-blue-600">{student.rulesKnowledge || 0}%</span>
                         </div>
-                      )}
+                      </div>
+                      <div className="flex items-center gap-1.5 opacity-60">
+                        <Medal size={10} className="text-yellow-500" />
+                        <span className="text-[8px] font-black tabular-nums">{student.rewardPoints || 0} PTS MÉRITO</span>
+                      </div>
                     </div>
                   </td>
                   <td className="px-8 py-4 text-center">
