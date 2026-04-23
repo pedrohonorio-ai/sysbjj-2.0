@@ -6,7 +6,8 @@ import { translations } from '../locales';
 interface LanguageContextType {
   language: AppLanguage;
   setLanguage: (lang: AppLanguage) => void;
-  t: (key: string) => string;
+  t: (key: string, variables?: Record<string, any>) => string;
+  tObj: (key: string) => any;
 }
 
 const LanguageContext = createContext<LanguageContextType | undefined>(undefined);
@@ -27,35 +28,55 @@ export const LanguageProvider: React.FC<{ children: ReactNode }> = ({ children }
     localStorage.setItem('app_language', lang);
   };
 
-  const t = (path: string): string => {
-    if (!path) return '';
+  const getTranslation = (path: string, lang: AppLanguage): any => {
+    if (!path) return undefined;
     const keys = path.split('.');
-    let result: any = translations[language];
+    let result: any = translations[lang];
     
     for (const key of keys) {
       if (result && Object.prototype.hasOwnProperty.call(result, key)) {
         result = result[key];
       } else {
-        // Fallback to English if translation is missing in current language
-        if (language !== AppLanguage.ENGLISH_US) {
-           let fallbackResult: any = translations[AppLanguage.ENGLISH_US];
-           for (const fallbackKey of keys) {
-             if (fallbackResult && Object.prototype.hasOwnProperty.call(fallbackResult, fallbackKey)) {
-               fallbackResult = fallbackResult[fallbackKey];
-             } else {
-               return path;
-             }
-           }
-           return typeof fallbackResult === 'string' ? fallbackResult : path;
-        }
-        return path;
+        return undefined;
       }
     }
-    return typeof result === 'string' ? result : path;
+    return result;
+  };
+
+  const t = (path: string, variables?: Record<string, any>): string => {
+    let result = getTranslation(path, language);
+    
+    // Fallback to English
+    if ((result === undefined || typeof result !== 'string') && language !== AppLanguage.ENGLISH_US) {
+      result = getTranslation(path, AppLanguage.ENGLISH_US);
+    }
+    
+    if (result === undefined || typeof result !== 'string') return path;
+
+    if (variables) {
+      Object.keys(variables).forEach(key => {
+        result = result.replace(`{{${key}}}`, String(variables[key]));
+      });
+    }
+
+    return result;
+  };
+
+  const tObj = (path: string): any => {
+    const result = getTranslation(path, language);
+    if (result !== undefined) return result;
+
+    // Fallback to English
+    if (language !== AppLanguage.ENGLISH_US) {
+      const fallback = getTranslation(path, AppLanguage.ENGLISH_US);
+      if (fallback !== undefined) return fallback;
+    }
+
+    return null;
   };
 
   return (
-    <LanguageContext.Provider value={{ language, setLanguage, t }}>
+    <LanguageContext.Provider value={{ language, setLanguage, t, tObj }}>
       {children}
     </LanguageContext.Provider>
   );

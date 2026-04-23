@@ -130,19 +130,19 @@ const SystemAudit: React.FC = () => {
 
     // Header
     doc.setFontSize(20);
-    doc.text('Relatório de Auditoria SYSBJJ 2.0', 14, 22);
+    doc.text(t('audit.reportTitle'), 14, 22);
     doc.setFontSize(10);
-    doc.text(`Gerado em: ${today}`, 14, 30);
-    doc.text(`Administrador: ${auth.email || 'Master'}`, 14, 35);
+    doc.text(`${t('audit.generatedAt')}: ${today}`, 14, 30);
+    doc.text(`${t('audit.admin')}: ${auth.email || 'Master'}`, 14, 35);
 
     // Stats Summary
     doc.setFontSize(14);
-    doc.text('Resumo do Sistema', 14, 45);
+    doc.text(t('audit.systemSummary'), 14, 45);
     doc.setFontSize(10);
-    doc.text(`Total de Alunos: ${stats.totalStudents}`, 14, 52);
-    doc.text(`Total de Ações: ${stats.totalActions}`, 14, 57);
-    doc.text(`Usuários Ativos: ${stats.uniqueUsers}`, 14, 62);
-    doc.text(`Blockchain Audit Integrity: ${stats.auditIntegrity ? 'VERIFIED' : 'TAMPERED'}`, 14, 67);
+    doc.text(`${t('audit.registeredStudents')}: ${stats.totalStudents}`, 14, 52);
+    doc.text(`${t('audit.totalActions')}: ${stats.totalActions}`, 14, 57);
+    doc.text(`${t('audit.activeUsers')}: ${stats.uniqueUsers}`, 14, 62);
+    doc.text(`${t('audit.blockchainIntegrity')}: ${stats.auditIntegrity ? 'VERIFIED' : 'TAMPERED'}`, 14, 67);
     doc.text(`Financial Ledger Integrity: ${stats.ledgerIntegrity ? 'VERIFIED' : 'TAMPERED'}`, 14, 72);
 
     // Logs Table
@@ -156,7 +156,7 @@ const SystemAudit: React.FC = () => {
 
     autoTable(doc, {
       startY: 75,
-      head: [['Data/Hora', 'Usuário', 'Ação', 'Categoria', 'Detalhes']],
+      head: [[t('audit.tableHeaderDate'), t('audit.tableHeaderUser'), t('audit.tableHeaderAction'), t('audit.tableHeaderCategory'), t('audit.tableHeaderDetails')]],
       body: tableData,
       theme: 'striped',
       headStyles: { fillColor: [15, 23, 42] },
@@ -173,8 +173,8 @@ const SystemAudit: React.FC = () => {
           <div className="w-24 h-24 bg-red-500/10 rounded-full flex items-center justify-center mx-auto text-red-500">
             <Lock size={48} />
           </div>
-          <h1 className="text-3xl font-black text-white uppercase tracking-tighter">Acesso Restrito</h1>
-          <p className="text-slate-400 font-medium">Esta área é exclusiva para o administrador mestre do sistema.</p>
+          <h1 className="text-3xl font-black text-white uppercase tracking-tighter">{t('audit.restrictedAccess')}</h1>
+          <p className="text-slate-400 font-medium">{t('audit.exclusiveAdmin')}</p>
         </div>
       </div>
     );
@@ -186,19 +186,19 @@ const SystemAudit: React.FC = () => {
         <div className="space-y-1">
           <h1 className="text-4xl font-black text-slate-900 dark:text-white tracking-tighter uppercase leading-none flex items-center gap-4">
             <Shield className="text-blue-600" size={40} />
-            Console de Auditoria Mestre
+            {t('audit.title')}
             <span className="flex items-center gap-1.5 px-3 py-1 bg-green-500/10 text-green-500 rounded-full border border-green-500/20 text-[9px] tracking-widest animate-pulse font-mono">
               <span className="w-1.5 h-1.5 bg-green-500 rounded-full" />
-              LIVE SYNC
+              {t('audit.liveSync')}
             </span>
           </h1>
-          <p className="text-slate-500 font-medium italic">Fluxo de movimentações, integridade e uso global.</p>
+          <p className="text-slate-500 font-medium italic">{t('audit.subtitle')}</p>
         </div>
         <button 
           onClick={exportToPDF}
           className="flex items-center gap-2 px-6 py-3 bg-slate-900 text-white rounded-2xl font-black uppercase text-[10px] tracking-widest hover:bg-slate-800 transition-all shadow-xl"
         >
-          <Download size={16} /> Exportar Relatório PDF
+          <Download size={16} /> {t('audit.exportPdf')}
         </button>
       </div>
 
@@ -209,11 +209,11 @@ const SystemAudit: React.FC = () => {
             <Lock size={24} />
           </div>
           <div>
-            <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Integridade Blockchain</p>
+            <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">{t('audit.blockchainIntegrity')}</p>
             <p className={`text-3xl font-black tabular-nums ${stats.auditIntegrity ? 'text-green-600' : 'text-red-600 animate-bounce'}`}>
-              {stats.auditIntegrity ? 'VERIFICADO' : 'FALHA'}
+              {stats.auditIntegrity ? t('audit.verified') : t('audit.failed')}
             </p>
-            <p className="text-[8px] font-bold text-slate-500 uppercase mt-1">Cadeia de logs protegida</p>
+            <p className="text-[8px] font-bold text-slate-500 uppercase mt-1">{t('audit.logsProtected')}</p>
           </div>
         </div>
 
@@ -222,9 +222,9 @@ const SystemAudit: React.FC = () => {
             <Users size={24} />
           </div>
           <div>
-            <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Alunos Cadastrados</p>
+            <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">{t('audit.registeredStudents')}</p>
             <p className="text-3xl font-black dark:text-white tabular-nums">{stats.totalStudents}</p>
-            <p className="text-[8px] font-bold text-slate-500 uppercase mt-1">Total de alunos na base</p>
+            <p className="text-[8px] font-bold text-slate-500 uppercase mt-1">{t('audit.totalStudentsBase')}</p>
           </div>
         </div>
 
@@ -233,9 +233,9 @@ const SystemAudit: React.FC = () => {
             <Globe size={24} className="animate-pulse" />
           </div>
           <div>
-            <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Usuários Online</p>
+            <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">{t('audit.onlineUsers')}</p>
             <p className="text-3xl font-black dark:text-white tabular-nums">{onlineUsers.length}</p>
-            <p className="text-[8px] font-bold text-slate-500 uppercase mt-1">Sessões ativas agora</p>
+            <p className="text-[8px] font-bold text-slate-500 uppercase mt-1">{t('audit.activeSessions')}</p>
           </div>
         </div>
 
@@ -244,9 +244,9 @@ const SystemAudit: React.FC = () => {
             <Database size={24} />
           </div>
           <div>
-            <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Usuários do Sistema</p>
+            <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">{t('audit.systemUsers')}</p>
             <p className="text-3xl font-black dark:text-white tabular-nums">{stats.uniqueUsers}</p>
-            <p className="text-[8px] font-bold text-slate-500 uppercase mt-1">Contas com atividade logada</p>
+            <p className="text-[8px] font-bold text-slate-500 uppercase mt-1">{t('audit.loggedAccounts')}</p>
           </div>
         </div>
       </div>
@@ -257,14 +257,14 @@ const SystemAudit: React.FC = () => {
         <div className="bg-white dark:bg-slate-900 p-8 rounded-[2.5rem] border border-slate-200 dark:border-slate-800 shadow-sm">
           <h3 className="text-xl font-black dark:text-white uppercase tracking-tighter mb-6 flex items-center gap-2">
             <Activity className="text-blue-600" size={20} />
-            Distribuição de Uso
+            {t('audit.usageDistribution')}
           </h3>
           <div className="space-y-4">
             {categoryUsageEntries.map(([cat, count]) => (
               <div key={cat} className="space-y-2">
                 <div className="flex justify-between items-end">
                   <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">{cat}</p>
-                  <p className="text-xs font-black dark:text-white tabular-nums">{count} ações</p>
+                  <p className="text-xs font-black dark:text-white tabular-nums">{count} {t('audit.actions')}</p>
                 </div>
                 <div className="w-full h-2 bg-slate-100 dark:bg-slate-800 rounded-full overflow-hidden">
                   <div 
@@ -286,11 +286,11 @@ const SystemAudit: React.FC = () => {
           <div className="flex items-center justify-between mb-6">
             <h3 className="text-xl font-black dark:text-white uppercase tracking-tighter flex items-center gap-2">
               <Users className="text-purple-600" size={20} />
-              Usuários Online
+              {t('audit.onlineUsers')}
             </h3>
             <span className="flex items-center gap-1 text-[8px] font-black text-green-500 uppercase tracking-widest">
               <span className="w-1.5 h-1.5 bg-green-500 rounded-full animate-ping" />
-              Real-time
+              {t('audit.realtime')}
             </span>
           </div>
           <div className="space-y-4 max-h-[300px] overflow-y-auto pr-2 scrollbar-hide">
@@ -301,7 +301,7 @@ const SystemAudit: React.FC = () => {
                   <div>
                     <p className="text-xs font-black dark:text-white uppercase tracking-tight">{user.email}</p>
                     <p className="text-[8px] font-bold text-slate-400 uppercase mt-1">
-                      {user.userAgent.includes('Mobile') ? 'Smartphone' : 'Desktop'} • Expira em breve
+                      {user.userAgent.includes('Mobile') ? 'Smartphone' : 'Desktop'} • {t('audit.expiresSoon') || 'Expires soon'}
                     </p>
                   </div>
                 </div>
@@ -311,7 +311,7 @@ const SystemAudit: React.FC = () => {
               </div>
             )) : (
               <div className="py-12 text-center text-slate-400 italic font-bold uppercase tracking-widest text-[10px]">
-                Nenhum usuário detectado nos últimos 5 min.
+                {t('audit.noUsersDetected')}
               </div>
             )}
           </div>
@@ -325,7 +325,7 @@ const SystemAudit: React.FC = () => {
             <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" size={18} />
             <input 
               type="text" 
-              placeholder="Buscar por ação, detalhes ou email..." 
+              placeholder={t('audit.searchPlaceholder')}
               className="w-full pl-12 pr-6 py-4 bg-slate-50 dark:bg-slate-800 border border-slate-100 dark:border-slate-700 rounded-2xl outline-none focus:ring-2 focus:ring-blue-600 dark:text-white font-bold transition-all"
               value={searchTerm}
               onChange={e => setSearchTerm(e.target.value)}
@@ -337,13 +337,13 @@ const SystemAudit: React.FC = () => {
                 onClick={() => setViewMode('Table')}
                 className={`p-2 sm:px-4 sm:py-3 rounded-xl flex items-center gap-2 text-[10px] font-black uppercase tracking-widest transition-all ${viewMode === 'Table' ? 'bg-white dark:bg-slate-700 text-blue-600 shadow-sm' : 'text-slate-400 hover:text-slate-600'}`}
               >
-                <LayoutList size={14} /> <span className="hidden sm:inline">Tabela</span>
+                <LayoutList size={14} /> <span className="hidden sm:inline">{t('audit.table')}</span>
               </button>
               <button 
                 onClick={() => setViewMode('Groups')}
                 className={`p-2 sm:px-4 sm:py-3 rounded-xl flex items-center gap-2 text-[10px] font-black uppercase tracking-widest transition-all ${viewMode === 'Groups' ? 'bg-white dark:bg-slate-700 text-blue-600 shadow-sm' : 'text-slate-400 hover:text-slate-600'}`}
               >
-                <Filter size={14} /> <span className="hidden sm:inline">Datas</span>
+                <Filter size={14} /> <span className="hidden sm:inline">{t('audit.dates')}</span>
               </button>
             </div>
             <div className="flex bg-slate-50 dark:bg-slate-800 p-1 rounded-2xl border border-slate-100 dark:border-slate-700">
@@ -353,7 +353,7 @@ const SystemAudit: React.FC = () => {
                   onClick={() => setDateRange(range)}
                   className={`px-3 py-2 sm:px-4 sm:py-3 rounded-xl text-[9px] font-black uppercase tracking-widest transition-all ${dateRange === range ? 'bg-white dark:bg-slate-700 text-blue-600 shadow-sm' : 'text-slate-400 hover:text-slate-600'}`}
                 >
-                  {range === 'Today' ? 'Hoje' : range === 'Week' ? '7D' : range === 'Month' ? '30D' : 'Tudo'}
+                  {range === 'Today' ? t('audit.today') : range === 'Week' ? '7D' : range === 'Month' ? '30D' : t('audit.all')}
                 </button>
               ))}
             </div>
@@ -388,10 +388,10 @@ const SystemAudit: React.FC = () => {
               <table className="w-full text-left border-collapse">
                 <thead className="bg-slate-50 dark:bg-slate-900/50">
                   <tr>
-                    <th className="px-8 py-5 text-[9px] font-black text-slate-400 uppercase tracking-[0.3em]">{t('common.date') || 'Data / Hora'}</th>
-                    <th className="px-8 py-5 text-[9px] font-black text-slate-400 uppercase tracking-[0.3em]">{t('common.user') || 'Usuário'}</th>
-                    <th className="px-8 py-5 text-[9px] font-black text-slate-400 uppercase tracking-[0.3em]">{t('common.action') || 'Ação'}</th>
-                    <th className="px-8 py-5 text-[9px] font-black text-slate-400 uppercase tracking-[0.3em]">{t('common.status') || 'Status Blockchain'}</th>
+                    <th className="px-8 py-5 text-[9px] font-black text-slate-400 uppercase tracking-[0.3em]">{t('audit.date')}</th>
+                    <th className="px-8 py-5 text-[9px] font-black text-slate-400 uppercase tracking-[0.3em]">{t('audit.user')}</th>
+                    <th className="px-8 py-5 text-[9px] font-black text-slate-400 uppercase tracking-[0.3em]">{t('audit.action')}</th>
+                    <th className="px-8 py-5 text-[9px] font-black text-slate-400 uppercase tracking-[0.3em]">{t('audit.blockchainStatus')}</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-50 dark:divide-slate-700/50">
@@ -426,11 +426,11 @@ const SystemAudit: React.FC = () => {
                            <div className="flex items-center gap-1.5">
                              {log.hash ? (
                                <div className="flex items-center gap-1 px-1.5 py-0.5 bg-green-500/10 text-green-500 rounded border border-green-500/20 text-[7px] font-black uppercase tracking-tighter">
-                                 <CheckCircle2 size={8} /> INTEGRITY VERIFIED
+                                 <CheckCircle2 size={8} /> {t('audit.integrityVerified')}
                                </div>
                              ) : (
                                <div className="flex items-center gap-1 px-1.5 py-0.5 bg-slate-500/10 text-slate-500 rounded border border-slate-500/20 text-[7px] font-black uppercase tracking-tighter">
-                                 Legacy Log
+                                 {t('audit.legacyLog')}
                                </div>
                              )}
                            </div>
@@ -471,16 +471,16 @@ const SystemAudit: React.FC = () => {
                     <p className="text-[9px] font-bold text-slate-400 uppercase tracking-widest">{new Date(log.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</p>
                   </div>
                   
-                  <div className="flex items-center justify-between pt-1">
-                    {log.hash ? (
-                      <div className="flex items-center gap-1 text-green-500 text-[7px] font-black uppercase">
-                        <CheckCircle2 size={8} /> INTEGRITY VERIFIED
-                      </div>
-                    ) : (
-                      <span className="text-[7px] text-slate-400 uppercase font-black">Legacy Log</span>
-                    )}
-                    <span className="text-[7px] font-mono text-slate-300">ID: {log.id.substring(0, 8)}</span>
-                  </div>
+                <div className="flex items-center justify-between pt-1">
+                  {log.hash ? (
+                    <div className="flex items-center gap-1 text-green-500 text-[7px] font-black uppercase">
+                      <CheckCircle2 size={8} /> {t('audit.integrityVerified')}
+                    </div>
+                  ) : (
+                    <span className="text-[7px] text-slate-400 uppercase font-black">{t('audit.legacyLog')}</span>
+                  )}
+                  <span className="text-[7px] font-mono text-slate-300">ID: {log.id.substring(0, 8)}</span>
+                </div>
                 </div>
               ))}
             </div>
@@ -489,7 +489,7 @@ const SystemAudit: React.FC = () => {
             {totalPages > 1 && (
               <div className="flex flex-col sm:flex-row items-center justify-between px-8 py-4 bg-slate-50 dark:bg-slate-900/50 border-t border-slate-100 dark:border-slate-800 gap-4">
                 <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">
-                  Mostrando {((currentPage - 1) * itemsPerPage) + 1} - {Math.min(currentPage * itemsPerPage, filteredLogs.length)} de {filteredLogs.length}
+                  {t('audit.showing')} {((currentPage - 1) * itemsPerPage) + 1} - {Math.min(currentPage * itemsPerPage, filteredLogs.length)} {t('audit.of')} {filteredLogs.length}
                 </p>
                 <div className="flex items-center gap-2">
                   <button 
@@ -497,7 +497,7 @@ const SystemAudit: React.FC = () => {
                     disabled={currentPage === 1}
                     className="p-2 text-slate-400 hover:text-blue-600 disabled:opacity-30 transition-colors"
                   >
-                    Anterior
+                    {t('audit.previous')}
                   </button>
                   <div className="flex items-center gap-1">
                     {Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
@@ -525,7 +525,7 @@ const SystemAudit: React.FC = () => {
                     disabled={currentPage === totalPages}
                     className="p-2 text-slate-400 hover:text-blue-600 disabled:opacity-30 transition-colors"
                   >
-                    Próximo
+                    {t('audit.next')}
                   </button>
                 </div>
               </div>
@@ -586,7 +586,7 @@ const SystemAudit: React.FC = () => {
                           </div>
                           <div className="flex items-center justify-between">
                              <div className="flex items-center gap-1.5 px-2 py-0.5 bg-indigo-500/5 text-indigo-500 rounded-lg border border-indigo-500/10 text-[7px] font-black uppercase tracking-tighter">
-                                <Lock size={8} /> Blockchain Secured
+                                <Lock size={8} /> {t('audit.blockchainSecured') || 'Blockchain Secured'}
                              </div>
                              <span className="text-[7px] font-mono text-slate-300">ID: {log.hash?.substring(0, 8)}</span>
                           </div>
@@ -601,13 +601,13 @@ const SystemAudit: React.FC = () => {
             {filteredLogs.length > 100 && (
               <div className="p-8 text-center bg-blue-500/5 rounded-[2rem] border border-blue-500/10">
                 <p className="text-[10px] font-black text-blue-500 uppercase tracking-widest">
-                  Visualização de datas limitada aos últimos 100 registros para economia de recursos.
+                  {t('audit.usageLimitNote')}
                 </p>
                 <button 
                   onClick={() => setViewMode('Table')}
                   className="mt-2 text-[10px] font-black text-slate-400 hover:text-blue-600 uppercase tracking-widest underline underline-offset-4"
                 >
-                  Ver lista completa com paginação na Tabela
+                  {t('audit.seeFullList')}
                 </button>
               </div>
             )}
@@ -619,7 +619,7 @@ const SystemAudit: React.FC = () => {
         <div className="bg-white dark:bg-slate-900 p-20 text-center rounded-[3rem] border border-slate-200 dark:border-slate-800">
           <AlertCircle className="mx-auto text-slate-300 mb-4" size={48} />
           <p className="text-slate-400 italic font-bold uppercase tracking-widest text-xs">
-            Nenhum registro encontrado para o período de {dateRange === 'Today' ? 'Hoje' : dateRange === 'Week' ? '7 dias' : dateRange === 'Month' ? '30 dias' : 'todo o tempo'}.
+            {t('audit.noRecordsFound', { range: dateRange === 'Today' ? t('audit.today') : dateRange === 'Week' ? '7 dias' : dateRange === 'Month' ? '30 dias' : t('audit.all') })}
           </p>
         </div>
       )}

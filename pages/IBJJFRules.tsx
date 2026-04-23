@@ -28,7 +28,7 @@ import ReactMarkdown from 'react-markdown';
 import * as Icons from 'lucide-react';
 
 const IBJJFRules: React.FC = () => {
-  const { t } = useTranslation();
+  const { t, tObj } = useTranslation();
   const { profile } = useProfile();
   const [chatInput, setChatInput] = useState('');
   const [messages, setMessages] = useState<{role: 'user' | 'bot', text: string}[]>([]);
@@ -55,7 +55,7 @@ const IBJJFRules: React.FC = () => {
     try {
       const apiKey = process.env.GEMINI_API_KEY;
       if (!apiKey || apiKey === 'undefined' || apiKey === 'null' || apiKey.trim() === '') {
-        setMessages(prev => [...prev, { role: 'bot', text: 'Sensei, a chave da IA não foi configurada. OSS!' }]);
+        setMessages(prev => [...prev, { role: 'bot', text: t('ibjjfRules.aiKeyError') }]);
         setIsLoading(false);
         return;
       }
@@ -64,10 +64,7 @@ const IBJJFRules: React.FC = () => {
         model: "gemini-1.5-flash",
         contents: userMessage,
         config: {
-          systemInstruction: `Você é um especialista em regras de Jiu-Jitsu da CBJJ/IBJJF. 
-          Sua função é esclarecer dúvidas sobre graduação, tempo de faixa, categorias de peso, idade e técnicas proibidas.
-          Seja direto, técnico e use termos oficiais (ex: "carência", "ano hípico", "golpes traumáticos").
-          Responda sempre em Português do Brasil de forma educada e profissional. Oss!`
+          systemInstruction: t('ibjjfRules.aiSystemInstruction')
         }
       });
 
@@ -80,100 +77,14 @@ const IBJJFRules: React.FC = () => {
     }
   };
 
-  const adultRules = [
-    { belt: 'White', minAge: 0, minTime: 'N/A', description: 'Faixa de entrada. Foco em fundamentos e sobrevivência.' },
-    { belt: 'Blue', minAge: 16, minTime: '2 anos', description: 'Mínimo de 2 anos na branca. Início da jornada competitiva séria.' },
-    { belt: 'Purple', minAge: 16, minTime: '1.5 anos', description: 'Mínimo de 1.5 anos na azul. Refinamento técnico e transição.' },
-    { belt: 'Brown', minAge: 18, minTime: '1 ano', description: 'Mínimo de 1 ano na roxa. Elite técnica e preparação para a preta.' },
-    { belt: 'Black', minAge: 19, minTime: '1 ano', description: 'Mínimo de 1 ano na marrom. O início do verdadeiro aprendizado.' },
-  ];
-
-  const prohibitedTechniques = [
-    { 
-      category: 'Geral (Todas as Faixas)', 
-      items: ['Bate-estaca (Slam)', 'Cervical (Neck Crank)', 'Dedo no olho/boca', 'Puxar cabelo', 'Chutes ou socos', 'Morder', 'Pressão no pomo de adão'],
-      image: 'https://picsum.photos/seed/bjj-slam/800/400'
-    },
-    { 
-      category: 'Até 12 Anos (Kids)', 
-      items: ['Guilhotina (sem braço)', 'Omoplata', 'Triângulo puxando a cabeça', 'Mão de vaca', 'Qualquer chave de pé', 'Ezequiel', 'Gravata de porteiro'],
-      image: 'https://picsum.photos/seed/bjj-kids/800/400'
-    },
-    { 
-      category: '13 a 15 Anos', 
-      items: ['Guilhotina (sem braço)', 'Chave de pé (exceto reta)', 'Mão de vaca', 'Triângulo puxando a cabeça'],
-      image: 'https://picsum.photos/seed/bjj-teen/800/400'
-    },
-    { 
-      category: 'Branca (Adulto)', 
-      items: ['Chave de pé (exceto reta)', 'Mão de vaca', 'Pular na guarda', 'Triângulo puxando a cabeça', 'Single leg com cabeça pra fora'],
-      image: 'https://picsum.photos/seed/bjj-white/800/400'
-    },
-    { 
-      category: 'Azul e Roxa', 
-      items: ['Chave de calcanhar (Heel hook)', 'Cata-calcanhar (Slicers)', 'Mata-leão no pé', 'Reta de joelho (Knee reap)', 'Chave de panturrilha'],
-      image: 'https://picsum.photos/seed/bjj-blue/800/400'
-    }
-  ];
-
-  const ruleCases = [
-    {
-      title: 'Puxada de Guarda Dupla',
-      scenario: 'Ambos os atletas puxam guarda ao mesmo tempo.',
-      rule: 'O árbitro aguarda 20 segundos. Se nenhum subir, ambos recebem punição e a luta é reiniciada em pé.',
-      penalty: 'Punição (Falta Leve)',
-      icon: <Users size={20} />
-    },
-    {
-      title: 'Falta de Combatividade (Stalling)',
-      scenario: 'Atleta segura a posição sem intenção de progredir por mais de 20 segundos.',
-      rule: 'O árbitro sinaliza a falta de combatividade. Persistindo, o atleta recebe punição.',
-      penalty: 'Punição progressiva',
-      icon: <Clock size={20} />
-    },
-    {
-      title: 'Saída da Área de Luta',
-      scenario: 'Atleta foge da área de luta para evitar uma finalização encaixada.',
-      rule: 'Interrupção imediata. O atleta que fugiu é desclassificado.',
-      penalty: 'Desclassificação (DQ)',
-      icon: <ArrowRight size={20} />
-    }
-  ];
-
+  const adultRules = tObj('ibjjfRules.adultRules') || [];
+  const prohibitedTechniques = tObj('ibjjfRules.prohibitions') || [];
+  const ruleCases = tObj('ibjjfRules.cases') || [];
   const [activeSimulado, setActiveSimulado] = useState<number | null>(null);
   const [currentQuestion, setCurrentQuestion] = useState(0);
   const [score, setScore] = useState(0);
   const [showResult, setShowResult] = useState(false);
-
-  const simulados = [
-    {
-      id: 1,
-      title: 'Gestos de Arbitragem',
-      questions: [
-        { q: 'Qual o gesto para marcar 2 pontos (queda)?', options: ['Mão aberta acima da cabeça', 'Dois dedos apontados para baixo', 'Braço estendido lateralmente'], correct: 1 },
-        { q: 'Como o árbitro sinaliza uma punição?', options: ['Mão fechada acima da cabeça', 'Gesto de rotação com os braços', 'Apontar para o atleta e cruzar os braços'], correct: 2 },
-        { q: 'Qual o gesto para interrupção da luta (Parou)?', options: ['Braços cruzados em X', 'Mão aberta à frente do rosto', 'Palmas das mãos voltadas para os atletas'], correct: 0 }
-      ]
-    },
-    {
-      id: 2,
-      title: 'Pontuação e Faltas',
-      questions: [
-        { q: 'Quantos pontos vale a passagem de guarda?', options: ['2 pontos', '3 pontos', '4 pontos'], correct: 1 },
-        { q: 'A montada pelas costas vale quantos pontos?', options: ['3 pontos', '4 pontos', '2 pontos'], correct: 1 },
-        { q: 'Qual a pontuação para uma raspagem?', options: ['1 ponto', '2 pontos', '3 pontos'], correct: 1 }
-      ]
-    },
-    {
-      id: 3,
-      title: 'Casos Específicos',
-      questions: [
-        { q: 'O que acontece se o atleta foge da finalização saindo da área?', options: ['Punição e volta no centro', '2 pontos para o oponente', 'Desclassificação imediata'], correct: 2 },
-        { q: 'Na guarda dupla, quanto tempo o árbitro espera antes de punir?', options: ['10 segundos', '20 segundos', '30 segundos'], correct: 1 },
-        { q: 'Atleta que sobe da guarda dupla primeiro ganha o quê?', options: ['2 pontos', 'Vantagem', 'Nada'], correct: 1 }
-      ]
-    }
-  ];
+  const simulados = tObj('ibjjfRules.simulados') || [];
 
   const handleAnswer = (idx: number) => {
     const currentSim = simulados.find(s => s.id === activeSimulado);
@@ -203,7 +114,7 @@ const IBJJFRules: React.FC = () => {
           <div className="bg-white dark:bg-slate-900 w-full max-w-2xl rounded-[3rem] overflow-hidden shadow-2xl border border-slate-200 dark:border-slate-800 animate-in zoom-in-95 max-h-[90vh] overflow-y-auto scrollbar-hide">
             <div className="p-8 bg-blue-600 text-white flex justify-between items-center">
               <div>
-                <p className="text-[10px] font-black uppercase tracking-[0.2em] opacity-70">Simulado Preparatório</p>
+                <p className="text-[10px] font-black uppercase tracking-[0.2em] opacity-70">{t('ibjjfRules.simulatedPrep')}</p>
                 <h3 className="text-2xl font-black uppercase tracking-tighter">{simulados.find(s => s.id === activeSimulado)?.title}</h3>
               </div>
               <button onClick={() => setActiveSimulado(null)} className="p-2 hover:bg-white/10 rounded-xl transition-colors">
@@ -215,7 +126,9 @@ const IBJJFRules: React.FC = () => {
               {!showResult ? (
                 <div className="space-y-8">
                   <div className="flex justify-between items-end">
-                    <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Questão {currentQuestion + 1} de {simulados.find(s => s.id === activeSimulado)?.questions.length}</span>
+                    <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">
+                      {t('ibjjfRules.questionOf', { current: currentQuestion + 1, total: simulados.find(s => s.id === activeSimulado)?.questions.length })}
+                    </span>
                     <div className="h-1 flex-1 mx-4 bg-slate-100 dark:bg-slate-800 rounded-full overflow-hidden">
                       <div 
                         className="h-full bg-blue-600 transition-all duration-500" 
@@ -247,21 +160,23 @@ const IBJJFRules: React.FC = () => {
                     <Trophy size={48} />
                   </div>
                   <div>
-                    <h4 className="text-3xl font-black text-slate-900 dark:text-white uppercase tracking-tighter">Resultado Final</h4>
-                    <p className="text-slate-500 font-medium mt-2">Você acertou {score} de {simulados.find(s => s.id === activeSimulado)?.questions.length} questões.</p>
+                    <h4 className="text-3xl font-black text-slate-900 dark:text-white uppercase tracking-tighter">{t('ibjjfRules.finalResult')}</h4>
+                    <p className="text-slate-500 font-medium mt-2">
+                      {t('ibjjfRules.correctCount', { score, total: simulados.find(s => s.id === activeSimulado)?.questions.length })}
+                    </p>
                   </div>
                   <div className="flex gap-4">
                     <button 
                       onClick={() => startSimulado(activeSimulado)}
                       className="flex-1 py-4 bg-slate-100 dark:bg-slate-800 text-slate-900 dark:text-white rounded-2xl font-black uppercase text-[10px] tracking-widest hover:bg-slate-200 transition-all"
                     >
-                      Refazer Teste
+                      {t('ibjjfRules.redo')}
                     </button>
                     <button 
                       onClick={() => setActiveSimulado(null)}
                       className="flex-1 py-4 bg-blue-600 text-white rounded-2xl font-black uppercase text-[10px] tracking-widest hover:bg-blue-700 shadow-xl transition-all"
                     >
-                      Concluir
+                      {t('ibjjfRules.complete')}
                     </button>
                   </div>
                 </div>
@@ -301,12 +216,12 @@ const IBJJFRules: React.FC = () => {
             <Shield size={32} />
           </div>
           <div>
-            <h2 className="text-2xl font-black text-slate-900 dark:text-white uppercase tracking-tighter leading-none">{profile.academyName} - Regras Internas</h2>
-            <p className="text-slate-500 font-bold uppercase tracking-widest text-[10px] mt-2">Critérios de Graduação e Conduta da Equipe</p>
+            <h2 className="text-2xl font-black text-slate-900 dark:text-white uppercase tracking-tighter leading-none">{profile.academyName} - {t('ibjjfRules.internalRules')}</h2>
+            <p className="text-slate-500 font-bold uppercase tracking-widest text-[10px] mt-2">{t('ibjjfRules.graduationCriteria')}</p>
           </div>
         </div>
         <div className="p-8 sm:p-10 prose dark:prose-invert max-w-none prose-slate prose-headings:uppercase prose-headings:tracking-tighter prose-headings:font-black prose-p:font-medium prose-p:text-slate-600 dark:prose-p:text-slate-400">
-          <ReactMarkdown>{profile.graduationRules || 'Nenhuma regra interna cadastrada pelo professor.'}</ReactMarkdown>
+          <ReactMarkdown>{profile.graduationRules || t('ibjjfRules.noInternalRules')}</ReactMarkdown>
         </div>
       </div>
 
@@ -314,8 +229,8 @@ const IBJJFRules: React.FC = () => {
       <div className="space-y-8">
         <div className="flex items-center justify-between">
           <div className="space-y-1">
-            <h2 className="text-3xl font-black text-slate-900 dark:text-white uppercase tracking-tighter">Academia de Regras</h2>
-            <p className="text-slate-500 font-medium italic">Pequenas lições para domínio total do regulamento.</p>
+            <h2 className="text-3xl font-black text-slate-900 dark:text-white uppercase tracking-tighter">{t('ibjjfRules.rulesAcademyTitle')}</h2>
+            <p className="text-slate-500 font-medium italic">{t('ibjjfRules.rulesAcademySmallDesc')}</p>
           </div>
         </div>
 
@@ -331,7 +246,7 @@ const IBJJFRules: React.FC = () => {
                   </div>
                   <div className="space-y-3">
                     <div className="flex items-center justify-between">
-                      <span className="text-[9px] font-black text-blue-600 uppercase tracking-widest bg-blue-50 dark:bg-blue-900/20 px-3 py-1 rounded-full">{lesson.category}</span>
+                      <span className="text-[9px] font-black text-blue-600 uppercase tracking-widest bg-blue-50 dark:bg-blue-900/20 px-3 py-1 rounded-full">{t(`portal.categories.${lesson.category.toLowerCase()}`)}</span>
                     </div>
                     <h3 className="text-lg font-black text-slate-900 dark:text-white uppercase tracking-tight leading-tight">{lesson.title}</h3>
                     <p className="text-xs text-slate-500 dark:text-slate-400 font-medium leading-relaxed">{lesson.content}</p>
@@ -353,7 +268,7 @@ const IBJJFRules: React.FC = () => {
             <h3 className="text-lg font-black text-slate-900 dark:text-white uppercase tracking-tight mb-2">{c.title}</h3>
             <p className="text-xs text-slate-500 dark:text-slate-400 font-medium mb-4 leading-relaxed">{c.scenario}</p>
             <div className="p-4 bg-slate-50 dark:bg-slate-800 rounded-2xl border border-slate-100 dark:border-slate-700">
-              <p className="text-[9px] font-black text-blue-600 uppercase tracking-widest mb-1">Regra Oficial</p>
+              <p className="text-[9px] font-black text-blue-600 uppercase tracking-widest mb-1">{t('ibjjfRules.officialRule')}</p>
               <p className="text-[11px] font-bold text-slate-700 dark:text-slate-300 leading-snug">{c.rule}</p>
             </div>
             <div className="mt-4 flex items-center gap-2">
@@ -462,27 +377,16 @@ const IBJJFRules: React.FC = () => {
               </div>
               
               <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                <div 
-                  onClick={() => startSimulado(1)}
-                  className="bg-white/10 backdrop-blur-md p-6 rounded-2xl border border-white/10 hover:bg-white/20 transition-all cursor-pointer"
-                >
-                  <p className="text-[10px] font-black text-blue-200 uppercase tracking-widest mb-2">Simulado 01</p>
-                  <p className="font-black uppercase tracking-tight">Gestos de Arbitragem</p>
-                </div>
-                <div 
-                  onClick={() => startSimulado(2)}
-                  className="bg-white/10 backdrop-blur-md p-6 rounded-2xl border border-white/10 hover:bg-white/20 transition-all cursor-pointer"
-                >
-                  <p className="text-[10px] font-black text-blue-200 uppercase tracking-widest mb-2">Simulado 02</p>
-                  <p className="font-black uppercase tracking-tight">Pontuação e Faltas</p>
-                </div>
-                <div 
-                  onClick={() => startSimulado(3)}
-                  className="bg-white/10 backdrop-blur-md p-6 rounded-2xl border border-white/10 hover:bg-white/20 transition-all cursor-pointer"
-                >
-                  <p className="text-[10px] font-black text-blue-200 uppercase tracking-widest mb-2">Simulado 03</p>
-                  <p className="font-black uppercase tracking-tight">Casos Específicos</p>
-                </div>
+                {simulados.map((simu: any, idx: number) => (
+                  <div 
+                    key={simu.id}
+                    onClick={() => startSimulado(simu.id)}
+                    className="bg-white/10 backdrop-blur-md p-6 rounded-2xl border border-white/10 hover:bg-white/20 transition-all cursor-pointer"
+                  >
+                    <p className="text-[10px] font-black text-blue-200 uppercase tracking-widest mb-2">{t('ibjjfRules.simulatedPrep')} {idx + 1}</p>
+                    <p className="font-black uppercase tracking-tight">{simu.title}</p>
+                  </div>
+                ))}
               </div>
             </div>
           </div>

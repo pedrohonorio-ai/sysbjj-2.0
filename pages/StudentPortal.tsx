@@ -95,7 +95,7 @@ const StudentPortal: React.FC = () => {
         model: "gemini-3-flash-preview",
         contents: prompt,
         config: {
-          systemInstruction: "Você é um Mestre de Jiu-Jitsu (Sensei) especialista em regras da IBJJF. Seja didático, use termos técnicos e motive o aluno. Responda em português de forma concisa (máximo 300 caracteres)."
+          systemInstruction: t('ibjjfRules.aiSystemInstruction')
         }
       });
       setAiTip(response.text);
@@ -607,7 +607,7 @@ const StudentPortal: React.FC = () => {
                   </div>
                 ))}
                 {rankingData.monthly.length === 0 && (
-                  <p className="text-[10px] text-slate-400 italic text-center py-4">Nenhum resultado para os filtros selecionados.</p>
+                  <p className="text-[10px] text-slate-400 italic text-center py-4">{t('portal.noRankingResults')}</p>
                 )}
               </div>
             </div>
@@ -628,7 +628,7 @@ const StudentPortal: React.FC = () => {
                   </div>
                 ))}
                 {rankingData.annual.length === 0 && (
-                  <p className="text-[10px] text-slate-400 italic text-center py-4">Nenhum resultado para os filtros selecionados.</p>
+                  <p className="text-[10px] text-slate-400 italic text-center py-4">{t('portal.noRankingResults')}</p>
                 )}
               </div>
             </div>
@@ -668,11 +668,11 @@ const StudentPortal: React.FC = () => {
                       </div>
                       <div>
                         <h3 className="text-sm font-black text-slate-900 dark:text-white uppercase tracking-tighter leading-none">{profile.academyName}</h3>
-                        <p className="text-[8px] font-black text-blue-500 uppercase tracking-widest mt-1">Manual de Conduta & Regras</p>
+                        <p className="text-[8px] font-black text-blue-500 uppercase tracking-widest mt-1">{t('portal.conductManual')}</p>
                       </div>
                     </div>
                     <div className="prose dark:prose-invert prose-slate max-w-none prose-sm prose-p:font-medium prose-headings:uppercase prose-headings:tracking-tighter prose-headings:font-black relative z-10">
-                      <ReactMarkdown>{profile.graduationRules || 'As regras da academia serão exibidas aqui.'}</ReactMarkdown>
+                      <ReactMarkdown>{profile.graduationRules || t('portal.noAcademyRules')}</ReactMarkdown>
                     </div>
                   </div>
 
@@ -683,23 +683,23 @@ const StudentPortal: React.FC = () => {
                       <div className="flex items-center gap-3 mb-4">
                         <div className="px-3 py-1 bg-blue-600/20 border border-blue-600/30 rounded-full text-[8px] font-black uppercase tracking-widest text-blue-400">IBJJF & CBJJ</div>
                       </div>
-                      <h3 className="text-2xl font-black uppercase tracking-tighter leading-none mb-3">Rules Academy</h3>
-                      <p className="text-[10px] font-medium text-slate-400 leading-relaxed mb-8 italic">"A técnica sem a regra é como um barco sem leme. Domine o regulamento e conquiste o ouro."</p>
+                      <h3 className="text-2xl font-black uppercase tracking-tighter leading-none mb-3">{t('portal.rulesAcademy')}</h3>
+                      <p className="text-[10px] font-medium text-slate-400 leading-relaxed mb-8 italic">"{t('portal.rulesAcademyMotto')}"</p>
                       
                       <div className="grid grid-cols-2 gap-4 mb-8">
                          <div className="bg-white/5 p-4 rounded-2xl border border-white/5 text-center">
-                            <p className="text-[8px] font-black text-slate-500 uppercase mb-1">Total de Pontos</p>
+                            <p className="text-[8px] font-black text-slate-500 uppercase mb-1">{t('portal.totalPoints')}</p>
                             <p className="text-xl font-black text-blue-400">{student.rewardPoints || 0}</p>
                          </div>
                          <div className="bg-white/5 p-4 rounded-2xl border border-white/5 text-center">
-                            <p className="text-[8px] font-black text-slate-500 uppercase mb-1">Módulos</p>
+                            <p className="text-[8px] font-black text-slate-500 uppercase mb-1">{t('portal.modules')}</p>
                             <p className="text-xl font-black text-blue-400">{student.completedRuleLessons?.length || 0}/{IBJJF_LESSONS.length}</p>
                          </div>
                       </div>
 
                       <div className="space-y-3">
                         <div className="flex justify-between items-center px-1">
-                          <span className="text-[9px] font-black text-slate-500 uppercase tracking-widest">Mastery Progress</span>
+                          <span className="text-[9px] font-black text-slate-500 uppercase tracking-widest">{t('portal.masteryProgress')}</span>
                           <span className="text-xs font-black text-blue-500">{Math.round((student.completedRuleLessons?.length || 0) / IBJJF_LESSONS.length * 100)}%</span>
                         </div>
                         <div className="h-3 bg-white/5 rounded-full overflow-hidden border border-white/5">
@@ -737,20 +737,20 @@ const StudentPortal: React.FC = () => {
                           </div>
                           <div className="flex-1 min-w-0">
                             <div className="flex items-center gap-2 mb-1">
-                              <span className="text-[8px] font-black text-blue-500 uppercase tracking-[0.15em]">{lesson.category}</span>
+                              <span className="text-[8px] font-black text-blue-500 uppercase tracking-[0.15em]">{t(`portal.categories.${lesson.category.toLowerCase()}`)}</span>
                               {isCompleted && (
                                 <span className="flex items-center gap-1 text-[8px] font-black text-green-500 uppercase tracking-widest bg-green-500/10 px-2 py-0.5 rounded-full">
-                                  <CheckCircle2 size={8} /> MASTERED
+                                  <CheckCircle2 size={8} /> {t('portal.mastered')}
                                 </span>
                               )}
                               {lesson.scenarios && (
                                 <span className="flex items-center gap-1 text-[8px] font-black text-amber-500 uppercase tracking-widest bg-amber-500/10 px-2 py-0.5 rounded-full">
-                                  <Gamepad2 size={8} /> CASE MODE
+                                  <Gamepad2 size={8} /> {t('portal.caseMode')}
                                 </span>
                               )}
                             </div>
                             <h4 className="text-sm font-black dark:text-white uppercase tracking-tight truncate leading-none mb-1">{lesson.title}</h4>
-                            <p className="text-[10px] text-slate-500 dark:text-slate-400 font-medium truncate opacity-60 italic">+{lesson.points} Lifelong Points</p>
+                            <p className="text-[10px] text-slate-500 dark:text-slate-400 font-medium truncate opacity-60 italic">+{lesson.points} {t('portal.lifelongPoints')}</p>
                           </div>
                           <ChevronRight size={18} className="text-slate-300 group-hover:text-blue-500 transition-colors" />
                         </motion.button>
@@ -780,7 +780,7 @@ const StudentPortal: React.FC = () => {
                       <div className="flex items-center justify-between">
                         <div className="flex items-center gap-2">
                           <span className="px-3 py-1 bg-blue-100 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 rounded-lg text-[8px] font-black uppercase tracking-widest">
-                            {currentLesson?.category}
+                            {currentLesson ? t(`portal.categories.${currentLesson.category.toLowerCase()}`) : ''}
                           </span>
                           <span className="px-3 py-1 bg-amber-100 dark:bg-amber-900/30 text-amber-600 dark:text-amber-400 rounded-lg text-[8px] font-black uppercase tracking-widest">
                             +{currentLesson?.points} XP
@@ -802,7 +802,7 @@ const StudentPortal: React.FC = () => {
                               <Icons.Cpu size={20} />
                            </div>
                            <div className="space-y-1">
-                              <p className="text-[8px] font-black text-blue-500 uppercase tracking-widest">AI Senseis Tip</p>
+                              <p className="text-[8px] font-black text-blue-500 uppercase tracking-widest">{t('portal.aiSenseiTip')}</p>
                               <p className="text-xs font-bold text-slate-700 dark:text-slate-300 italic leading-relaxed">
                                 "{aiTip}"
                               </p>
@@ -824,13 +824,13 @@ const StudentPortal: React.FC = () => {
 
                     {!quizMode && !scenarioMode ? (
                       <div className="grid grid-cols-1 gap-4 pt-4 border-t border-slate-100 dark:border-slate-800">
-                        <h4 className="text-[10px] font-black text-slate-400 uppercase tracking-widest text-center">How do you want to learn?</h4>
+                        <h4 className="text-[10px] font-black text-slate-400 uppercase tracking-widest text-center">{t('portal.howToLearn')}</h4>
                         {currentLesson?.questions && (
                           <button 
                             onClick={handleStartQuiz}
                             className="w-full py-5 bg-blue-600 text-white rounded-2xl font-black uppercase text-xs tracking-widest shadow-xl shadow-blue-600/20 hover:bg-blue-700 flex items-center justify-center gap-3 active:scale-95 transition-all"
                           >
-                            <Gamepad2 size={20} /> THEORY QUIZ
+                            <Gamepad2 size={20} /> {t('portal.theoryQuiz')}
                           </button>
                         )}
                         {currentLesson?.scenarios && (
@@ -838,7 +838,7 @@ const StudentPortal: React.FC = () => {
                             onClick={handleStartScenarios}
                             className="w-full py-5 bg-slate-900 dark:bg-white text-white dark:text-slate-900 rounded-2xl font-black uppercase text-xs tracking-widest shadow-xl flex items-center justify-center gap-3 active:scale-95 transition-all"
                           >
-                            <Play size={20} /> REAL SCENARIOS
+                            <Play size={20} /> {t('portal.realScenarios')}
                           </button>
                         )}
                       </div>
@@ -850,7 +850,7 @@ const StudentPortal: React.FC = () => {
                               {quizMode ? <Shield size={16} /> : <Icons.Target size={16} />}
                             </div>
                             <h4 className="text-[11px] font-black text-slate-900 dark:text-white uppercase tracking-tight">
-                              {quizMode ? 'Knowledge Check' : `Scenario ${currentScenarioIdx + 1}/${currentLesson?.scenarios?.length}`}
+                              {quizMode ? t('portal.knowledgeCheck') : `${t('portal.knowledgeCheckShort')} ${currentScenarioIdx + 1}/${currentLesson?.scenarios?.length}`}
                             </h4>
                           </div>
                           {scenarioMode && (
@@ -863,7 +863,7 @@ const StudentPortal: React.FC = () => {
                             {quizMode ? currentLesson?.questions?.[0].question : currentScenario?.situation}
                           </p>
                           {scenarioMode && currentScenario?.description && (
-                             <p className="text-[10px] text-slate-500 mt-2 italic font-bold">CONTEXT: {currentScenario.description}</p>
+                             <p className="text-[10px] text-slate-500 mt-2 italic font-bold">{t('portal.context')}: {currentScenario.description}</p>
                           )}
                         </div>
 
@@ -899,7 +899,7 @@ const StudentPortal: React.FC = () => {
                               </div>
                               <div className="space-y-1">
                                 <p className={`text-[10px] font-black uppercase tracking-widest ${quizState === 'correct' ? 'text-green-600' : 'text-red-600'}`}>
-                                  {quizState === 'correct' ? 'EXCELLENT JUDGMENT' : 'INCORRECT ANALYSIS'}
+                                  {quizState === 'correct' ? t('portal.excellentJudgment') : t('portal.incorrectAnalysis')}
                                 </p>
                                 <p className="text-[11px] font-bold text-slate-600 dark:text-slate-400 leading-relaxed italic">
                                   {quizMode ? currentLesson?.questions?.[0].explanation : currentScenario?.explanation}
@@ -911,7 +911,7 @@ const StudentPortal: React.FC = () => {
                                       onClick={quizMode ? handleCloseRuleDetail : handleNextScenario}
                                       className="px-6 py-3 bg-slate-900 dark:bg-white text-white dark:text-slate-900 rounded-xl font-black uppercase text-[9px] tracking-widest shadow-xl flex items-center gap-2 active:scale-95 transition-transform"
                                     >
-                                      {quizMode || (currentScenarioIdx === (currentLesson?.scenarios?.length || 0) - 1) ? 'Complete Module' : 'Next Scenario'} <Play size={12} fill="currentColor" />
+                                      {quizMode || (currentScenarioIdx === (currentLesson?.scenarios?.length || 0) - 1) ? t('portal.completeModule') : t('portal.nextLesson')} <Play size={12} fill="currentColor" />
                                     </button>
                                   </div>
                                 )}
@@ -934,16 +934,16 @@ const StudentPortal: React.FC = () => {
               <div className="relative z-10">
                 <div className="flex items-center gap-3 mb-4">
                   <Play size={32} className="text-blue-500" />
-                  <h3 className="text-2xl font-black uppercase tracking-tighter leading-none">Posições & Aulas</h3>
+                  <h3 className="text-2xl font-black uppercase tracking-tighter leading-none">{t('portal.videosTitle')}</h3>
                 </div>
-                <p className="text-[10px] font-medium text-slate-400 leading-relaxed mb-6">Acesse os vídeos das técnicas passadas em aula. Professor e alunos podem postar para estudos.</p>
+                <p className="text-[10px] font-medium text-slate-400 leading-relaxed mb-6">{t('portal.videosDesc')}</p>
                 
                 <div className="flex gap-2">
                   <button 
                     onClick={() => setShowAddVideo(true)}
                     className="px-6 py-3 bg-blue-600 text-white rounded-xl font-black uppercase text-[9px] tracking-widest shadow-xl shadow-blue-600/20 active:scale-95 transition-all flex items-center gap-2"
                   >
-                    <Plus size={14} /> Novo Vídeo
+                    <Plus size={14} /> {t('portal.newVideo')}
                   </button>
                 </div>
               </div>
@@ -963,7 +963,7 @@ const StudentPortal: React.FC = () => {
                   <div className="p-5 space-y-2">
                     <div className="flex items-center justify-between">
                       <span className="text-[8px] font-black text-blue-500 uppercase tracking-widest">{video.date}</span>
-                      <span className="text-[8px] font-black text-slate-400 uppercase tracking-widest">Por: {video.authorName}</span>
+                      <span className="text-[8px] font-black text-slate-400 uppercase tracking-widest">{t('portal.by')}: {video.authorName}</span>
                     </div>
                     <h4 className="text-sm font-black dark:text-white uppercase tracking-tight">{video.title}</h4>
                     {video.description && (
@@ -977,7 +977,7 @@ const StudentPortal: React.FC = () => {
                   <div className="w-16 h-16 bg-slate-100 dark:bg-slate-800 rounded-2xl flex items-center justify-center mx-auto text-slate-300">
                     <Play size={32} />
                   </div>
-                  <p className="text-[10px] text-slate-400 font-black uppercase tracking-widest italic">Nenhum vídeo postado ainda.</p>
+                  <p className="text-[10px] text-slate-400 font-black uppercase tracking-widest italic">{t('portal.noVideos')}</p>
                 </div>
               )}
             </div>
@@ -993,23 +993,23 @@ const StudentPortal: React.FC = () => {
                     <X className="group-hover:rotate-90 transition-transform" />
                   </button>
                   <div className="text-center">
-                    <h3 className="text-xl font-black text-slate-900 dark:text-white uppercase tracking-tighter">Compartilhar Vídeo</h3>
-                    <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mt-2">Poste o link do vídeo da posição</p>
+                    <h3 className="text-xl font-black text-slate-900 dark:text-white uppercase tracking-tighter">{t('portal.shareVideo')}</h3>
+                    <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mt-2">{t('portal.postVideoLink')}</p>
                   </div>
                   
                   <div className="space-y-4">
                     <div className="space-y-2">
-                      <label className="text-[8px] font-black text-slate-400 uppercase tracking-[0.2em] ml-2">Título da Posição</label>
+                      <label className="text-[8px] font-black text-slate-400 uppercase tracking-[0.2em] ml-2">{t('portal.videoTitle')}</label>
                       <input 
                         type="text" 
                         value={newVideo.title}
                         onChange={(e) => setNewVideo({...newVideo, title: e.target.value})}
-                        placeholder="Ex: Passagem de Meia-Guarda"
+                        placeholder={t('portal.videoTitlePlaceholder')}
                         className="w-full p-4 bg-slate-50 dark:bg-slate-800 border-none rounded-2xl text-xs font-bold dark:text-white"
                       />
                     </div>
                     <div className="space-y-2">
-                      <label className="text-[8px] font-black text-slate-400 uppercase tracking-[0.2em] ml-2">Link do Vídeo (YouTube/Vimeo)</label>
+                      <label className="text-[8px] font-black text-slate-400 uppercase tracking-[0.2em] ml-2">{t('portal.videoUrl')}</label>
                       <input 
                         type="text" 
                         value={newVideo.videoUrl}
@@ -1019,7 +1019,7 @@ const StudentPortal: React.FC = () => {
                       />
                     </div>
                     <div className="space-y-2">
-                      <label className="text-[8px] font-black text-slate-400 uppercase tracking-[0.2em] ml-2">Descrição (Opcional)</label>
+                      <label className="text-[8px] font-black text-slate-400 uppercase tracking-[0.2em] ml-2">{t('portal.descriptionOptional')}</label>
                       <textarea 
                         value={newVideo.description}
                         onChange={(e) => setNewVideo({...newVideo, description: e.target.value})}
@@ -1031,7 +1031,7 @@ const StudentPortal: React.FC = () => {
                       onClick={handleAddVideo}
                       className="w-full py-4 bg-blue-600 text-white rounded-2xl font-black uppercase text-xs tracking-widest shadow-xl shadow-blue-600/20 active:scale-95 transition-all"
                     >
-                      Postar Vídeo
+                      {t('portal.postVideo')}
                     </button>
                   </div>
                 </motion.div>
@@ -1056,9 +1056,9 @@ const StudentPortal: React.FC = () => {
                       reader.onloadend = () => {
                         addGalleryImage({
                           url: reader.result as string,
-                          title: `Treino - ${student.name}`,
+                          title: `${t('portal.trainingCategory')} - ${student.name}`,
                           date: new Date().toISOString().split('T')[0],
-                          category: 'Treino'
+                          category: t('portal.trainingCategory')
                         });
                       };
                       reader.readAsDataURL(file);
@@ -1090,7 +1090,7 @@ const StudentPortal: React.FC = () => {
             <div className="absolute top-1/2 left-0 right-0 h-1 bg-blue-600 animate-[scan_2s_infinite] pointer-events-none" />
           </div>
           <div className="mt-8 text-center space-y-4">
-            <p className="text-white text-[10px] font-black uppercase tracking-widest opacity-50">Posicione o QR Code da academia</p>
+            <p className="text-white text-[10px] font-black uppercase tracking-widest opacity-50">{t('portal.qrInstructions')}</p>
             <button onClick={() => setShowScanner(false)} className="px-10 py-4 bg-slate-800 text-white rounded-2xl font-black text-[10px] uppercase tracking-widest active:scale-95 transition-all">
               {t('common.cancel')}
             </button>
@@ -1254,7 +1254,7 @@ const StudentPortal: React.FC = () => {
         <button onClick={() => setActiveTab('home')} className={`flex flex-col items-center gap-1 ${activeTab === 'home' ? 'text-blue-600' : 'text-slate-400'}`}><Zap size={22} /><span className="text-[7px] font-black uppercase">{t('portal.navHome')}</span></button>
         <button onClick={() => setActiveTab('curriculum')} className={`flex flex-col items-center gap-1 ${activeTab === 'curriculum' ? 'text-blue-600' : 'text-slate-400'}`}><BookOpen size={22} /><span className="text-[7px] font-black uppercase">{t('common.curriculum')}</span></button>
         <button onClick={() => setActiveTab('ranking')} className={`flex flex-col items-center gap-1 ${activeTab === 'ranking' ? 'text-blue-600' : 'text-slate-400'}`}><Trophy size={22} /><span className="text-[7px] font-black uppercase">{t('portal.rankings')}</span></button>
-        <button onClick={() => setActiveTab('videos')} className={`flex flex-col items-center gap-1 ${activeTab === 'videos' ? 'text-blue-600' : 'text-slate-400'}`}><Play size={22} /><span className="text-[7px] font-black uppercase">Vídeos</span></button>
+        <button onClick={() => setActiveTab('videos')} className={`flex flex-col items-center gap-1 ${activeTab === 'videos' ? 'text-blue-600' : 'text-slate-400'}`}><Play size={22} /><span className="text-[7px] font-black uppercase">{t('portal.navVideos')}</span></button>
         <button onClick={() => setActiveTab('rules')} className={`flex flex-col items-center gap-1 ${activeTab === 'rules' ? 'text-blue-600' : 'text-slate-400'}`}><Scale size={22} /><span className="text-[7px] font-black uppercase">{t('portal.rulesAcademy')}</span></button>
         <button onClick={() => setActiveTab('wallet')} className={`flex flex-col items-center gap-1 ${activeTab === 'wallet' ? 'text-blue-600' : 'text-slate-400'}`}><Shield size={22} /><span className="text-[7px] font-black uppercase">{t('portal.navWallet')}</span></button>
         <button onClick={() => setActiveTab('gallery')} className={`flex flex-col items-center gap-1 ${activeTab === 'gallery' ? 'text-blue-600' : 'text-slate-400'}`}><ImageIcon size={22} /><span className="text-[7px] font-black uppercase">{t('portal.navGallery')}</span></button>
