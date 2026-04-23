@@ -12,7 +12,7 @@ import { Html5QrcodeScanner } from 'html5-qrcode';
 import { useTranslation } from '../contexts/LanguageContext';
 import { useData } from '../contexts/DataContext';
 import { useProfile } from '../contexts/ProfileContext';
-import { StudentStatus, GalleryImage } from '../types';
+import { StudentStatus, GalleryImage, BeltColor } from '../types';
 import { BELT_COLORS } from '../constants';
 import { IBJJF_LESSONS } from '../constants/rulesData';
 import ReactMarkdown from 'react-markdown';
@@ -25,7 +25,7 @@ const StudentPortal: React.FC = () => {
   const { students, recordAttendance, gallery, payments, addGalleryImage, addReceipt, completeRuleLesson } = useData();
   const { profile } = useProfile();
   const [loading, setLoading] = useState(true);
-  const [activeTab, setActiveTab] = useState<'home' | 'curriculum' | 'wallet' | 'gallery' | 'ranking' | 'rules'>('home');
+  const [activeTab, setActiveTab] = useState<'home' | 'curriculum' | 'wallet' | 'gallery' | 'ranking' | 'rules' | 'videos'>('home');
   const [showScanner, setShowScanner] = useState(false);
   const [showPix, setShowPix] = useState(false);
   const [showReceipt, setShowReceipt] = useState(false);
@@ -42,7 +42,33 @@ const StudentPortal: React.FC = () => {
 
   const student = useMemo(() => students.find(s => s.portalAccessCode === code), [students, code]);
 
+  const [rankingBeltFilter, setRankingBeltFilter] = useState<string>('all');
+  const [rankingClassFilter, setRankingClassFilter] = useState<string>('all');
+  const [rankingMonthFilter, setRankingMonthFilter] = useState<number>(new Date().getMonth());
+  const [rankingYearFilter, setRankingYearFilter] = useState<number>(new Date().getFullYear());
+
   const [currentRuleLessonId, setCurrentRuleLessonId] = useState<string | null>(null);
+  const [showAddVideo, setShowAddVideo] = useState(false);
+  const [newVideo, setNewVideo] = useState({ title: '', videoUrl: '', description: '' });
+
+  const handleAddVideo = () => {
+    if (student && newVideo.title && newVideo.videoUrl) {
+      const videoData = {
+        id: `VID-${Date.now()}`,
+        ...newVideo,
+        date: new Date().toISOString().split('T')[0],
+        authorId: student.id,
+        authorName: student.nickname || student.name
+      };
+      
+      const updatedVideos = [...(student.positionVideos || []), videoData];
+      updateStudent(student.id, { positionVideos: updatedVideos });
+      
+      setShowAddVideo(false);
+      setNewVideo({ title: '', videoUrl: '', description: '' });
+    }
+  };
+
   const [quizMode, setQuizMode] = useState(false);
   const [selectedOption, setSelectedOption] = useState<number | null>(null);
   const [quizState, setQuizState] = useState<'idle' | 'answering' | 'correct' | 'wrong'>('idle');
@@ -84,28 +110,30 @@ const StudentPortal: React.FC = () => {
   }, [students]);
 
   const rankingData = useMemo(() => {
-    const now = new Date();
-    const currentMonth = now.getMonth();
-    const currentYear = now.getFullYear();
+    const filteredStudents = students.filter(s => {
+      const matchBelt = rankingBeltFilter === 'all' || s.belt === rankingBeltFilter;
+      const matchClass = rankingClassFilter === 'all' || s.classId === rankingClassFilter;
+      return matchBelt && matchClass;
+    });
 
-    const monthly = students.map(s => {
+    const monthly = filteredStudents.map(s => {
       const count = s.attendanceHistory?.filter(a => {
         const d = new Date(a.date);
-        return d.getMonth() === currentMonth && d.getFullYear() === currentYear;
+        return d.getMonth() === rankingMonthFilter && d.getFullYear() === rankingYearFilter;
       }).length || 0;
-      return { id: s.id, name: s.name, count };
-    }).sort((a, b) => b.count - a.count).slice(0, 10);
+      return { id: s.id, name: s.name, count, belt: s.belt };
+    }).sort((a, b) => b.count - a.count).slice(0, 50);
 
-    const annual = students.map(s => {
+    const annual = filteredStudents.map(s => {
       const count = s.attendanceHistory?.filter(a => {
         const d = new Date(a.date);
-        return d.getFullYear() === currentYear;
+        return d.getFullYear() === rankingYearFilter;
       }).length || 0;
-      return { id: s.id, name: s.name, count };
-    }).sort((a, b) => b.count - a.count).slice(0, 10);
+      return { id: s.id, name: s.name, count, belt: s.belt };
+    }).sort((a, b) => b.count - a.count).slice(0, 50);
 
     return { monthly, annual };
-  }, [students]);
+  }, [students, rankingBeltFilter, rankingClassFilter, rankingMonthFilter, rankingYearFilter]);
 
   const hasPaidCurrentMonth = useMemo(() => {
     if (!student) return false;
@@ -430,6 +458,66 @@ const StudentPortal: React.FC = () => {
 
         {activeTab === 'ranking' && (
           <div className="space-y-6">
+            <div className="bg-white dark:bg-slate-900 rounded-[2rem] p-6 border border-slate-200 dark:border-slate-800 shadow-sm">
+              <div className="flex flex-col gap-4">
+                <h3 className="text-[10px] font-black uppercase tracking-widest text-slate-400">Filtros de Ranking</h3>
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+                  <div className="space-y-1">
+                    <label className="text-[8px] font-black uppercase tracking-widest text-slate-500">Faixa</label>
+                    <select 
+                      value={rankingBeltFilter}
+                      onChange={(e) => setRankingBeltFilter(e.target.value)}
+                      className="w-full bg-slate-50 dark:bg-slate-800 border-none rounded-xl text-xs font-bold p-3 appearance-none focus:ring-2 focus:ring-blue-500"
+                    >
+                      <option value="all">Sempre</option>
+                      {Object.values(BeltColor).map(b => (
+                        <option key={b} value={b}>{b}</option>
+                      ))}
+                    </select>
+                  </div>
+                  <div className="space-y-1">
+                    <label className="text-[8px] font-black uppercase tracking-widest text-slate-500">Turma</label>
+                    <select 
+                      value={rankingClassFilter}
+                      onChange={(e) => setRankingClassFilter(e.target.value)}
+                      className="w-full bg-slate-50 dark:bg-slate-800 border-none rounded-xl text-xs font-bold p-3 appearance-none focus:ring-2 focus:ring-blue-500"
+                    >
+                      <option value="all">Todas</option>
+                      {Array.from(new Set(students.map(s => s.classId).filter(Boolean))).map(classId => {
+                        return <option key={classId} value={classId}>{classId}</option>
+                      })}
+                    </select>
+                  </div>
+                  <div className="space-y-1">
+                    <label className="text-[8px] font-black uppercase tracking-widest text-slate-500">Mês</label>
+                    <select 
+                      value={rankingMonthFilter}
+                      onChange={(e) => setRankingMonthFilter(parseInt(e.target.value))}
+                      className="w-full bg-slate-50 dark:bg-slate-800 border-none rounded-xl text-xs font-bold p-3 appearance-none focus:ring-2 focus:ring-blue-500"
+                    >
+                      {Array.from({ length: 12 }).map((_, i) => (
+                        <option key={i} value={i}>
+                          {new Date(0, i).toLocaleString('pt-BR', { month: 'long' }).toUpperCase()}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                  <div className="space-y-1">
+                    <label className="text-[8px] font-black uppercase tracking-widest text-slate-500">Ano</label>
+                    <select 
+                      value={rankingYearFilter}
+                      onChange={(e) => setRankingYearFilter(parseInt(e.target.value))}
+                      className="w-full bg-slate-50 dark:bg-slate-800 border-none rounded-xl text-xs font-bold p-3 appearance-none focus:ring-2 focus:ring-blue-500"
+                    >
+                      {[2024, 2025, 2026].map(year => (
+                        <option key={year} value={year}>{year}</option>
+                      ))}
+                    </select>
+                  </div>
+                </div>
+              </div>
+            </div>
+
             <div className="bg-white dark:bg-slate-900 rounded-[2rem] p-6 border border-slate-200 dark:border-slate-800">
               <h3 className="text-[10px] font-black uppercase tracking-widest mb-4 dark:text-white">{t('portal.monthlyRanking')}</h3>
               <div className="space-y-3">
@@ -437,11 +525,17 @@ const StudentPortal: React.FC = () => {
                   <div key={r.id} className="flex items-center justify-between p-3 rounded-xl bg-slate-50 dark:bg-slate-800/50">
                     <div className="flex items-center gap-3">
                       <span className={`w-6 h-6 rounded-lg flex items-center justify-center text-[10px] font-black ${idx === 0 ? 'bg-amber-400 text-slate-900' : 'bg-slate-200 dark:bg-slate-700 text-slate-500'}`}>{idx + 1}</span>
-                      <span className="text-xs font-bold dark:text-slate-200">{r.name}</span>
+                      <div>
+                        <span className="text-xs font-bold dark:text-slate-200 block leading-none">{r.name}</span>
+                        <span className="text-[8px] font-black text-slate-400 uppercase tracking-widest">{r.belt}</span>
+                      </div>
                     </div>
                     <span className="text-[10px] font-black text-blue-500">{r.count} {t('common.attendance')}</span>
                   </div>
                 ))}
+                {rankingData.monthly.length === 0 && (
+                  <p className="text-[10px] text-slate-400 italic text-center py-4">Nenhum resultado para os filtros selecionados.</p>
+                )}
               </div>
             </div>
 
@@ -452,11 +546,17 @@ const StudentPortal: React.FC = () => {
                   <div key={r.id} className="flex items-center justify-between p-3 rounded-xl bg-slate-50 dark:bg-slate-800/50">
                     <div className="flex items-center gap-3">
                       <span className={`w-6 h-6 rounded-lg flex items-center justify-center text-[10px] font-black ${idx === 0 ? 'bg-amber-400 text-slate-900' : 'bg-slate-200 dark:bg-slate-700 text-slate-500'}`}>{idx + 1}</span>
-                      <span className="text-xs font-bold dark:text-slate-200">{r.name}</span>
+                      <div>
+                        <span className="text-xs font-bold dark:text-slate-200 block leading-none">{r.name}</span>
+                        <span className="text-[8px] font-black text-slate-400 uppercase tracking-widest">{r.belt}</span>
+                      </div>
                     </div>
                     <span className="text-[10px] font-black text-blue-500">{r.count} {t('common.attendance')}</span>
                   </div>
                 ))}
+                {rankingData.annual.length === 0 && (
+                  <p className="text-[10px] text-slate-400 italic text-center py-4">Nenhum resultado para os filtros selecionados.</p>
+                )}
               </div>
             </div>
           </div>
@@ -697,6 +797,118 @@ const StudentPortal: React.FC = () => {
             </AnimatePresence>
           </div>
         )}
+        {activeTab === 'videos' && (
+          <div className="space-y-6">
+            <div className="bg-slate-900 rounded-[2.5rem] p-8 text-white relative overflow-hidden shadow-2xl">
+              <div className="absolute top-0 right-0 w-64 h-64 bg-blue-600 rounded-full blur-[100px] opacity-20" />
+              <div className="relative z-10">
+                <div className="flex items-center gap-3 mb-4">
+                  <Play size={32} className="text-blue-500" />
+                  <h3 className="text-2xl font-black uppercase tracking-tighter leading-none">Posições & Aulas</h3>
+                </div>
+                <p className="text-[10px] font-medium text-slate-400 leading-relaxed mb-6">Acesse os vídeos das técnicas passadas em aula. Professor e alunos podem postar para estudos.</p>
+                
+                <div className="flex gap-2">
+                  <button 
+                    onClick={() => setShowAddVideo(true)}
+                    className="px-6 py-3 bg-blue-600 text-white rounded-xl font-black uppercase text-[9px] tracking-widest shadow-xl shadow-blue-600/20 active:scale-95 transition-all flex items-center gap-2"
+                  >
+                    <Plus size={14} /> Novo Vídeo
+                  </button>
+                </div>
+              </div>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              {student.positionVideos?.map((video) => (
+                <div key={video.id} className="bg-white dark:bg-slate-900 rounded-[2rem] border border-slate-200 dark:border-slate-800 shadow-sm overflow-hidden flex flex-col">
+                  <div className="aspect-video bg-slate-100 dark:bg-slate-800 relative group">
+                    <iframe 
+                      src={video.videoUrl.replace('watch?v=', 'embed/').replace('youtu.be/', 'youtube.com/embed/')} 
+                      className="w-full h-full border-none"
+                      allowFullScreen
+                      loading="lazy"
+                    />
+                  </div>
+                  <div className="p-5 space-y-2">
+                    <div className="flex items-center justify-between">
+                      <span className="text-[8px] font-black text-blue-500 uppercase tracking-widest">{video.date}</span>
+                      <span className="text-[8px] font-black text-slate-400 uppercase tracking-widest">Por: {video.authorName}</span>
+                    </div>
+                    <h4 className="text-sm font-black dark:text-white uppercase tracking-tight">{video.title}</h4>
+                    {video.description && (
+                      <p className="text-[10px] text-slate-500 dark:text-slate-400 font-medium line-clamp-2">{video.description}</p>
+                    )}
+                  </div>
+                </div>
+              ))}
+              {(!student.positionVideos || student.positionVideos.length === 0) && (
+                <div className="col-span-full py-20 text-center space-y-4">
+                  <div className="w-16 h-16 bg-slate-100 dark:bg-slate-800 rounded-2xl flex items-center justify-center mx-auto text-slate-300">
+                    <Play size={32} />
+                  </div>
+                  <p className="text-[10px] text-slate-400 font-black uppercase tracking-widest italic">Nenhum vídeo postado ainda.</p>
+                </div>
+              )}
+            </div>
+
+            {showAddVideo && (
+              <div className="fixed inset-0 bg-slate-950/90 backdrop-blur-xl z-[200] flex items-center justify-center p-6">
+                <motion.div 
+                  initial={{ scale: 0.9, opacity: 0 }}
+                  animate={{ scale: 1, opacity: 1 }}
+                  className="bg-white dark:bg-slate-900 rounded-[3rem] p-10 max-w-sm w-full space-y-6 relative"
+                >
+                  <button onClick={() => setShowAddVideo(false)} className="absolute top-8 right-8 text-slate-400 group">
+                    <X className="group-hover:rotate-90 transition-transform" />
+                  </button>
+                  <div className="text-center">
+                    <h3 className="text-xl font-black text-slate-900 dark:text-white uppercase tracking-tighter">Compartilhar Vídeo</h3>
+                    <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mt-2">Poste o link do vídeo da posição</p>
+                  </div>
+                  
+                  <div className="space-y-4">
+                    <div className="space-y-2">
+                      <label className="text-[8px] font-black text-slate-400 uppercase tracking-[0.2em] ml-2">Título da Posição</label>
+                      <input 
+                        type="text" 
+                        value={newVideo.title}
+                        onChange={(e) => setNewVideo({...newVideo, title: e.target.value})}
+                        placeholder="Ex: Passagem de Meia-Guarda"
+                        className="w-full p-4 bg-slate-50 dark:bg-slate-800 border-none rounded-2xl text-xs font-bold dark:text-white"
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <label className="text-[8px] font-black text-slate-400 uppercase tracking-[0.2em] ml-2">Link do Vídeo (YouTube/Vimeo)</label>
+                      <input 
+                        type="text" 
+                        value={newVideo.videoUrl}
+                        onChange={(e) => setNewVideo({...newVideo, videoUrl: e.target.value})}
+                        placeholder="https://youtube.com/..."
+                        className="w-full p-4 bg-slate-50 dark:bg-slate-800 border-none rounded-2xl text-xs font-bold dark:text-white"
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <label className="text-[8px] font-black text-slate-400 uppercase tracking-[0.2em] ml-2">Descrição (Opcional)</label>
+                      <textarea 
+                        value={newVideo.description}
+                        onChange={(e) => setNewVideo({...newVideo, description: e.target.value})}
+                        className="w-full p-4 bg-slate-50 dark:bg-slate-800 border-none rounded-2xl text-xs font-bold dark:text-white h-24 resize-none"
+                      />
+                    </div>
+                    
+                    <button 
+                      onClick={handleAddVideo}
+                      className="w-full py-4 bg-blue-600 text-white rounded-2xl font-black uppercase text-xs tracking-widest shadow-xl shadow-blue-600/20 active:scale-95 transition-all"
+                    >
+                      Postar Vídeo
+                    </button>
+                  </div>
+                </motion.div>
+              </div>
+            )}
+          </div>
+        )}
         {activeTab === 'gallery' && (
           <div className="space-y-6">
             <div className="flex items-center justify-between">
@@ -912,6 +1124,7 @@ const StudentPortal: React.FC = () => {
         <button onClick={() => setActiveTab('home')} className={`flex flex-col items-center gap-1 ${activeTab === 'home' ? 'text-blue-600' : 'text-slate-400'}`}><Zap size={22} /><span className="text-[7px] font-black uppercase">{t('portal.navHome')}</span></button>
         <button onClick={() => setActiveTab('curriculum')} className={`flex flex-col items-center gap-1 ${activeTab === 'curriculum' ? 'text-blue-600' : 'text-slate-400'}`}><BookOpen size={22} /><span className="text-[7px] font-black uppercase">{t('common.curriculum')}</span></button>
         <button onClick={() => setActiveTab('ranking')} className={`flex flex-col items-center gap-1 ${activeTab === 'ranking' ? 'text-blue-600' : 'text-slate-400'}`}><Trophy size={22} /><span className="text-[7px] font-black uppercase">{t('portal.rankings')}</span></button>
+        <button onClick={() => setActiveTab('videos')} className={`flex flex-col items-center gap-1 ${activeTab === 'videos' ? 'text-blue-600' : 'text-slate-400'}`}><Play size={22} /><span className="text-[7px] font-black uppercase">Vídeos</span></button>
         <button onClick={() => setActiveTab('rules')} className={`flex flex-col items-center gap-1 ${activeTab === 'rules' ? 'text-blue-600' : 'text-slate-400'}`}><Scale size={22} /><span className="text-[7px] font-black uppercase">{t('portal.rulesAcademy')}</span></button>
         <button onClick={() => setActiveTab('wallet')} className={`flex flex-col items-center gap-1 ${activeTab === 'wallet' ? 'text-blue-600' : 'text-slate-400'}`}><Shield size={22} /><span className="text-[7px] font-black uppercase">{t('portal.navWallet')}</span></button>
         <button onClick={() => setActiveTab('gallery')} className={`flex flex-col items-center gap-1 ${activeTab === 'gallery' ? 'text-blue-600' : 'text-slate-400'}`}><ImageIcon size={22} /><span className="text-[7px] font-black uppercase">{t('portal.navGallery')}</span></button>

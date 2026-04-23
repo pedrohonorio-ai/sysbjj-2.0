@@ -41,7 +41,7 @@ import { calculateCBJJCategory, calculateWeightClass } from '../services/cbjj';
 
 const NewStudentModal = ({ onClose, defaultIsKid }: { onClose: () => void, defaultIsKid: boolean }) => {
   const { t } = useTranslation();
-  const { addStudent } = useData();
+  const { addStudent, schedules } = useData();
   const [formData, setFormData] = useState({
     name: '',
     nickname: '',
@@ -72,7 +72,8 @@ const NewStudentModal = ({ onClose, defaultIsKid }: { onClose: () => void, defau
     medicalConditions: '',
     address: '',
     bloodType: '',
-    responsiblePerson: ''
+    responsiblePerson: '',
+    classId: ''
   });
 
   const fileInputRef = React.useRef<HTMLInputElement>(null);
@@ -341,6 +342,20 @@ const NewStudentModal = ({ onClose, defaultIsKid }: { onClose: () => void, defau
             />
           </div>
 
+          <div className="md:col-span-2 space-y-2">
+            <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Turma (Classe)</label>
+            <select 
+              className="w-full px-5 py-3.5 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-2xl outline-none focus:ring-2 focus:ring-blue-600 dark:text-white appearance-none font-bold"
+              value={formData.classId}
+              onChange={e => setFormData({...formData, classId: e.target.value})}
+            >
+              <option value="">Sem Turma Fixa</option>
+              {schedules.map(s => (
+                <option key={s.id} value={s.id}>{s.title} ({s.time})</option>
+              ))}
+            </select>
+          </div>
+
           <div className="md:col-span-2 p-6 bg-blue-50 dark:bg-blue-900/10 rounded-3xl border border-blue-100 dark:border-blue-900/20 grid grid-cols-2 gap-4">
             <div>
                <p className="text-[8px] font-black text-blue-600 uppercase tracking-widest mb-1">{t('students.suggestedCategory')}</p>
@@ -431,12 +446,30 @@ const NewStudentModal = ({ onClose, defaultIsKid }: { onClose: () => void, defau
 };
 
 const StudentDetailsModal = ({ student, onClose }: { student: Student; onClose: () => void }) => {
-  const [activeTab, setActiveTab] = useState<'overview' | 'analysis' | 'edit' | 'admin'>('overview');
+  const [activeTab, setActiveTab] = useState<'overview' | 'analysis' | 'edit' | 'admin' | 'videos'>('overview');
   const { t } = useTranslation();
-  const { deleteStudent, updateStudent } = useData();
+  const { deleteStudent, updateStudent, schedules } = useData();
   const [editPros, setEditPros] = useState(student.pros || '');
   const [editCons, setEditCons] = useState(student.cons || '');
   const [showSuccess, setShowSuccess] = useState(false);
+  const [showAddVideo, setShowAddVideo] = useState(false);
+  const [newVideo, setNewVideo] = useState({ title: '', videoUrl: '', description: '' });
+
+  const handleAddPositionVideo = () => {
+    if (newVideo.title && newVideo.videoUrl) {
+      const videoData = {
+        id: `VID-${Date.now()}`,
+        ...newVideo,
+        date: new Date().toISOString().split('T')[0],
+        authorId: 'professor',
+        authorName: 'Professor'
+      };
+      const updatedVideos = [...(student.positionVideos || []), videoData];
+      updateStudent(student.id, { positionVideos: updatedVideos });
+      setShowAddVideo(false);
+      setNewVideo({ title: '', videoUrl: '', description: '' });
+    }
+  };
 
   const [editFormData, setEditFormData] = useState({ ...student });
 
@@ -553,6 +586,7 @@ const StudentDetailsModal = ({ student, onClose }: { student: Student; onClose: 
           <button onClick={() => setActiveTab('overview')} className={`px-4 sm:px-8 py-4 sm:py-6 text-[8px] sm:text-[10px] font-black uppercase tracking-[0.2em] border-b-4 transition-all whitespace-nowrap ${activeTab === 'overview' ? 'border-blue-600 text-blue-600' : 'border-transparent text-slate-400'}`}>{t('students.overviewTab')}</button>
           <button onClick={() => setActiveTab('edit')} className={`px-4 sm:px-8 py-4 sm:py-6 text-[8px] sm:text-[10px] font-black uppercase tracking-[0.2em] border-b-4 transition-all whitespace-nowrap ${activeTab === 'edit' ? 'border-blue-600 text-blue-600' : 'border-transparent text-slate-400'}`}>{t('common.edit').toUpperCase()}</button>
           <button onClick={() => setActiveTab('analysis')} className={`px-4 sm:px-8 py-4 sm:py-6 text-[8px] sm:text-[10px] font-black uppercase tracking-[0.2em] border-b-4 transition-all whitespace-nowrap ${activeTab === 'analysis' ? 'border-blue-600 text-blue-600' : 'border-transparent text-slate-400'}`}>{t('students.analysisTab')}</button>
+          <button onClick={() => setActiveTab('videos')} className={`px-4 sm:px-8 py-4 sm:py-6 text-[8px] sm:text-[10px] font-black uppercase tracking-[0.2em] border-b-4 transition-all whitespace-nowrap ${activeTab === 'videos' ? 'border-blue-600 text-blue-600' : 'border-transparent text-slate-400'}`}>VÍDEOS</button>
           <button onClick={() => setActiveTab('admin')} className={`px-4 sm:px-8 py-4 sm:py-6 text-[8px] sm:text-[10px] font-black uppercase tracking-[0.2em] border-b-4 transition-all whitespace-nowrap ${activeTab === 'admin' ? 'border-blue-600 text-blue-600' : 'border-transparent text-slate-400'}`}>{t('students.adminTab')}</button>
         </div>
 
@@ -719,7 +753,20 @@ const StudentDetailsModal = ({ student, onClose }: { student: Student; onClose: 
               </div>
 
               <div className="md:col-span-2 space-y-2">
-                <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">{t('students.technicalNotes')}</label>
+                <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Turma (Classe)</label>
+                <select 
+                  className="w-full px-5 py-3.5 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-2xl outline-none focus:ring-2 focus:ring-blue-600 dark:text-white appearance-none font-bold"
+                  value={editFormData.classId || ''}
+                  onChange={e => setEditFormData({...editFormData, classId: e.target.value})}
+                >
+                  <option value="">Sem Turma Fixa</option>
+                  {schedules.map(s => (
+                    <option key={s.id} value={s.id}>{s.title} ({s.time})</option>
+                  ))}
+                </select>
+              </div>
+
+              <div className="md:col-span-2 space-y-2">
                 <textarea 
                   className="w-full px-6 py-4 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-2xl outline-none focus:ring-2 focus:ring-blue-600 dark:text-white font-bold min-h-[100px]" 
                   value={editFormData.technicalNotes || ''}
@@ -1042,6 +1089,128 @@ const StudentDetailsModal = ({ student, onClose }: { student: Student; onClose: 
                    </>
                  )}
                </button>
+            </div>
+          )}
+
+          {activeTab === 'videos' && (
+            <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
+               <div className="flex justify-between items-center bg-slate-50 dark:bg-slate-800 p-6 rounded-[2rem] border border-slate-200 dark:border-slate-700">
+                 <div>
+                   <h3 className="text-xl font-black text-slate-900 dark:text-white uppercase tracking-tighter">Galeria de Posições</h3>
+                   <p className="text-[10px] text-slate-400 mt-1 uppercase font-bold tracking-widest">Vídeos de técnicas para estudo</p>
+                 </div>
+                 <button 
+                   onClick={() => setShowAddVideo(true)}
+                   className="px-6 py-3 bg-blue-600 text-white rounded-xl font-black uppercase text-[10px] tracking-widest flex items-center gap-2 hover:bg-blue-700 shadow-lg shadow-blue-500/20 active:scale-95 transition-all"
+                 >
+                   <Plus size={16} /> NOVO VÍDEO
+                 </button>
+               </div>
+
+               {(!student.positionVideos || student.positionVideos.length === 0) ? (
+                 <div className="text-center py-20 bg-slate-50 dark:bg-slate-800/50 rounded-[3rem] border-2 border-dashed border-slate-200 dark:border-slate-700">
+                   <div className="w-20 h-20 bg-slate-100 dark:bg-slate-800 rounded-3xl flex items-center justify-center text-slate-400 mx-auto mb-4">
+                     <BookOpen size={40} />
+                   </div>
+                   <h4 className="text-xl font-black text-slate-400 uppercase tracking-tighter">Nenhum vídeo cadastrado</h4>
+                   <p className="text-xs text-slate-500 mt-2">Clique em "Novo Vídeo" para começar a tutorar o aluno.</p>
+                 </div>
+               ) : (
+                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                   {student.positionVideos.map((video) => (
+                     <div key={video.id} className="bg-white dark:bg-slate-800 rounded-[2rem] border border-slate-200 dark:border-slate-700 overflow-hidden group shadow-sm hover:shadow-xl transition-all">
+                       <div className="aspect-video bg-black relative">
+                          <iframe
+                            src={video.videoUrl.includes('youtube.com') ? video.videoUrl.replace('watch?v=', 'embed/') : video.videoUrl}
+                            className="w-full h-full"
+                            frameBorder="0"
+                            allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                            allowFullScreen
+                          />
+                       </div>
+                       <div className="p-6">
+                          <div className="flex justify-between items-start mb-2">
+                            <h4 className="font-black text-slate-900 dark:text-white uppercase text-sm leading-tight">{video.title}</h4>
+                            <button 
+                              onClick={() => {
+                                if(confirm('Excluir este vídeo?')) {
+                                  const updated = student.positionVideos?.filter(v => v.id !== video.id);
+                                  updateStudent(student.id, { positionVideos: updated });
+                                }
+                              }}
+                              className="p-2 text-slate-300 hover:text-red-500 transition-colors"
+                            >
+                              <Trash2 size={16} />
+                            </button>
+                          </div>
+                          <p className="text-[10px] text-slate-500 leading-relaxed italic">{video.description}</p>
+                          <div className="mt-4 pt-4 border-t border-slate-100 dark:border-slate-700 flex justify-between items-center">
+                             <div className="flex items-center gap-2">
+                               <div className="w-6 h-6 rounded-full bg-blue-100 flex items-center justify-center text-blue-600 font-bold text-[8px] uppercase">
+                                 {video.authorName?.[0]}
+                               </div>
+                               <span className="text-[8px] font-black text-slate-400 uppercase tracking-widest">{video.authorName}</span>
+                             </div>
+                             <span className="text-[8px] font-black text-slate-300 uppercase">{video.date}</span>
+                          </div>
+                       </div>
+                     </div>
+                   ))}
+                 </div>
+               )}
+
+               {showAddVideo && (
+                 <div className="fixed inset-0 bg-slate-900/90 backdrop-blur-md flex items-center justify-center p-4 z-[100] animate-in fade-in duration-300">
+                    <div className="bg-white dark:bg-slate-900 w-full max-w-lg rounded-[2.5rem] overflow-hidden shadow-2xl border border-slate-200 dark:border-slate-800">
+                       <div className="p-8 border-b border-slate-100 dark:border-slate-800 flex justify-between items-center bg-slate-50 dark:bg-slate-800/50">
+                          <div>
+                            <h3 className="text-2xl font-black text-slate-900 dark:text-white uppercase tracking-tighter">Novo Vídeo</h3>
+                            <p className="text-[10px] text-slate-400 font-bold uppercase tracking-widest mt-1">Adicionar técnica de estudo</p>
+                          </div>
+                          <button onClick={() => setShowAddVideo(false)} className="p-3 bg-white dark:bg-slate-900 rounded-2xl text-slate-400 hover:text-slate-600 transition-colors shadow-sm">
+                            <X size={20} />
+                          </button>
+                       </div>
+                       <div className="p-8 space-y-6">
+                          <div className="space-y-2">
+                             <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Título da Posição</label>
+                             <input 
+                               type="text" 
+                               value={newVideo.title}
+                               onChange={e => setNewVideo({...newVideo, title: e.target.value})}
+                               placeholder="Ex: Passagem de Guarda Toureando"
+                               className="w-full px-6 py-4 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-2xl outline-none focus:ring-2 focus:ring-blue-600 dark:text-white font-bold"
+                             />
+                          </div>
+                          <div className="space-y-2">
+                             <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">URL do Vídeo (Youtube/Vimeo)</label>
+                             <input 
+                               type="text" 
+                               value={newVideo.videoUrl}
+                               onChange={e => setNewVideo({...newVideo, videoUrl: e.target.value})}
+                               placeholder="https://www.youtube.com/watch?v=..."
+                               className="w-full px-6 py-4 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-2xl outline-none focus:ring-2 focus:ring-blue-600 dark:text-white font-bold"
+                             />
+                          </div>
+                          <div className="space-y-2">
+                             <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Breve Descrição / Foco</label>
+                             <textarea 
+                               value={newVideo.description}
+                               onChange={e => setNewVideo({...newVideo, description: e.target.value})}
+                               placeholder="Foque na pegada da calça e na pressão do ombro..."
+                               className="w-full px-6 py-4 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-2xl outline-none focus:ring-2 focus:ring-blue-600 dark:text-white font-bold min-h-[100px]"
+                             />
+                          </div>
+                          <button 
+                            onClick={handleAddPositionVideo}
+                            className="w-full py-5 bg-blue-600 text-white rounded-[1.5rem] font-black uppercase text-xs tracking-widest hover:bg-blue-700 shadow-xl shadow-blue-500/20 active:scale-95 transition-all"
+                          >
+                            SALVAR VÍDEO NA GALERIA
+                          </button>
+                       </div>
+                    </div>
+                 </div>
+               )}
             </div>
           )}
 

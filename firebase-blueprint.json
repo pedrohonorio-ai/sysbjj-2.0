@@ -15,7 +15,23 @@
         "status": { "type": "string", "enum": ["Active", "Inactive", "Suspended"] },
         "isKid": { "type": "boolean" },
         "monthlyValue": { "type": "number" },
-        "portalAccessCode": { "type": "string" }
+        "portalAccessCode": { "type": "string" },
+        "classId": { "type": "string" },
+        "positionVideos": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "id": { "type": "string" },
+              "title": { "type": "string" },
+              "videoUrl": { "type": "string" },
+              "description": { "type": "string" },
+              "date": { "type": "string" },
+              "authorId": { "type": "string" },
+              "authorName": { "type": "string" }
+            }
+          }
+        }
       },
       "required": ["id", "name", "belt", "status"]
     },

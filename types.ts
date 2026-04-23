@@ -261,6 +261,16 @@ export interface AttendanceRecord {
   classId?: string;
 }
 
+export interface PositionVideo {
+  id: string;
+  title: string;
+  videoUrl: string;
+  description?: string;
+  date: string;
+  authorId: string; // ID of student or professor who posted it
+  authorName: string;
+}
+
 export interface Student {
   id: string;
   name: string;
@@ -316,6 +326,8 @@ export interface Student {
   medicalCertificateExpiration?: string;
   liabilityWaiverAccepted?: boolean;
   liabilityWaiverDate?: string;
+  classId?: string; // Default class/turma
+  positionVideos?: PositionVideo[];
 }
 
 export interface SystemLog {
