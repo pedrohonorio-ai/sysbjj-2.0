@@ -1,11 +1,14 @@
 
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useRef } from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
 import { useParams, useNavigate } from 'react-router-dom';
 import { 
   Trophy, Flame, Calendar, BookOpen, 
   ArrowRight, Shield, Zap, Plus, LogOut, Scale,
-  QrCode, Clock, Info, Camera, CheckCircle2, AlertTriangle, X, Copy, Image as ImageIcon, Download, Maximize2
+  QrCode, Clock, Info, Camera, CheckCircle2, AlertTriangle, X, Copy, Image as ImageIcon, Download, Maximize2,
+  RefreshCw, FileText, Upload, ShieldCheck, AlertCircle, ShieldAlert, ChevronRight
 } from 'lucide-react';
+import { Html5QrcodeScanner } from 'html5-qrcode';
 import { useTranslation } from '../contexts/LanguageContext';
 import { useData } from '../contexts/DataContext';
 import { useProfile } from '../contexts/ProfileContext';
@@ -31,6 +34,11 @@ const StudentPortal: React.FC = () => {
   const [copied, setCopied] = useState(false);
   const [selectedPhoto, setSelectedPhoto] = useState<GalleryImage | null>(null);
   const [receiptFile, setReceiptFile] = useState<string | null>(null);
+  const [showWaiver, setShowWaiver] = useState(false);
+  const [showMedicalUpload, setShowMedicalUpload] = useState(false);
+  const [medicalFile, setMedicalFile] = useState<string | null>(null);
+  const [medicalIssueDate, setMedicalIssueDate] = useState(new Date().toISOString().split('T')[0]);
+  const { updateStudent } = useData();
 
   const student = useMemo(() => students.find(s => s.portalAccessCode === code), [students, code]);
 
@@ -122,6 +130,43 @@ const StudentPortal: React.FC = () => {
     }
   };
 
+  const handleMedicalUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        setMedicalFile(reader.result as string);
+      };
+      reader.readAsDataURL(file);
+    }
+  };
+
+  const handleConfirmMedical = () => {
+    if (student && medicalFile) {
+      const expirationDate = new Date(medicalIssueDate);
+      expirationDate.setFullYear(expirationDate.getFullYear() + 1);
+      
+      updateStudent(student.id, {
+        medicalCertificateUrl: medicalFile,
+        medicalCertificateDate: medicalIssueDate,
+        medicalCertificateExpiration: expirationDate.toISOString().split('T')[0]
+      });
+      
+      setShowMedicalUpload(false);
+      setMedicalFile(null);
+    }
+  };
+
+  const handleAcceptWaiver = () => {
+    if (student) {
+      updateStudent(student.id, {
+        liabilityWaiverAccepted: true,
+        liabilityWaiverDate: new Date().toISOString().split('T')[0]
+      });
+      setShowWaiver(false);
+    }
+  };
+
   const handleCompleteLesson = (lessonId: string, points: number) => {
     if (student) {
       completeRuleLesson(student.id, lessonId, points);
@@ -138,6 +183,38 @@ const StudentPortal: React.FC = () => {
     }
     return age;
   };
+
+  useEffect(() => {
+    let scanner: Html5QrcodeScanner | null = null;
+    if (showScanner) {
+      // Delay slightly to ensure the element is in the DOM
+      const timer = setTimeout(() => {
+        scanner = new Html5QrcodeScanner('reader', { 
+          fps: 10, 
+          qrbox: { width: 250, height: 250 },
+          aspectRatio: 1.0
+        }, false);
+        
+        scanner.render((decodedText) => {
+          if (student) {
+            recordAttendance([student.id]);
+            setCheckinSuccess(true);
+            setShowScanner(false);
+            setTimeout(() => setCheckinSuccess(false), 3000);
+            if (scanner) scanner.clear().catch(e => console.error(e));
+          }
+        }, (error) => {
+          // Successive errors are normal while scanning
+        });
+      }, 300);
+      return () => clearTimeout(timer);
+    }
+    return () => {
+      if (scanner) {
+        scanner.clear().catch(e => console.error("Failed to clear scanner", e));
+      }
+    };
+  }, [showScanner, student]);
 
   if (loading) return <div className="min-h-screen flex items-center justify-center bg-slate-950"><div className="w-12 h-12 border-4 border-blue-600 border-t-transparent rounded-full animate-spin" /></div>;
   if (!student) return <div className="min-h-screen bg-slate-950 flex items-center justify-center text-white p-8 text-center font-black uppercase tracking-tighter">{t('portal.invalidCode')}</div>;
@@ -175,6 +252,62 @@ const StudentPortal: React.FC = () => {
                 <AlertTriangle size={20} />
                 <span className="text-[10px] font-black uppercase tracking-widest">{t('portal.overdueAlert')}</span>
               </div>
+            )}
+
+            {!student.liabilityWaiverAccepted && (
+              <motion.div 
+                initial={{ x: -20, opacity: 0 }}
+                animate={{ x: 0, opacity: 1 }}
+                onClick={() => setShowWaiver(true)}
+                className="bg-amber-500 text-white p-5 rounded-3xl flex items-center justify-between cursor-pointer shadow-lg shadow-amber-500/20 active:scale-95 transition-all"
+              >
+                <div className="flex items-center gap-4">
+                  <ShieldAlert size={24} />
+                  <div>
+                    <h4 className="text-xs font-black uppercase tracking-tighter leading-none mb-1">{t('medical.waiverTitle')}</h4>
+                    <p className="text-[10px] font-bold opacity-80 uppercase leading-none">{t('medical.notAccepted')}</p>
+                  </div>
+                </div>
+                <ChevronRight size={20} />
+              </motion.div>
+            )}
+
+            {(!student.medicalCertificateExpiration || new Date(student.medicalCertificateExpiration) < new Date()) && (
+              <motion.div 
+                initial={{ x: 20, opacity: 0 }}
+                animate={{ x: 0, opacity: 1 }}
+                onClick={() => setShowMedicalUpload(true)}
+                className="bg-rose-600 text-white p-5 rounded-3xl flex items-center justify-between cursor-pointer shadow-lg shadow-rose-600/20 active:scale-95 transition-all"
+              >
+                <div className="flex items-center gap-4">
+                  <AlertCircle size={24} />
+                  <div>
+                    <h4 className="text-xs font-black uppercase tracking-tighter leading-none mb-1">{t('medical.certificate')}</h4>
+                    <p className="text-[10px] font-bold opacity-80 uppercase leading-none">
+                      {!student.medicalCertificateExpiration ? t('medical.notAccepted') : t('medical.expired')}
+                    </p>
+                  </div>
+                </div>
+                <ChevronRight size={20} />
+              </motion.div>
+            )}
+
+            {student.medicalCertificateExpiration && new Date(student.medicalCertificateExpiration) < new Date(new Date().setDate(new Date().getDate() + 30)) && new Date(student.medicalCertificateExpiration) >= new Date() && (
+              <motion.div 
+                initial={{ scale: 0.9, opacity: 0 }}
+                animate={{ scale: 1, opacity: 1 }}
+                onClick={() => setShowMedicalUpload(true)}
+                className="bg-orange-500 text-white p-5 rounded-3xl flex items-center justify-between cursor-pointer shadow-lg shadow-orange-500/20 active:scale-95 transition-all"
+              >
+                <div className="flex items-center gap-4">
+                  <Clock size={24} />
+                  <div>
+                    <h4 className="text-xs font-black uppercase tracking-tighter leading-none mb-1">{t('medical.certificate')}</h4>
+                    <p className="text-[10px] font-bold opacity-80 uppercase leading-none">{t('medical.expiresSoon')}</p>
+                  </div>
+                </div>
+                <ChevronRight size={20} />
+              </motion.div>
             )}
 
             {/* Birthdays Section */}
@@ -430,7 +563,20 @@ const StudentPortal: React.FC = () => {
         )}
       </main>
 
-      {showScanner && <div className="fixed inset-0 bg-slate-950 z-[200] flex flex-col items-center justify-center p-8"><div className="w-full aspect-square max-w-sm border-4 border-blue-600 rounded-[3rem] relative overflow-hidden"><div className="absolute top-1/2 left-0 right-0 h-1 bg-blue-600 animate-[scan_2s_infinite]" /></div><button onClick={handleScanSimulation} className="mt-12 px-10 py-4 bg-white text-slate-900 rounded-2xl font-black text-xs uppercase">{t('portal.simulateScan')}</button><button onClick={() => setShowScanner(false)} className="mt-8 text-slate-500 font-black text-[10px]">{t('common.cancel').toUpperCase()}</button></div>}
+      {showScanner && (
+        <div className="fixed inset-0 bg-slate-950 z-[200] flex flex-col items-center justify-center p-8">
+          <div className="w-full max-w-sm aspect-square bg-slate-900 border-4 border-blue-600 rounded-[3rem] relative overflow-hidden flex items-center justify-center">
+            <div id="reader" className="w-full h-full object-cover"></div>
+            <div className="absolute top-1/2 left-0 right-0 h-1 bg-blue-600 animate-[scan_2s_infinite] pointer-events-none" />
+          </div>
+          <div className="mt-8 text-center space-y-4">
+            <p className="text-white text-[10px] font-black uppercase tracking-widest opacity-50">Posicione o QR Code da academia</p>
+            <button onClick={() => setShowScanner(false)} className="px-10 py-4 bg-slate-800 text-white rounded-2xl font-black text-[10px] uppercase tracking-widest active:scale-95 transition-all">
+              {t('common.cancel')}
+            </button>
+          </div>
+        </div>
+      )}
 
       {showPix && student && (
         <div className="fixed inset-0 bg-slate-950/90 backdrop-blur-xl z-[200] flex items-center justify-center p-6">
@@ -482,6 +628,105 @@ const StudentPortal: React.FC = () => {
               </div>
             )}
           </div>
+        </div>
+      )}
+
+      {/* Liability Waiver Modal */}
+      {showWaiver && (
+        <div className="fixed inset-0 bg-slate-950/90 backdrop-blur-xl z-[300] flex items-center justify-center p-6">
+          <motion.div 
+            initial={{ scale: 0.9, opacity: 0 }}
+            animate={{ scale: 1, opacity: 1 }}
+            className="bg-white rounded-[3rem] p-10 max-w-sm w-full space-y-6 relative overflow-hidden"
+          >
+            <div className="absolute top-0 left-0 w-full h-2 bg-amber-500" />
+            <button onClick={() => setShowWaiver(false)} className="absolute top-8 right-8 text-slate-400 group">
+              <X className="group-hover:rotate-90 transition-transform" />
+            </button>
+            <div className="flex flex-col items-center text-center space-y-4">
+              <div className="w-16 h-16 bg-amber-100 rounded-2xl flex items-center justify-center text-amber-600">
+                <ShieldCheck size={32} />
+              </div>
+              <h3 className="text-xl font-black text-slate-900 uppercase tracking-tighter">{t('medical.waiverTitle')}</h3>
+              <div className="bg-slate-50 p-6 rounded-2xl border border-slate-100 text-left">
+                <p className="text-[10px] font-bold text-slate-600 leading-relaxed italic">
+                  "{t('medical.waiverModel')}"
+                </p>
+              </div>
+              <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest leading-relaxed">
+                Ao clicar em aceitar, você confirma que leu e concorda com os termos de responsabilidade para a prática de atividades físicas.
+              </p>
+              <button 
+                onClick={handleAcceptWaiver}
+                className="w-full py-4 bg-amber-500 text-white rounded-2xl font-black uppercase text-xs tracking-widest shadow-xl shadow-amber-500/20 active:scale-95 transition-all"
+              >
+                {t('medical.waiverAccept')}
+              </button>
+            </div>
+          </motion.div>
+        </div>
+      )}
+
+      {/* Medical Certificate Upload Modal */}
+      {showMedicalUpload && (
+        <div className="fixed inset-0 bg-slate-950/90 backdrop-blur-xl z-[300] flex items-center justify-center p-6">
+          <motion.div 
+            initial={{ scale: 0.9, opacity: 0 }}
+            animate={{ scale: 1, opacity: 1 }}
+            className="bg-white rounded-[3rem] p-10 max-w-sm w-full space-y-6 relative overflow-hidden"
+          >
+            <div className="absolute top-0 left-0 w-full h-2 bg-rose-600" />
+            <button onClick={() => setShowMedicalUpload(false)} className="absolute top-8 right-8 text-slate-400 group">
+              <X className="group-hover:rotate-90 transition-transform" />
+            </button>
+            <div className="space-y-6">
+              <div className="text-center">
+                <h3 className="text-xl font-black text-slate-900 uppercase tracking-tighter">{t('medical.certificate')}</h3>
+                <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mt-2">{t('medical.certificateDesc')}</p>
+              </div>
+              
+              <div className="space-y-4">
+                <div className="space-y-2">
+                  <label className="text-[8px] font-black text-slate-400 uppercase tracking-[0.2em] ml-2">{t('medical.receiptDate')}</label>
+                  <input 
+                    type="date" 
+                    value={medicalIssueDate}
+                    onChange={(e) => setMedicalIssueDate(e.target.value)}
+                    className="w-full p-4 bg-slate-50 border border-slate-100 rounded-2xl text-xs font-black uppercase"
+                  />
+                </div>
+
+                <label className="block border-4 border-dashed border-slate-100 rounded-[2.5rem] p-10 flex flex-col items-center justify-center gap-4 cursor-pointer hover:bg-slate-50 transition-colors">
+                  {medicalFile ? (
+                    <div className="relative">
+                      <img src={medicalFile} className="w-full h-32 object-contain rounded-xl" alt="Certificate preview" />
+                      <div className="absolute inset-0 bg-black/40 rounded-xl flex items-center justify-center opacity-0 hover:opacity-100 transition-opacity">
+                        <RefreshCw className="text-white animate-spin-slow" />
+                      </div>
+                    </div>
+                  ) : (
+                    <>
+                      <FileText size={48} className="text-slate-100" />
+                      <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">{t('medical.uploadBtn')}</p>
+                    </>
+                  )}
+                  <input type="file" accept="image/*,.pdf" className="hidden" onChange={handleMedicalUpload} />
+                </label>
+                
+                <p className="text-[8px] font-bold text-rose-600 uppercase tracking-widest text-center">
+                  * {t('medical.annualRenewal')}
+                </p>
+
+                <button 
+                  onClick={handleConfirmMedical}
+                  disabled={!medicalFile}
+                  className={`w-full py-4 rounded-2xl font-black uppercase text-xs tracking-widest transition-all ${medicalFile ? 'bg-rose-600 text-white shadow-xl shadow-rose-600/20 active:scale-95' : 'bg-slate-100 text-slate-400 cursor-not-allowed'}`}
+                >
+                  {t('common.confirm')}
+                </button>
+              </div>
+            </div>
+          </motion.div>
         </div>
       )}
 

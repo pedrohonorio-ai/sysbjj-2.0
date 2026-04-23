@@ -413,6 +413,26 @@ const en = {
     birthdayExcelDesc: "Export complete birthday list for gift and event management.",
     downloadExcel: "Download Spreadsheet",
   },
+  medical: {
+    title: "Medical & Health",
+    certificate: "Medical Certificate",
+    certificateDesc: "Upload your annual medical certificate to participate in classes.",
+    status: "Status",
+    expiration: "Expiration",
+    uploadBtn: "Upload Certificate",
+    waiverTitle: "Liability Waiver",
+    waiverAccept: "Accept Waiver",
+    waiverStatus: "Waiver Status",
+    accepted: "Accepted",
+    notAccepted: "Pending",
+    valid: "Valid",
+    expired: "Expired",
+    expiresSoon: "Expires Soon",
+    annualRenewal: "Annual Renewal Required",
+    waiverModel: "I hereby declare that I am in perfect physical and mental health to practice Brazilian Jiu-Jitsu. I exempt the professor and the academy from any responsibility for injuries or incidents resulting from omitted pre-existing medical conditions.",
+    receiptDate: "Issue Date",
+    updateBtn: "Update Document"
+  },
   belts: {
     'White': "White",
     'Blue': "Blue",
@@ -565,6 +585,13 @@ const en = {
       month: "Month",
       services: "Services",
       billing: "Billing"
+    },
+    status: {
+      ecosystem: "Ecosystem Status",
+      cloudActive: "Cloud Sync Active",
+      blockchainOk: "Blockchain Audit OK",
+      aiGuardActive: "AI Sensei Guard Active",
+      lastSync: "Last Sync"
     }
   },
   financial: {
@@ -892,6 +919,13 @@ const pt = {
       month: "Mês Corrente",
       services: "Vendas Loja",
       billing: "Faturamento"
+    },
+    status: {
+      ecosystem: "Status do Ecossistema",
+      cloudActive: "Sync Nuvem Ativa",
+      blockchainOk: "Auditoria Blockchain OK",
+      aiGuardActive: "IA Sensei Guard Ativa",
+      lastSync: "Última Sincronização"
     }
   },
   settings: {
@@ -953,6 +987,26 @@ const pt = {
     program: "Programa",
     birthdayExcelDesc: "Exportar lista completa de aniversariantes para gestão de brindes e eventos.",
     downloadExcel: "Baixar Planilha",
+  },
+  medical: {
+    title: "Saúde & Documentação",
+    certificate: "Atestado Médico",
+    certificateDesc: "Carregue seu atestado médico anual para participar das aulas.",
+    status: "Status",
+    expiration: "Vencimento",
+    uploadBtn: "Upload de Atestado",
+    waiverTitle: "Termo de Responsabilidade",
+    waiverAccept: "Aceitar Termo",
+    waiverStatus: "Status do Termo",
+    accepted: "Assinado",
+    notAccepted: "Pendente",
+    valid: "Válido",
+    expired: "Vencido",
+    expiresSoon: "Vencimento Próximo",
+    annualRenewal: "Renovação Anual Obrigatória",
+    waiverModel: "Declaro estar em perfeitas condições físicas e mentais para a prática de Jiu-Jitsu. Isento o professor e a academia de qualquer responsabilidade por lesões ou incidentes decorrentes de omissão de informações médicas preexistentes.",
+    receiptDate: "Data de Emissão",
+    updateBtn: "Atualizar Documento"
   },
   belts: {
     'White': "Branca",

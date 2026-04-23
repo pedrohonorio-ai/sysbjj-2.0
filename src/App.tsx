@@ -339,7 +339,12 @@ const App: React.FC = () => {
   useEffect(() => {
     // Auto-login anonymously to enable Firestore writes if not authenticated
     if (firebaseAuth) {
-      signInAnonymously(firebaseAuth).catch(err => console.error("Auth error:", err));
+      signInAnonymously(firebaseAuth).catch(err => {
+        // Silent specific restricted operation error common in semi-provisioned environments
+        if (err.code !== 'auth/admin-restricted-operation') {
+          console.error("Auth error:", err);
+        }
+      });
     }
   }, []);
 

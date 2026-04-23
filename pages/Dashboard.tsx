@@ -6,7 +6,7 @@ import {
   Users, TrendingUp, AlertCircle, Calendar, CreditCard,
   Timer, UserPlus, CheckCircle2, Trophy as TrophyIcon, Plus,
   ArrowUpRight, ArrowDownRight, BarChart3, ArrowRight, Baby,
-  Edit2, X, Trash2, Clock, BookOpen, QrCode, Scan, Zap, Cake, Store, Activity, History, Shield, Instagram, ChevronRight, Monitor
+  Edit2, X, Trash2, Clock, BookOpen, QrCode, Scan, Zap, Cake, Store, Activity, History, Shield, Instagram, ChevronRight, Monitor, RefreshCw
 } from 'lucide-react';
 import { useTranslation } from '../contexts/LanguageContext';
 import { useProfile } from '../contexts/ProfileContext';
@@ -215,37 +215,70 @@ const Dashboard: React.FC = () => {
       </div>
 
       {/* Integridade & Segurança Blockchain - Estética Profissional */}
-      <div className="flex flex-wrap items-center justify-between gap-4 p-6 bg-slate-100 dark:bg-slate-900/50 rounded-[2rem] border border-slate-200 dark:border-slate-800 shadow-inner">
-        <div className="flex items-center gap-4">
-          <div className="flex -space-x-2">
-            <div className="w-8 h-8 rounded-full bg-blue-600 flex items-center justify-center text-[10px] font-black text-white ring-2 ring-white dark:ring-slate-900 shadow-lg">DB</div>
-            <div className="w-8 h-8 rounded-full bg-amber-500 flex items-center justify-center text-[10px] font-black text-white ring-2 ring-white dark:ring-slate-900 shadow-lg">BC</div>
-            <div className="w-8 h-8 rounded-full bg-emerald-500 flex items-center justify-center text-[10px] font-black text-white ring-2 ring-white dark:ring-slate-900 shadow-lg">AI</div>
+      <motion.div 
+        initial={{ opacity: 0, scale: 0.95 }}
+        animate={{ opacity: 1, scale: 1 }}
+        className="flex flex-wrap items-center justify-between gap-6 p-8 bg-white dark:bg-slate-900 rounded-[2.5rem] border border-slate-200 dark:border-slate-800 shadow-xl relative overflow-hidden group"
+      >
+        <div className="absolute top-0 right-0 w-64 h-64 bg-blue-600 rounded-full blur-[100px] opacity-[0.02]" />
+        
+        <div className="flex flex-col md:flex-row items-start md:items-center gap-8 relative z-10 w-full lg:w-auto">
+          <div className="flex -space-x-3">
+            <div className="w-12 h-12 rounded-2xl bg-blue-600 flex items-center justify-center text-[10px] font-black text-white ring-4 ring-white dark:ring-slate-900 shadow-2xl rotate-3 hover:translate-y-[-4px] transition-all cursor-default">DB</div>
+            <div className="w-12 h-12 rounded-2xl bg-amber-500 flex items-center justify-center text-[10px] font-black text-white ring-4 ring-white dark:ring-slate-900 shadow-2xl -rotate-3 hover:translate-y-[-4px] transition-all cursor-default">BC</div>
+            <div className="w-12 h-12 rounded-2xl bg-emerald-500 flex items-center justify-center text-[10px] font-black text-white ring-4 ring-white dark:ring-slate-900 shadow-2xl rotate-2 hover:translate-y-[-4px] transition-all cursor-default">AI</div>
           </div>
-          <div>
-            <p className="text-[10px] font-black text-slate-500 dark:text-slate-400 uppercase tracking-widest leading-none mb-1">
-              Status do Ecossistema
+          
+          <div className="space-y-3">
+            <p className="text-[10px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-[0.3em] leading-none">
+              {t('dashboard.status.ecosystem')}
             </p>
-            <div className="flex items-center gap-3">
-              <span className="flex items-center gap-1.5 text-xs font-black text-blue-600 dark:text-blue-400 uppercase tracking-tighter">
-                <CheckCircle2 size={12} /> Sync Nuvem Ativa
+            <div className="flex flex-wrap items-center gap-x-6 gap-y-3">
+              <span className="flex items-center gap-2 text-[11px] font-black text-blue-600 dark:text-blue-400 uppercase tracking-tighter">
+                <div className="w-2 h-2 rounded-full bg-blue-600 animate-pulse" />
+                {t('dashboard.status.cloudActive')}
               </span>
-              <span className="w-1 h-1 rounded-full bg-slate-300 dark:bg-slate-700" />
-              <span className="flex items-center gap-1.5 text-xs font-black text-amber-600 dark:text-amber-400 uppercase tracking-tighter">
-                <Shield size={12} /> Auditoria Blockchain OK
+              <span className="flex items-center gap-2 text-[11px] font-black text-amber-600 dark:text-amber-400 uppercase tracking-tighter">
+                <Shield size={14} className="animate-bounce" style={{ animationDuration: '3s' }} />
+                {t('dashboard.status.blockchainOk')}
+              </span>
+              <span className="flex items-center gap-2 text-[11px] font-black text-emerald-600 dark:text-emerald-400 uppercase tracking-tighter">
+                <Zap size={14} className="animate-pulse" />
+                {t('dashboard.status.aiGuardActive')}
               </span>
             </div>
           </div>
         </div>
         
-        <div className="px-5 py-2.5 bg-white dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700 shadow-sm flex items-center gap-3">
-          <div className="flex flex-col items-end">
-            <span className="text-[8px] font-black text-slate-400 uppercase tracking-widest">{t('common.lastSync')}</span>
-            <span className="text-[10px] font-black text-slate-900 dark:text-white tabular-nums">{new Date().toLocaleTimeString()}</span>
+        <div className="flex items-center gap-4 w-full md:w-auto">
+          <div className="px-6 py-3 bg-slate-50 dark:bg-slate-800/50 rounded-2xl border border-slate-100 dark:border-slate-800 shadow-inner flex items-center gap-4 flex-1 md:flex-none">
+            <div className="flex flex-col items-end">
+              <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest leading-none mb-1">{t('dashboard.status.lastSync')}</span>
+              <div className="flex items-center gap-2">
+                <span className="text-xs font-black text-slate-900 dark:text-white tabular-nums tracking-tighter">
+                  {now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' })}
+                </span>
+                <Clock size={12} className="text-blue-500" />
+              </div>
+            </div>
+            <div className="w-1 h-8 bg-blue-600/20 rounded-full overflow-hidden">
+              <div className="w-full h-1/2 bg-blue-600 animate-[bounce_2s_infinite]" />
+            </div>
           </div>
-          <div className="w-2 h-8 bg-blue-600 rounded-full animate-pulse" />
+          
+          <button 
+            onClick={() => {
+              // Re-run animation/refresh effect
+              const btn = document.getElementById('sync-trigger');
+              if (btn) btn.classList.add('animate-spin');
+              setTimeout(() => { if (btn) btn.classList.remove('animate-spin'); }, 1000);
+            }}
+            className="p-4 bg-slate-900 dark:bg-white text-white dark:text-slate-900 rounded-2xl shadow-xl hover:scale-110 active:scale-95 transition-all group/sync"
+          >
+            <RefreshCw id="sync-trigger" size={18} className="group-hover/sync:rotate-180 transition-transform duration-500" />
+          </button>
         </div>
-      </div>
+      </motion.div>
 
       {/* Stats Quick Grid - Consolidada */}
       <div className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-6 gap-4">
@@ -282,12 +315,12 @@ const Dashboard: React.FC = () => {
           </div>
 
           <a 
-            href="https://instagram.com/sysbjj.26" 
+            href="https://instagram.com/sistemabjj" 
             target="_blank" 
             rel="noopener noreferrer"
             className="relative z-10 px-12 py-5 bg-white text-slate-900 rounded-2xl font-black text-sm uppercase tracking-[0.2em] hover:bg-slate-100 active:scale-95 transition-all shadow-2xl shadow-white/10 flex items-center gap-4 group/btn shrink-0"
           >
-            @sysbjj.26 
+            @sistemabjj 
             <ChevronRight size={20} className="group-hover/btn:translate-x-1 transition-transform" />
           </a>
         </div>

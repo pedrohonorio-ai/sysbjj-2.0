@@ -172,6 +172,29 @@ const BusinessHub: React.FC = () => {
     setTimeout(() => setIntegrityStatus(null), 5000);
   };
 
+  const handleExportFinancialCSV = () => {
+    const headers = ['Tipo', 'ID', 'Nome/Descrição', 'Valor', 'Data', 'Método', 'Status'];
+    const rows = [
+      ...payments.map(p => ['Mensalidade', p.id, p.name, p.amount, p.date, p.method, p.status]),
+      ...extraRevenue.map(e => ['Venda/Extra', e.id, e.description, e.amount, e.date, e.paymentMethod, e.paid ? 'Confirmado' : 'Pendente'])
+    ];
+
+    const csvContent = [
+      headers.join(','),
+      ...rows.map(row => row.join(','))
+    ].join('\n');
+
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const link = document.createElement('a');
+    const url = URL.createObjectURL(blob);
+    link.dataset.download = 'sysbjj_financeiro.csv';
+    link.href = url;
+    link.setAttribute('download', `sysbjj_financeiro_${new Date().toISOString().split('T')[0]}.csv`);
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  };
+
   const currentMonth = new Date().toISOString().substring(0, 7); // YYYY-MM
   const monthName = new Intl.DateTimeFormat(t('common.dateLocale'), { month: 'long' }).format(new Date());
 
@@ -302,6 +325,13 @@ const BusinessHub: React.FC = () => {
           <p className="text-slate-500 font-medium italic mt-4 uppercase text-xs tracking-widest">{t('business.subtitle')}</p>
         </div>
         <div className="flex flex-wrap gap-4">
+          <button 
+            onClick={handleExportFinancialCSV}
+            className="flex-1 sm:flex-none flex items-center justify-center gap-3 bg-white dark:bg-slate-800 border-2 border-slate-100 dark:border-slate-800 text-slate-600 dark:text-slate-400 px-8 py-5 rounded-2xl font-black text-xs uppercase tracking-widest shadow-xl hover:bg-slate-50 transition-all active:scale-95"
+            title="Exportar CSV"
+          >
+            <Download size={20} /> CSV
+          </button>
           <button 
             onClick={handleGenerateFullReport}
             className="flex-1 sm:flex-none flex items-center justify-center gap-3 bg-slate-900 text-white px-8 py-5 rounded-2xl font-black text-xs uppercase tracking-widest shadow-xl hover:bg-slate-800 transition-all active:scale-95"

@@ -311,6 +311,11 @@ export interface Student {
   isCompetitor?: boolean;
   technicalNotes?: string;
   customIndicators?: CustomIndicator[];
+  medicalCertificateUrl?: string;
+  medicalCertificateDate?: string;
+  medicalCertificateExpiration?: string;
+  liabilityWaiverAccepted?: boolean;
+  liabilityWaiverDate?: string;
 }
 
 export interface SystemLog {

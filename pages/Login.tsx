@@ -18,6 +18,7 @@ const Login: React.FC<LoginProps> = ({ onLogin }) => {
   const [email, setEmail] = useState('');
   const [pin, setPin] = useState('');
   const [studentCode, setStudentCode] = useState('');
+  const [studentEmail, setStudentEmail] = useState('');
   const [error, setError] = useState('');
   const [isBioScanning, setIsBioScanning] = useState(false);
   
@@ -70,9 +71,13 @@ const Login: React.FC<LoginProps> = ({ onLogin }) => {
   };
 
   const handleStudentLogin = () => {
-    const student = students.find(s => s.portalAccessCode?.toUpperCase() === studentCode.toUpperCase());
+    const student = students.find(s => 
+      s.portalAccessCode?.toUpperCase() === studentCode.toUpperCase() &&
+      (studentEmail ? s.email?.toLowerCase() === studentEmail.toLowerCase() : true)
+    );
     if (student) {
-      onLogin('student', student.portalAccessCode);
+      // Use student's registered email for logs if none provided during login
+      onLogin('student', student.portalAccessCode, studentEmail || student.email);
     } else {
       setError(t('login.studentNotFound'));
       setTimeout(() => setError(''), 3000);
@@ -253,6 +258,20 @@ const Login: React.FC<LoginProps> = ({ onLogin }) => {
                     className="w-full bg-slate-950 border border-white/5 rounded-2xl py-5 pl-14 pr-6 text-white font-black uppercase tracking-widest outline-none focus:border-blue-500/50 transition-all"
                     value={studentCode}
                     onChange={e => setStudentCode(e.target.value)}
+                  />
+                </div>
+              </div>
+
+              <div className="space-y-2">
+                <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest ml-1">E-mail Cadastrado</label>
+                <div className="relative">
+                  <Shield className="absolute left-5 top-1/2 -translate-y-1/2 text-slate-600" size={20} />
+                  <input 
+                    type="email"
+                    placeholder="aluno@exemplo.com"
+                    className="w-full bg-slate-950 border border-white/5 rounded-2xl py-5 pl-14 pr-6 text-white font-black outline-none focus:border-blue-500/50 transition-all uppercase tracking-widest"
+                    value={studentEmail}
+                    onChange={e => setStudentEmail(e.target.value)}
                     onKeyPress={e => e.key === 'Enter' && handleStudentLogin()}
                   />
                 </div>

@@ -22,7 +22,14 @@ import {
   Camera,
   MapPin,
   HeartPulse,
-  UserPlus
+  UserPlus,
+  Download,
+  FileText,
+  ShieldCheck,
+  ShieldAlert,
+  FileWarning,
+  AlertCircle,
+  FileCheck
 } from 'lucide-react';
 import { Student, StudentStatus, BeltColor, KidsBeltColor, Gender, CBJJCategory } from '../types';
 import { BELT_COLORS, IBJJF_BELT_RULES } from '../constants';
@@ -162,6 +169,18 @@ const NewStudentModal = ({ onClose, defaultIsKid }: { onClose: () => void, defau
               required 
               value={formData.name}
               onChange={e => setFormData({...formData, name: e.target.value})}
+            />
+          </div>
+
+          <div className="md:col-span-2 space-y-2">
+            <label className="text-xs font-black text-slate-400 uppercase tracking-widest ml-1">E-mail</label>
+            <input 
+              type="email" 
+              placeholder="aluno@email.com"
+              className="w-full px-6 py-4 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-2xl outline-none focus:ring-2 focus:ring-blue-600 dark:text-white font-bold" 
+              required 
+              value={formData.email}
+              onChange={e => setFormData({...formData, email: e.target.value})}
             />
           </div>
 
@@ -550,6 +569,17 @@ const StudentDetailsModal = ({ student, onClose }: { student: Student; onClose: 
                 />
               </div>
 
+              <div className="md:col-span-2 space-y-2">
+                <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">E-mail</label>
+                <input 
+                  type="email" 
+                  className="w-full px-6 py-4 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-2xl outline-none focus:ring-2 focus:ring-blue-600 dark:text-white font-bold" 
+                  required 
+                  value={editFormData.email}
+                  onChange={e => setEditFormData({...editFormData, email: e.target.value})}
+                />
+              </div>
+
               <div className="space-y-2">
                 <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">{t('common.nickname') || 'Apelido'}</label>
                 <input 
@@ -790,6 +820,78 @@ const StudentDetailsModal = ({ student, onClose }: { student: Student; onClose: 
                          <p className="font-bold text-slate-900 dark:text-white">{student.responsiblePerson || '--'}</p>
                       </div>
                     )}
+                  </div>
+                </section>
+
+                {/* Medical Documentation Section */}
+                <section className="space-y-4">
+                  <h3 className="text-[9px] sm:text-[10px] font-black text-slate-400 uppercase tracking-widest flex items-center gap-2"><FileText size={14} /> {t('medical.docsTitle') || 'Documentação Médica'}</h3>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    {/* Waiver Card */}
+                    <div className={`p-5 rounded-3xl border ${student.liabilityWaiverAccepted ? 'bg-green-50 border-green-100 dark:bg-green-900/10 dark:border-green-900/20' : 'bg-amber-50 border-amber-100 dark:bg-amber-900/10 dark:border-amber-900/20'}`}>
+                      <div className="flex items-center gap-3 mb-3">
+                        <div className={`w-8 h-8 rounded-xl flex items-center justify-center ${student.liabilityWaiverAccepted ? 'bg-green-100 text-green-600' : 'bg-amber-100 text-amber-600'}`}>
+                          {student.liabilityWaiverAccepted ? <ShieldCheck size={18} /> : <ShieldAlert size={18} />}
+                        </div>
+                        <div>
+                          <p className="text-[9px] font-black uppercase tracking-widest text-slate-400">{t('medical.waiverTitle')}</p>
+                          <p className={`text-[10px] font-black uppercase ${student.liabilityWaiverAccepted ? 'text-green-600' : 'text-amber-600'}`}>
+                            {student.liabilityWaiverAccepted ? t('medical.accepted') : t('medical.notAccepted')}
+                          </p>
+                        </div>
+                      </div>
+                      {student.liabilityWaiverDate && (
+                        <p className="text-[8px] font-bold text-slate-500 uppercase italic">
+                          {t('medical.acceptedOn')}: {new Date(student.liabilityWaiverDate).toLocaleDateString()}
+                        </p>
+                      )}
+                    </div>
+
+                    {/* Certificate Card */}
+                    <div className={`p-5 rounded-3xl border ${
+                      !student.medicalCertificateUrl ? 'bg-rose-50 border-rose-100 dark:bg-rose-900/10 dark:border-rose-900/20' :
+                      new Date(student.medicalCertificateExpiration!) < new Date() ? 'bg-red-50 border-red-100 dark:bg-red-900/10 dark:border-red-900/20' :
+                      'bg-green-50 border-green-100 dark:bg-green-900/10 dark:border-green-900/20'
+                    }`}>
+                      <div className="flex items-center gap-3 mb-3">
+                        <div className={`w-8 h-8 rounded-xl flex items-center justify-center ${
+                          !student.medicalCertificateUrl ? 'bg-rose-100 text-rose-600' :
+                          new Date(student.medicalCertificateExpiration!) < new Date() ? 'bg-red-100 text-red-600' :
+                          'bg-green-100 text-green-600'
+                        }`}>
+                          {!student.medicalCertificateUrl ? <FileWarning size={18} /> :
+                           new Date(student.medicalCertificateExpiration!) < new Date() ? <AlertCircle size={18} /> : <FileCheck size={18} />}
+                        </div>
+                        <div>
+                          <p className="text-[9px] font-black uppercase tracking-widest text-slate-400">{t('medical.certificate')}</p>
+                          <p className={`text-[10px] font-black uppercase ${
+                            !student.medicalCertificateUrl ? 'text-rose-600' :
+                            new Date(student.medicalCertificateExpiration!) < new Date() ? 'text-red-600' :
+                            'text-green-600'
+                          }`}>
+                            {!student.medicalCertificateUrl ? t('medical.missing') :
+                             new Date(student.medicalCertificateExpiration!) < new Date() ? t('medical.expired') : t('medical.valid')}
+                          </p>
+                        </div>
+                      </div>
+                      {student.medicalCertificateExpiration && (
+                        <div className="flex items-center justify-between gap-2">
+                          <p className="text-[8px] font-bold text-slate-500 uppercase italic">
+                            {t('medical.expiresOn')}: {new Date(student.medicalCertificateExpiration).toLocaleDateString()}
+                          </p>
+                          {student.medicalCertificateUrl && (
+                            <a 
+                              href={student.medicalCertificateUrl} 
+                              target="_blank" 
+                              rel="noopener noreferrer"
+                              className="px-2 py-1 bg-white dark:bg-slate-800 rounded-lg border border-slate-100 dark:border-slate-700 text-[8px] font-black uppercase text-blue-600 hover:bg-blue-50 transition-colors"
+                            >
+                              {t('common.view').toUpperCase()}
+                            </a>
+                          )}
+                        </div>
+                      )}
+                    </div>
                   </div>
                 </section>
 
@@ -1141,6 +1243,35 @@ const Students: React.FC = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [activeView, setActiveView] = useState<'adult' | 'kids' | 'competitors'>('adult');
   const [selectedStudent, setSelectedStudent] = useState<Student | null>(null);
+  const handleExportCSV = () => {
+    const headers = ['ID', 'Nome', 'Apelido', 'Email', 'Telefone', 'Faixa', 'Graus', 'Status', 'Mensalidade'];
+    const rows = students.map(s => [
+      s.id,
+      s.name,
+      s.nickname || '',
+      s.email,
+      s.phone,
+      s.belt,
+      s.stripes,
+      s.status,
+      s.monthlyValue
+    ]);
+
+    const csvContent = [
+      headers.join(','),
+      ...rows.map(row => row.join(','))
+    ].join('\n');
+
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const link = document.createElement('a');
+    const url = URL.createObjectURL(blob);
+    link.setAttribute('href', url);
+    link.setAttribute('download', `sysbjj_estudantes_${new Date().toISOString().split('T')[0]}.csv`);
+    link.style.visibility = 'hidden';
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  };
   const [isAddingStudent, setIsAddingStudent] = useState(false);
   const [isSelectingCompetitors, setIsSelectingCompetitors] = useState(false);
 
@@ -1185,6 +1316,13 @@ const Students: React.FC = () => {
               onChange={(e) => setSearchTerm(e.target.value)} 
             />
           </div>
+          <button 
+            onClick={handleExportCSV}
+            className="p-4 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-800 text-slate-600 dark:text-slate-400 rounded-2xl hover:bg-slate-50 transition-all shadow-xl active:scale-95"
+            title="Exportar CSV"
+          >
+            <Download size={24} />
+          </button>
           <button 
             onClick={() => setIsAddingStudent(true)} 
             className={`p-4 text-white rounded-2xl hover:rotate-6 transition-all shadow-2xl active:scale-95 ${activeView === 'kids' ? 'bg-yellow-500 shadow-yellow-500/30' : 'bg-blue-600 shadow-blue-500/30'}`}
@@ -1259,19 +1397,31 @@ const Students: React.FC = () => {
                     </span>
                   </td>
                   <td className="px-8 py-4">
-                    {activeView === 'kids' ? (
-                      <div className="flex items-center gap-1.5">
-                        <Medal size={12} className="text-yellow-500 shrink-0" />
-                        <span className="font-black text-slate-900 dark:text-white whitespace-nowrap tabular-nums text-[10px]">{student.rewardPoints || 0} OSS PTS</span>
-                      </div>
-                    ) : (
-                      <span className={`px-3 py-1 rounded-full text-[8px] font-black uppercase tracking-[0.2em] shadow-sm whitespace-nowrap ${
-                        student.status === StudentStatus.ACTIVE ? 'bg-green-100 text-green-700 dark:bg-green-900/20 dark:text-green-500' : 
-                        student.status === StudentStatus.OVERDUE ? 'bg-red-100 text-red-700 dark:bg-red-900/20 dark:text-red-500' : 'bg-slate-100 text-slate-500 dark:bg-slate-800 dark:text-slate-400'
-                      }`}>
-                        {t(`status.${student.status}`)}
-                      </span>
-                    )}
+                    <div className="flex items-center gap-2">
+                      {activeView === 'kids' ? (
+                        <div className="flex items-center gap-1.5">
+                          <Medal size={12} className="text-yellow-500 shrink-0" />
+                          <span className="font-black text-slate-900 dark:text-white whitespace-nowrap tabular-nums text-[10px]">{student.rewardPoints || 0} OSS PTS</span>
+                        </div>
+                      ) : (
+                        <span className={`px-3 py-1 rounded-full text-[8px] font-black uppercase tracking-[0.2em] shadow-sm whitespace-nowrap ${
+                          student.status === StudentStatus.ACTIVE ? 'bg-green-100 text-green-700 dark:bg-green-900/20 dark:text-green-500' : 
+                          student.status === StudentStatus.OVERDUE ? 'bg-red-100 text-red-700 dark:bg-red-900/20 dark:text-red-500' : 'bg-slate-100 text-slate-500 dark:bg-slate-800 dark:text-slate-400'
+                        }`}>
+                          {t(`status.${student.status}`)}
+                        </span>
+                      )}
+
+                      {/* Medical/Waiver indicators */}
+                      {(!student.liabilityWaiverAccepted || !student.medicalCertificateUrl || (student.medicalCertificateExpiration && new Date(student.medicalCertificateExpiration) < new Date())) && (
+                        <div className="flex items-center gap-1 ml-1">
+                          {!student.liabilityWaiverAccepted && <ShieldAlert size={12} className="text-amber-500" />}
+                          {(!student.medicalCertificateUrl || (student.medicalCertificateExpiration && new Date(student.medicalCertificateExpiration) < new Date())) && (
+                            <FileWarning size={12} className="text-rose-500" />
+                          )}
+                        </div>
+                      )}
+                    </div>
                   </td>
                   <td className="px-8 py-4 text-center">
                      <p className="font-black text-lg leading-none dark:text-white tabular-nums">{student.attendanceCount || 0}</p>
@@ -1325,13 +1475,19 @@ const Students: React.FC = () => {
                     <span className="font-black text-yellow-700 dark:text-yellow-500 text-[9px] uppercase tracking-wider">{student.rewardPoints || 0} OSS PTS</span>
                   </div>
                 ) : (
-                  <span className={`px-3 py-1.5 rounded-full text-[8px] font-black uppercase tracking-wider shadow-sm border ${
-                    student.status === StudentStatus.ACTIVE ? 'bg-green-50 text-green-700 border-green-100 dark:bg-green-900/20 dark:border-green-900/30' : 
-                    student.status === StudentStatus.OVERDUE ? 'bg-red-50 text-red-700 border-red-100 dark:bg-red-900/20 dark:border-red-900/30' : 
-                    'bg-slate-50 text-slate-500 border-slate-100 dark:bg-slate-800 dark:border-slate-700'
-                  }`}>
-                    {t(`status.${student.status}`)}
-                  </span>
+                  <div className="flex items-center gap-2">
+                    <span className={`px-3 py-1.5 rounded-full text-[8px] font-black uppercase tracking-wider shadow-sm border ${
+                      student.status === StudentStatus.ACTIVE ? 'bg-green-50 text-green-700 border-green-100 dark:bg-green-900/20 dark:border-green-900/30' : 
+                      student.status === StudentStatus.OVERDUE ? 'bg-red-50 text-red-700 border-red-100 dark:bg-red-900/20 dark:border-red-900/30' : 
+                      'bg-slate-50 text-slate-500 border-slate-100 dark:bg-slate-800 dark:border-slate-700'
+                    }`}>
+                      {t(`status.${student.status}`)}
+                    </span>
+                    {!student.liabilityWaiverAccepted && <ShieldAlert size={14} className="text-amber-500" />}
+                    {(!student.medicalCertificateUrl || (student.medicalCertificateExpiration && new Date(student.medicalCertificateExpiration) < new Date())) && (
+                      <FileWarning size={14} className="text-rose-500" />
+                    )}
+                  </div>
                 )}
 
                 <div className="flex items-center gap-2 ml-auto">
