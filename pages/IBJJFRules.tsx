@@ -20,6 +20,7 @@ import {
   Users,
   ArrowRight
 } from 'lucide-react';
+import { motion, AnimatePresence } from 'motion/react';
 import { useTranslation } from '../contexts/LanguageContext';
 import { useProfile } from '../contexts/ProfileContext';
 import { GoogleGenAI } from "@google/genai";
@@ -53,8 +54,9 @@ const IBJJFRules: React.FC = () => {
     setIsLoading(true);
 
     try {
-      const apiKey = process.env.GEMINI_API_KEY;
-      if (!apiKey || apiKey === 'undefined' || apiKey === 'null') {
+      const apiKey = process.env.GEMINI_API_KEY || process.env.API_KEY;
+      if (!apiKey || apiKey === 'undefined' || apiKey === 'null' || apiKey === '') {
+        console.error('Gemini API Key missing or empty');
         setMessages(prev => [...prev, { role: 'bot', text: t('ibjjfRules.aiKeyError') }]);
         setIsLoading(false);
         return;
@@ -62,14 +64,18 @@ const IBJJFRules: React.FC = () => {
       
       const ai = new GoogleGenAI({ apiKey });
       const response = await ai.models.generateContent({
-        model: "gemini-3-flash-preview",
-        contents: [{ role: 'user', parts: [{ text: userMessage }] }],
+        model: "gemini-flash-latest",
+        contents: userMessage,
         config: {
           systemInstruction: t('ibjjfRules.aiSystemInstruction')
         }
       });
 
-      setMessages(prev => [...prev, { role: 'bot', text: response.text || t('ibjjfRules.errorProcess') }]);
+      if (!response || !response.text) {
+        throw new Error('Empty response from AI');
+      }
+
+      setMessages(prev => [...prev, { role: 'bot', text: response.text }]);
     } catch (error) {
       console.error('AI Error:', error);
       setMessages(prev => [...prev, { role: 'bot', text: t('ibjjfRules.errorAI') }]);
@@ -108,7 +114,11 @@ const IBJJFRules: React.FC = () => {
   };
 
   return (
-    <div className="space-y-12 animate-in fade-in duration-500 max-w-7xl mx-auto pb-24 px-4 sm:px-0">
+    <motion.div 
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      className="space-y-12 max-w-7xl mx-auto pb-24 px-4 sm:px-0"
+    >
       {/* Simulado Modal */}
       {activeSimulado && (
         <div className="fixed inset-0 bg-slate-900/80 backdrop-blur-xl z-[100] flex items-center justify-center p-4">
@@ -274,15 +284,23 @@ const IBJJFRules: React.FC = () => {
           </div>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+        <motion.div 
+          initial={{ opacity: 0, y: 20 }}
+          whileInView={{ opacity: 1, y: 0 }}
+          viewport={{ once: true }}
+          className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6"
+        >
           {IBJJF_LESSONS.map((lesson, idx) => {
             const IconComponent = (Icons as any)[lesson.icon] || Icons.BookOpen;
-            // First item as a "featured" larger card in the grid
             const isFeatured = idx === 0;
             return (
-              <div 
-                key={lesson.id} 
-                className={`${isFeatured ? 'md:col-span-2 md:row-span-2' : ''} bg-white dark:bg-zinc-900 rounded-[2.5rem] border border-slate-200 dark:border-zinc-800 p-8 flex flex-col justify-between hover:border-blue-600 transition-all group relative overflow-hidden group shadow-sm hover:shadow-2xl`}
+              <motion.div 
+                key={lesson.id}
+                initial={{ opacity: 0, scale: 0.95 }}
+                whileInView={{ opacity: 1, scale: 1 }}
+                viewport={{ once: true }}
+                transition={{ delay: idx * 0.1 }}
+                className={`${isFeatured ? 'md:col-span-2 md:row-span-2' : ''} bg-white dark:bg-zinc-900 rounded-[2.5rem] border border-slate-200 dark:border-zinc-800 p-8 flex flex-col justify-between hover:border-blue-600 transition-all group relative overflow-hidden shadow-sm hover:shadow-2xl`}
               >
                 <div className="relative z-10 space-y-6">
                   <div className="flex items-center justify-between">
@@ -313,10 +331,10 @@ const IBJJFRules: React.FC = () => {
                 {isFeatured && (
                   <div className="absolute top-0 right-0 w-full h-full bg-gradient-to-br from-blue-600/5 to-transparent pointer-events-none" />
                 )}
-              </div>
+              </motion.div>
             );
           })}
-        </div>
+        </motion.div>
       </div>
 
       {/* Case Studies Section */}
@@ -352,9 +370,7 @@ const IBJJFRules: React.FC = () => {
       </div>
 
       <div className="grid grid-cols-1 xl:grid-cols-3 gap-10">
-        {/* Left Column: Graduation System */}
         <div className="xl:col-span-2 space-y-12">
-          {/* Prohibitions Grid - Redesigned as focused modules */}
           <div className="space-y-8">
             <div className="flex items-center gap-4">
               <div className="w-14 h-14 bg-red-600 rounded-2xl flex items-center justify-center text-white shadow-xl shadow-red-600/20">
@@ -399,7 +415,6 @@ const IBJJFRules: React.FC = () => {
             </div>
           </div>
 
-          {/* Graduation Matrix */}
           <div className="bg-white dark:bg-zinc-900 rounded-[3rem] border border-slate-200 dark:border-zinc-800 shadow-xl overflow-hidden">
             <div className="p-10 border-b border-slate-100 dark:border-zinc-800 bg-slate-50/50 dark:bg-zinc-800/20 flex flex-col md:flex-row md:items-center justify-between gap-6">
               <div className="flex items-center gap-5">
@@ -453,7 +468,6 @@ const IBJJFRules: React.FC = () => {
             </div>
           </div>
 
-          {/* Exam Prep Banner */}
           <div className="bg-slate-900 rounded-[3rem] p-12 text-white shadow-2xl relative overflow-hidden group">
             <div className="absolute top-0 right-0 w-full h-full bg-gradient-to-br from-blue-600/20 to-transparent pointer-events-none" />
             <div className="absolute -bottom-20 -right-20 w-80 h-80 bg-blue-600 rounded-full blur-[100px] opacity-20 group-hover:scale-125 transition-transform duration-1000" />
@@ -481,7 +495,6 @@ const IBJJFRules: React.FC = () => {
           </div>
         </div>
 
-        {/* Right Column: AI Sensei Tactical Consultant Interface */}
         <div className="relative">
           <div className="sticky top-24 space-y-6">
             <div className="bg-white dark:bg-zinc-900 rounded-[3.5rem] border border-slate-200 dark:border-zinc-800 shadow-2xl flex flex-col h-[750px] overflow-hidden">
@@ -503,38 +516,55 @@ const IBJJFRules: React.FC = () => {
               </div>
 
               <div className="flex-1 overflow-y-auto p-10 space-y-8 scrollbar-hide">
-                {messages.length === 0 && (
-                  <div className="text-center space-y-6 py-12">
-                    <div className="w-20 h-20 bg-slate-50 dark:bg-zinc-800/50 rounded-3xl flex items-center justify-center mx-auto text-slate-400 border border-slate-100 dark:border-zinc-800">
-                      <MessageSquare size={40} />
-                    </div>
-                    <div className="space-y-2">
-                       <p className="text-xs text-slate-900 dark:text-white font-black uppercase tracking-widest leading-none">Aguardando Consulta</p>
-                       <p className="text-[10px] text-slate-400 font-bold leading-relaxed px-10 italic">
-                         {t('ibjjfRules.chatEmpty')}
-                       </p>
-                    </div>
-                  </div>
-                )}
-                {messages.map((msg, idx) => (
-                  <div key={idx} className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}>
-                    <div className={`max-w-[90%] p-5 rounded-3xl text-sm font-medium leading-relaxed ${
-                      msg.role === 'user' 
-                      ? 'bg-blue-600 text-white rounded-tr-none shadow-xl shadow-blue-600/20' 
-                      : 'bg-slate-50 dark:bg-zinc-800 text-slate-800 dark:text-slate-200 rounded-tl-none border border-slate-100 dark:border-zinc-700 shadow-sm'
-                    }`}>
-                      {msg.text}
-                    </div>
-                  </div>
-                ))}
-                {isLoading && (
-                  <div className="flex justify-start">
-                    <div className="bg-slate-50 dark:bg-zinc-800 p-5 rounded-3xl rounded-tl-none flex items-center gap-3">
-                      <Loader2 size={20} className="animate-spin text-blue-600" />
-                      <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Master is thinking...</span>
-                    </div>
-                  </div>
-                )}
+                <AnimatePresence initial={false}>
+                  {messages.length === 0 && (
+                    <motion.div 
+                      key="empty-state"
+                      initial={{ opacity: 0, scale: 0.9 }}
+                      animate={{ opacity: 1, scale: 1 }}
+                      className="text-center space-y-6 py-12"
+                    >
+                      <div className="w-20 h-20 bg-slate-50 dark:bg-zinc-800/50 rounded-3xl flex items-center justify-center mx-auto text-slate-400 border border-slate-100 dark:border-zinc-800">
+                        <MessageSquare size={40} />
+                      </div>
+                      <div className="space-y-2">
+                         <p className="text-xs text-slate-900 dark:text-white font-black uppercase tracking-widest leading-none">Aguardando Consulta</p>
+                         <p className="text-[10px] text-slate-400 font-bold leading-relaxed px-10 italic">
+                           {t('ibjjfRules.chatEmpty')}
+                         </p>
+                      </div>
+                    </motion.div>
+                  )}
+                  {messages.map((msg, idx) => (
+                    <motion.div 
+                      key={idx} 
+                      initial={{ opacity: 0, x: msg.role === 'user' ? 20 : -20 }}
+                      animate={{ opacity: 1, x: 0 }}
+                      className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}
+                    >
+                      <div className={`max-w-[90%] p-5 rounded-3xl text-sm font-medium leading-relaxed ${
+                        msg.role === 'user' 
+                        ? 'bg-blue-600 text-white rounded-tr-none shadow-xl shadow-blue-600/20' 
+                        : 'bg-slate-50 dark:bg-zinc-800 text-slate-800 dark:text-slate-200 rounded-tl-none border border-slate-100 dark:border-zinc-700 shadow-sm'
+                      }`}>
+                        {msg.text}
+                      </div>
+                    </motion.div>
+                  ))}
+                  {isLoading && (
+                    <motion.div 
+                      key="loading"
+                      initial={{ opacity: 0 }}
+                      animate={{ opacity: 1 }}
+                      className="flex justify-start"
+                    >
+                      <div className="bg-slate-50 dark:bg-zinc-800 p-5 rounded-3xl rounded-tl-none flex items-center gap-3">
+                        <Loader2 size={20} className="animate-spin text-blue-600" />
+                        <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Master is thinking...</span>
+                      </div>
+                    </motion.div>
+                  )}
+                </AnimatePresence>
                 <div ref={chatEndRef} />
               </div>
 
@@ -569,7 +599,7 @@ const IBJJFRules: React.FC = () => {
           </div>
         </div>
       </div>
-    </div>
+    </motion.div>
   );
 };
 
