@@ -1058,7 +1058,7 @@ const StudentPortal: React.FC = () => {
                           url: reader.result as string,
                           title: `${t('portal.trainingCategory')} - ${student.name}`,
                           date: new Date().toISOString().split('T')[0],
-                          category: t('portal.trainingCategory')
+                          category: t('portal.trainingCategory') as any
                         });
                       };
                       reader.readAsDataURL(file);

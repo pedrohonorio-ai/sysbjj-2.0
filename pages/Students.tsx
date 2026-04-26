@@ -102,6 +102,24 @@ const NewStudentModal = ({ onClose, defaultIsKid }: { onClose: () => void, defau
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    
+    // Email and Domain validation
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(formData.email)) {
+      alert(t('students.invalidEmail') || 'O endereço de e-mail inserido é inválido.');
+      return;
+    }
+
+    const domain = formData.email.split('@')[1].toLowerCase();
+    const disallowedDomains = ['tempmail.com', 'trashmail.com', 'guerrillamail.com']; // Example disallowed
+    const allowedDomains = []; // If empty, all domains except disallowed are allowed. 
+                               // For strict mode, you could populate this.
+
+    if (disallowedDomains.includes(domain)) {
+      alert(t('students.disallowedDomain') || 'Este domínio de e-mail não é permitido por razões de segurança.');
+      return;
+    }
+
     try {
       await addStudent({
         ...formData,

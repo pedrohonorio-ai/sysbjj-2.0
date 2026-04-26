@@ -54,15 +54,16 @@ const IBJJFRules: React.FC = () => {
 
     try {
       const apiKey = process.env.GEMINI_API_KEY;
-      if (!apiKey || apiKey === 'undefined' || apiKey === 'null' || apiKey.trim() === '') {
+      if (!apiKey || apiKey === 'undefined' || apiKey === 'null') {
         setMessages(prev => [...prev, { role: 'bot', text: t('ibjjfRules.aiKeyError') }]);
         setIsLoading(false);
         return;
       }
-      const ai = new GoogleGenAI({ apiKey: apiKey.trim() });
+      
+      const ai = new GoogleGenAI({ apiKey });
       const response = await ai.models.generateContent({
-        model: "gemini-1.5-flash",
-        contents: userMessage,
+        model: "gemini-3-flash-preview",
+        contents: [{ role: 'user', parts: [{ text: userMessage }] }],
         config: {
           systemInstruction: t('ibjjfRules.aiSystemInstruction')
         }
