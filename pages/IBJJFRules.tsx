@@ -188,71 +188,131 @@ const IBJJFRules: React.FC = () => {
       )}
 
       {/* Header Section */}
-      <div className="flex flex-col lg:flex-row items-start lg:items-center justify-between gap-8">
-        <div className="space-y-2">
-          <div className="flex items-center gap-3 text-blue-600 mb-2">
-            <Scale size={24} />
-            <span className="text-[10px] font-black uppercase tracking-[0.3em]">{t('ibjjfRules.officialRegulation')}</span>
+      <div className="relative group">
+        <div className="absolute inset-0 bg-gradient-to-r from-blue-600/10 to-transparent blur-3xl opacity-50 rounded-[4rem]" />
+        <div className="relative flex flex-col lg:flex-row items-start lg:items-end justify-between gap-8 pb-8 border-b border-slate-100 dark:border-slate-800">
+          <div className="space-y-4 max-w-2xl">
+            <div className="flex items-center gap-3 text-blue-600">
+              <div className="w-10 h-10 bg-blue-600/10 rounded-xl flex items-center justify-center">
+                <Scale size={20} />
+              </div>
+              <span className="text-[10px] font-black uppercase tracking-[0.3em]">{t('ibjjfRules.officialRegulation')}</span>
+            </div>
+            <h1 className="text-6xl font-black text-slate-900 dark:text-white tracking-tighter uppercase leading-none">
+              {t('ibjjfRules.title')}
+            </h1>
+            <p className="text-slate-500 font-medium italic text-lg leading-relaxed">
+              {t('ibjjfRules.subtitle')}
+            </p>
           </div>
-          <h1 className="text-5xl font-black text-slate-900 dark:text-white tracking-tighter uppercase leading-none">{t('ibjjfRules.title')}</h1>
-          <p className="text-slate-500 font-medium italic text-lg">{t('ibjjfRules.subtitle')}</p>
-        </div>
-        <div className="flex flex-wrap gap-4">
-          <a 
-            href="https://cbjj.com.br/rules" 
-            target="_blank" 
-            rel="noopener noreferrer"
-            className="bg-slate-900 dark:bg-white dark:text-slate-900 text-white px-8 py-5 rounded-[1.8rem] flex items-center gap-3 shadow-2xl hover:scale-105 transition-all font-black text-[10px] uppercase tracking-widest"
-          >
-            <BookOpen size={20} />
-            {t('ibjjfRules.rulesPdf')}
-          </a>
+          <div className="flex flex-wrap gap-4 shrink-0">
+            <a 
+              href="https://cbjj.com.br/rules" 
+              target="_blank" 
+              rel="noopener noreferrer"
+              className="bg-slate-900 dark:bg-white dark:text-slate-900 text-white px-10 py-6 rounded-3xl flex items-center gap-4 shadow-2xl hover:bg-blue-600 hover:text-white dark:hover:bg-blue-600 transition-all font-black text-xs uppercase tracking-widest group"
+            >
+              <BookOpen size={20} className="group-hover:rotate-12 transition-transform" />
+              {t('ibjjfRules.rulesPdf')}
+              <ArrowRight size={16} className="opacity-50" />
+            </a>
+          </div>
         </div>
       </div>
 
-      {/* Academy Specific Rules Section */}
-      <div className="bg-white dark:bg-slate-900 rounded-[3rem] border border-slate-200 dark:border-slate-800 shadow-xl overflow-hidden">
-        <div className="p-8 sm:p-10 border-b border-slate-100 dark:border-slate-800 bg-blue-600/5 flex items-center gap-4">
-          <div className="w-14 h-14 bg-white dark:bg-slate-800 rounded-2xl flex items-center justify-center text-blue-600 shadow-lg shrink-0">
-            <Shield size={32} />
+      {/* Internal Rules Bento Section */}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+        <div className="lg:col-span-2 bg-white dark:bg-slate-900 rounded-[3rem] border border-slate-200 dark:border-slate-800 shadow-xl overflow-hidden group">
+          <div className="p-10 border-b border-slate-100 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-800/30 flex items-center justify-between">
+            <div className="flex items-center gap-5">
+              <div className="w-16 h-16 bg-white dark:bg-slate-800 rounded-2xl flex items-center justify-center text-blue-600 shadow-lg border border-slate-100 dark:border-slate-700">
+                <Shield size={32} />
+              </div>
+              <div>
+                <h2 className="text-2xl font-black text-slate-900 dark:text-white uppercase tracking-tighter leading-none">{profile.academyName}</h2>
+                <p className="text-slate-400 font-bold uppercase tracking-widest text-[9px] mt-2">{t('ibjjfRules.internalRules')}</p>
+              </div>
+            </div>
+            <div className="hidden sm:flex items-center gap-1.5 px-4 py-2 bg-blue-600/10 text-blue-600 rounded-full border border-blue-600/20 text-[9px] font-black uppercase tracking-widest">
+              <CheckCircle2 size={12} /> {t('ibjjfRules.verifiedSystem')}
+            </div>
           </div>
-          <div>
-            <h2 className="text-2xl font-black text-slate-900 dark:text-white uppercase tracking-tighter leading-none">{profile.academyName} - {t('ibjjfRules.internalRules')}</h2>
-            <p className="text-slate-500 font-bold uppercase tracking-widest text-[10px] mt-2">{t('ibjjfRules.graduationCriteria')}</p>
+          <div className="p-12 prose dark:prose-invert max-w-none prose-slate prose-headings:uppercase prose-headings:tracking-tighter prose-headings:font-black prose-p:font-medium prose-p:text-slate-600 dark:prose-p:text-slate-400 prose-li:font-medium">
+            <ReactMarkdown>{profile.graduationRules || t('ibjjfRules.noInternalRules')}</ReactMarkdown>
           </div>
         </div>
-        <div className="p-8 sm:p-10 prose dark:prose-invert max-w-none prose-slate prose-headings:uppercase prose-headings:tracking-tighter prose-headings:font-black prose-p:font-medium prose-p:text-slate-600 dark:prose-p:text-slate-400">
-          <ReactMarkdown>{profile.graduationRules || t('ibjjfRules.noInternalRules')}</ReactMarkdown>
+
+        <div className="bg-slate-900 rounded-[3rem] p-10 text-white relative overflow-hidden flex flex-col justify-between group shadow-2xl">
+          <div className="absolute top-0 right-0 w-64 h-64 bg-blue-600 rounded-full blur-[100px] opacity-20 -translate-y-1/2 translate-x-1/2 group-hover:scale-110 transition-transform duration-700" />
+          <div className="relative z-10 space-y-6">
+            <div className="w-16 h-16 bg-white/10 backdrop-blur-md rounded-2xl flex items-center justify-center border border-white/10">
+              <Clock size={32} className="text-blue-400" />
+            </div>
+            <div className="space-y-4">
+              <h4 className="text-3xl font-black uppercase tracking-tighter leading-none">{t('ibjjfRules.ageCalcTitle')}</h4>
+              <p className="text-slate-400 text-sm font-medium leading-relaxed">
+                {t('ibjjfRules.ageCalcDesc')}
+              </p>
+            </div>
+          </div>
+          <div className="relative z-10 pt-10 border-t border-white/5 mt-10">
+            <p className="text-[10px] font-black text-blue-400 uppercase tracking-[0.3em] mb-2">{t('ibjjfRules.currentPeriod')}</p>
+            <p className="text-3xl font-black tabular-nums">{new Date().getFullYear()}</p>
+          </div>
         </div>
       </div>
 
-      {/* Rules Academy Section */}
-      <div className="space-y-8">
-        <div className="flex items-center justify-between">
-          <div className="space-y-1">
-            <h2 className="text-3xl font-black text-slate-900 dark:text-white uppercase tracking-tighter">{t('ibjjfRules.rulesAcademyTitle')}</h2>
-            <p className="text-slate-500 font-medium italic">{t('ibjjfRules.rulesAcademySmallDesc')}</p>
+      {/* Rules Academy Hub */}
+      <div className="space-y-10 py-10">
+        <div className="flex flex-col md:flex-row md:items-end justify-between gap-6">
+          <div className="space-y-3">
+            <div className="flex items-center gap-3">
+              <h2 className="text-5xl font-black text-slate-900 dark:text-white uppercase tracking-tighter">{t('ibjjfRules.rulesAcademyTitle')}</h2>
+              <span className="px-3 py-1 bg-green-500/10 text-green-500 rounded-full border border-green-500/20 text-[8px] font-black tracking-widest uppercase">Mastery Course</span>
+            </div>
+            <p className="text-slate-500 font-medium italic text-lg">{t('ibjjfRules.rulesAcademySmallDesc')}</p>
           </div>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-          {IBJJF_LESSONS.map((lesson) => {
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+          {IBJJF_LESSONS.map((lesson, idx) => {
             const IconComponent = (Icons as any)[lesson.icon] || Icons.BookOpen;
+            // First item as a "featured" larger card in the grid
+            const isFeatured = idx === 0;
             return (
-              <div key={lesson.id} className="bg-white dark:bg-slate-900 p-8 rounded-[3rem] border border-slate-200 dark:border-slate-800 shadow-sm hover:shadow-xl transition-all group relative overflow-hidden">
-                <div className="absolute top-0 right-0 w-24 h-24 bg-blue-600/5 rounded-full blur-3xl -translate-y-1/2 translate-x-1/2" />
-                <div className="flex items-start gap-5 relative z-10">
-                  <div className="w-14 h-14 bg-blue-50 dark:bg-blue-900/20 rounded-2xl flex items-center justify-center text-blue-600 shrink-0 group-hover:scale-110 transition-transform">
-                    <IconComponent size={28} />
-                  </div>
-                  <div className="space-y-3">
-                    <div className="flex items-center justify-between">
-                      <span className="text-[9px] font-black text-blue-600 uppercase tracking-widest bg-blue-50 dark:bg-blue-900/20 px-3 py-1 rounded-full">{t(`portal.categories.${lesson.category.toLowerCase()}`)}</span>
+              <div 
+                key={lesson.id} 
+                className={`${isFeatured ? 'md:col-span-2 md:row-span-2' : ''} bg-white dark:bg-zinc-900 rounded-[2.5rem] border border-slate-200 dark:border-zinc-800 p-8 flex flex-col justify-between hover:border-blue-600 transition-all group relative overflow-hidden group shadow-sm hover:shadow-2xl`}
+              >
+                <div className="relative z-10 space-y-6">
+                  <div className="flex items-center justify-between">
+                    <div className={`${isFeatured ? 'w-16 h-16 bg-blue-600 text-white' : 'w-12 h-12 bg-blue-50 dark:bg-blue-900/20 text-blue-600'} rounded-2xl flex items-center justify-center transition-transform group-hover:scale-110 shadow-lg`}>
+                      <IconComponent size={isFeatured ? 32 : 24} />
                     </div>
-                    <h3 className="text-lg font-black text-slate-900 dark:text-white uppercase tracking-tight leading-tight">{lesson.title}</h3>
-                    <p className="text-xs text-slate-500 dark:text-slate-400 font-medium leading-relaxed">{lesson.content}</p>
+                    <span className="text-[8px] font-black text-slate-400 uppercase tracking-widest">LEV 0{idx + 1}</span>
+                  </div>
+                  <div className="space-y-4">
+                    <div className="flex items-center gap-2">
+                      <span className="px-2 py-0.5 bg-blue-600/10 text-blue-600 text-[8px] font-black uppercase tracking-widest rounded-md border border-blue-600/10">
+                        {t(`portal.categories.${lesson.category.toLowerCase()}`)}
+                      </span>
+                    </div>
+                    <h3 className={`${isFeatured ? 'text-3xl' : 'text-xl'} font-black text-slate-900 dark:text-white uppercase tracking-tight leading-none`}>
+                      {lesson.title}
+                    </h3>
+                    <p className={`${isFeatured ? 'text-sm' : 'text-[11px]'} text-slate-500 dark:text-slate-400 font-medium leading-relaxed italic`}>
+                      {lesson.content}
+                    </p>
                   </div>
                 </div>
+                <div className="relative z-10 pt-8 mt-auto group-hover:translate-x-2 transition-transform">
+                  <div className="w-10 h-10 bg-slate-50 dark:bg-zinc-800 rounded-full flex items-center justify-center text-slate-400 group-hover:text-blue-600 group-hover:bg-blue-50 dark:group-hover:bg-blue-900/20 border border-slate-100 dark:border-zinc-700">
+                    <ArrowRight size={18} />
+                  </div>
+                </div>
+                {isFeatured && (
+                  <div className="absolute top-0 right-0 w-full h-full bg-gradient-to-br from-blue-600/5 to-transparent pointer-events-none" />
+                )}
               </div>
             );
           })}
@@ -260,205 +320,252 @@ const IBJJFRules: React.FC = () => {
       </div>
 
       {/* Case Studies Section */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-        {ruleCases.map((c, idx) => (
-          <div key={idx} className="bg-white dark:bg-slate-900 p-8 rounded-[2.5rem] border border-slate-200 dark:border-slate-800 shadow-sm hover:shadow-xl transition-all group">
-            <div className="w-12 h-12 bg-blue-50 dark:bg-blue-900/20 rounded-2xl flex items-center justify-center text-blue-600 mb-6 group-hover:scale-110 transition-transform">
-              {c.icon}
+      <div className="space-y-6">
+        <div className="flex items-center gap-3">
+          <Scale size={24} className="text-blue-600" />
+          <h2 className="text-3xl font-black text-slate-900 dark:text-white uppercase tracking-tighter">Tactical Scenarios</h2>
+        </div>
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          {ruleCases.map((c, idx) => (
+            <div key={idx} className="bg-white dark:bg-slate-900 p-8 rounded-[2.5rem] border border-slate-200 dark:border-slate-800 shadow-sm hover:shadow-xl transition-all group border-b-4 border-b-blue-600">
+              <div className="flex items-center justify-between mb-6">
+                <div className="w-12 h-12 bg-blue-50 dark:bg-blue-900/20 rounded-2xl flex items-center justify-center text-blue-600 group-hover:scale-110 transition-transform">
+                  <Icons.Zap size={24} />
+                </div>
+                <div className="flex items-center gap-2">
+                  <AlertTriangle size={14} className="text-red-500" />
+                  <span className="text-[10px] font-black text-red-500 uppercase tracking-widest">{c.penalty}</span>
+                </div>
+              </div>
+              <h3 className="text-lg font-black text-slate-900 dark:text-white uppercase tracking-tight mb-3 leading-tight">{c.title}</h3>
+              <p className="text-xs text-slate-500 dark:text-slate-400 font-medium mb-6 leading-relaxed italic line-clamp-3">{c.scenario}</p>
+              <div className="p-5 bg-slate-50 dark:bg-slate-800/50 rounded-2xl border border-slate-100 dark:border-slate-800 group-hover:border-blue-600/30 transition-colors">
+                <div className="flex items-center gap-2 mb-2">
+                  <div className="w-1 h-1 bg-blue-600 rounded-full" />
+                  <p className="text-[9px] font-black text-blue-600 uppercase tracking-widest">{t('ibjjfRules.officialRule')}</p>
+                </div>
+                <p className="text-[11px] font-bold text-slate-700 dark:text-slate-300 leading-snug">{c.rule}</p>
+              </div>
             </div>
-            <h3 className="text-lg font-black text-slate-900 dark:text-white uppercase tracking-tight mb-2">{c.title}</h3>
-            <p className="text-xs text-slate-500 dark:text-slate-400 font-medium mb-4 leading-relaxed">{c.scenario}</p>
-            <div className="p-4 bg-slate-50 dark:bg-slate-800 rounded-2xl border border-slate-100 dark:border-slate-700">
-              <p className="text-[9px] font-black text-blue-600 uppercase tracking-widest mb-1">{t('ibjjfRules.officialRule')}</p>
-              <p className="text-[11px] font-bold text-slate-700 dark:text-slate-300 leading-snug">{c.rule}</p>
-            </div>
-            <div className="mt-4 flex items-center gap-2">
-              <AlertTriangle size={14} className="text-red-500" />
-              <span className="text-[10px] font-black text-red-500 uppercase tracking-widest">{c.penalty}</span>
-            </div>
-          </div>
-        ))}
+          ))}
+        </div>
       </div>
 
       <div className="grid grid-cols-1 xl:grid-cols-3 gap-10">
         {/* Left Column: Graduation System */}
-        <div className="xl:col-span-2 space-y-10">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-            {/* Adult System */}
-            <div className="space-y-6">
-              <div className="flex items-center gap-4 p-4 bg-slate-100 dark:bg-slate-800/50 rounded-[2rem]">
-                <div className="w-12 h-12 bg-blue-600 rounded-2xl flex items-center justify-center text-white shadow-lg">
-                  <GraduationCap size={24} />
-                </div>
-                <h2 className="text-xl font-black text-slate-900 dark:text-white uppercase tracking-tighter">{t('ibjjfRules.adultSystem')}</h2>
+        <div className="xl:col-span-2 space-y-12">
+          {/* Prohibitions Grid - Redesigned as focused modules */}
+          <div className="space-y-8">
+            <div className="flex items-center gap-4">
+              <div className="w-14 h-14 bg-red-600 rounded-2xl flex items-center justify-center text-white shadow-xl shadow-red-600/20">
+                <AlertTriangle size={28} />
               </div>
-              <div className="space-y-4">
-                {adultRules.map((rule) => (
-                  <div key={rule.belt} className="bg-white dark:bg-slate-900 p-6 rounded-[2.2rem] border border-slate-200 dark:border-slate-800 shadow-sm hover:shadow-md transition-all">
-                    <div className="flex items-center justify-between mb-3">
-                      <div className="flex items-center gap-3">
-                        <div className={`w-8 h-8 rounded-lg flex items-center justify-center font-black text-[10px] border ${rule.belt === 'White' ? 'bg-white text-slate-400 border-slate-200' : rule.belt === 'Blue' ? 'bg-blue-600 text-white' : rule.belt === 'Purple' ? 'bg-purple-700 text-white' : rule.belt === 'Brown' ? 'bg-amber-900 text-white' : 'bg-slate-900 text-white'}`}>
-                          {rule.belt[0]}
-                        </div>
-                        <h3 className="font-black text-slate-900 dark:text-white uppercase tracking-tight">{t(`belts.${rule.belt}`)}</h3>
-                      </div>
-                      <span className="text-[9px] font-black text-blue-600 dark:text-blue-400 uppercase tracking-widest bg-blue-50 dark:bg-blue-900/20 px-3 py-1 rounded-full">{rule.minTime}</span>
-                    </div>
-                    <p className="text-xs text-slate-500 dark:text-slate-400 font-medium leading-relaxed">{rule.description}</p>
-                  </div>
-                ))}
+              <div className="space-y-1">
+                <h2 className="text-3xl font-black text-slate-900 dark:text-white uppercase tracking-tighter">{t('ibjjfRules.prohibitedTechniques')}</h2>
+                <p className="text-red-500 text-[10px] font-black uppercase tracking-[0.2em]">Restricted Actions & Penalties</p>
               </div>
             </div>
-
-            {/* Prohibitions */}
-            <div className="space-y-6">
-              <div className="flex items-center gap-4 p-4 bg-red-50 dark:bg-red-900/10 rounded-[2rem]">
-                <div className="w-12 h-12 bg-red-600 rounded-2xl flex items-center justify-center text-white shadow-lg">
-                  <AlertTriangle size={24} />
-                </div>
-                <h2 className="text-xl font-black text-slate-900 dark:text-white uppercase tracking-tighter">{t('ibjjfRules.prohibitedTechniques')}</h2>
-              </div>
-              <div className="space-y-6">
-                {prohibitedTechniques.map((cat) => (
-                  <div key={cat.category} className="bg-white dark:bg-slate-900 rounded-[2.5rem] border border-slate-200 dark:border-slate-800 overflow-hidden group">
-                    <div className="aspect-video relative overflow-hidden">
-                      <img 
-                        src={cat.image} 
-                        alt={cat.category} 
-                        className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
-                        referrerPolicy="no-referrer"
-                      />
-                      <div className="absolute inset-0 bg-gradient-to-t from-slate-900/80 to-transparent" />
-                      <h4 className="absolute bottom-4 left-6 text-sm font-black text-white uppercase tracking-widest">{cat.category}</h4>
-                    </div>
-                    <div className="p-8">
-                      <ul className="space-y-3">
-                        {cat.items.map(item => (
-                          <li key={item} className="flex items-center gap-3 text-xs font-bold text-slate-600 dark:text-slate-400">
-                            <X size={14} className="text-red-500" />
-                            {item}
-                          </li>
-                        ))}
-                      </ul>
+            
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+              {prohibitedTechniques.map((cat) => (
+                <div key={cat.category} className="bg-white dark:bg-slate-900 rounded-[3rem] border border-slate-200 dark:border-slate-800 shadow-xl overflow-hidden group">
+                  <div className="aspect-[16/10] relative overflow-hidden">
+                    <img 
+                      src={cat.image} 
+                      alt={cat.category} 
+                      className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-1000"
+                      referrerPolicy="no-referrer"
+                    />
+                    <div className="absolute inset-0 bg-gradient-to-t from-slate-900 via-slate-900/40 to-transparent" />
+                    <div className="absolute bottom-6 left-8">
+                      <span className="text-[8px] font-black text-red-500 uppercase tracking-widest bg-white rounded-full px-3 py-1 mb-2 inline-block">Prohibited</span>
+                      <h4 className="text-xl font-black text-white uppercase tracking-tighter">{cat.category}</h4>
                     </div>
                   </div>
-                ))}
-              </div>
+                  <div className="p-10">
+                    <ul className="space-y-4">
+                      {cat.items.map(item => (
+                        <li key={item} className="flex items-start gap-4 text-xs font-bold text-slate-600 dark:text-slate-400 group/item">
+                          <div className="mt-0.5 shrink-0 w-5 h-5 rounded-full bg-red-50 dark:bg-red-900/20 flex items-center justify-center text-red-500 border border-red-100 dark:border-red-900/30 group-hover/item:scale-110 transition-transform">
+                            <X size={12} />
+                          </div>
+                          <span className="leading-relaxed">{item}</span>
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                </div>
+              ))}
             </div>
           </div>
 
-          {/* Age Calculation Info */}
-          <div className="bg-slate-900 rounded-[3rem] p-10 text-white relative overflow-hidden">
-            <div className="absolute top-0 right-0 w-64 h-64 bg-blue-600 rounded-full blur-[100px] opacity-20 -translate-y-1/2 translate-x-1/2" />
-            <div className="relative z-10 flex flex-col md:flex-row gap-10 items-center">
-              <div className="w-20 h-20 bg-white/10 rounded-3xl flex items-center justify-center shrink-0">
-                <Clock size={40} className="text-blue-400" />
-              </div>
-              <div className="space-y-2">
-                <h4 className="text-2xl font-black uppercase tracking-tighter">{t('ibjjfRules.ageCalcTitle')}</h4>
-                <p className="text-slate-400 text-sm font-medium leading-relaxed">
-                  {t('ibjjfRules.ageCalcDesc')}
-                </p>
-              </div>
-            </div>
-          </div>
-
-          {/* Exam Prep Section */}
-          <div className="bg-gradient-to-br from-blue-600 to-cyan-600 rounded-[3rem] p-10 text-white shadow-2xl relative overflow-hidden group">
-            <div className="absolute top-0 right-0 w-64 h-64 bg-white rounded-full blur-[100px] opacity-10 -translate-y-1/2 translate-x-1/2" />
-            <div className="relative z-10">
-              <div className="flex items-center gap-4 mb-6">
-                <div className="w-16 h-16 bg-white/20 backdrop-blur-md rounded-2xl flex items-center justify-center">
-                  <Trophy size={32} />
+          {/* Graduation Matrix */}
+          <div className="bg-white dark:bg-zinc-900 rounded-[3rem] border border-slate-200 dark:border-zinc-800 shadow-xl overflow-hidden">
+            <div className="p-10 border-b border-slate-100 dark:border-zinc-800 bg-slate-50/50 dark:bg-zinc-800/20 flex flex-col md:flex-row md:items-center justify-between gap-6">
+              <div className="flex items-center gap-5">
+                <div className="w-16 h-16 bg-blue-600 rounded-3xl flex items-center justify-center text-white shadow-2xl">
+                  <GraduationCap size={32} />
                 </div>
                 <div>
-                  <h3 className="text-3xl font-black uppercase tracking-tighter leading-none mb-1">{t('ibjjfRules.examPrep')}</h3>
-                  <p className="text-blue-100 text-sm font-medium">{t('ibjjfRules.examDesc')}</p>
+                  <h2 className="text-3xl font-black text-slate-900 dark:text-white uppercase tracking-tighter leading-none">{t('ibjjfRules.adultSystem')}</h2>
+                  <p className="text-slate-500 font-bold uppercase tracking-widest text-[9px] mt-2">Professional Grading Guidelines</p>
                 </div>
               </div>
-              
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                {simulados.map((simu: any, idx: number) => (
-                  <div 
-                    key={simu.id}
-                    onClick={() => startSimulado(simu.id)}
-                    className="bg-white/10 backdrop-blur-md p-6 rounded-2xl border border-white/10 hover:bg-white/20 transition-all cursor-pointer"
-                  >
-                    <p className="text-[10px] font-black text-blue-200 uppercase tracking-widest mb-2">{t('ibjjfRules.simulatedPrep')} {idx + 1}</p>
-                    <p className="font-black uppercase tracking-tight">{simu.title}</p>
-                  </div>
-                ))}
+            </div>
+            <div className="overflow-x-auto">
+              <table className="w-full text-left border-collapse">
+                <thead>
+                  <tr className="bg-slate-50 dark:bg-zinc-800/40">
+                    <th className="px-10 py-5 text-[10px] font-black text-slate-400 uppercase tracking-widest border-b border-slate-100 dark:border-zinc-800">Belt Rank</th>
+                    <th className="px-10 py-5 text-[10px] font-black text-slate-400 uppercase tracking-widest border-b border-slate-100 dark:border-zinc-800 text-center">Minimum Time</th>
+                    <th className="px-10 py-5 text-[10px] font-black text-slate-400 uppercase tracking-widest border-b border-slate-100 dark:border-zinc-800">Requirements & Mastery</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-slate-50 dark:divide-zinc-800">
+                  {adultRules.map((rule) => (
+                    <tr key={rule.belt} className="group hover:bg-slate-50/50 dark:hover:bg-zinc-800/20 transition-colors">
+                      <td className="px-10 py-8">
+                        <div className="flex items-center gap-4">
+                          <div className={`w-12 h-4 rounded-sm shadow-sm border ${
+                            rule.belt === 'White' ? 'bg-white border-slate-200' : 
+                            rule.belt === 'Blue' ? 'bg-blue-600 border-blue-700' : 
+                            rule.belt === 'Purple' ? 'bg-purple-700 border-purple-800' : 
+                            rule.belt === 'Brown' ? 'bg-amber-900 border-amber-950' : 
+                            'bg-slate-900 border-slate-800'
+                          }`} />
+                          <h3 className="font-black text-slate-900 dark:text-white uppercase tracking-tight text-lg">{t(`belts.${rule.belt}`)}</h3>
+                        </div>
+                      </td>
+                      <td className="px-10 py-8 text-center">
+                        <span className="px-4 py-1.5 bg-blue-600/10 text-blue-600 rounded-full text-[10px] font-black uppercase tracking-widest border border-blue-600/10">
+                          {rule.minTime}
+                        </span>
+                      </td>
+                      <td className="px-10 py-8">
+                        <p className="text-xs text-slate-500 dark:text-slate-400 font-medium leading-relaxed max-w-sm">
+                          {rule.description}
+                        </p>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </div>
+
+          {/* Exam Prep Banner */}
+          <div className="bg-slate-900 rounded-[3rem] p-12 text-white shadow-2xl relative overflow-hidden group">
+            <div className="absolute top-0 right-0 w-full h-full bg-gradient-to-br from-blue-600/20 to-transparent pointer-events-none" />
+            <div className="absolute -bottom-20 -right-20 w-80 h-80 bg-blue-600 rounded-full blur-[100px] opacity-20 group-hover:scale-125 transition-transform duration-1000" />
+            <div className="relative z-10 flex flex-col md:flex-row items-center gap-10">
+              <div className="w-20 h-20 bg-white/10 backdrop-blur-md rounded-2xl flex items-center justify-center border border-white/10 shrink-0 group-hover:rotate-6 transition-transform">
+                <Trophy size={40} className="text-blue-400" />
+              </div>
+              <div className="flex-1 space-y-4 text-center md:text-left">
+                <h3 className="text-4xl font-black uppercase tracking-tighter leading-none">{t('ibjjfRules.examPrep')}</h3>
+                <p className="text-slate-400 font-medium leading-relaxed max-w-xl">{t('ibjjfRules.examDesc')}</p>
+                <div className="pt-4 flex flex-wrap gap-4 justify-center md:justify-start">
+                  {simulados.map((simu: any, idx: number) => (
+                    <button 
+                      key={simu.id}
+                      onClick={() => startSimulado(simu.id)}
+                      className="px-6 py-3 bg-white/10 hover:bg-white/20 rounded-xl border border-white/10 transition-all font-black text-[10px] uppercase tracking-widest flex items-center gap-2"
+                    >
+                      <ArrowRight size={14} className="text-blue-400" />
+                      {simu.title}
+                    </button>
+                  ))}
+                </div>
               </div>
             </div>
           </div>
         </div>
 
-        {/* Right Column: AI Sensei Chat */}
-        <div className="space-y-6">
-          <div className="bg-white dark:bg-slate-900 rounded-[3rem] border border-slate-200 dark:border-slate-800 shadow-2xl flex flex-col h-[700px] sticky top-24">
-            <div className="p-8 border-b border-slate-100 dark:border-slate-800 flex items-center gap-4">
-              <div className="w-12 h-12 bg-blue-600 rounded-2xl flex items-center justify-center text-white shadow-lg">
-                <Bot size={24} />
+        {/* Right Column: AI Sensei Tactical Consultant Interface */}
+        <div className="relative">
+          <div className="sticky top-24 space-y-6">
+            <div className="bg-white dark:bg-zinc-900 rounded-[3.5rem] border border-slate-200 dark:border-zinc-800 shadow-2xl flex flex-col h-[750px] overflow-hidden">
+              <div className="p-10 border-b border-slate-100 dark:border-zinc-800 bg-slate-50/50 dark:bg-zinc-800/30">
+                <div className="flex items-center gap-5">
+                  <div className="relative">
+                    <div className="w-16 h-16 bg-blue-600 rounded-2xl flex items-center justify-center text-white shadow-xl shadow-blue-600/30">
+                      <Bot size={32} />
+                    </div>
+                    <div className="absolute -bottom-1 -right-1 w-5 h-5 bg-green-500 rounded-full border-4 border-white dark:border-zinc-900" />
+                  </div>
+                  <div>
+                    <h3 className="text-xl font-black text-slate-900 dark:text-white uppercase tracking-tight">{t('ibjjfRules.digitalSensei')}</h3>
+                    <div className="flex items-center gap-2 mt-1">
+                       <span className="px-2 py-0.5 bg-green-500/10 text-green-500 text-[8px] font-black uppercase tracking-widest rounded border border-green-500/10">Tactical Online</span>
+                    </div>
+                  </div>
+                </div>
               </div>
-              <div>
-                <h3 className="text-lg font-black text-slate-900 dark:text-white uppercase tracking-tight">{t('ibjjfRules.digitalSensei')}</h3>
-                <p className="text-[10px] font-black text-green-500 uppercase tracking-widest flex items-center gap-1.5">
-                  <span className="w-1.5 h-1.5 bg-green-500 rounded-full animate-pulse" />
-                  {t('ibjjfRules.rulesExpert')}
-                </p>
-              </div>
-            </div>
 
-            <div className="flex-1 overflow-y-auto p-8 space-y-6 scrollbar-hide">
-              {messages.length === 0 && (
-                <div className="text-center space-y-4 py-10">
-                  <div className="w-16 h-16 bg-slate-50 dark:bg-slate-800 rounded-full flex items-center justify-center mx-auto text-slate-400">
-                    <MessageSquare size={32} />
+              <div className="flex-1 overflow-y-auto p-10 space-y-8 scrollbar-hide">
+                {messages.length === 0 && (
+                  <div className="text-center space-y-6 py-12">
+                    <div className="w-20 h-20 bg-slate-50 dark:bg-zinc-800/50 rounded-3xl flex items-center justify-center mx-auto text-slate-400 border border-slate-100 dark:border-zinc-800">
+                      <MessageSquare size={40} />
+                    </div>
+                    <div className="space-y-2">
+                       <p className="text-xs text-slate-900 dark:text-white font-black uppercase tracking-widest leading-none">Aguardando Consulta</p>
+                       <p className="text-[10px] text-slate-400 font-bold leading-relaxed px-10 italic">
+                         {t('ibjjfRules.chatEmpty')}
+                       </p>
+                    </div>
                   </div>
-                  <p className="text-xs text-slate-400 font-bold uppercase tracking-widest leading-relaxed px-10">
-                    {t('ibjjfRules.chatEmpty')}
-                  </p>
-                </div>
-              )}
-              {messages.map((msg, idx) => (
-                <div key={idx} className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}>
-                  <div className={`max-w-[85%] p-4 rounded-2xl text-sm font-medium leading-relaxed ${
-                    msg.role === 'user' 
-                    ? 'bg-blue-600 text-white rounded-tr-none shadow-lg' 
-                    : 'bg-slate-100 dark:bg-slate-800 text-slate-800 dark:text-slate-200 rounded-tl-none'
-                  }`}>
-                    {msg.text}
+                )}
+                {messages.map((msg, idx) => (
+                  <div key={idx} className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}>
+                    <div className={`max-w-[90%] p-5 rounded-3xl text-sm font-medium leading-relaxed ${
+                      msg.role === 'user' 
+                      ? 'bg-blue-600 text-white rounded-tr-none shadow-xl shadow-blue-600/20' 
+                      : 'bg-slate-50 dark:bg-zinc-800 text-slate-800 dark:text-slate-200 rounded-tl-none border border-slate-100 dark:border-zinc-700 shadow-sm'
+                    }`}>
+                      {msg.text}
+                    </div>
                   </div>
-                </div>
-              ))}
-              {isLoading && (
-                <div className="flex justify-start">
-                  <div className="bg-slate-100 dark:bg-slate-800 p-4 rounded-2xl rounded-tl-none">
-                    <Loader2 size={20} className="animate-spin text-blue-600" />
+                ))}
+                {isLoading && (
+                  <div className="flex justify-start">
+                    <div className="bg-slate-50 dark:bg-zinc-800 p-5 rounded-3xl rounded-tl-none flex items-center gap-3">
+                      <Loader2 size={20} className="animate-spin text-blue-600" />
+                      <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Master is thinking...</span>
+                    </div>
                   </div>
-                </div>
-              )}
-              <div ref={chatEndRef} />
-            </div>
-
-            <form onSubmit={handleSendMessage} className="p-6 bg-slate-50 dark:bg-slate-800/50 border-t border-slate-100 dark:border-slate-800 rounded-b-[3rem]">
-              <div className="relative">
-                <input 
-                  type="text" 
-                  placeholder={t('ibjjfRules.chatPlaceholder')}
-                  className="w-full pl-6 pr-14 py-4 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-2xl outline-none focus:ring-2 focus:ring-blue-600 dark:text-white font-bold text-sm"
-                  value={chatInput}
-                  onChange={e => setChatInput(e.target.value)}
-                />
-                <button 
-                  type="submit"
-                  disabled={isLoading}
-                  className="absolute right-2 top-1/2 -translate-y-1/2 p-3 bg-blue-600 text-white rounded-xl hover:bg-blue-700 transition-all shadow-lg disabled:opacity-50"
-                >
-                  <Send size={18} />
-                </button>
+                )}
+                <div ref={chatEndRef} />
               </div>
-            </form>
+
+              <form onSubmit={handleSendMessage} className="p-8 bg-slate-50 dark:bg-zinc-800/30 border-t border-slate-100 dark:border-zinc-800">
+                <div className="relative group/input">
+                  <input 
+                    type="text" 
+                    placeholder={t('ibjjfRules.chatPlaceholder')}
+                    className="w-full pl-6 pr-16 py-5 bg-white dark:bg-zinc-900 border border-slate-200 dark:border-zinc-700 rounded-2xl outline-none focus:ring-2 focus:ring-blue-600 transition-all font-bold text-sm shadow-inner"
+                    value={chatInput}
+                    onChange={e => setChatInput(e.target.value)}
+                  />
+                  <button 
+                    type="submit"
+                    disabled={isLoading}
+                    className="absolute right-3 top-1/2 -translate-y-1/2 w-12 h-12 bg-blue-600 text-white rounded-xl flex items-center justify-center hover:bg-blue-700 transition-all shadow-xl shadow-blue-600/30 disabled:opacity-50 active:scale-95"
+                  >
+                    <Send size={20} />
+                  </button>
+                </div>
+              </form>
+            </div>
+            
+            <div className="bg-blue-600 rounded-3xl p-8 text-white shadow-xl flex items-center gap-5 group">
+              <div className="w-12 h-12 bg-white/20 rounded-xl flex items-center justify-center shrink-0 group-hover:rotate-12 transition-transform">
+                <Icons.HelpCircle size={24} />
+              </div>
+              <p className="text-[11px] font-black uppercase tracking-widest leading-relaxed">
+                Need a physical copy? Use the master link above for official PDF documentation.
+              </p>
+            </div>
           </div>
         </div>
       </div>
