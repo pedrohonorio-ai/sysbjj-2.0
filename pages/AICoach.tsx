@@ -72,8 +72,12 @@ const AICoach: React.FC = () => {
         text: coachAdvice,
         timestamp: Date.now() 
       }]);
-    } catch (error) {
-      setMessages(prev => [...prev, { role: 'assistant', text: t('aiCoach.error'), timestamp: Date.now() }]);
+    } catch (error: any) {
+      console.error('Insights Error:', error);
+      const errorMsg = error?.message === "AI_KEY_NOT_CONFIGURED" 
+        ? t('aiCoach.aiKeyError') 
+        : t('aiCoach.error');
+      setMessages(prev => [...prev, { role: 'assistant', text: errorMsg, timestamp: Date.now() }]);
     } finally {
       setIsTyping(false);
     }
@@ -141,7 +145,7 @@ const AICoach: React.FC = () => {
             </div>
             <div>
               <h1 className="text-xl font-black dark:text-white uppercase tracking-tighter flex items-center gap-2">
-                <Shield className="text-blue-600" size={18} /> Console Sensei IA Master
+                <Shield className="text-blue-600" size={18} /> {t('aiCoach.title')}
                 <Sparkles className="text-amber-500" size={16} />
               </h1>
               <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">{t('aiCoach.subtitle')}</p>

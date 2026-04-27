@@ -900,7 +900,7 @@ const pt = {
     attendance: "Chamada",
     promotions: "Graduação",
     timer: "Cronômetro",
-    assistant: "Coach IA",
+    assistant: "Sensei Digital",
     settings: "Sistema",
     kids: "Pequenos Guerreiros",
     kimonos: "Loja Academia",
@@ -1002,6 +1002,9 @@ const pt = {
     operation: "Operação",
     display: "Exibição",
     evolution: "Evolução",
+    athletes: "Atletas",
+    videos: "Vídeos",
+    attendanceTracking: "Controle de Faltas",
     months: {
       january: "Janeiro", february: "Fevereiro", march: "Março", april: "Abril",
       may: "Maio", june: "Junho", july: "Julho", august: "Agosto",
@@ -1463,9 +1466,11 @@ const pt = {
     tableHeaderDetails: "Detalhes",
     restrictedAccess: "Acesso Restrito",
     exclusiveAdmin: "Esta área é exclusiva para o administrador mestre do sistema.",
-    liveSync: "LIVE SYNC",
+    liveSync: "SINCRONIZAÇÃO AO VIVO",
     expiresSoon: "Expira em breve",
-    blockchainSecured: "Blockchain Protegida"
+    blockchainSecured: "Segurança Blockchain Ativa",
+    masterAccess: "Acesso Master",
+    securityAuditor: "Auditor de Segurança"
   },
   attendance: {
     title: "Chamada Diária",
@@ -1547,10 +1552,11 @@ const pt = {
     presetName: "Nome do Modelo (ex: Luta Específica)"
   },
   aiCoach: {
-    title: "SYS ASSISTANT IA 2.0",
-    subtitle: "Coordenador Técnico & Pedagógico",
-    welcome: "Oss Sensei! Sou o Coordenador Técnico IA. Posso gerar planos de aula rápidos ou tirar dúvidas sobre Judô e BJJ. O que deseja?",
-    error: "Erro na conexão com o tatame digital. Oss!",
+    title: "SENSEI DIGITAL SYSBJJ 2.0",
+    subtitle: "Consultor Técnico & Estrategista de Negócios",
+    welcome: "Oss Sensei! Sou o Sensei Digital. Estou pronto para ajudar na sua evolução técnica e na gestão do seu império. O que deseja hoje?",
+    error: "Erro na conexão com o mestre digital. Oss!",
+    aiKeyError: "Sensei, a chave da IA não foi configurada. OSS!",
     insights: "Insights",
     tech: "Técnica",
     planner: "Gerador",

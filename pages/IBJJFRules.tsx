@@ -60,9 +60,12 @@ const IBJJFRules: React.FC = () => {
         t('ibjjfRules.aiSystemInstruction')
       );
       setMessages(prev => [...prev, { role: 'bot', text: response }]);
-    } catch (error) {
+    } catch (error: any) {
       console.error('AI Error:', error);
-      setMessages(prev => [...prev, { role: 'bot', text: t('ibjjfRules.errorAI') }]);
+      const errorMsg = error?.message === "AI_KEY_NOT_CONFIGURED" 
+        ? t('ibjjfRules.aiKeyError') 
+        : t('ibjjfRules.errorAI');
+      setMessages(prev => [...prev, { role: 'bot', text: errorMsg }]);
     } finally {
       setIsLoading(false);
     }
@@ -192,7 +195,7 @@ const IBJJFRules: React.FC = () => {
               </div>
               <span className="text-[10px] font-black uppercase tracking-[0.3em]">{t('ibjjfRules.officialRegulation')}</span>
             </div>
-            <h1 className="text-4xl md:text-5xl lg:text-6xl font-black text-slate-900 dark:text-white tracking-tighter uppercase leading-none">
+            <h1 className="text-3xl md:text-5xl lg:text-6xl font-black text-slate-900 dark:text-white tracking-tighter uppercase leading-none">
               {t('ibjjfRules.title')}
             </h1>
             <p className="text-slate-500 font-medium italic text-base lg:text-lg leading-relaxed">
@@ -535,7 +538,7 @@ const IBJJFRules: React.FC = () => {
 
         <div className="relative">
           <div className="sticky top-24 space-y-6">
-            <div className="bg-white dark:bg-zinc-900 rounded-[3.5rem] border border-slate-200 dark:border-zinc-800 shadow-2xl flex flex-col h-[750px] overflow-hidden">
+            <div className="bg-white dark:bg-zinc-900 rounded-[2.5rem] sm:rounded-[3.5rem] border border-slate-200 dark:border-zinc-800 shadow-2xl flex flex-col h-[600px] lg:h-[750px] overflow-hidden">
               <div className="p-6 lg:p-10 border-b border-slate-100 dark:border-zinc-800 bg-slate-50/50 dark:bg-zinc-800/30">
                 <div className="flex items-center gap-5">
                   <div className="relative">

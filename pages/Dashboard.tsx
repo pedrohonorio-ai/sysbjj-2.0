@@ -284,7 +284,7 @@ const Dashboard: React.FC = () => {
       <div className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-6 gap-4">
         <StatCard title={t('dashboard.stats.total')} value={totalStudents} icon={<Users size={20} />} color="bg-blue-600" trend={t('dashboard.stats.registrations')} trendUp={true} delay={0.1} />
         <StatCard title={t('dashboard.stats.active')} value={activeStudents} icon={<CheckCircle2 size={20} />} color="bg-cyan-600" trend={t('dashboard.stats.frequent')} trendUp={true} delay={0.2} />
-        <StatCard title={t('students.isCompetitor')} value={competitorsCount} icon={<TrophyIcon size={20} />} color="bg-yellow-500" trend="Atletas" trendUp={true} delay={0.3} />
+        <StatCard title={t('students.isCompetitor')} value={competitorsCount} icon={<TrophyIcon size={20} />} color="bg-yellow-500" trend={t('common.athletes')} trendUp={true} delay={0.3} />
         <StatCard title={t('dashboard.stats.revenue')} value={`${t('common.currencySymbol')} ${monthlyRevenue}`} icon={<TrendingUp size={20} />} color="bg-orange-600" trend={t('dashboard.stats.month')} trendUp={true} delay={0.4} />
         <StatCard title={t('dashboard.stats.extra')} value={`${t('common.currencySymbol')} ${monthlyExtra}`} icon={<Store size={20} />} color="bg-emerald-600" trend={t('dashboard.stats.services')} trendUp={true} delay={0.5} />
         <StatCard title={t('dashboard.stats.pending')} value={pendingPaymentsCount} icon={<AlertCircle size={20} />} color="bg-red-600" trend={t('dashboard.stats.billing')} trendUp={false} delay={0.6} />
@@ -474,8 +474,8 @@ const Dashboard: React.FC = () => {
                 <Shield size={24} />
               </div>
               <div className="text-left flex-1">
-                <p className="text-[10px] font-black text-white/50 uppercase tracking-[0.3em] mb-1">Master Access</p>
-                <p className="text-base font-black text-white uppercase tracking-tight leading-none">Security Auditor</p>
+                <p className="text-[10px] font-black text-white/50 uppercase tracking-[0.3em] mb-1">{t('audit.masterAccess')}</p>
+                <p className="text-base font-black text-white uppercase tracking-tight leading-none">{t('audit.securityAuditor')}</p>
               </div>
               <ArrowRight size={20} className="text-white/20 group-hover:text-white group-hover:translate-x-1 transition-all" />
             </button>

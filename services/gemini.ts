@@ -30,7 +30,7 @@ const getGenAI = () => {
 
 export const chatWithRulesSensei = async (message: string, systemInstruction: string) => {
   const ai = getGenAI();
-  if (!ai) return "Sensei, a chave da IA não foi configurada. OSS!";
+  if (!ai) throw new Error("AI_KEY_NOT_CONFIGURED");
 
   try {
     const response = await ai.models.generateContent({
@@ -76,7 +76,7 @@ ESTILO DE COMUNICAÇÃO:
 
 export const getAcademyInsights = async (students: Student[], payments: Payment[], schedules: ClassSchedule[]) => {
   const ai = getGenAI();
-  if (!ai) return { insights: ["Mantenha o foco no tatame (API Key não configurada)"], coachAdvice: "Oss! Configure a chave do Gemini." };
+  if (!ai) throw new Error("AI_KEY_NOT_CONFIGURED");
 
   const prompt = `
     Dados da Academia:
