@@ -1,6 +1,6 @@
 
 import React, { useState, useEffect, useMemo, useRef } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
+import { motion, AnimatePresence } from 'motion/react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { 
   Trophy, Flame, Calendar, BookOpen, 
@@ -86,6 +86,13 @@ const StudentPortal: React.FC = () => {
     if (today.getDate() < promo.getDate()) monthsInBelt--;
     monthsInBelt = Math.max(0, monthsInBelt);
 
+    let nextDegreeDate: string | null = null;
+    if (isBlackBelt) {
+      const nextDate = new Date(promo);
+      nextDate.setMonth(nextDate.getMonth() + minMonths);
+      nextDegreeDate = nextDate.toLocaleDateString(undefined, { year: 'numeric', month: 'long' });
+    }
+
     return {
       nextBelt: nextBelt as string,
       futurePath,
@@ -94,6 +101,7 @@ const StudentPortal: React.FC = () => {
       attendanceThreshold,
       isBlackBelt,
       maxStripes,
+      nextDegreeDate,
       timeProgress: Math.min(100, (monthsInBelt / (minMonths || 1)) * 100),
       attendanceProgress: Math.min(100, (student.attendanceCount / (attendanceThreshold || 1)) * 100)
     };
@@ -612,6 +620,23 @@ const StudentPortal: React.FC = () => {
                   </div>
                 </div>
               </div>
+
+              {graduationAnalysis?.isBlackBelt && graduationAnalysis?.nextDegreeDate && (
+                <div className="p-6 bg-blue-600/5 dark:bg-blue-600/10 border border-blue-600/10 dark:border-blue-600/20 rounded-[2rem] space-y-3 mt-6">
+                   <div className="flex items-center justify-between">
+                     <p className="text-[10px] font-black text-blue-600 dark:text-blue-400 uppercase tracking-widest flex items-center gap-2">
+                       <Calendar size={14} /> Previsão Próxima Graduação
+                     </p>
+                     <span className="text-[10px] font-black text-blue-600 dark:text-blue-400 tracking-tighter">{Math.round(graduationAnalysis.timeProgress)}% Tempo</span>
+                   </div>
+                   <p className="text-xl font-black dark:text-white uppercase tracking-tighter">
+                     {graduationAnalysis.nextDegreeDate}
+                   </p>
+                   <p className="text-[9px] font-bold text-slate-400 uppercase tracking-widest leading-tight">
+                     Tempo de permanência mínima: {Math.floor(graduationAnalysis.minMonths / 12)} anos no {student.stripes}º Grau (IBJJF)
+                   </p>
+                </div>
+              )}
 
               {/* Path Visualization */}
               <div className="space-y-4 pt-4 border-t border-slate-100 dark:border-slate-800">

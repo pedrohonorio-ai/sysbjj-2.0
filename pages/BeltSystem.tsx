@@ -1,6 +1,7 @@
 
 import React, { useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { motion } from 'motion/react';
 import { 
   Trophy, 
   ChevronRight, 
@@ -28,7 +29,8 @@ import {
   Medal,
   Presentation,
   ClipboardCheck,
-  Check
+  Check,
+  ShieldCheck
 } from 'lucide-react';
 import { BELT_COLORS, IBJJF_BELT_RULES } from '../constants';
 import { useTranslation } from '../contexts/LanguageContext';
@@ -118,17 +120,33 @@ const BeltSystem: React.FC = () => {
         else if (s.belt === BeltColor.BLACK) attendanceThreshold = 60;
       }
 
+      let nextDegreeDate: string | null = null;
+      let degreeRequirements: string[] = [];
+
       // Black Belt Degree Logic
       if (isBlackBelt) {
         maxStripes = 6; // 6 degrees before Coral
+        const promoDate = new Date(s.lastPromotionDate + 'T12:00:00');
+        
         if (s.belt === BeltColor.BLACK) {
-           if (s.stripes < 3) minMonthsRequired = 36; // 3 years for 1st, 2nd, 3rd
-           else minMonthsRequired = 60; // 5 years for 4th, 5th, 6th
+           if (s.stripes < 3) {
+             minMonthsRequired = 36; // 3 years for 1st, 2nd, 3rd
+             degreeRequirements = ["3 anos no grau atual", "Praticante ativo", "Certificado de Primeiros Socorros", "Curso de Regras IBJJF"];
+           } else {
+             minMonthsRequired = 60; // 5 years for 4th, 5th, 6th
+             degreeRequirements = ["5 anos no grau atual", "Praticante ativo", "Exame de integridade"];
+           }
         } else if (s.belt === BeltColor.RED_BLACK || s.belt === BeltColor.RED_WHITE) {
            minMonthsRequired = 84; // 7 years each
+           degreeRequirements = ["7 anos no grau atual", "Serviços relevantes ao esporte"];
         } else if (s.belt === BeltColor.RED) {
            minMonthsRequired = 120; // 10 years
+           degreeRequirements = ["10 anos no grau atual", "Grão-Mestre"];
         }
+
+        const nextDate = new Date(promoDate);
+        nextDate.setMonth(nextDate.getMonth() + minMonthsRequired);
+        nextDegreeDate = nextDate.toLocaleDateString(undefined, { year: 'numeric', month: 'long' });
       }
 
       const timeProgress = Math.min((monthsInBelt / (minMonthsRequired || 1)) * 100, 100);
@@ -176,7 +194,9 @@ const BeltSystem: React.FC = () => {
         timeProgress,
         attendanceProgress,
         customProgress,
-        customReady
+        customReady,
+        nextDegreeDate,
+        degreeRequirements
       };
     }).filter(s => {
       const matchesSearch = s.name.toLowerCase().includes(searchTerm.toLowerCase());
@@ -676,6 +696,47 @@ const BeltSystem: React.FC = () => {
                     )}
                   </div>
                 </div>
+
+                {s.isBlackBelt && s.nextDegreeDate && (
+                  <div className="mt-8 p-8 bg-blue-50/50 dark:bg-blue-900/10 rounded-[2.5rem] border border-blue-100 dark:border-blue-800/20 flex flex-col md:flex-row gap-8">
+                    <div className="flex-1 space-y-3">
+                       <div className="flex items-center justify-between">
+                         <p className="text-[10px] font-black text-blue-600 dark:text-blue-400 uppercase tracking-widest flex items-center gap-2">
+                           <Calendar size={16} /> Previsão Próximo Grau
+                         </p>
+                         <span className="text-[10px] font-black text-blue-600 dark:text-blue-400">{Math.round(s.timeProgress)}% Tempo</span>
+                       </div>
+                       <p className="text-2xl font-black dark:text-white uppercase tracking-tighter">
+                         {s.nextDegreeDate}
+                       </p>
+                       <div className="w-full h-2 bg-slate-200 dark:bg-slate-800 rounded-full overflow-hidden">
+                         <motion.div 
+                           initial={{ width: 0 }}
+                           animate={{ width: `${s.timeProgress}%` }}
+                           className="h-full bg-blue-600 shadow-[0_0_12px_rgba(37,99,235,0.4)]" 
+                         />
+                       </div>
+                       <p className="text-[9px] font-bold text-slate-400 uppercase tracking-widest">
+                         Permanência mínima: {Math.floor(s.minMonthsRequired / 12)} anos no {s.stripes}º Grau
+                       </p>
+                    </div>
+                    <div className="flex-1 space-y-4">
+                       <p className="text-[10px] font-black text-slate-500 dark:text-slate-400 uppercase tracking-widest flex items-center gap-2">
+                         <ShieldCheck size={16} className="text-slate-400" /> Requisitos de Graduação da Federação
+                       </p>
+                       <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                         {s.degreeRequirements?.map((req: string, idx: number) => (
+                           <div key={idx} className="flex items-center gap-3 p-3 bg-white dark:bg-slate-800 rounded-2xl border border-slate-100 dark:border-slate-700 shadow-sm">
+                             <div className="w-5 h-5 rounded-full bg-blue-50 dark:bg-blue-900/30 flex items-center justify-center text-blue-600">
+                               <Check size={12} />
+                             </div>
+                             <span className="text-[10px] font-black text-slate-700 dark:text-slate-300 uppercase leading-none">{req}</span>
+                           </div>
+                         ))}
+                       </div>
+                    </div>
+                  </div>
+                )}
 
                 {/* Exam Requirements Checklist */}
                 {activeExamStudentId === s.id && (
