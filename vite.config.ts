@@ -9,7 +9,7 @@ const __dirname = path.dirname(__filename);
 
 export default defineConfig(({ mode }) => {
     const env = loadEnv(mode, '.', '');
-    const geminiKey = env.GEMINI_API_KEY || process.env.GEMINI_API_KEY || '';
+    const geminiKey = env.GEMINI_API_KEY || env.API_KEY || env.VITE_GEMINI_API_KEY || process.env.GEMINI_API_KEY || process.env.API_KEY || '';
     
     if (!geminiKey) {
       console.warn('\x1b[33m%s\x1b[0m', '⚠️ Warning: GEMINI_API_KEY is not defined in the environment. AI features will be disabled in the build.');

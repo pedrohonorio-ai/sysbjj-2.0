@@ -6,8 +6,9 @@ let genAI: GoogleGenAI | null = null;
 
 const getGenAI = () => {
   if (!genAI) {
-    let apiKey = process.env.GEMINI_API_KEY || 
-                 process.env.VITE_GEMINI_API_KEY || 
+    let apiKey = (process as any).env?.GEMINI_API_KEY || 
+                 (process as any).env?.API_KEY || 
+                 (process as any).env?.VITE_GEMINI_API_KEY || 
                  (import.meta as any).env?.VITE_GEMINI_API_KEY ||
                  (window as any).GEMINI_API_KEY;
     
@@ -33,7 +34,7 @@ export const chatWithRulesSensei = async (message: string, systemInstruction: st
 
   try {
     const response = await ai.models.generateContent({
-      model: "gemini-3-flash-preview",
+      model: "gemini-2.0-flash",
       contents: message,
       config: { 
         systemInstruction: systemInstruction 
@@ -89,7 +90,7 @@ export const getAcademyInsights = async (students: Student[], payments: Payment[
 
   try {
     const response = await ai.models.generateContent({
-      model: "gemini-3.1-pro-preview",
+      model: "gemini-2.0-flash",
       contents: prompt,
       config: { 
         systemInstruction: SYSTEM_INSTRUCTION,
@@ -128,7 +129,7 @@ export const generateQuickLessonPlan = async (theme: string, duration: number, l
 
   try {
     const response = await ai.models.generateContent({
-      model: "gemini-3-flash-preview",
+      model: "gemini-2.0-flash",
       contents: prompt,
       config: { 
         systemInstruction: SYSTEM_INSTRUCTION,
@@ -160,7 +161,7 @@ export const searchTechniqueInfo = async (query: string) => {
 
   try {
     const response = await ai.models.generateContent({
-      model: "gemini-3-flash-preview",
+      model: "gemini-2.0-flash",
       contents: prompt,
       config: { 
         systemInstruction: SYSTEM_INSTRUCTION,
@@ -192,7 +193,7 @@ export const suggestSparringPairs = async (students: Student[]) => {
 
   try {
     const response = await ai.models.generateContent({
-      model: "gemini-3-flash-preview",
+      model: "gemini-2.0-flash",
       contents: prompt,
       config: { 
         systemInstruction: SYSTEM_INSTRUCTION,
@@ -222,7 +223,7 @@ export const analyzeDrillImage = async (base64Image: string, userPrompt: string)
 
   try {
     const response = await ai.models.generateContent({
-      model: "gemini-2.5-flash-image",
+      model: "gemini-2.0-flash",
       contents: { parts: [imagePart, textPart as any] },
       config: { systemInstruction: SYSTEM_INSTRUCTION }
     });
@@ -271,7 +272,7 @@ export const verifyPaymentProof = async (base64Image: string, expectedAmount: nu
 
   try {
     const response = await ai.models.generateContent({
-      model: "gemini-2.5-flash-image",
+      model: "gemini-2.0-flash",
       contents: { parts: [imagePart, textPart as any] },
       config: { 
         systemInstruction: "Você é um especialista em auditoria financeira e detecção de fraudes bancárias.",

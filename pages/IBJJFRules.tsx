@@ -259,54 +259,54 @@ const IBJJFRules: React.FC = () => {
       {/* Rules Academy Hub */}
       <div className="space-y-10 py-6 lg:py-10">
         <div className="flex flex-col md:flex-row md:items-end justify-between gap-6">
-          <div className="space-y-3">
-            <div className="flex items-center gap-3">
-              <h2 className="text-3xl lg:text-5xl font-black text-slate-900 dark:text-white uppercase tracking-tighter">{t('ibjjfRules.rulesAcademyTitle')}</h2>
-              <span className="px-3 py-1 bg-green-500/10 text-green-500 rounded-full border border-green-500/20 text-[8px] font-black tracking-widest uppercase">Mastery Course</span>
-            </div>
-            <p className="text-slate-500 font-medium italic text-base lg:text-lg">{t('ibjjfRules.rulesAcademySmallDesc')}</p>
-          </div>
-        </div>
-
-        <motion.div 
-          initial={{ opacity: 0, y: 20 }}
-          whileInView={{ opacity: 1, y: 0 }}
-          viewport={{ once: true }}
-          className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 lg:gap-6"
-        >
-          {IBJJF_LESSONS.map((lesson, idx) => {
-            const IconComponent = (Icons as any)[lesson.icon] || Icons.BookOpen;
-            const isFeatured = idx === 0;
-            return (
-              <motion.div 
-                key={lesson.id}
-                initial={{ opacity: 0, scale: 0.95 }}
-                whileInView={{ opacity: 1, scale: 1 }}
-                viewport={{ once: true }}
-                transition={{ delay: idx * 0.1 }}
-                className={`${isFeatured ? 'md:col-span-2 md:row-span-2' : ''} bg-white dark:bg-zinc-900 rounded-3xl lg:rounded-[2.5rem] border border-slate-200 dark:border-zinc-800 p-6 lg:p-8 flex flex-col justify-between hover:border-blue-600 transition-all group relative overflow-hidden shadow-sm hover:shadow-2xl`}
-              >
-                <div className="relative z-10 space-y-6">
-                  <div className="flex items-center justify-between">
-                    <div className={`${isFeatured ? 'w-14 h-14 lg:w-16 lg:h-16 bg-blue-600 text-white' : 'w-10 h-10 lg:w-12 lg:h-12 bg-blue-50 dark:bg-blue-900/20 text-blue-600'} rounded-2xl flex items-center justify-center transition-transform group-hover:scale-110 shadow-lg`}>
-                      <IconComponent size={isFeatured ? 32 : 24} />
-                    </div>
-                    <span className="text-[8px] font-black text-slate-400 uppercase tracking-widest">LEV 0{idx + 1}</span>
-                  </div>
-                  <div className="space-y-4">
-                    <div className="flex items-center gap-2">
-                      <span className="px-2 py-0.5 bg-blue-600/10 text-blue-600 text-[8px] font-black uppercase tracking-widest rounded-md border border-blue-600/10">
-                        {t(`portal.categories.${lesson.category.toLowerCase()}`)}
-                      </span>
-                    </div>
-                    <h3 className={`${isFeatured ? 'text-2xl lg:text-3xl' : 'text-lg lg:text-xl'} font-black text-slate-900 dark:text-white uppercase tracking-tight leading-none`}>
-                      {lesson.title}
-                    </h3>
-                    <p className={`${isFeatured ? 'text-sm' : 'text-[11px]'} text-slate-500 dark:text-slate-400 font-medium leading-relaxed italic`}>
-                      {lesson.content}
-                    </p>
-                  </div>
+              <div className="space-y-3">
+                <div className="flex items-center gap-3">
+                  <h2 className="text-3xl lg:text-5xl font-black text-slate-900 dark:text-white uppercase tracking-tighter">{t('ibjjfRules.rulesAcademyTitle')}</h2>
+                  <span className="px-3 py-1 bg-green-500/10 text-green-500 rounded-full border border-green-500/20 text-[8px] font-black tracking-widest uppercase">{t('ibjjfRules.masteryCourse')}</span>
                 </div>
+                <p className="text-slate-500 font-medium italic text-base lg:text-lg">{t('ibjjfRules.rulesAcademySmallDesc')}</p>
+              </div>
+            </div>
+
+            <motion.div 
+              initial={{ opacity: 0, y: 20 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              viewport={{ once: true }}
+              className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 lg:gap-6"
+            >
+              {IBJJF_LESSONS.map((lesson, idx) => {
+                const IconComponent = (Icons as any)[lesson.icon] || Icons.BookOpen;
+                const isFeatured = idx === 0;
+                return (
+                  <motion.div 
+                    key={lesson.id}
+                    initial={{ opacity: 0, scale: 0.95 }}
+                    whileInView={{ opacity: 1, scale: 1 }}
+                    viewport={{ once: true }}
+                    transition={{ delay: idx * 0.1 }}
+                    className={`${isFeatured ? 'md:col-span-2 md:row-span-2' : ''} bg-white dark:bg-zinc-900 rounded-3xl lg:rounded-[2.5rem] border border-slate-200 dark:border-zinc-800 p-6 lg:p-8 flex flex-col justify-between hover:border-blue-600 transition-all group relative overflow-hidden shadow-sm hover:shadow-2xl`}
+                  >
+                    <div className="relative z-10 space-y-6">
+                      <div className="flex items-center justify-between">
+                        <div className={`${isFeatured ? 'w-14 h-14 lg:w-16 lg:h-16 bg-blue-600 text-white' : 'w-10 h-10 lg:w-12 lg:h-12 bg-blue-50 dark:bg-blue-900/20 text-blue-600'} rounded-2xl flex items-center justify-center transition-transform group-hover:scale-110 shadow-lg`}>
+                          <IconComponent size={isFeatured ? 32 : 24} />
+                        </div>
+                        <span className="text-[8px] font-black text-slate-400 uppercase tracking-widest">NIV {idx + 1}</span>
+                      </div>
+                      <div className="space-y-4">
+                        <div className="flex items-center gap-2">
+                          <span className="px-2 py-0.5 bg-blue-600/10 text-blue-600 text-[8px] font-black uppercase tracking-widest rounded-md border border-blue-600/10">
+                            {t(`portal.categories.${lesson.category.toLowerCase()}`)}
+                          </span>
+                        </div>
+                        <h3 className={`${isFeatured ? 'text-2xl lg:text-3xl' : 'text-lg lg:text-xl'} font-black text-slate-900 dark:text-white uppercase tracking-tight leading-none`}>
+                          {lesson.title}
+                        </h3>
+                        <p className={`${isFeatured ? 'text-sm' : 'text-[11px]'} text-slate-500 dark:text-slate-400 font-medium leading-relaxed italic`}>
+                          {lesson.content}
+                        </p>
+                      </div>
+                    </div>
                 <div className="relative z-10 pt-8 mt-auto group-hover:translate-x-2 transition-transform">
                   <div className="w-10 h-10 bg-slate-50 dark:bg-zinc-800 rounded-full flex items-center justify-center text-slate-400 group-hover:text-blue-600 group-hover:bg-blue-50 dark:group-hover:bg-blue-900/20 border border-slate-100 dark:border-zinc-700">
                     <ArrowRight size={18} />
@@ -325,7 +325,7 @@ const IBJJFRules: React.FC = () => {
       <div className="space-y-6">
         <div className="flex items-center gap-3">
           <Scale size={24} className="text-blue-600" />
-          <h2 className="text-2xl lg:text-3xl font-black text-slate-900 dark:text-white uppercase tracking-tighter">Tactical Scenarios</h2>
+          <h2 className="text-2xl lg:text-3xl font-black text-slate-900 dark:text-white uppercase tracking-tighter">{t('ibjjfRules.tacticalScenarios')}</h2>
         </div>
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           {ruleCases.map((c, idx) => (
@@ -362,7 +362,7 @@ const IBJJFRules: React.FC = () => {
               </div>
               <div className="space-y-1">
                 <h2 className="text-2xl lg:text-3xl font-black text-slate-900 dark:text-white uppercase tracking-tighter">{t('ibjjfRules.prohibitedTechniques')}</h2>
-                <p className="text-red-500 text-[10px] font-black uppercase tracking-[0.2em]">Restricted Actions & Penalties</p>
+                <p className="text-red-500 text-[10px] font-black uppercase tracking-[0.2em]">{t('ibjjfRules.restrictedActions')}</p>
               </div>
             </div>
             
@@ -373,12 +373,12 @@ const IBJJFRules: React.FC = () => {
                     <img 
                       src={cat.image} 
                       alt={cat.category} 
-                      className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-1000"
+                      className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-1000 grayscale group-hover:grayscale-0"
                       referrerPolicy="no-referrer"
                     />
                     <div className="absolute inset-0 bg-gradient-to-t from-slate-900 via-slate-900/40 to-transparent" />
                     <div className="absolute bottom-6 left-8">
-                      <span className="text-[8px] font-black text-red-500 uppercase tracking-widest bg-white rounded-full px-3 py-1 mb-2 inline-block">Prohibited</span>
+                      <span className="text-[8px] font-black text-red-500 uppercase tracking-widest bg-white rounded-full px-3 py-1 mb-2 inline-block">{t('ibjjfRules.prohibited')}</span>
                       <h4 className="text-lg lg:text-xl font-black text-white uppercase tracking-tighter">{cat.category}</h4>
                     </div>
                   </div>
@@ -407,7 +407,7 @@ const IBJJFRules: React.FC = () => {
                 </div>
                 <div>
                   <h2 className="text-2xl lg:text-3xl font-black text-slate-900 dark:text-white uppercase tracking-tighter leading-none">{t('ibjjfRules.adultSystem')}</h2>
-                  <p className="text-slate-500 font-bold uppercase tracking-widest text-[9px] mt-1 lg:mt-2">Professional Grading Guidelines</p>
+                  <p className="text-slate-500 font-bold uppercase tracking-widest text-[9px] mt-1 lg:mt-2">{t('ibjjfRules.professionalGrading')}</p>
                 </div>
               </div>
             </div>
@@ -415,9 +415,9 @@ const IBJJFRules: React.FC = () => {
               <table className="w-full text-left border-collapse">
                 <thead>
                   <tr className="bg-slate-50 dark:bg-zinc-800/40">
-                    <th className="px-6 lg:px-10 py-5 text-[10px] font-black text-slate-400 uppercase tracking-widest border-b border-slate-100 dark:border-zinc-800">Belt Rank</th>
-                    <th className="px-6 lg:px-10 py-5 text-[10px] font-black text-slate-400 uppercase tracking-widest border-b border-slate-100 dark:border-zinc-800 text-center">Minimum Time</th>
-                    <th className="px-6 lg:px-10 py-5 text-[10px] font-black text-slate-400 uppercase tracking-widest border-b border-slate-100 dark:border-zinc-800">Requirements & Mastery</th>
+                    <th className="px-6 lg:px-10 py-5 text-[10px] font-black text-slate-400 uppercase tracking-widest border-b border-slate-100 dark:border-zinc-800">{t('ibjjfRules.beltRank')}</th>
+                    <th className="px-6 lg:px-10 py-5 text-[10px] font-black text-slate-400 uppercase tracking-widest border-b border-slate-100 dark:border-zinc-800 text-center">{t('ibjjfRules.minimumTime')}</th>
+                    <th className="px-6 lg:px-10 py-5 text-[10px] font-black text-slate-400 uppercase tracking-widest border-b border-slate-100 dark:border-zinc-800">{t('ibjjfRules.requirementsMastery')}</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-50 dark:divide-zinc-800">
@@ -488,7 +488,7 @@ const IBJJFRules: React.FC = () => {
               </div>
               <div>
                 <h2 className="text-2xl lg:text-3xl font-black text-slate-900 dark:text-white uppercase tracking-tighter leading-none">{t('students.kidsRulesTitle')}</h2>
-                <p className="text-slate-500 font-bold uppercase tracking-widest text-[9px] mt-1 lg:mt-2">Youth Graduation & Age Mastery</p>
+                <p className="text-slate-500 font-bold uppercase tracking-widest text-[9px] mt-1 lg:mt-2">{t('ibjjfRules.youthGraduation')}</p>
               </div>
             </div>
           </div>
@@ -496,9 +496,9 @@ const IBJJFRules: React.FC = () => {
             <table className="w-full text-left border-collapse">
               <thead>
                 <tr className="bg-slate-50 dark:bg-zinc-800/40">
-                  <th className="px-6 lg:px-10 py-5 text-[10px] font-black text-slate-400 uppercase tracking-widest border-b border-slate-100 dark:border-zinc-800">Belt Rank</th>
-                  <th className="px-6 lg:px-10 py-5 text-[10px] font-black text-slate-400 uppercase tracking-widest border-b border-slate-100 dark:border-zinc-800 text-center">Min. Age</th>
-                  <th className="px-6 lg:px-10 py-5 text-[10px] font-black text-slate-400 uppercase tracking-widest border-b border-slate-100 dark:border-zinc-800">Group & Focus</th>
+                  <th className="px-6 lg:px-10 py-5 text-[10px] font-black text-slate-400 uppercase tracking-widest border-b border-slate-100 dark:border-zinc-800">{t('ibjjfRules.beltRank')}</th>
+                  <th className="px-6 lg:px-10 py-5 text-[10px] font-black text-slate-400 uppercase tracking-widest border-b border-slate-100 dark:border-zinc-800 text-center">{t('ibjjfRules.minAge')}</th>
+                  <th className="px-6 lg:px-10 py-5 text-[10px] font-black text-slate-400 uppercase tracking-widest border-b border-slate-100 dark:border-zinc-800">{t('ibjjfRules.groupAndFocus')}</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-50 dark:divide-zinc-800">
@@ -547,7 +547,7 @@ const IBJJFRules: React.FC = () => {
                   <div>
                     <h3 className="text-lg lg:text-xl font-black text-slate-900 dark:text-white uppercase tracking-tight">{t('ibjjfRules.digitalSensei')}</h3>
                     <div className="flex items-center gap-2 mt-1">
-                       <span className="px-2 py-0.5 bg-green-500/10 text-green-500 text-[8px] font-black uppercase tracking-widest rounded border border-green-500/10">Tactical Online</span>
+                       <span className="px-2 py-0.5 bg-green-500/10 text-green-500 text-[8px] font-black uppercase tracking-widest rounded border border-green-500/10">{t('ibjjfRules.tacticalOnline')}</span>
                     </div>
                   </div>
                 </div>
@@ -565,75 +565,77 @@ const IBJJFRules: React.FC = () => {
                       <div className="w-20 h-20 bg-slate-50 dark:bg-zinc-800/50 rounded-3xl flex items-center justify-center mx-auto text-slate-400 border border-slate-100 dark:border-zinc-800">
                         <MessageSquare size={40} />
                       </div>
-                      <div className="space-y-2">
-                         <p className="text-xs text-slate-900 dark:text-white font-black uppercase tracking-widest leading-none">Aguardando Consulta</p>
-                         <p className="text-[10px] text-slate-400 font-bold leading-relaxed px-10 italic">
-                           {t('ibjjfRules.chatEmpty')}
-                         </p>
-                      </div>
-                    </motion.div>
-                  )}
-                  {messages.map((msg, idx) => (
-                    <motion.div 
-                      key={idx} 
-                      initial={{ opacity: 0, x: msg.role === 'user' ? 20 : -20 }}
-                      animate={{ opacity: 1, x: 0 }}
-                      className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}
-                    >
-                      <div className={`max-w-[90%] p-5 rounded-3xl text-sm font-medium leading-relaxed ${
-                        msg.role === 'user' 
-                        ? 'bg-blue-600 text-white rounded-tr-none shadow-xl shadow-blue-600/20' 
-                        : 'bg-slate-50 dark:bg-zinc-800 text-slate-800 dark:text-slate-200 rounded-tl-none border border-slate-100 dark:border-zinc-700 shadow-sm'
-                      }`}>
-                        {msg.text}
-                      </div>
-                    </motion.div>
-                  ))}
-                  {isLoading && (
-                    <motion.div 
-                      key="loading"
-                      initial={{ opacity: 0 }}
-                      animate={{ opacity: 1 }}
-                      className="flex justify-start"
-                    >
-                      <div className="bg-slate-50 dark:bg-zinc-800 p-5 rounded-3xl rounded-tl-none flex items-center gap-3">
-                        <Loader2 size={20} className="animate-spin text-blue-600" />
-                        <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Master is thinking...</span>
-                      </div>
-                    </motion.div>
-                  )}
-                </AnimatePresence>
-                <div ref={chatEndRef} />
-              </div>
-
-              <form onSubmit={handleSendMessage} className="p-8 bg-slate-50 dark:bg-zinc-800/30 border-t border-slate-100 dark:border-zinc-800">
-                <div className="relative group/input">
-                  <input 
-                    type="text" 
-                    placeholder={t('ibjjfRules.chatPlaceholder')}
-                    className="w-full pl-6 pr-16 py-5 bg-white dark:bg-zinc-900 border border-slate-200 dark:border-zinc-700 rounded-2xl outline-none focus:ring-2 focus:ring-blue-600 transition-all font-bold text-sm shadow-inner"
-                    value={chatInput}
-                    onChange={e => setChatInput(e.target.value)}
-                  />
-                  <button 
-                    type="submit"
-                    disabled={isLoading}
-                    className="absolute right-3 top-1/2 -translate-y-1/2 w-12 h-12 bg-blue-600 text-white rounded-xl flex items-center justify-center hover:bg-blue-700 transition-all shadow-xl shadow-blue-600/30 disabled:opacity-50 active:scale-95"
+                    <div className="space-y-2">
+                       <p className="text-[10px] text-slate-400 font-bold leading-relaxed px-10 italic">
+                         {t('ibjjfRules.chatEmpty')}
+                       </p>
+                       <p className="text-[9px] text-slate-400/50 font-black leading-relaxed px-12 mt-4 uppercase tracking-[0.2em]">
+                         {t('ibjjfRules.needPhysicalCopy')}
+                       </p>
+                    </div>
+                  </motion.div>
+                )}
+                {messages.map((msg, idx) => (
+                  <motion.div 
+                    key={idx} 
+                    initial={{ opacity: 0, x: msg.role === 'user' ? 20 : -20 }}
+                    animate={{ opacity: 1, x: 0 }}
+                    className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}
                   >
-                    <Send size={20} />
-                  </button>
-                </div>
-              </form>
+                    <div className={`max-w-[90%] p-5 rounded-3xl text-sm font-medium leading-relaxed ${
+                      msg.role === 'user' 
+                      ? 'bg-blue-600 text-white rounded-tr-none shadow-xl shadow-blue-600/20' 
+                      : 'bg-slate-50 dark:bg-zinc-800 text-slate-800 dark:text-slate-200 rounded-tl-none border border-slate-100 dark:border-zinc-700 shadow-sm'
+                    }`}>
+                      <ReactMarkdown>{msg.text}</ReactMarkdown>
+                    </div>
+                  </motion.div>
+                ))}
+                {isLoading && (
+                  <motion.div 
+                    key="loading"
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    className="flex justify-start"
+                  >
+                    <div className="bg-slate-50 dark:bg-zinc-800 p-5 rounded-3xl rounded-tl-none flex items-center gap-3">
+                      <Loader2 size={16} className="animate-spin text-blue-600" />
+                      <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">{t('ibjjfRules.masterThinking')}</span>
+                    </div>
+                  </motion.div>
+                )}
+              </AnimatePresence>
+              <div ref={chatEndRef} />
             </div>
-            
-            <div className="bg-blue-600 rounded-3xl p-8 text-white shadow-xl flex items-center gap-5 group">
-              <div className="w-12 h-12 bg-white/20 rounded-xl flex items-center justify-center shrink-0 group-hover:rotate-12 transition-transform">
-                <Icons.HelpCircle size={24} />
+
+            <form onSubmit={handleSendMessage} className="p-8 bg-slate-50 dark:bg-zinc-800/30 border-t border-slate-100 dark:border-zinc-800">
+              <div className="relative group/input">
+                <input 
+                  type="text" 
+                  placeholder={t('ibjjfRules.chatPlaceholder')}
+                  className="w-full pl-6 pr-16 py-5 bg-white dark:bg-zinc-900 border border-slate-200 dark:border-zinc-700 rounded-2xl outline-none focus:ring-2 focus:ring-blue-600 transition-all font-bold text-sm shadow-inner"
+                  value={chatInput}
+                  onChange={e => setChatInput(e.target.value)}
+                />
+                <button 
+                  type="submit"
+                  disabled={isLoading}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 w-12 h-12 bg-blue-600 text-white rounded-xl flex items-center justify-center hover:bg-blue-700 transition-all shadow-xl shadow-blue-600/30 disabled:opacity-50 active:scale-95"
+                >
+                  <Send size={20} />
+                </button>
               </div>
-              <p className="text-[11px] font-black uppercase tracking-widest leading-relaxed">
-                Need a physical copy? Use the master link above for official PDF documentation.
-              </p>
+            </form>
+          </div>
+          
+          <div className="bg-blue-600 rounded-3xl p-8 text-white shadow-xl flex items-center gap-5 group">
+            <div className="w-12 h-12 bg-white/20 rounded-xl flex items-center justify-center shrink-0 group-hover:rotate-12 transition-transform">
+              <Icons.HelpCircle size={24} />
             </div>
+            <p className="text-[11px] font-black uppercase tracking-widest leading-relaxed">
+              {t('ibjjfRules.needPhysicalCopy')}
+            </p>
+          </div>
           </div>
         </div>
       </div>
