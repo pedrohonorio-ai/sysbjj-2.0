@@ -6,22 +6,22 @@ let genAI: GoogleGenAI | null = null;
 
 const getGenAI = () => {
   if (!genAI) {
-    let apiKey = (process as any).env?.GEMINI_API_KEY || 
-                 (process as any).env?.API_KEY || 
-                 (process as any).env?.VITE_GEMINI_API_KEY || 
-                 (import.meta as any).env?.VITE_GEMINI_API_KEY ||
-                 (window as any).GEMINI_API_KEY;
+    // Vite's define plugin uses exact string replacement, so we avoid optional chaining/casting on process.env
+    const apiKey = process.env.GEMINI_API_KEY || 
+                   process.env.VITE_GEMINI_API_KEY || 
+                   import.meta.env.VITE_GEMINI_API_KEY;
     
     // Hard check for common missing/invalid values
     if (!apiKey || apiKey === 'undefined' || apiKey === 'null' || apiKey.trim() === '') {
-      console.warn("GEMINI_API_KEY is not defined or invalid. AI features will be disabled.");
+      console.warn("Digital Sensei Offline: GEMINI_API_KEY is not defined. Please check your environment variables or platform settings.");
       return null;
     }
     
     try {
-      genAI = new GoogleGenAI({ apiKey: apiKey.trim() });
+      console.log("Digital Sensei Online: Initializing with detected key.");
+      genAI = new GoogleGenAI(apiKey.trim());
     } catch (e) {
-      console.error("Failed to initialize GoogleGenAI:", e);
+      console.error("Failed to initialize Digital Sensei AI:", e);
       return null;
     }
   }
