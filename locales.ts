@@ -633,6 +633,14 @@ const en = {
     inGracePeriod: "In Grace Period",
     eligibleMsg: "Student has reached the minimum time for graduation.",
     inGracePeriodMsg: "Missing {months} months for the minimum CBJJ grace period.",
+    kidsRulesTitle: "Kids System (4-15 Years)",
+    kidsRules: [
+      { belt: 'White', minAge: '4', description: 'Beginner belt for all children. Priority on motor coordination and discipline.' },
+      { belt: 'Gray', minAge: '4-6', description: 'Group: Gray/White, Gray, Gray/Black. Focus on technical movement.' },
+      { belt: 'Yellow', minAge: '7-15', description: 'Group: Yellow/White, Yellow, Yellow/Black. Increased technical complexity.' },
+      { belt: 'Orange', minAge: '10-15', description: 'Group: Orange/White, Orange, Orange/Black. Introduction to advanced tactical scenarios.' },
+      { belt: 'Green', minAge: '13-15', description: 'Group: Green/White, Green, Green/Black. High performance and preparation for adult belts.' }
+    ],
     studentReport: "Student Report",
     techniquesReceived: "Techniques Received (QTD)",
     classesAttended: "Classes Attended",
@@ -1365,6 +1373,14 @@ const pt = {
     inGracePeriod: "Em Carência",
     eligibleMsg: "Aluno atingiu o tempo mínimo para graduação.",
     inGracePeriodMsg: "Faltam {months} meses para a carência mínima da CBJJ.",
+    kidsRulesTitle: "Sistema Kids (4-15 Anos)",
+    kidsRules: [
+      { belt: 'Branca', minAge: '4', description: 'Faixa de entrada para todas as crianças. Prioridade em coordenação motora e disciplina.' },
+      { belt: 'Cinza', minAge: '4-6', description: 'Grupo: Cinza/Branca, Cinza, Cinza/Preta. Foco em movimentação técnica.' },
+      { belt: 'Amarela', minAge: '7-15', description: 'Grupo: Amarela/Branca, Amarela, Amarela/Preta. Aumento da complexidade técnica.' },
+      { belt: 'Laranja', minAge: '10-15', description: 'Grupo: Laranja/Branca, Laranja, Laranja/Preta. Introdução a cenários táticos avançados.' },
+      { belt: 'Verde', minAge: '13-15', description: 'Grupo: Verde/Branca, Verde, Verde/Preta. Alta performance e preparação para faixas adultas.' }
+    ],
     studentReport: "Relatório do Aluno",
     techniquesReceived: "Técnicas Recebidas (QTD)",
     classesAttended: "Aulas Presentes",

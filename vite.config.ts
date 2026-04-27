@@ -11,6 +11,10 @@ export default defineConfig(({ mode }) => {
     const env = loadEnv(mode, '.', '');
     const geminiKey = env.GEMINI_API_KEY || process.env.GEMINI_API_KEY || '';
     
+    if (!geminiKey) {
+      console.warn('\x1b[33m%s\x1b[0m', '⚠️ Warning: GEMINI_API_KEY is not defined in the environment. AI features will be disabled in the build.');
+    }
+    
     return {
       server: {
         port: 3000,

@@ -6,7 +6,10 @@ let genAI: GoogleGenAI | null = null;
 
 const getGenAI = () => {
   if (!genAI) {
-    let apiKey = process.env.GEMINI_API_KEY || process.env.VITE_GEMINI_API_KEY || (window as any).GEMINI_API_KEY;
+    let apiKey = process.env.GEMINI_API_KEY || 
+                 process.env.VITE_GEMINI_API_KEY || 
+                 (import.meta as any).env?.VITE_GEMINI_API_KEY ||
+                 (window as any).GEMINI_API_KEY;
     
     // Hard check for common missing/invalid values
     if (!apiKey || apiKey === 'undefined' || apiKey === 'null' || apiKey.trim() === '') {

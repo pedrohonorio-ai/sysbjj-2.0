@@ -184,7 +184,7 @@ const IBJJFRules: React.FC = () => {
       {/* Header Section */}
       <div className="relative group">
         <div className="absolute inset-0 bg-gradient-to-r from-blue-600/10 to-transparent blur-3xl opacity-50 rounded-[4rem]" />
-        <div className="relative flex flex-col lg:flex-row items-start lg:items-end justify-between gap-8 pb-8 border-b border-slate-100 dark:border-slate-800">
+        <div className="relative flex flex-col lg:flex-row items-start lg:items-end justify-between gap-6 pb-8 border-b border-slate-100 dark:border-slate-800">
           <div className="space-y-4 max-w-2xl">
             <div className="flex items-center gap-3 text-blue-600">
               <div className="w-10 h-10 bg-blue-600/10 rounded-xl flex items-center justify-center">
@@ -192,10 +192,10 @@ const IBJJFRules: React.FC = () => {
               </div>
               <span className="text-[10px] font-black uppercase tracking-[0.3em]">{t('ibjjfRules.officialRegulation')}</span>
             </div>
-            <h1 className="text-6xl font-black text-slate-900 dark:text-white tracking-tighter uppercase leading-none">
+            <h1 className="text-4xl md:text-5xl lg:text-6xl font-black text-slate-900 dark:text-white tracking-tighter uppercase leading-none">
               {t('ibjjfRules.title')}
             </h1>
-            <p className="text-slate-500 font-medium italic text-lg leading-relaxed">
+            <p className="text-slate-500 font-medium italic text-base lg:text-lg leading-relaxed">
               {t('ibjjfRules.subtitle')}
             </p>
           </div>
@@ -204,7 +204,7 @@ const IBJJFRules: React.FC = () => {
               href="https://cbjj.com.br/rules" 
               target="_blank" 
               rel="noopener noreferrer"
-              className="bg-slate-900 dark:bg-white dark:text-slate-900 text-white px-10 py-6 rounded-3xl flex items-center gap-4 shadow-2xl hover:bg-blue-600 hover:text-white dark:hover:bg-blue-600 transition-all font-black text-xs uppercase tracking-widest group"
+              className="bg-slate-900 dark:bg-white dark:text-slate-900 text-white px-6 py-4 lg:px-10 lg:py-6 rounded-2xl lg:rounded-3xl flex items-center gap-4 shadow-2xl hover:bg-blue-600 hover:text-white dark:hover:bg-blue-600 transition-all font-black text-xs uppercase tracking-widest group"
             >
               <BookOpen size={20} className="group-hover:rotate-12 transition-transform" />
               {t('ibjjfRules.rulesPdf')}
@@ -215,15 +215,15 @@ const IBJJFRules: React.FC = () => {
       </div>
 
       {/* Internal Rules Bento Section */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-        <div className="lg:col-span-2 bg-white dark:bg-slate-900 rounded-[3rem] border border-slate-200 dark:border-slate-800 shadow-xl overflow-hidden group">
-          <div className="p-10 border-b border-slate-100 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-800/30 flex items-center justify-between">
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 lg:gap-8">
+        <div className="lg:col-span-2 bg-white dark:bg-slate-900 rounded-3xl lg:rounded-[2.5rem] border border-slate-200 dark:border-slate-800 shadow-xl overflow-hidden group">
+          <div className="p-6 lg:p-10 border-b border-slate-100 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-800/30 flex items-center justify-between">
             <div className="flex items-center gap-5">
-              <div className="w-16 h-16 bg-white dark:bg-slate-800 rounded-2xl flex items-center justify-center text-blue-600 shadow-lg border border-slate-100 dark:border-slate-700">
+              <div className="w-12 h-12 lg:w-16 lg:h-16 bg-white dark:bg-slate-800 rounded-2xl flex items-center justify-center text-blue-600 shadow-lg border border-slate-100 dark:border-slate-700">
                 <Shield size={32} />
               </div>
               <div>
-                <h2 className="text-2xl font-black text-slate-900 dark:text-white uppercase tracking-tighter leading-none">{profile.academyName}</h2>
+                <h2 className="text-xl lg:text-2xl font-black text-slate-900 dark:text-white uppercase tracking-tighter leading-none">{profile.academyName}</h2>
                 <p className="text-slate-400 font-bold uppercase tracking-widest text-[9px] mt-2">{t('ibjjfRules.internalRules')}</p>
               </div>
             </div>
@@ -231,19 +231,19 @@ const IBJJFRules: React.FC = () => {
               <CheckCircle2 size={12} /> {t('ibjjfRules.verifiedSystem')}
             </div>
           </div>
-          <div className="p-12 prose dark:prose-invert max-w-none prose-slate prose-headings:uppercase prose-headings:tracking-tighter prose-headings:font-black prose-p:font-medium prose-p:text-slate-600 dark:prose-p:text-slate-400 prose-li:font-medium">
+          <div className="p-8 lg:p-12 prose dark:prose-invert max-w-none prose-slate prose-headings:uppercase prose-headings:tracking-tighter prose-headings:font-black prose-p:font-medium prose-p:text-slate-600 dark:prose-p:text-slate-400 prose-li:font-medium">
             <ReactMarkdown>{profile.graduationRules || t('ibjjfRules.noInternalRules')}</ReactMarkdown>
           </div>
         </div>
 
-        <div className="bg-slate-900 rounded-[3rem] p-10 text-white relative overflow-hidden flex flex-col justify-between group shadow-2xl">
+        <div className="bg-slate-900 rounded-3xl lg:rounded-[2.5rem] p-8 lg:p-10 text-white relative overflow-hidden flex flex-col justify-between group shadow-2xl">
           <div className="absolute top-0 right-0 w-64 h-64 bg-blue-600 rounded-full blur-[100px] opacity-20 -translate-y-1/2 translate-x-1/2 group-hover:scale-110 transition-transform duration-700" />
           <div className="relative z-10 space-y-6">
-            <div className="w-16 h-16 bg-white/10 backdrop-blur-md rounded-2xl flex items-center justify-center border border-white/10">
+            <div className="w-14 h-14 lg:w-16 lg:h-16 bg-white/10 backdrop-blur-md rounded-2xl flex items-center justify-center border border-white/10">
               <Clock size={32} className="text-blue-400" />
             </div>
             <div className="space-y-4">
-              <h4 className="text-3xl font-black uppercase tracking-tighter leading-none">{t('ibjjfRules.ageCalcTitle')}</h4>
+              <h4 className="text-2xl lg:text-3xl font-black uppercase tracking-tighter leading-none">{t('ibjjfRules.ageCalcTitle')}</h4>
               <p className="text-slate-400 text-sm font-medium leading-relaxed">
                 {t('ibjjfRules.ageCalcDesc')}
               </p>
@@ -251,20 +251,20 @@ const IBJJFRules: React.FC = () => {
           </div>
           <div className="relative z-10 pt-10 border-t border-white/5 mt-10">
             <p className="text-[10px] font-black text-blue-400 uppercase tracking-[0.3em] mb-2">{t('ibjjfRules.currentPeriod')}</p>
-            <p className="text-3xl font-black tabular-nums">{new Date().getFullYear()}</p>
+            <p className="text-2xl lg:text-3xl font-black tabular-nums">{new Date().getFullYear()}</p>
           </div>
         </div>
       </div>
 
       {/* Rules Academy Hub */}
-      <div className="space-y-10 py-10">
+      <div className="space-y-10 py-6 lg:py-10">
         <div className="flex flex-col md:flex-row md:items-end justify-between gap-6">
           <div className="space-y-3">
             <div className="flex items-center gap-3">
-              <h2 className="text-5xl font-black text-slate-900 dark:text-white uppercase tracking-tighter">{t('ibjjfRules.rulesAcademyTitle')}</h2>
+              <h2 className="text-3xl lg:text-5xl font-black text-slate-900 dark:text-white uppercase tracking-tighter">{t('ibjjfRules.rulesAcademyTitle')}</h2>
               <span className="px-3 py-1 bg-green-500/10 text-green-500 rounded-full border border-green-500/20 text-[8px] font-black tracking-widest uppercase">Mastery Course</span>
             </div>
-            <p className="text-slate-500 font-medium italic text-lg">{t('ibjjfRules.rulesAcademySmallDesc')}</p>
+            <p className="text-slate-500 font-medium italic text-base lg:text-lg">{t('ibjjfRules.rulesAcademySmallDesc')}</p>
           </div>
         </div>
 
@@ -272,7 +272,7 @@ const IBJJFRules: React.FC = () => {
           initial={{ opacity: 0, y: 20 }}
           whileInView={{ opacity: 1, y: 0 }}
           viewport={{ once: true }}
-          className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6"
+          className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 lg:gap-6"
         >
           {IBJJF_LESSONS.map((lesson, idx) => {
             const IconComponent = (Icons as any)[lesson.icon] || Icons.BookOpen;
@@ -284,11 +284,11 @@ const IBJJFRules: React.FC = () => {
                 whileInView={{ opacity: 1, scale: 1 }}
                 viewport={{ once: true }}
                 transition={{ delay: idx * 0.1 }}
-                className={`${isFeatured ? 'md:col-span-2 md:row-span-2' : ''} bg-white dark:bg-zinc-900 rounded-[2.5rem] border border-slate-200 dark:border-zinc-800 p-8 flex flex-col justify-between hover:border-blue-600 transition-all group relative overflow-hidden shadow-sm hover:shadow-2xl`}
+                className={`${isFeatured ? 'md:col-span-2 md:row-span-2' : ''} bg-white dark:bg-zinc-900 rounded-3xl lg:rounded-[2.5rem] border border-slate-200 dark:border-zinc-800 p-6 lg:p-8 flex flex-col justify-between hover:border-blue-600 transition-all group relative overflow-hidden shadow-sm hover:shadow-2xl`}
               >
                 <div className="relative z-10 space-y-6">
                   <div className="flex items-center justify-between">
-                    <div className={`${isFeatured ? 'w-16 h-16 bg-blue-600 text-white' : 'w-12 h-12 bg-blue-50 dark:bg-blue-900/20 text-blue-600'} rounded-2xl flex items-center justify-center transition-transform group-hover:scale-110 shadow-lg`}>
+                    <div className={`${isFeatured ? 'w-14 h-14 lg:w-16 lg:h-16 bg-blue-600 text-white' : 'w-10 h-10 lg:w-12 lg:h-12 bg-blue-50 dark:bg-blue-900/20 text-blue-600'} rounded-2xl flex items-center justify-center transition-transform group-hover:scale-110 shadow-lg`}>
                       <IconComponent size={isFeatured ? 32 : 24} />
                     </div>
                     <span className="text-[8px] font-black text-slate-400 uppercase tracking-widest">LEV 0{idx + 1}</span>
@@ -299,7 +299,7 @@ const IBJJFRules: React.FC = () => {
                         {t(`portal.categories.${lesson.category.toLowerCase()}`)}
                       </span>
                     </div>
-                    <h3 className={`${isFeatured ? 'text-3xl' : 'text-xl'} font-black text-slate-900 dark:text-white uppercase tracking-tight leading-none`}>
+                    <h3 className={`${isFeatured ? 'text-2xl lg:text-3xl' : 'text-lg lg:text-xl'} font-black text-slate-900 dark:text-white uppercase tracking-tight leading-none`}>
                       {lesson.title}
                     </h3>
                     <p className={`${isFeatured ? 'text-sm' : 'text-[11px]'} text-slate-500 dark:text-slate-400 font-medium leading-relaxed italic`}>
@@ -325,13 +325,13 @@ const IBJJFRules: React.FC = () => {
       <div className="space-y-6">
         <div className="flex items-center gap-3">
           <Scale size={24} className="text-blue-600" />
-          <h2 className="text-3xl font-black text-slate-900 dark:text-white uppercase tracking-tighter">Tactical Scenarios</h2>
+          <h2 className="text-2xl lg:text-3xl font-black text-slate-900 dark:text-white uppercase tracking-tighter">Tactical Scenarios</h2>
         </div>
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           {ruleCases.map((c, idx) => (
-            <div key={idx} className="bg-white dark:bg-slate-900 p-8 rounded-[2.5rem] border border-slate-200 dark:border-slate-800 shadow-sm hover:shadow-xl transition-all group border-b-4 border-b-blue-600">
+            <div key={idx} className="bg-white dark:bg-slate-900 p-6 lg:p-8 rounded-3xl lg:rounded-[2.5rem] border border-slate-200 dark:border-slate-800 shadow-sm hover:shadow-xl transition-all group border-b-4 border-b-blue-600">
               <div className="flex items-center justify-between mb-6">
-                <div className="w-12 h-12 bg-blue-50 dark:bg-blue-900/20 rounded-2xl flex items-center justify-center text-blue-600 group-hover:scale-110 transition-transform">
+                <div className="w-10 h-10 lg:w-12 lg:h-12 bg-blue-50 dark:bg-blue-900/20 rounded-2xl flex items-center justify-center text-blue-600 group-hover:scale-110 transition-transform">
                   <Icons.Zap size={24} />
                 </div>
                 <div className="flex items-center gap-2">
@@ -339,9 +339,9 @@ const IBJJFRules: React.FC = () => {
                   <span className="text-[10px] font-black text-red-500 uppercase tracking-widest">{c.penalty}</span>
                 </div>
               </div>
-              <h3 className="text-lg font-black text-slate-900 dark:text-white uppercase tracking-tight mb-3 leading-tight">{c.title}</h3>
+              <h3 className="text-base lg:text-lg font-black text-slate-900 dark:text-white uppercase tracking-tight mb-3 leading-tight">{c.title}</h3>
               <p className="text-xs text-slate-500 dark:text-slate-400 font-medium mb-6 leading-relaxed italic line-clamp-3">{c.scenario}</p>
-              <div className="p-5 bg-slate-50 dark:bg-slate-800/50 rounded-2xl border border-slate-100 dark:border-slate-800 group-hover:border-blue-600/30 transition-colors">
+              <div className="p-4 lg:p-5 bg-slate-50 dark:bg-slate-800/50 rounded-2xl border border-slate-100 dark:border-slate-800 group-hover:border-blue-600/30 transition-colors">
                 <div className="flex items-center gap-2 mb-2">
                   <div className="w-1 h-1 bg-blue-600 rounded-full" />
                   <p className="text-[9px] font-black text-blue-600 uppercase tracking-widest">{t('ibjjfRules.officialRule')}</p>
@@ -357,18 +357,18 @@ const IBJJFRules: React.FC = () => {
         <div className="xl:col-span-2 space-y-12">
           <div className="space-y-8">
             <div className="flex items-center gap-4">
-              <div className="w-14 h-14 bg-red-600 rounded-2xl flex items-center justify-center text-white shadow-xl shadow-red-600/20">
+              <div className="w-12 h-12 lg:w-14 lg:h-14 bg-red-600 rounded-2xl flex items-center justify-center text-white shadow-xl shadow-red-600/20">
                 <AlertTriangle size={28} />
               </div>
               <div className="space-y-1">
-                <h2 className="text-3xl font-black text-slate-900 dark:text-white uppercase tracking-tighter">{t('ibjjfRules.prohibitedTechniques')}</h2>
+                <h2 className="text-2xl lg:text-3xl font-black text-slate-900 dark:text-white uppercase tracking-tighter">{t('ibjjfRules.prohibitedTechniques')}</h2>
                 <p className="text-red-500 text-[10px] font-black uppercase tracking-[0.2em]">Restricted Actions & Penalties</p>
               </div>
             </div>
             
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6 lg:gap-8">
               {prohibitedTechniques.map((cat) => (
-                <div key={cat.category} className="bg-white dark:bg-slate-900 rounded-[3rem] border border-slate-200 dark:border-slate-800 shadow-xl overflow-hidden group">
+                <div key={cat.category} className="bg-white dark:bg-slate-900 rounded-3xl lg:rounded-[3rem] border border-slate-200 dark:border-slate-800 shadow-xl overflow-hidden group">
                   <div className="aspect-[16/10] relative overflow-hidden">
                     <img 
                       src={cat.image} 
@@ -379,10 +379,10 @@ const IBJJFRules: React.FC = () => {
                     <div className="absolute inset-0 bg-gradient-to-t from-slate-900 via-slate-900/40 to-transparent" />
                     <div className="absolute bottom-6 left-8">
                       <span className="text-[8px] font-black text-red-500 uppercase tracking-widest bg-white rounded-full px-3 py-1 mb-2 inline-block">Prohibited</span>
-                      <h4 className="text-xl font-black text-white uppercase tracking-tighter">{cat.category}</h4>
+                      <h4 className="text-lg lg:text-xl font-black text-white uppercase tracking-tighter">{cat.category}</h4>
                     </div>
                   </div>
-                  <div className="p-10">
+                  <div className="p-8 lg:p-10">
                     <ul className="space-y-4">
                       {cat.items.map(item => (
                         <li key={item} className="flex items-start gap-4 text-xs font-bold text-slate-600 dark:text-slate-400 group/item">
@@ -399,31 +399,31 @@ const IBJJFRules: React.FC = () => {
             </div>
           </div>
 
-          <div className="bg-white dark:bg-zinc-900 rounded-[3rem] border border-slate-200 dark:border-zinc-800 shadow-xl overflow-hidden">
-            <div className="p-10 border-b border-slate-100 dark:border-zinc-800 bg-slate-50/50 dark:bg-zinc-800/20 flex flex-col md:flex-row md:items-center justify-between gap-6">
+          <div className="bg-white dark:bg-zinc-900 rounded-3xl lg:rounded-[3rem] border border-slate-200 dark:border-zinc-800 shadow-xl overflow-hidden">
+            <div className="p-8 lg:p-10 border-b border-slate-100 dark:border-zinc-800 bg-slate-50/50 dark:bg-zinc-800/20 flex flex-col md:flex-row md:items-center justify-between gap-6">
               <div className="flex items-center gap-5">
-                <div className="w-16 h-16 bg-blue-600 rounded-3xl flex items-center justify-center text-white shadow-2xl">
+                <div className="w-14 h-14 lg:w-16 lg:h-16 bg-blue-600 rounded-3xl flex items-center justify-center text-white shadow-2xl">
                   <GraduationCap size={32} />
                 </div>
                 <div>
-                  <h2 className="text-3xl font-black text-slate-900 dark:text-white uppercase tracking-tighter leading-none">{t('ibjjfRules.adultSystem')}</h2>
-                  <p className="text-slate-500 font-bold uppercase tracking-widest text-[9px] mt-2">Professional Grading Guidelines</p>
+                  <h2 className="text-2xl lg:text-3xl font-black text-slate-900 dark:text-white uppercase tracking-tighter leading-none">{t('ibjjfRules.adultSystem')}</h2>
+                  <p className="text-slate-500 font-bold uppercase tracking-widest text-[9px] mt-1 lg:mt-2">Professional Grading Guidelines</p>
                 </div>
               </div>
             </div>
-            <div className="overflow-x-auto">
+            <div className="overflow-x-auto scrollbar-hide">
               <table className="w-full text-left border-collapse">
                 <thead>
                   <tr className="bg-slate-50 dark:bg-zinc-800/40">
-                    <th className="px-10 py-5 text-[10px] font-black text-slate-400 uppercase tracking-widest border-b border-slate-100 dark:border-zinc-800">Belt Rank</th>
-                    <th className="px-10 py-5 text-[10px] font-black text-slate-400 uppercase tracking-widest border-b border-slate-100 dark:border-zinc-800 text-center">Minimum Time</th>
-                    <th className="px-10 py-5 text-[10px] font-black text-slate-400 uppercase tracking-widest border-b border-slate-100 dark:border-zinc-800">Requirements & Mastery</th>
+                    <th className="px-6 lg:px-10 py-5 text-[10px] font-black text-slate-400 uppercase tracking-widest border-b border-slate-100 dark:border-zinc-800">Belt Rank</th>
+                    <th className="px-6 lg:px-10 py-5 text-[10px] font-black text-slate-400 uppercase tracking-widest border-b border-slate-100 dark:border-zinc-800 text-center">Minimum Time</th>
+                    <th className="px-6 lg:px-10 py-5 text-[10px] font-black text-slate-400 uppercase tracking-widest border-b border-slate-100 dark:border-zinc-800">Requirements & Mastery</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-50 dark:divide-zinc-800">
                   {adultRules.map((rule) => (
                     <tr key={rule.belt} className="group hover:bg-slate-50/50 dark:hover:bg-zinc-800/20 transition-colors">
-                      <td className="px-10 py-8">
+                      <td className="px-6 lg:px-10 py-6 lg:py-8">
                         <div className="flex items-center gap-4">
                           <div className={`w-12 h-4 rounded-sm shadow-sm border ${
                             rule.belt === 'White' ? 'bg-white border-slate-200' : 
@@ -432,16 +432,16 @@ const IBJJFRules: React.FC = () => {
                             rule.belt === 'Brown' ? 'bg-amber-900 border-amber-950' : 
                             'bg-slate-900 border-slate-800'
                           }`} />
-                          <h3 className="font-black text-slate-900 dark:text-white uppercase tracking-tight text-lg">{t(`belts.${rule.belt}`)}</h3>
+                          <h3 className="font-black text-slate-900 dark:text-white uppercase tracking-tight text-base lg:text-lg">{t(`belts.${rule.belt}`)}</h3>
                         </div>
                       </td>
-                      <td className="px-10 py-8 text-center">
+                      <td className="px-6 lg:px-10 py-6 lg:py-8 text-center text-xs">
                         <span className="px-4 py-1.5 bg-blue-600/10 text-blue-600 rounded-full text-[10px] font-black uppercase tracking-widest border border-blue-600/10">
                           {rule.minTime}
                         </span>
                       </td>
-                      <td className="px-10 py-8">
-                        <p className="text-xs text-slate-500 dark:text-slate-400 font-medium leading-relaxed max-w-sm">
+                      <td className="px-6 lg:px-10 py-6 lg:py-8">
+                        <p className="text-xs text-slate-500 dark:text-slate-400 font-medium leading-relaxed max-w-sm italic">
                           {rule.description}
                         </p>
                       </td>
@@ -452,17 +452,17 @@ const IBJJFRules: React.FC = () => {
             </div>
           </div>
 
-          <div className="bg-slate-900 rounded-[3rem] p-12 text-white shadow-2xl relative overflow-hidden group">
+          <div className="bg-slate-900 rounded-3xl lg:rounded-[3rem] p-8 lg:p-12 text-white shadow-2xl relative overflow-hidden group">
             <div className="absolute top-0 right-0 w-full h-full bg-gradient-to-br from-blue-600/20 to-transparent pointer-events-none" />
             <div className="absolute -bottom-20 -right-20 w-80 h-80 bg-blue-600 rounded-full blur-[100px] opacity-20 group-hover:scale-125 transition-transform duration-1000" />
-            <div className="relative z-10 flex flex-col md:flex-row items-center gap-10">
-              <div className="w-20 h-20 bg-white/10 backdrop-blur-md rounded-2xl flex items-center justify-center border border-white/10 shrink-0 group-hover:rotate-6 transition-transform">
+            <div className="relative z-10 flex flex-col lg:flex-row items-center gap-8 lg:gap-10">
+              <div className="w-16 h-16 lg:w-20 lg:h-20 bg-white/10 backdrop-blur-md rounded-2xl flex items-center justify-center border border-white/10 shrink-0 group-hover:rotate-6 transition-transform">
                 <Trophy size={40} className="text-blue-400" />
               </div>
-              <div className="flex-1 space-y-4 text-center md:text-left">
-                <h3 className="text-4xl font-black uppercase tracking-tighter leading-none">{t('ibjjfRules.examPrep')}</h3>
-                <p className="text-slate-400 font-medium leading-relaxed max-w-xl">{t('ibjjfRules.examDesc')}</p>
-                <div className="pt-4 flex flex-wrap gap-4 justify-center md:justify-start">
+              <div className="flex-1 space-y-4 text-center lg:text-left">
+                <h3 className="text-3xl lg:text-4xl font-black uppercase tracking-tighter leading-none">{t('ibjjfRules.examPrep')}</h3>
+                <p className="text-slate-400 font-medium leading-relaxed text-sm lg:text-base max-w-xl">{t('ibjjfRules.examDesc')}</p>
+                <div className="pt-4 flex flex-wrap gap-4 justify-center lg:justify-start">
                   {simulados.map((simu: any, idx: number) => (
                     <button 
                       key={simu.id}
@@ -479,19 +479,73 @@ const IBJJFRules: React.FC = () => {
           </div>
         </div>
 
+        {/* Kids System Section */}
+        <div className="bg-white dark:bg-zinc-900 rounded-3xl lg:rounded-[3rem] border border-slate-200 dark:border-zinc-800 shadow-xl overflow-hidden mt-8 lg:mt-12">
+          <div className="p-8 lg:p-10 border-b border-slate-100 dark:border-zinc-800 bg-slate-50/50 dark:bg-zinc-800/20 flex flex-col md:flex-row md:items-center justify-between gap-6">
+            <div className="flex items-center gap-5">
+              <div className="w-14 h-14 lg:w-16 lg:h-16 bg-orange-500 rounded-3xl flex items-center justify-center text-white shadow-2xl">
+                <Users size={32} />
+              </div>
+              <div>
+                <h2 className="text-2xl lg:text-3xl font-black text-slate-900 dark:text-white uppercase tracking-tighter leading-none">{t('students.kidsRulesTitle')}</h2>
+                <p className="text-slate-500 font-bold uppercase tracking-widest text-[9px] mt-1 lg:mt-2">Youth Graduation & Age Mastery</p>
+              </div>
+            </div>
+          </div>
+          <div className="overflow-x-auto scrollbar-hide">
+            <table className="w-full text-left border-collapse">
+              <thead>
+                <tr className="bg-slate-50 dark:bg-zinc-800/40">
+                  <th className="px-6 lg:px-10 py-5 text-[10px] font-black text-slate-400 uppercase tracking-widest border-b border-slate-100 dark:border-zinc-800">Belt Rank</th>
+                  <th className="px-6 lg:px-10 py-5 text-[10px] font-black text-slate-400 uppercase tracking-widest border-b border-slate-100 dark:border-zinc-800 text-center">Min. Age</th>
+                  <th className="px-6 lg:px-10 py-5 text-[10px] font-black text-slate-400 uppercase tracking-widest border-b border-slate-100 dark:border-zinc-800">Group & Focus</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-slate-50 dark:divide-zinc-800">
+                {(tObj('students.kidsRules') || []).map((rule: any) => (
+                  <tr key={rule.belt} className="group hover:bg-slate-50/50 dark:hover:bg-zinc-800/20 transition-colors">
+                    <td className="px-6 lg:px-10 py-6 lg:py-8">
+                      <div className="flex items-center gap-4">
+                        <div className={`w-12 h-4 rounded-sm shadow-sm border ${
+                          rule.belt.includes('White') || rule.belt.includes('Branca') ? 'bg-white border-slate-200' : 
+                          rule.belt.includes('Gray') || rule.belt.includes('Cinza') ? 'bg-slate-400 border-slate-500' : 
+                          rule.belt.includes('Yellow') || rule.belt.includes('Amarela') ? 'bg-yellow-400 border-yellow-500' : 
+                          rule.belt.includes('Orange') || rule.belt.includes('Laranja') ? 'bg-orange-500 border-orange-600' : 
+                          'bg-green-600 border-green-700'
+                        }`} />
+                        <h3 className="font-black text-slate-900 dark:text-white uppercase tracking-tight text-base lg:text-lg">{rule.belt}</h3>
+                      </div>
+                    </td>
+                    <td className="px-6 lg:px-10 py-6 lg:py-8 text-center text-xs">
+                      <span className="px-4 py-1.5 bg-orange-500/10 text-orange-500 rounded-full text-[10px] font-black uppercase tracking-widest border border-orange-500/10">
+                        {rule.minAge} {t('common.years')}
+                      </span>
+                    </td>
+                    <td className="px-6 lg:px-10 py-6 lg:py-8">
+                      <p className="text-xs text-slate-500 dark:text-slate-400 font-medium leading-relaxed max-w-sm italic">
+                        {rule.description}
+                      </p>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </div>
+
         <div className="relative">
           <div className="sticky top-24 space-y-6">
             <div className="bg-white dark:bg-zinc-900 rounded-[3.5rem] border border-slate-200 dark:border-zinc-800 shadow-2xl flex flex-col h-[750px] overflow-hidden">
-              <div className="p-10 border-b border-slate-100 dark:border-zinc-800 bg-slate-50/50 dark:bg-zinc-800/30">
+              <div className="p-6 lg:p-10 border-b border-slate-100 dark:border-zinc-800 bg-slate-50/50 dark:bg-zinc-800/30">
                 <div className="flex items-center gap-5">
                   <div className="relative">
-                    <div className="w-16 h-16 bg-blue-600 rounded-2xl flex items-center justify-center text-white shadow-xl shadow-blue-600/30">
+                    <div className="w-14 h-14 lg:w-16 lg:h-16 bg-blue-600 rounded-2xl flex items-center justify-center text-white shadow-xl shadow-blue-600/30">
                       <Bot size={32} />
                     </div>
                     <div className="absolute -bottom-1 -right-1 w-5 h-5 bg-green-500 rounded-full border-4 border-white dark:border-zinc-900" />
                   </div>
                   <div>
-                    <h3 className="text-xl font-black text-slate-900 dark:text-white uppercase tracking-tight">{t('ibjjfRules.digitalSensei')}</h3>
+                    <h3 className="text-lg lg:text-xl font-black text-slate-900 dark:text-white uppercase tracking-tight">{t('ibjjfRules.digitalSensei')}</h3>
                     <div className="flex items-center gap-2 mt-1">
                        <span className="px-2 py-0.5 bg-green-500/10 text-green-500 text-[8px] font-black uppercase tracking-widest rounded border border-green-500/10">Tactical Online</span>
                     </div>
@@ -499,7 +553,7 @@ const IBJJFRules: React.FC = () => {
                 </div>
               </div>
 
-              <div className="flex-1 overflow-y-auto p-10 space-y-8 scrollbar-hide">
+              <div className="flex-1 overflow-y-auto p-6 lg:p-10 space-y-8 scrollbar-hide">
                 <AnimatePresence initial={false}>
                   {messages.length === 0 && (
                     <motion.div 
