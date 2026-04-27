@@ -25,6 +25,7 @@ import { useTranslation } from '../contexts/LanguageContext';
 import { useProfile } from '../contexts/ProfileContext';
 import { GoogleGenAI } from "@google/genai";
 import { IBJJF_LESSONS } from '../constants/rulesData';
+import { chatWithRulesSensei } from '../services/gemini';
 import ReactMarkdown from 'react-markdown';
 import * as Icons from 'lucide-react';
 
@@ -54,28 +55,11 @@ const IBJJFRules: React.FC = () => {
     setIsLoading(true);
 
     try {
-      const apiKey = process.env.GEMINI_API_KEY || process.env.API_KEY;
-      if (!apiKey || apiKey === 'undefined' || apiKey === 'null' || apiKey === '') {
-        console.error('Gemini API Key missing or empty');
-        setMessages(prev => [...prev, { role: 'bot', text: t('ibjjfRules.aiKeyError') }]);
-        setIsLoading(false);
-        return;
-      }
-      
-      const ai = new GoogleGenAI({ apiKey });
-      const response = await ai.models.generateContent({
-        model: "gemini-flash-latest",
-        contents: userMessage,
-        config: {
-          systemInstruction: t('ibjjfRules.aiSystemInstruction')
-        }
-      });
-
-      if (!response || !response.text) {
-        throw new Error('Empty response from AI');
-      }
-
-      setMessages(prev => [...prev, { role: 'bot', text: response.text }]);
+      const response = await chatWithRulesSensei(
+        userMessage, 
+        t('ibjjfRules.aiSystemInstruction')
+      );
+      setMessages(prev => [...prev, { role: 'bot', text: response }]);
     } catch (error) {
       console.error('AI Error:', error);
       setMessages(prev => [...prev, { role: 'bot', text: t('ibjjfRules.errorAI') }]);

@@ -6,7 +6,7 @@ let genAI: GoogleGenAI | null = null;
 
 const getGenAI = () => {
   if (!genAI) {
-    let apiKey = process.env.GEMINI_API_KEY;
+    let apiKey = process.env.GEMINI_API_KEY || process.env.VITE_GEMINI_API_KEY || (window as any).GEMINI_API_KEY;
     
     // Hard check for common missing/invalid values
     if (!apiKey || apiKey === 'undefined' || apiKey === 'null' || apiKey.trim() === '') {
@@ -22,6 +22,26 @@ const getGenAI = () => {
     }
   }
   return genAI;
+};
+
+export const chatWithRulesSensei = async (message: string, systemInstruction: string) => {
+  const ai = getGenAI();
+  if (!ai) return "Sensei, a chave da IA não foi configurada. OSS!";
+
+  try {
+    const response = await ai.models.generateContent({
+      model: "gemini-3-flash-preview",
+      contents: message,
+      config: { 
+        systemInstruction: systemInstruction 
+      }
+    });
+    
+    return response.text || "Oss! Não consegui processar sua dúvida agora.";
+  } catch (error) {
+    console.error("Rules Sensei Error:", error);
+    return "Erro ao consultar o mestre. Tente novamente.";
+  }
 };
 
 const SYSTEM_INSTRUCTION = `Você é o "SYSBJJ 2.0 Master Sensei & Business Consultant", a autoridade máxima do ecossistema SYSBJJ 2.0.

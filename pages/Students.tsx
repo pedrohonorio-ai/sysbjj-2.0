@@ -43,6 +43,41 @@ const NewStudentModal = ({ onClose, defaultIsKid }: { onClose: () => void, defau
   const { t } = useTranslation();
   const { addStudent, schedules } = useData();
   const [error, setError] = useState<string | null>(null);
+  const [formData, setFormData] = useState({
+    name: '',
+    nickname: '',
+    email: '',
+    phone: '',
+    birthDate: '1990-01-01',
+    gender: Gender.MALE,
+    cpf: '',
+    rg: '',
+    weight: 70,
+    height: 1.70,
+    federationId: '',
+    category: CBJJCategory.ADULTO,
+    weightClass: 'Pena',
+    lastPromotionDate: new Date().toISOString().split('T')[0],
+    isInstructor: false,
+    isKid: defaultIsKid,
+    isCompetitor: false,
+    technicalNotes: '',
+    monthlyValue: 250,
+    belt: defaultIsKid ? KidsBeltColor.WHITE : BeltColor.WHITE,
+    dueDay: 10,
+    status: StudentStatus.ACTIVE,
+    pros: '',
+    cons: '',
+    photoUrl: '',
+    emergencyContact: '',
+    medicalConditions: '',
+    address: '',
+    bloodType: '',
+    responsiblePerson: '',
+    classId: ''
+  });
+
+  const fileInputRef = React.useRef<HTMLInputElement>(null);
 
   const handlePhotoUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
