@@ -142,8 +142,8 @@ const SystemAudit: React.FC = () => {
     doc.text(`${t('audit.registeredStudents')}: ${stats.totalStudents}`, 14, 52);
     doc.text(`${t('audit.totalActions')}: ${stats.totalActions}`, 14, 57);
     doc.text(`${t('audit.activeUsers')}: ${stats.uniqueUsers}`, 14, 62);
-    doc.text(`${t('audit.blockchainIntegrity')}: ${stats.auditIntegrity ? 'VERIFIED' : 'TAMPERED'}`, 14, 67);
-    doc.text(`Financial Ledger Integrity: ${stats.ledgerIntegrity ? 'VERIFIED' : 'TAMPERED'}`, 14, 72);
+    doc.text(`${t('audit.blockchainIntegrity')}: ${stats.auditIntegrity ? t('audit.verified') : t('audit.failed')}`, 14, 67);
+    doc.text(`${t('audit.ledgerIntegrity') || 'Integridade do Ledger'}: ${stats.ledgerIntegrity ? t('audit.verified') : t('audit.failed')}`, 14, 72);
 
     // Logs Table
     const tableData = filteredLogs.map(log => [
@@ -306,7 +306,7 @@ const SystemAudit: React.FC = () => {
                   </div>
                 </div>
                 <div className="px-3 py-1 bg-green-500 text-white rounded-lg text-[8px] font-black uppercase tracking-widest">
-                  ONLINE
+                  {t('common.online') || 'ONLINE'}
                 </div>
               </div>
             )) : (

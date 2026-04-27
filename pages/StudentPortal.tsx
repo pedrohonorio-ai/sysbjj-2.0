@@ -6,14 +6,15 @@ import {
   Trophy, Flame, Calendar, BookOpen, 
   ArrowRight, Shield, Zap, Plus, LogOut, Scale, Gamepad2, Award, Play,
   QrCode, Clock, Info, Camera, CheckCircle2, AlertTriangle, X, Copy, Image as ImageIcon, Download, Maximize2,
-  RefreshCw, FileText, Upload, ShieldCheck, AlertCircle, ShieldAlert, ChevronRight
+  RefreshCw, FileText, Upload, ShieldCheck, AlertCircle, ShieldAlert, ChevronRight,
+  Map, Star, Users2, Medal, Presentation, ClipboardCheck, GraduationCap, Check
 } from 'lucide-react';
 import { Html5QrcodeScanner } from 'html5-qrcode';
 import { useTranslation } from '../contexts/LanguageContext';
 import { useData } from '../contexts/DataContext';
 import { useProfile } from '../contexts/ProfileContext';
-import { StudentStatus, GalleryImage, BeltColor } from '../types';
-import { BELT_COLORS } from '../constants';
+import { StudentStatus, GalleryImage, BeltColor, KidsBeltColor } from '../types';
+import { BELT_COLORS, IBJJF_BELT_RULES } from '../constants';
 import { IBJJF_LESSONS, RuleLesson, RuleScenario } from '../constants/rulesData';
 import ReactMarkdown from 'react-markdown';
 import * as Icons from 'lucide-react';
@@ -22,7 +23,7 @@ import { GoogleGenAI } from "@google/genai";
 const StudentPortal: React.FC = () => {
   const { code } = useParams();
   const navigate = useNavigate();
-  const { t } = useTranslation();
+  const { t, tObj } = useTranslation();
   const { students, recordAttendance, gallery, payments, addGalleryImage, addReceipt, completeRuleLesson } = useData();
   const { profile } = useProfile();
   const [loading, setLoading] = useState(true);
@@ -42,6 +43,61 @@ const StudentPortal: React.FC = () => {
   const { updateStudent } = useData();
 
   const student = useMemo(() => students.find(s => s.portalAccessCode === code), [students, code]);
+
+  const graduationAnalysis = useMemo(() => {
+    if (!student) return null;
+    const age = calculateAge(student.birthDate);
+    const isKid = student.isKid || age < 16;
+    const isBlackBelt = student.belt === BeltColor.BLACK || student.belt === BeltColor.RED_BLACK || student.belt === BeltColor.RED_WHITE || student.belt === BeltColor.RED;
+    const chain = (isKid ? Object.values(KidsBeltColor) : Object.values(BeltColor)) as any[];
+    const currentIdx = chain.indexOf(student.belt);
+    const nextBelt = currentIdx !== -1 && currentIdx < chain.length - 1 ? chain[currentIdx + 1] : (isKid ? 'Adulto' : 'Mestre');
+    const futurePath = currentIdx !== -1 ? chain.slice(currentIdx + 1, currentIdx + 4) : [];
+    
+    let minMonths = 4;
+    let attendanceThreshold = 30;
+    let maxStripes = 4;
+    
+    if (!isKid) {
+      const rule = IBJJF_BELT_RULES[student.belt as string];
+      minMonths = rule?.minTimeMonths ?? 0;
+      if (student.belt === 'Purple' && age === 17) minMonths = 12;
+      
+      if (student.belt === 'White') attendanceThreshold = 80;
+      else if (student.belt === 'Blue') attendanceThreshold = 120;
+      else if (student.belt === 'Purple') attendanceThreshold = 100;
+      else if (student.belt === 'Brown') attendanceThreshold = 80;
+      else if (student.belt === 'Black') attendanceThreshold = 60;
+    }
+
+    if (isBlackBelt) {
+      maxStripes = 6;
+      if (student.belt === 'Black') {
+        if (student.stripes < 3) minMonths = 36;
+        else minMonths = 60;
+      } else if (student.belt === 'Red-Black' || student.belt === 'Red-White') {
+        minMonths = 84;
+      }
+    }
+
+    const today = new Date();
+    const promo = new Date(student.lastPromotionDate + 'T12:00:00');
+    let monthsInBelt = (today.getFullYear() - promo.getFullYear()) * 12 + (today.getMonth() - promo.getMonth());
+    if (today.getDate() < promo.getDate()) monthsInBelt--;
+    monthsInBelt = Math.max(0, monthsInBelt);
+
+    return {
+      nextBelt: nextBelt as string,
+      futurePath,
+      monthsInBelt,
+      minMonths,
+      attendanceThreshold,
+      isBlackBelt,
+      maxStripes,
+      timeProgress: Math.min(100, (monthsInBelt / (minMonths || 1)) * 100),
+      attendanceProgress: Math.min(100, (student.attendanceCount / (attendanceThreshold || 1)) * 100)
+    };
+  }, [student]);
 
   const [rankingBeltFilter, setRankingBeltFilter] = useState<string>('all');
   const [rankingClassFilter, setRankingClassFilter] = useState<string>('all');
@@ -360,22 +416,45 @@ const StudentPortal: React.FC = () => {
       <main className="max-w-md mx-auto p-4 space-y-6">
         {activeTab === 'home' && (
           <>
-            <div className="bg-slate-900 rounded-[2.5rem] p-8 text-white relative shadow-2xl">
-              <div className="flex items-center gap-6">
+            <div className="bg-slate-900 rounded-[2.5rem] p-8 text-white relative shadow-2xl overflow-hidden">
+              {/* Background Stripe Effect */}
+              <div className="absolute top-0 right-0 w-32 h-full opacity-10 pointer-events-none">
+                 <div className="w-full h-full bg-blue-600 rotate-12 transform translate-x-16" />
+              </div>
+
+              <div className="flex items-center gap-6 relative z-10">
                 <div className="w-16 h-16 rounded-2xl bg-blue-600 flex items-center justify-center text-2xl font-black border-4 border-white/10">{student.name[0]}</div>
-                <div>
+                <div className="flex-1">
                   <h1 className="text-xl font-black tracking-tighter uppercase leading-none">{student.name}</h1>
-                  <div className="flex gap-2 mt-2">
+                  <div className="flex flex-wrap gap-2 mt-2">
                     <span className={`px-3 py-1 rounded-lg text-[8px] font-black uppercase tracking-widest ${BELT_COLORS[student.belt]}`}>{t(`belts.${student.belt}`)}</span>
                     <span className="px-3 py-1 rounded-lg text-[8px] font-black uppercase tracking-widest bg-white/10 text-white">
                       {calculateAge(student.birthDate)} {t('common.years').toUpperCase()}
                     </span>
-                    {student.isCompetitor && (
-                      <span className="px-3 py-1 rounded-lg text-[8px] font-black uppercase tracking-widest bg-yellow-500 text-slate-900 flex items-center gap-1">
-                        <Trophy size={10} /> ATLETA
-                      </span>
-                    )}
                   </div>
+                </div>
+              </div>
+
+              {/* Stripes Indicator for Home */}
+              <div className="mt-6 flex items-center justify-between p-4 bg-white/5 rounded-2xl border border-white/10">
+                <div className="flex flex-col">
+                   <span className="text-[7px] font-black text-slate-400 uppercase tracking-widest leading-none mb-1">
+                    {graduationAnalysis?.isBlackBelt ? 'Graus de Maestria' : 'Graus de Evolução'}
+                   </span>
+                   <div className="flex gap-1">
+                     {[...Array(graduationAnalysis?.maxStripes || 4)].map((_, i) => (
+                       <div 
+                         key={i} 
+                         className={`w-4 h-6 rounded-sm transition-all ${i < student.stripes ? (graduationAnalysis?.isBlackBelt ? 'bg-amber-400 shadow-[0_0_8px_rgba(251,191,36,0.5)]' : 'bg-white') : 'bg-white/10'}`} 
+                       />
+                     ))}
+                   </div>
+                </div>
+                <div className="text-right">
+                   <span className="text-[7px] font-black text-slate-400 uppercase tracking-widest leading-none mb-1">Status</span>
+                   <p className={`text-[10px] font-black uppercase ${student.status === StudentStatus.ACTIVE ? 'text-green-400' : 'text-amber-400'}`}>
+                      {t(`status.${student.status.toLowerCase()}`)}
+                   </p>
                 </div>
               </div>
             </div>
@@ -492,15 +571,141 @@ const StudentPortal: React.FC = () => {
 
         {activeTab === 'curriculum' && (
           <div className="space-y-6">
-            <div className="bg-white dark:bg-slate-900 rounded-[2rem] p-6 border border-slate-200 dark:border-slate-800">
-              <h3 className="text-[10px] font-black uppercase tracking-widest mb-4 dark:text-white">{t('portal.evolutionTitle')}</h3>
-              <div className="space-y-4">
-                <div className="flex justify-between items-end mb-1">
-                  <span className="text-[10px] font-black text-slate-400 uppercase">{t('portal.milestones')}</span>
-                  <span className="text-xs font-black text-blue-500">{Math.min(100, Math.round((student.attendanceCount / 50) * 100))}%</span>
+            <div className="bg-white dark:bg-slate-900 rounded-[2rem] p-8 border border-slate-200 dark:border-slate-800 shadow-sm space-y-8">
+              <div className="flex items-center justify-between">
+                <div>
+                  <h3 className="text-xl font-black text-slate-900 dark:text-white uppercase tracking-tighter leading-none">{t('portal.evolutionTitle')}</h3>
+                  <p className="text-[9px] font-black text-blue-500 uppercase tracking-widest mt-1">Caminho da Graduação</p>
                 </div>
-                <div className="h-3 bg-slate-100 dark:bg-slate-800 rounded-full overflow-hidden">
-                  <div className="h-full bg-blue-600 transition-all duration-1000" style={{ width: `${Math.min(100, (student.attendanceCount / 50) * 100)}%` }} />
+                <div className="w-12 h-12 bg-blue-600 rounded-2xl flex items-center justify-center text-white shadow-lg">
+                  <GraduationCap size={24} />
+                </div>
+              </div>
+
+              {/* Progress Bars */}
+              <div className="space-y-6">
+                <div className="space-y-3">
+                  <div className="flex justify-between items-end">
+                    <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest">Tempo Mínimo na Faixa</p>
+                    <p className="text-[10px] font-black dark:text-white leading-none">{graduationAnalysis?.monthsInBelt} / {graduationAnalysis?.minMonths}m</p>
+                  </div>
+                  <div className="h-2.5 bg-slate-100 dark:bg-slate-800 rounded-full overflow-hidden">
+                    <motion.div 
+                      initial={{ width: 0 }}
+                      animate={{ width: `${graduationAnalysis?.timeProgress}%` }}
+                      className="h-full bg-blue-600"
+                    />
+                  </div>
+                </div>
+
+                <div className="space-y-3">
+                  <div className="flex justify-between items-end">
+                    <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest">Compromisso (Aulas)</p>
+                    <p className="text-[10px] font-black dark:text-white leading-none">{student.attendanceCount} / {graduationAnalysis?.attendanceThreshold}</p>
+                  </div>
+                  <div className="h-2.5 bg-slate-100 dark:bg-slate-800 rounded-full overflow-hidden">
+                    <motion.div 
+                      initial={{ width: 0 }}
+                      animate={{ width: `${graduationAnalysis?.attendanceProgress}%` }}
+                      className="h-full bg-cyan-500"
+                    />
+                  </div>
+                </div>
+              </div>
+
+              {/* Path Visualization */}
+              <div className="space-y-4 pt-4 border-t border-slate-100 dark:border-slate-800">
+                <div className="flex items-center gap-2">
+                  <Map size={14} className="text-blue-600" />
+                  <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Próximos Passos</p>
+                </div>
+                <div className="flex items-center gap-3 overflow-x-auto scrollbar-hide py-2">
+                  <div className="flex flex-col items-center gap-2 scale-90 opacity-60">
+                    <div className={`w-12 h-1.5 rounded-full ${BELT_COLORS[student.belt]}`} />
+                    <span className="text-[8px] font-bold text-slate-400 uppercase">{t(`belts.${student.belt}`)}</span>
+                  </div>
+                  <ChevronRight size={14} className="text-slate-300" />
+                  <div className="flex flex-col items-center gap-2">
+                    <div className={`w-14 h-2 rounded-full ${BELT_COLORS[graduationAnalysis?.nextBelt || 'White']} shadow-sm ring-2 ring-blue-500/20`} />
+                    <span className="text-[10px] font-black text-blue-600 uppercase tracking-tight">{t(`belts.${graduationAnalysis?.nextBelt}`)}</span>
+                  </div>
+                  {graduationAnalysis?.futurePath.slice(1).map((fb, idx) => (
+                    <React.Fragment key={fb}>
+                      <ChevronRight size={14} className="text-slate-200" />
+                      <div className="flex flex-col items-center gap-2 scale-75 opacity-20">
+                        <div className={`w-10 h-1.5 rounded-full ${BELT_COLORS[fb]}`} />
+                        <span className="text-[8px] font-bold text-slate-400 uppercase">{t(`belts.${fb}`)}</span>
+                      </div>
+                    </React.Fragment>
+                  ))}
+                </div>
+              </div>
+
+              {/* Technical Exam Requirements */}
+              <div className="space-y-4 pt-4 border-t border-slate-100 dark:border-slate-800">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <ClipboardCheck size={14} className="text-amber-500" />
+                    <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Requisitos Técnicos (Exame)</p>
+                  </div>
+                  <span className="text-[9px] font-black text-amber-600 bg-amber-50 dark:bg-amber-900/20 px-2 py-0.5 rounded uppercase">
+                    {Object.values(student.examRequirements || {}).filter(v => v).length} / {((tObj(`beltRequirements.${graduationAnalysis?.nextBelt || 'White'}`) as string[]) || []).length}
+                  </span>
+                </div>
+                
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  {((tObj(`beltRequirements.${graduationAnalysis?.nextBelt || 'White'}`) as string[]) || []).map((req, idx) => (
+                    <div 
+                      key={idx}
+                      className={`flex items-center gap-3 p-3 rounded-2xl border transition-all ${
+                        student.examRequirements?.[req]
+                          ? 'bg-amber-50/50 dark:bg-amber-900/10 border-amber-100 dark:border-amber-900/30'
+                          : 'bg-slate-50 dark:bg-slate-800/50 border-slate-100 dark:border-slate-700/50 opacity-60'
+                      }`}
+                    >
+                      <div className={`w-5 h-5 rounded-lg flex items-center justify-center ${
+                        student.examRequirements?.[req] ? 'bg-amber-500 text-white' : 'bg-slate-200 dark:bg-slate-700 text-transparent'
+                      }`}>
+                        <Check size={12} strokeWidth={4} />
+                      </div>
+                      <span className={`text-[10px] font-bold uppercase tracking-tight ${
+                        student.examRequirements?.[req] ? 'text-amber-900 dark:text-amber-200' : 'text-slate-500'
+                      }`}>
+                        {req}
+                      </span>
+                    </div>
+                  ))}
+                  {((tObj(`beltRequirements.${graduationAnalysis?.nextBelt || 'White'}`) as string[]) || []).length === 0 && (
+                     <p className="text-[9px] text-slate-400 italic col-span-2">Nenhum requisito técnico definido para esta faixa.</p>
+                  )}
+                </div>
+              </div>
+
+              {/* Requirements & Milestones */}
+              <div className="space-y-4 pt-4 border-t border-slate-100 dark:border-slate-800">
+                <div className="flex items-center gap-2">
+                  <Star size={14} className="text-amber-500" />
+                  <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Requisitos Extras Concluídos</p>
+                </div>
+                <div className="flex flex-wrap gap-2">
+                  {student.milestones?.map((m) => (
+                    <div key={m.id} className="flex items-center gap-2 px-3 py-2 bg-slate-50 dark:bg-slate-800/80 rounded-2xl border border-slate-100 dark:border-slate-700/50">
+                      {m.type === 'Seminar' && <Users2 size={12} className="text-amber-500" />}
+                      {m.type === 'Competition' && <Medal size={12} className="text-blue-500" />}
+                      {m.type === 'Course' && <Presentation size={12} className="text-purple-500" />}
+                      {m.type === 'Other' && <Star size={12} className="text-slate-400" />}
+                      <div className="flex flex-col">
+                        <span className="text-[9px] font-black text-slate-900 dark:text-white uppercase leading-none">{m.title}</span>
+                        <span className="text-[7px] font-bold text-slate-400 uppercase tracking-tighter mt-0.5">{m.date}</span>
+                      </div>
+                    </div>
+                  ))}
+                  {(!student.milestones || student.milestones.length === 0) && (
+                    <div className="flex flex-col items-center justify-center w-full py-4 space-y-2 opacity-50">
+                       <Info size={20} className="text-slate-300" />
+                       <p className="text-[9px] text-slate-400 font-bold uppercase tracking-widest italic">{t('portal.noAcademyRules')}</p>
+                    </div>
+                  )}
                 </div>
               </div>
             </div>

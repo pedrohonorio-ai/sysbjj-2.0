@@ -1001,6 +1001,7 @@ const pt = {
     exhibitionMode: "Modo Academia",
     operation: "Operação",
     display: "Exibição",
+    online: "Online",
     evolution: "Evolução",
     athletes: "Atletas",
     videos: "Vídeos",
@@ -1469,6 +1470,7 @@ const pt = {
     liveSync: "SINCRONIZAÇÃO AO VIVO",
     expiresSoon: "Expira em breve",
     blockchainSecured: "Segurança Blockchain Ativa",
+    ledgerIntegrity: "Integridade de Pagamentos",
     masterAccess: "Acesso Master",
     securityAuditor: "Auditor de Segurança"
   },
@@ -1694,9 +1696,71 @@ const pt = {
     correctCount: "Você acertou {{score}} de {{total}} questões.",
     redo: "Refazer Teste",
     complete: "Concluir",
-    aiKeyError: "Sensei, a chave da IA não foi configurada. OSS!",
-    verifiedSystem: "Regulamento Oficial SYS 2.0",
-    currentPeriod: "Período Oficial",
+    graduationCap: "Graduação",
+    technicalRequirements: "Requisitos Técnicos",
+    examChecklist: "Checklist de Exame",
+    addExamRequirement: "Adicionar Requisito de Exame",
+    belts: {
+      White: "Branca",
+      Blue: "Azul",
+      Purple: "Roxa",
+      Brown: "Marrom",
+      Black: "Preta",
+      'Red-Black': "Coral (Vermelha e Preta)",
+      'Red-White': "Coral (Vermelha e Branca)",
+      Red: "Vermelha"
+    },
+    beltRequirements: {
+      White: [
+        "Fugas de Quadril (Lateral e Frontal)",
+        "Levantada Técnica",
+        "Rolamentos (Frente e Trás)",
+        "Escapa da Montada (Barrigada e Cotovelo)",
+        "Escapa do Controle Lateral (Reposição de Guarda)",
+        "Armlock (Guarda e Montada)",
+        "Triângulo da Guarda Fechada",
+        "Kimura e Americana",
+        "Mata-Leão",
+        "Quedas Básicas (Baiana e Single Leg)"
+      ],
+      Blue: [
+        "Passagem de Guarda (Torreando e Cruzando o Joelho)",
+        "Raspagens de Guarda Aberta (Tesoura, Flor, Pendular)",
+        "Defesa de Finalizações Básicas",
+        "Guarda Meia (Escudo e Esgrima)",
+        "Finalizações em Sequência (Triângulo para Armlock)",
+        "Chave de Pé Básica (Reta)",
+        "Controle de Costas e Transições",
+        "Quedas (O Goshi e Seoi Nage)"
+      ],
+      Purple: [
+        "Domínio de Guardas Avançadas (De La Riva, Aranha)",
+        "Passagens de Guarda de Pressão",
+        "Combinações de Ataques Complexos",
+        "Estratégia de Luta e Antecipação",
+        "Contra-ataques de Raspagens",
+        "Refinamento de Finalizações",
+        "Transições Fluídas entre Posições",
+        "Quedas de Sacrifício e Combinações"
+      ],
+      Brown: [
+        "Especialização em um Jogo Específico",
+        "Domínio Completo de Todas as Saídas",
+        "Finalizações de Alta Precisão",
+        "Ensinamento de Conceitos Básicos",
+        "Defesa de Pernas Avançada",
+        "Controle Psicológico em Luta",
+        "Conhecimento Profundo de Regras"
+      ],
+      Black: [
+        "Maestria Técnica e Conceitual",
+        "Capacidade de Adaptação Total",
+        "Desenvolvimento de Linhagem e Filosofia",
+        "Contribuição para o Crescimento do Aluno",
+        "Exemplo de Conduta e Disciplina",
+        "Refinamento Contínuo do Jiu-Jitsu Básico"
+      ]
+    },
     beltRank: "Faixa / Graduação",
     minimumTime: "Tempo Mínimo",
     requirementsMastery: "Requisitos & Maestria",

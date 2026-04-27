@@ -22,24 +22,34 @@ import {
   X,
   Plus,
   Trash2,
-  Settings2
+  Settings2,
+  Map,
+  Users2,
+  Medal,
+  Presentation,
+  ClipboardCheck,
+  Check
 } from 'lucide-react';
 import { BELT_COLORS, IBJJF_BELT_RULES } from '../constants';
 import { useTranslation } from '../contexts/LanguageContext';
 import { useData } from '../contexts/DataContext';
 import { useProfile } from '../contexts/ProfileContext';
-import { BeltColor, KidsBeltColor, Student } from '../types';
+import { BeltColor, KidsBeltColor, Student, Milestone } from '../types';
 
 const BeltSystem: React.FC = () => {
-  const { t } = useTranslation();
+  const { t, tObj } = useTranslation();
   const { students, updateStudent } = useData();
   const { profile } = useProfile();
   const navigate = useNavigate();
   const [searchTerm, setSearchTerm] = useState('');
   const [filterBelt, setFilterBelt] = useState<string>('All');
+  const [examMode, setExamMode] = useState(false);
   const [editingNotes, setEditingNotes] = useState<string | null>(null);
   const [selectedStudentReport, setSelectedStudentReport] = useState<Student | null>(null);
   const [showCriteriaManager, setShowCriteriaManager] = useState(false);
+  const [activeExamStudentId, setActiveExamStudentId] = useState<string | null>(null);
+  const [showMilestoneModal, setShowMilestoneModal] = useState<{ isOpen: boolean, studentId: string | null }>({ isOpen: false, studentId: null });
+  const [newMilestone, setNewMilestone] = useState<Partial<Milestone>>({ type: 'Seminar', title: '', date: new Date().toISOString().split('T')[0] });
 
   const activeCriteria = useMemo(() => profile.customCriteria || [], [profile.customCriteria]);
 
@@ -63,30 +73,40 @@ const BeltSystem: React.FC = () => {
     return Math.max(0, months);
   };
 
+  const getBeltChain = (belt: string, isKid: boolean) => {
+    if (isKid) {
+      return Object.values(KidsBeltColor);
+    }
+    return Object.values(BeltColor);
+  };
+
   const studentList = useMemo(() => {
     return students.map(s => {
       const age = calculateAge(s.birthDate);
       const monthsInBelt = calculateMonthsInBelt(s.lastPromotionDate || s.birthDate);
+      const isBlackBelt = s.belt === BeltColor.BLACK || s.belt === BeltColor.RED_BLACK || s.belt === BeltColor.RED_WHITE || s.belt === BeltColor.RED;
       
       let minMonthsRequired = 0;
       let attendanceThreshold = 40;
       let nextEnum: string = '';
+      let futureBelts: string[] = [];
+      let maxStripes = 4;
       
+      const chain = getBeltChain(s.belt, s.isKid || age < 16) as any[];
+      const currentIdx = chain.indexOf(s.belt);
+      
+      if (currentIdx !== -1) {
+        nextEnum = currentIdx < chain.length - 1 ? chain[currentIdx + 1] : (s.isKid ? 'Adulto' : 'Mestre');
+        futureBelts = chain.slice(currentIdx + 1, currentIdx + 4).filter(b => b);
+      }
+
       if (s.isKid || age < 16) {
         attendanceThreshold = 30;
-        minMonthsRequired = 4;
-        const kidsChain: any[] = Object.values(KidsBeltColor);
-        const idx = kidsChain.indexOf(s.belt);
-        nextEnum = idx !== -1 && idx < kidsChain.length - 1 ? kidsChain[idx + 1] : 'Adulto';
+        minMonthsRequired = 4; // Usual school rule for kids stripes
       } else {
-        const adultChain: any[] = Object.values(BeltColor);
-        const idx = adultChain.indexOf(s.belt);
-        nextEnum = idx !== -1 && idx < adultChain.length - 1 ? adultChain[idx + 1] : 'Mestre';
-
         const rule = IBJJF_BELT_RULES[s.belt as string];
         minMonthsRequired = rule?.minTimeMonths ?? 0;
 
-        // IBJJF Exception: Purple belt minimum time is 12 months if the athlete is 17 years old
         if (s.belt === BeltColor.PURPLE && age === 17) {
           minMonthsRequired = 12;
         }
@@ -98,14 +118,28 @@ const BeltSystem: React.FC = () => {
         else if (s.belt === BeltColor.BLACK) attendanceThreshold = 60;
       }
 
+      // Black Belt Degree Logic
+      if (isBlackBelt) {
+        maxStripes = 6; // 6 degrees before Coral
+        if (s.belt === BeltColor.BLACK) {
+           if (s.stripes < 3) minMonthsRequired = 36; // 3 years for 1st, 2nd, 3rd
+           else minMonthsRequired = 60; // 5 years for 4th, 5th, 6th
+        } else if (s.belt === BeltColor.RED_BLACK || s.belt === BeltColor.RED_WHITE) {
+           minMonthsRequired = 84; // 7 years each
+        } else if (s.belt === BeltColor.RED) {
+           minMonthsRequired = 120; // 10 years
+        }
+      }
+
       const timeProgress = Math.min((monthsInBelt / (minMonthsRequired || 1)) * 100, 100);
       const attendanceProgress = Math.min((s.attendanceCount / attendanceThreshold) * 100, 100);
       
       const timeReady = monthsInBelt >= minMonthsRequired;
       const attendanceReady = s.attendanceCount >= attendanceThreshold;
+      const stripeReady = isBlackBelt ? timeReady : (s.attendanceCount >= attendanceThreshold / (maxStripes + 1));
+      
       const rulesReady = (s.rulesKnowledge || 0) >= 70;
       
-      // Calculate Custom Indicators Progress
       let customScore = 0;
       let totalWeight = 0;
       
@@ -120,7 +154,8 @@ const BeltSystem: React.FC = () => {
 
       const ageReady = age >= (IBJJF_BELT_RULES[nextEnum as string]?.minAge ?? 0);
       
-      const isReady = timeReady && attendanceReady && rulesReady && ageReady && customReady && nextEnum !== 'Mestre';
+      const isReadyByStripes = s.stripes >= maxStripes;
+      const isReady = timeReady && attendanceReady && rulesReady && ageReady && customReady && isReadyByStripes && nextEnum !== 'Mestre' && nextEnum !== 'Adulto';
 
       return { 
         ...s, 
@@ -129,9 +164,13 @@ const BeltSystem: React.FC = () => {
         minMonthsRequired, 
         attendanceThreshold, 
         nextEnum, 
+        futureBelts,
+        isBlackBelt,
+        maxStripes,
         isReady, 
         timeReady, 
         attendanceReady,
+        stripeReady,
         rulesReady,
         ageReady,
         timeProgress,
@@ -142,9 +181,72 @@ const BeltSystem: React.FC = () => {
     }).filter(s => {
       const matchesSearch = s.name.toLowerCase().includes(searchTerm.toLowerCase());
       const matchesFilter = filterBelt === 'All' || s.belt === filterBelt;
-      return matchesSearch && matchesFilter;
+      const matchesExamMode = !examMode || (s.timeReady && s.attendanceReady);
+      return matchesSearch && matchesFilter && matchesExamMode;
     }).sort((a, b) => b.attendanceCount - a.attendanceCount);
-  }, [students, searchTerm, filterBelt]);
+  }, [students, searchTerm, filterBelt, activeCriteria, examMode]);
+
+  const handleAddMilestone = () => {
+    if (!showMilestoneModal.studentId || !newMilestone.title) return;
+    
+    const student = students.find(s => s.id === showMilestoneModal.studentId);
+    if (!student) return;
+
+    const milestone: Milestone = {
+      id: Date.now().toString(),
+      type: newMilestone.type as any,
+      title: newMilestone.title,
+      date: newMilestone.date || new Date().toISOString().split('T')[0],
+      description: newMilestone.description
+    };
+
+    const updatedMilestones = [...(student.milestones || []), milestone];
+    updateStudent(student.id, { milestones: updatedMilestones });
+    
+    setNewMilestone({ type: 'Seminar', title: '', date: new Date().toISOString().split('T')[0] });
+    setShowMilestoneModal({ isOpen: false, studentId: null });
+    alert('Requisito adicionado com sucesso! OSS.');
+  };
+
+  const toggleExamRequirement = (studentId: string, requirement: string) => {
+    const student = students.find(s => s.id === studentId);
+    if (!student) return;
+
+    const currentReqs = student.examRequirements || {};
+    const updatedReqs = { ...currentReqs, [requirement]: !currentReqs[requirement] };
+    updateStudent(studentId, { examRequirements: updatedReqs });
+  };
+
+  const handleAddStripe = (student: Student, max: number) => {
+    if (student.stripes >= max) {
+      alert('Número máximo de graus atingido para esta faixa. OSS!');
+      return;
+    }
+
+    const isBlackBelt = student.belt === BeltColor.BLACK || student.belt === BeltColor.RED_BLACK || student.belt === BeltColor.RED_WHITE || student.belt === BeltColor.RED;
+    const stripeName = isBlackBelt ? `${student.stripes + 1}º Grau` : `${student.stripes + 1}º Grau`;
+    
+    if (confirm(`Confirmar atribuição de ${stripeName} para ${student.name}?`)) {
+      const historyEntry = {
+        date: new Date().toISOString().split('T')[0],
+        type: 'Stripe' as const,
+        description: `Recebeu o ${stripeName} na faixa ${t(`belts.${student.belt}`)}`,
+        instructor: profile.name
+      };
+
+      updateStudent(student.id, { 
+        stripes: student.stripes + 1,
+        attendanceCount: 0, // Reset attendance for the next stripe journey
+        history: [...(student.history || []), historyEntry]
+      });
+      alert('Grau atribuído com sucesso! OSS.');
+    }
+  };
+
+  const handleRemoveStripe = (studentId: string, current: number) => {
+    if (current <= 0) return;
+    updateStudent(studentId, { stripes: current - 1 });
+  };
 
   const handlePromote = (studentId: string, nextBelt: any) => {
     if (nextBelt === 'Mestre' || nextBelt === 'Adulto') return;
@@ -339,7 +441,7 @@ const BeltSystem: React.FC = () => {
         <div className="space-y-2">
           <div className="flex items-center gap-3 text-blue-600 mb-2">
             <Award size={24} />
-            <span className="text-[10px] font-black uppercase tracking-[0.3em]">Sistema de Progressão SYSBJJ</span>
+            <span className="text-[10px] font-black uppercase tracking-[0.3em]">Caminho da Evolução SYSBJJ</span>
           </div>
           <h1 className="text-5xl font-black text-slate-900 dark:text-white tracking-tighter uppercase leading-none">{t('beltSystem.title')}</h1>
           <p className="text-slate-500 font-medium italic text-lg">{t('beltSystem.subtitle')}</p>
@@ -376,8 +478,87 @@ const BeltSystem: React.FC = () => {
             <option value="All">Todas as Faixas</option>
             {Object.keys(BELT_COLORS).map(b => <option key={b} value={b}>{t(`belts.${b}`)}</option>)}
           </select>
+
+          <div className="flex bg-slate-100 dark:bg-slate-800 p-1.5 rounded-2xl border border-slate-200 dark:border-slate-700">
+            <button 
+              onClick={() => setExamMode(false)}
+              className={`px-6 py-2 rounded-xl text-[9px] font-black uppercase tracking-widest transition-all ${!examMode ? 'bg-white dark:bg-slate-900 text-slate-900 dark:text-white shadow-sm' : 'text-slate-400'}`}
+            >
+              Visão Geral
+            </button>
+            <button 
+              onClick={() => setExamMode(true)}
+              className={`px-6 py-2 rounded-xl text-[9px] font-black uppercase tracking-widest transition-all ${examMode ? 'bg-amber-500 text-white shadow-sm' : 'text-slate-400'}`}
+            >
+              Dia de Exame 🥋
+            </button>
+          </div>
         </div>
       </div>
+
+      {/* Milestone Modal */}
+      {showMilestoneModal.isOpen && (
+        <div className="fixed inset-0 bg-slate-900/70 backdrop-blur-md z-[250] flex items-center justify-center p-4">
+          <div className="bg-white dark:bg-slate-900 rounded-[3rem] shadow-2xl w-full max-w-md flex flex-col animate-in zoom-in-95 duration-300 border border-slate-200 dark:border-slate-800 p-8 space-y-6">
+            <div className="flex items-center justify-between">
+              <div>
+                <h3 className="text-xl font-black text-slate-900 dark:text-white uppercase tracking-tighter">Novo Requisito Extra</h3>
+                <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Seminários, Cursos ou Competições</p>
+              </div>
+              <button 
+                onClick={() => setShowMilestoneModal({ isOpen: false, studentId: null })}
+                className="p-2 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-xl transition-colors"
+              >
+                <X />
+              </button>
+            </div>
+
+            <div className="space-y-4">
+              <div className="space-y-2">
+                <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Tipo de Evento</label>
+                <select 
+                  className="w-full bg-slate-50 dark:bg-slate-800 border-2 border-slate-100 dark:border-slate-700 rounded-2xl p-4 text-sm font-bold dark:text-white outline-none"
+                  value={newMilestone.type}
+                  onChange={(e) => setNewMilestone({ ...newMilestone, type: e.target.value as any })}
+                >
+                  <option value="Seminar">Seminário</option>
+                  <option value="Course">Curso de Regras</option>
+                  <option value="Competition">Competição Oficial</option>
+                  <option value="Other">Outro Requisito</option>
+                </select>
+              </div>
+
+              <div className="space-y-2">
+                <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Título / Nome do Evento</label>
+                <input 
+                  type="text" 
+                  className="w-full bg-slate-50 dark:bg-slate-800 border-2 border-slate-100 dark:border-slate-700 rounded-2xl p-4 text-sm font-bold dark:text-white outline-none"
+                  placeholder="Ex: Seminário Roger Gracie"
+                  value={newMilestone.title}
+                  onChange={(e) => setNewMilestone({ ...newMilestone, title: e.target.value })}
+                />
+              </div>
+
+              <div className="space-y-2">
+                <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Data</label>
+                <input 
+                  type="date" 
+                  className="w-full bg-slate-50 dark:bg-slate-800 border-2 border-slate-100 dark:border-slate-700 rounded-2xl p-4 text-sm font-bold dark:text-white outline-none"
+                  value={newMilestone.date}
+                  onChange={(e) => setNewMilestone({ ...newMilestone, date: e.target.value })}
+                />
+              </div>
+            </div>
+
+            <button 
+              onClick={handleAddMilestone}
+              className="w-full py-4 bg-slate-900 text-white rounded-2xl font-black uppercase text-[10px] tracking-widest shadow-xl shadow-slate-900/20 hover:bg-blue-600 transition-all flex items-center justify-center gap-2"
+            >
+              <Plus size={16} /> Confirmar Requisito
+            </button>
+          </div>
+        </div>
+      )}
 
       {/* Stats Grid */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
@@ -432,6 +613,35 @@ const BeltSystem: React.FC = () => {
                   </div>
 
                   <div className="flex items-center gap-3">
+                    {/* Stripe/Degree Management */}
+                    <div className="flex items-center bg-slate-50 dark:bg-slate-800 p-2 rounded-2xl border border-slate-100 dark:border-slate-700">
+                      <button 
+                        onClick={() => handleRemoveStripe(s.id, s.stripes)}
+                        className="p-2 text-slate-400 hover:text-red-500 transition-colors"
+                      >
+                        <Trash2 size={16} />
+                      </button>
+                      <div className="px-4 text-center">
+                        <p className="text-[8px] font-black text-slate-400 uppercase tracking-widest leading-none mb-1">
+                          {s.isBlackBelt ? 'Graus' : 'Graus'}
+                        </p>
+                        <div className="flex gap-0.5">
+                          {[...Array(s.maxStripes)].map((_, i) => (
+                            <div 
+                              key={i} 
+                              className={`w-2 h-4 rounded-sm transition-all ${i < s.stripes ? (s.isBlackBelt ? 'bg-yellow-400' : 'bg-slate-900 dark:bg-white') : 'bg-slate-200 dark:bg-slate-700'}`} 
+                            />
+                          ))}
+                        </div>
+                      </div>
+                      <button 
+                        onClick={() => handleAddStripe(s, s.maxStripes)}
+                        className="p-2 text-slate-400 hover:text-green-500 transition-colors"
+                      >
+                        <Plus size={16} />
+                      </button>
+                    </div>
+
                     <button 
                       onClick={() => setSelectedStudentReport(s)}
                       className="p-4 bg-slate-50 dark:bg-slate-800 text-slate-400 hover:text-blue-600 rounded-2xl transition-all"
@@ -444,6 +654,13 @@ const BeltSystem: React.FC = () => {
                       className={`p-4 rounded-2xl transition-all ${editingNotes === s.id ? 'bg-blue-600 text-white shadow-lg' : 'bg-slate-50 dark:bg-slate-800 text-slate-400 hover:text-blue-600'}`}
                     >
                       <MessageSquare size={20} />
+                    </button>
+                    <button 
+                      onClick={() => setActiveExamStudentId(activeExamStudentId === s.id ? null : s.id)}
+                      className={`p-4 rounded-2xl transition-all ${activeExamStudentId === s.id ? 'bg-amber-500 text-white shadow-lg' : 'bg-slate-50 dark:bg-slate-800 text-slate-400 hover:text-amber-600'}`}
+                      title={t('beltSystem.examChecklist')}
+                    >
+                      <GraduationCap size={20} />
                     </button>
                     {s.isReady ? (
                       <button 
@@ -459,6 +676,63 @@ const BeltSystem: React.FC = () => {
                     )}
                   </div>
                 </div>
+
+                {/* Exam Requirements Checklist */}
+                {activeExamStudentId === s.id && (
+                  <div className="mt-8 p-8 bg-amber-50/30 dark:bg-amber-900/10 rounded-[2.5rem] border border-amber-100 dark:border-amber-900/30 animate-in slide-in-from-top-4 duration-300">
+                    <div className="flex items-center justify-between mb-6">
+                      <div>
+                        <h4 className="text-xl font-black text-slate-900 dark:text-white uppercase tracking-tighter flex items-center gap-2">
+                          <ClipboardCheck size={20} className="text-amber-500" /> {t('beltSystem.examChecklist')}
+                        </h4>
+                        <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mt-1">Requisitos Técnicos para {t(`belts.${s.nextEnum}`)}</p>
+                      </div>
+                      <div className="text-right">
+                        <p className="text-2xl font-black text-amber-600 tracking-tighter">
+                          {Object.values(s.examRequirements || {}).filter(v => v).length} / {((tObj(`beltRequirements.${s.nextEnum || 'White'}`) as string[]) || []).length}
+                        </p>
+                        <p className="text-[8px] font-black text-slate-400 uppercase tracking-widest leading-none">Concluídos</p>
+                      </div>
+                    </div>
+                    
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      {((tObj(`beltRequirements.${s.nextEnum || 'White'}`) as string[]) || []).map((req, idx) => (
+                        <button 
+                          key={idx}
+                          onClick={() => toggleExamRequirement(s.id, req)}
+                          className={`flex items-center gap-4 p-4 rounded-2xl border-2 transition-all text-left group ${
+                            s.examRequirements?.[req] 
+                              ? 'bg-amber-100 dark:bg-amber-900/30 border-amber-200 dark:border-amber-800' 
+                              : 'bg-white dark:bg-slate-800 border-slate-100 dark:border-slate-700 hover:border-amber-500/50'
+                          }`}
+                        >
+                          <div className={`w-6 h-6 rounded-lg flex items-center justify-center transition-all ${
+                            s.examRequirements?.[req] ? 'bg-amber-500 text-white' : 'bg-slate-100 dark:bg-slate-700 text-transparent group-hover:text-amber-200'
+                          }`}>
+                            <Check size={14} strokeWidth={4} />
+                          </div>
+                          <span className={`text-[11px] font-bold uppercase tracking-tight leading-snug ${
+                            s.examRequirements?.[req] ? 'text-amber-950 dark:text-amber-200' : 'text-slate-600 dark:text-slate-400'
+                          }`}>
+                            {req}
+                          </span>
+                        </button>
+                      ))}
+                    </div>
+
+                    <div className="mt-8 flex items-center justify-between p-4 bg-white/50 dark:bg-slate-900/50 rounded-2xl border border-amber-100/50 dark:border-amber-900/20">
+                      <p className="text-[9px] font-black text-amber-600/70 uppercase tracking-widest max-w-md">
+                        * Ao marcar todos os requisitos, o sistema considerará o aluno como tecnicamente apto para a nova faixa durante o exame de graduação.
+                      </p>
+                      <button 
+                        onClick={() => setActiveExamStudentId(null)}
+                        className="px-6 py-2 bg-amber-500 text-white rounded-xl font-black uppercase text-[10px] tracking-widest shadow-lg shadow-amber-500/20"
+                      >
+                        Salvar & Fechar
+                      </button>
+                    </div>
+                  </div>
+                )}
 
                 {/* Progress Bars */}
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-8 mt-10">
@@ -477,7 +751,7 @@ const BeltSystem: React.FC = () => {
 
                   <div className="space-y-3">
                     <div className="flex justify-between items-end">
-                      <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest">Presença Acumulada</p>
+                      <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest">Compromisso (Aulas)</p>
                       <p className="text-xs font-black dark:text-white">{s.attendanceCount} / {s.attendanceThreshold}</p>
                     </div>
                     <div className="h-2 bg-slate-100 dark:bg-slate-800 rounded-full overflow-hidden">
@@ -490,7 +764,7 @@ const BeltSystem: React.FC = () => {
 
                   <div className="space-y-3">
                     <div className="flex justify-between items-end">
-                      <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest">Indicadores Customizados</p>
+                      <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest">Avaliação Técnica</p>
                       <p className="text-xs font-black dark:text-white">{Math.round(s.customProgress || 0)}%</p>
                     </div>
                     <div className="h-2 bg-slate-100 dark:bg-slate-800 rounded-full overflow-hidden">
@@ -500,30 +774,75 @@ const BeltSystem: React.FC = () => {
                       />
                     </div>
                   </div>
+                </div>
 
-                  <div className="space-y-3">
-                    <div className="flex justify-between items-end">
-                      <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest">Idade Mínima</p>
-                      <p className="text-xs font-black dark:text-white">{s.age} / {IBJJF_BELT_RULES[s.nextEnum as string]?.minAge || 0}a</p>
+                {/* Path & Milestones */}
+                <div className="mt-8 grid grid-cols-1 lg:grid-cols-2 gap-8 border-t border-slate-100 dark:border-slate-800 pt-8">
+                  <div className="space-y-4">
+                    <div className="flex items-center justify-between">
+                      <h4 className="text-[10px] font-black text-slate-400 uppercase tracking-widest flex items-center gap-2">
+                        <Map size={14} className="text-blue-600" /> Caminho para a Próxima
+                      </h4>
+                      <span className="text-[8px] font-black bg-blue-50 dark:bg-blue-900/20 text-blue-600 px-2 py-0.5 rounded border border-blue-100 dark:border-blue-800 uppercase tracking-tighter">
+                        {t(`belts.${s.nextEnum}`)}
+                      </span>
                     </div>
-                    <div className="h-2 bg-slate-100 dark:bg-slate-800 rounded-full overflow-hidden">
-                      <div 
-                        className={`h-full transition-all duration-1000 ${s.ageReady ? 'bg-green-500' : 'bg-orange-500'}`}
-                        style={{ width: `${s.ageReady ? 100 : (s.age / (IBJJF_BELT_RULES[s.nextEnum as string]?.minAge || 1)) * 100}%` }}
-                      />
+                    <div className="flex items-center gap-2 overflow-x-auto scrollbar-hide py-2">
+                      <div className="flex flex-col items-center gap-2 min-w-[80px]">
+                        <div className={`w-10 h-1 rounded-full ${BELT_COLORS[s.belt]}`} />
+                        <span className="text-[8px] font-bold text-slate-400 uppercase text-center">{t(`belts.${s.belt}`)}</span>
+                      </div>
+                      <ChevronRight size={14} className="text-slate-300" />
+                      <div className="flex flex-col items-center gap-2 min-w-[80px]">
+                        <div className={`w-10 h-1.5 rounded-full ${BELT_COLORS[s.nextEnum]} border border-blue-400 shadow-sm shadow-blue-200`} />
+                        <span className="text-[8px] font-black text-blue-600 uppercase text-center">{t(`belts.${s.nextEnum}`)}</span>
+                      </div>
+                      {s.futureBelts.slice(1).map((fb, idx) => (
+                        <React.Fragment key={idx}>
+                          <ChevronRight size={14} className="text-slate-200" />
+                          <div className="flex flex-col items-center gap-2 min-w-[80px] opacity-30">
+                            <div className={`w-10 h-1 rounded-full ${BELT_COLORS[fb]}`} />
+                            <span className="text-[8px] font-bold text-slate-400 uppercase text-center">{t(`belts.${fb}`)}</span>
+                          </div>
+                        </React.Fragment>
+                      ))}
                     </div>
                   </div>
 
-                  <div className="space-y-3">
-                    <div className="flex justify-between items-end">
-                      <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest">Conhecimento de Regras</p>
-                      <p className="text-xs font-black dark:text-white">{s.rulesKnowledge || 0}%</p>
+                  <div className="space-y-4">
+                    <div className="flex items-center justify-between">
+                      <h4 className="text-[10px] font-black text-slate-400 uppercase tracking-widest flex items-center gap-2">
+                        <Star size={14} className="text-amber-500" /> Requisitos & Conquistas
+                      </h4>
+                      <button 
+                        onClick={() => setShowMilestoneModal({ isOpen: true, studentId: s.id })}
+                        className="text-[8px] font-black text-blue-600 uppercase hover:underline"
+                      >
+                        + Adicionar Requisito
+                      </button>
                     </div>
-                    <div className="h-2 bg-slate-100 dark:bg-slate-800 rounded-full overflow-hidden">
-                      <div 
-                        className={`h-full transition-all duration-1000 ${s.rulesReady ? 'bg-green-500' : 'bg-amber-500'}`}
-                        style={{ width: `${s.rulesKnowledge || 0}%` }}
-                      />
+                    <div className="flex flex-wrap gap-2">
+                      {s.milestones?.map((m) => (
+                        <div key={m.id} className="flex items-center gap-2 px-3 py-1.5 bg-slate-50 dark:bg-slate-800 rounded-xl border border-slate-100 dark:border-slate-700 group relative">
+                          {m.type === 'Seminar' && <Users2 size={12} className="text-amber-500" />}
+                          {m.type === 'Competition' && <Medal size={12} className="text-blue-500" />}
+                          {m.type === 'Course' && <Presentation size={12} className="text-purple-500" />}
+                          {m.type === 'Other' && <Star size={12} className="text-slate-400" />}
+                          <span className="text-[9px] font-bold text-slate-700 dark:text-slate-300 uppercase">{m.title}</span>
+                          <button 
+                            onClick={() => {
+                              const updated = s.milestones?.filter(curr => curr.id !== m.id);
+                              updateStudent(s.id, { milestones: updated });
+                            }}
+                            className="bg-red-500 text-white rounded-full p-0.5 opacity-0 group-hover:opacity-100 transition-opacity"
+                          >
+                            <X size={8} />
+                          </button>
+                        </div>
+                      ))}
+                      {(!s.milestones || s.milestones.length === 0) && (
+                        <p className="text-[9px] text-slate-400 italic">Nenhum requisito extra registrado.</p>
+                      )}
                     </div>
                   </div>
                 </div>

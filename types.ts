@@ -271,6 +271,14 @@ export interface PositionVideo {
   authorName: string;
 }
 
+export interface Milestone {
+  id: string;
+  type: 'Seminar' | 'Course' | 'Competition' | 'Other';
+  title: string;
+  date: string;
+  description?: string;
+}
+
 export interface Student {
   id: string;
   name: string;
@@ -328,6 +336,8 @@ export interface Student {
   liabilityWaiverDate?: string;
   classId?: string; // Default class/turma
   positionVideos?: PositionVideo[];
+  milestones?: Milestone[];
+  examRequirements?: Record<string, boolean>;
 }
 
 export interface SystemLog {

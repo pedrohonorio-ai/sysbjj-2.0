@@ -6,20 +6,26 @@ let genAI: GoogleGenAI | null = null;
 
 const getGenAI = () => {
   if (!genAI) {
-    // Vite's define plugin uses exact string replacement, so we avoid optional chaining/casting on process.env
-    const apiKey = process.env.GEMINI_API_KEY || 
-                   process.env.VITE_GEMINI_API_KEY || 
-                   import.meta.env.VITE_GEMINI_API_KEY;
+    let apiKey = '';
     
-    // Hard check for common missing/invalid values
+    // 1. Try standard Vite client-side environment variable (Vercel/Static CI)
+    if (typeof import.meta !== 'undefined' && import.meta.env) {
+      apiKey = import.meta.env.VITE_GEMINI_API_KEY || import.meta.env.VITE_API_KEY;
+    }
+    
+    // 2. Try Node-style process.env (AI Studio Preview / Global define fallback)
+    if (!apiKey && typeof process !== 'undefined' && process.env) {
+      apiKey = process.env.GEMINI_API_KEY || process.env.VITE_GEMINI_API_KEY || process.env.API_KEY;
+    }
+
     if (!apiKey || apiKey === 'undefined' || apiKey === 'null' || apiKey.trim() === '') {
-      console.warn("Digital Sensei Offline: GEMINI_API_KEY is not defined. Please check your environment variables or platform settings.");
+      console.warn("Digital Sensei Offline: GEMINI_API_KEY is not defined. OSS!");
       return null;
     }
     
     try {
-      console.log("Digital Sensei Online: Initializing with detected key.");
-      genAI = new GoogleGenAI(apiKey.trim());
+      genAI = new GoogleGenAI({ apiKey: apiKey.trim() });
+      console.log("Digital Sensei Online: AI initialized successfully.");
     } catch (e) {
       console.error("Failed to initialize Digital Sensei AI:", e);
       return null;

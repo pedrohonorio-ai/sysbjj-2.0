@@ -202,7 +202,9 @@ const AttendancePage: React.FC = () => {
               <UserPlus size={20} className={showAllStudents ? 'text-amber-600' : 'text-slate-400'} />
               <div>
                 <p className={`text-[10px] font-black uppercase tracking-widest ${showAllStudents ? 'text-amber-600' : 'text-slate-400'}`}>{t('attendance.activeAndPaid')}</p>
-                <p className="text-[8px] font-bold text-slate-400 uppercase mt-1">Mostrar todos os alunos ativos</p>
+                <p className="text-[8px] font-bold text-slate-400 uppercase mt-1">
+                  {showAllStudents ? t('students.showingAllActive') || 'Exibindo todos os ativos' : t('students.showOnlyPaid') || 'Mostrar apenas adimplentes'}
+                </p>
               </div>
             </div>
           </button>
@@ -276,7 +278,7 @@ const AttendancePage: React.FC = () => {
           <div className="bg-white rounded-[3rem] p-8 sm:p-12 max-w-md w-full text-center space-y-8 animate-in zoom-in-95 duration-300 max-h-[95vh] overflow-y-auto scrollbar-hide">
             <div className="flex justify-between items-center">
                <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">{t('common.oss')}</span>
-               <button onClick={() => setShowQRGenerator(false)} className="p-2 text-slate-400 hover:text-red-600"><X /></button>
+               <button onClick={() => setShowQRGenerator(false)} className="p-2 text-slate-400 hover:text-red-600 focus:outline-none focus:ring-2 focus:ring-red-500 rounded-full"><X /></button>
             </div>
             <div className="bg-slate-50 p-8 rounded-[3rem] border-2 border-slate-100">
               <img 
