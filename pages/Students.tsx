@@ -40,6 +40,7 @@ import { IBJJF_LESSONS } from '../constants/rulesData';
 import { useTranslation } from '../contexts/LanguageContext';
 import { useData } from '../contexts/DataContext';
 import { calculateCBJJCategory, calculateWeightClass } from '../services/cbjj';
+import { compressImage } from '../services/imageUtils';
 
 const NewStudentModal = ({ onClose, defaultIsKid }: { onClose: () => void, defaultIsKid: boolean }) => {
   const { t } = useTranslation();
@@ -85,8 +86,9 @@ const NewStudentModal = ({ onClose, defaultIsKid }: { onClose: () => void, defau
     const file = e.target.files?.[0];
     if (file) {
       const reader = new FileReader();
-      reader.onloadend = () => {
-        setFormData(prev => ({ ...prev, photoUrl: reader.result as string }));
+      reader.onloadend = async () => {
+        const compressed = await compressImage(reader.result as string, 400, 0.7);
+        setFormData(prev => ({ ...prev, photoUrl: compressed }));
       };
       reader.readAsDataURL(file);
     }

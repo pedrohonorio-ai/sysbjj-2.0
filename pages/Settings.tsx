@@ -7,6 +7,7 @@ import { AppLanguage } from '../types';
 import { Check, Globe, User, Save, Shield, Database, Download, Upload, Trash2, CreditCard, Mail, BookOpen, MapPin, Monitor, Activity, Users, TrendingUp, Trophy } from 'lucide-react';
 import { db } from '../firebase';
 import { collection, getDocs, query, onSnapshot } from 'firebase/firestore';
+import { compressImage } from '../services/imageUtils';
 
 const languages = [
   { code: AppLanguage.PORTUGUESE_BR, name: 'Português', native: 'Português (Brasil)', flag: '🇧🇷' },
@@ -172,7 +173,10 @@ const Settings: React.FC = () => {
                         const file = e.target.files?.[0];
                         if (file) {
                           const reader = new FileReader();
-                          reader.onloadend = () => setFormData({ ...formData, logoUrl: reader.result as string });
+                          reader.onloadend = async () => {
+                            const compressed = await compressImage(reader.result as string, 400, 0.7);
+                            setFormData({ ...formData, logoUrl: compressed });
+                          }
                           reader.readAsDataURL(file);
                         }
                       }}
@@ -210,7 +214,10 @@ const Settings: React.FC = () => {
                         const file = e.target.files?.[0];
                         if (file) {
                           const reader = new FileReader();
-                          reader.onloadend = () => setFormData({ ...formData, backgroundImageUrl: reader.result as string });
+                          reader.onloadend = async () => {
+                            const compressed = await compressImage(reader.result as string, 1200, 0.6);
+                            setFormData({ ...formData, backgroundImageUrl: compressed });
+                          }
                           reader.readAsDataURL(file);
                         }
                       }}

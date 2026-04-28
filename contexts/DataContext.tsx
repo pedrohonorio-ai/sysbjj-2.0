@@ -4,6 +4,7 @@ import { Student, Payment, ClassSchedule, GalleryImage, ExtraRevenue, KimonoOrde
 import CryptoJS from 'crypto-js';
 import { IBJJF_LESSONS } from '../constants/rulesData';
 import { db } from '../firebase';
+import { compressImage } from '../services/imageUtils';
 import { 
   collection, 
   onSnapshot, 
@@ -162,34 +163,7 @@ const DEFAULT_TECHNIQUES: LibraryTechnique[] = [
   { id: 'T-062', name: 'Pummeling (Esgrima)', category: TechniqueCategory.WARMUP, beltLevel: BeltColor.WHITE, description: 'Disputa de esgrima em pé ou solo.' }
 ];
 
-// Helper to compress base64 images to save LocalStorage space
-const compressImage = (base64: string, maxWidth = 400, quality = 0.7): Promise<string> => {
-  return new Promise((resolve) => {
-    if (!base64 || !base64.startsWith('data:image')) {
-      resolve(base64);
-      return;
-    }
-    const img = new Image();
-    img.src = base64;
-    img.onload = () => {
-      const canvas = document.createElement('canvas');
-      let width = img.width;
-      let height = img.height;
-
-      if (width > maxWidth) {
-        height = (maxWidth / width) * height;
-        width = maxWidth;
-      }
-
-      canvas.width = width;
-      canvas.height = height;
-      const ctx = canvas.getContext('2d');
-      ctx?.drawImage(img, 0, 0, width, height);
-      resolve(canvas.toDataURL('image/jpeg', quality));
-    };
-    img.onerror = () => resolve(base64);
-  });
-};
+// Helper to compress base64 images to save LocalStorage space is now imported from lib/imageUtils
 
 export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
   // Função auxiliar para carregar com segurança
@@ -205,14 +179,42 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     }
   }, []);
 
-  // Função auxiliar para salvar com segurança
+  // Improved safe saving with quota management
   const saveSafely = useCallback((key: string, value: any) => {
     if (value === undefined) return;
     try {
       localStorage.setItem(key, JSON.stringify(value));
     } catch (e) {
-      if (e instanceof Error && e.name === 'QuotaExceededError') {
-        console.warn(`Local Storage quota exceeded for ${key}. Data will not be persisted locally.`);
+      if (e instanceof Error && (e.name === 'QuotaExceededError' || e.name === 'NS_ERROR_DOM_QUOTA_REACHED')) {
+        console.warn(`Quota exceeded while saving ${key}. Primary data prioritized, clearing caches...`);
+        
+        // Priority order for clearing: logs -> presence -> ledger -> gallery -> receipts -> techniques
+        const clearPriority = ['oss_logs', 'oss_presence', 'oss_ledger', 'oss_gallery', 'oss_receipts', 'oss_techniques'];
+        
+        for (const cacheKey of clearPriority) {
+          if (cacheKey !== key) {
+             localStorage.removeItem(cacheKey);
+             // Try to save again after each removal
+             try {
+               localStorage.setItem(key, JSON.stringify(value));
+               return; // Success!
+             } catch (retryErr) {
+               continue; // Still failing, try to remove next in priority
+             }
+          }
+        }
+        
+        // If we reach here, we couldn't even save after clearing some items.
+        // For very large collections (like students), we might need to store only a subset locally
+        if (key === 'oss_students' && Array.isArray(value) && value.length > 50) {
+           try {
+             // Store only the 50 most recently updated students locally as a safety measure
+             const subset = [...value].sort((a, b) => (b.lastSeen || 0) - (a.lastSeen || 0)).slice(0, 50);
+             localStorage.setItem(key, JSON.stringify(subset));
+           } catch (subsetErr) {
+             console.error("Could not even save student subset to LocalStorage.");
+           }
+        }
       } else {
         console.error(`Error saving ${key} to local storage:`, e);
       }

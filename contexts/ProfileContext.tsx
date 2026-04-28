@@ -3,6 +3,7 @@ import React, { createContext, useContext, useState, useEffect, ReactNode } from
 import { ProfessorProfile, BeltColor } from '../types';
 import { db } from '../firebase';
 import { doc, onSnapshot, setDoc } from 'firebase/firestore';
+import { compressImage } from '../services/imageUtils';
 
 interface ProfileContextType {
   profile: ProfessorProfile;
@@ -39,6 +40,24 @@ export const ProfileProvider: React.FC<{ children: ReactNode }> = ({ children })
     }
   });
 
+  const saveProfileLocally = (data: ProfessorProfile) => {
+    try {
+      localStorage.setItem('professor_profile', JSON.stringify(data));
+    } catch (e) {
+      if (e instanceof Error && e.name === 'QuotaExceededError') {
+        console.warn("Local Storage quota exceeded for professor_profile. Data safely synced to cloud but local cache may be stale.");
+        // Try to clear some less critical data to make room
+        try {
+          localStorage.removeItem('oss_logs');
+          localStorage.removeItem('oss_presence');
+          localStorage.setItem('professor_profile', JSON.stringify(data));
+        } catch (retryError) {
+          console.error("Critical: Could not save profile even after clearing logs.");
+        }
+      }
+    }
+  };
+
   // Firestore Sync for Profile
   useEffect(() => {
     if (!db) return;
@@ -46,16 +65,26 @@ export const ProfileProvider: React.FC<{ children: ReactNode }> = ({ children })
       if (docSnap.exists()) {
         const data = docSnap.data() as ProfessorProfile;
         setProfileState(data);
-        localStorage.setItem('professor_profile', JSON.stringify(data));
+        saveProfileLocally(data);
       }
     });
     return () => unsub();
   }, []);
 
-  const updateProfile = async (newProfile: Partial<ProfessorProfile>) => {
-    const updated = { ...profile, ...newProfile };
+  const updateProfile = async (newProfileUpdate: Partial<ProfessorProfile>) => {
+    const finalUpdate = { ...newProfileUpdate };
+    
+    // Compress images if present
+    if (finalUpdate.logoUrl && finalUpdate.logoUrl.startsWith('data:image')) {
+      finalUpdate.logoUrl = await compressImage(finalUpdate.logoUrl);
+    }
+    if (finalUpdate.backgroundImageUrl && finalUpdate.backgroundImageUrl.startsWith('data:image')) {
+      finalUpdate.backgroundImageUrl = await compressImage(finalUpdate.backgroundImageUrl, 1200, 0.6);
+    }
+
+    const updated = { ...profile, ...finalUpdate };
     setProfileState(updated);
-    localStorage.setItem('professor_profile', JSON.stringify(updated));
+    saveProfileLocally(updated);
 
     if (db) {
       try {
