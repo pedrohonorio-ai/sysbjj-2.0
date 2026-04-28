@@ -11,30 +11,58 @@ import {
 import { useTranslation } from '../contexts/LanguageContext';
 import { useProfile } from '../contexts/ProfileContext';
 import { useData } from '../contexts/DataContext';
-import { StudentStatus } from '../types';
-import { MASTER_ADMINS } from '../constants';
+import { StudentStatus, BeltColor } from '../types';
+import { MASTER_ADMINS, IBJJF_BELT_RULES } from '../constants';
 
-const StatCard = ({ title, value, icon, color, trend, trendUp, delay = 0 }: any) => (
+const StatCard = ({ title, value, icon, color, trend, trendUp, delay = 0, suffix = '' }: any) => (
   <motion.div 
     initial={{ opacity: 0, y: 20 }}
     animate={{ opacity: 1, y: 0 }}
     transition={{ delay, duration: 0.5, ease: [0.2, 0.8, 0.2, 1] }}
-    className="bg-white dark:bg-slate-900 px-6 py-6 rounded-3xl border border-slate-200 dark:border-slate-800/50 shadow-sm hover:shadow-2xl hover:-translate-y-1 transition-all duration-500 group relative overflow-hidden"
+    className="bg-white dark:bg-slate-900 p-5 rounded-[2rem] border border-slate-200 dark:border-slate-800/50 shadow-sm hover:shadow-2xl hover:-translate-y-1 transition-all duration-500 group relative overflow-hidden h-full flex flex-col justify-between"
   >
-    <div className="flex items-center gap-4 mb-4">
-      <div className={`p-3 rounded-xl ${color} bg-opacity-10 text-slate-900 dark:text-white group-hover:scale-110 transition-transform duration-500`}>
-        {React.cloneElement(icon, { className: color.replace('bg-', 'text-'), size: 20 })}
+    <div className="absolute top-0 right-0 w-24 h-24 bg-blue-600 rounded-full blur-[60px] opacity-[0.03] group-hover:opacity-[0.06] transition-opacity" />
+    <div className="flex items-center justify-between mb-4 relative z-10">
+      <div className={`p-2.5 rounded-[1rem] ${color} bg-opacity-10 text-slate-900 dark:text-white group-hover:scale-110 transition-transform duration-500`}>
+        {React.cloneElement(icon, { className: color.replace('bg-', 'text-'), size: 18 })}
       </div>
-      <div className={`flex items-center gap-1 text-[9px] font-black px-2 py-1 rounded-lg uppercase tracking-widest ${trendUp ? 'bg-green-500/10 text-green-600 dark:text-green-400' : 'bg-red-500/10 text-red-600 dark:text-red-400'}`}>
-        {trendUp ? <ArrowUpRight size={10} /> : <ArrowDownRight size={10} />}
+      <div className={`flex items-center gap-1 text-[8px] font-black px-2 py-0.5 rounded-full uppercase tracking-widest ${trendUp ? 'bg-green-500/10 text-green-600 dark:text-green-400' : 'bg-red-500/10 text-red-600 dark:text-red-400'}`}>
         {trend}
       </div>
     </div>
-    <div>
-      <h3 className="text-slate-400 dark:text-slate-500 text-[9px] font-black uppercase tracking-[0.2em] mb-1 leading-none">{title}</h3>
-      <p className="text-2xl font-display font-black text-slate-900 dark:text-white leading-none tracking-tighter truncate">{value}</p>
+    <div className="relative z-10">
+      <h3 className="text-slate-400 dark:text-slate-500 text-[8px] font-black uppercase tracking-[0.2em] mb-1 leading-none">{title}</h3>
+      <p className="text-xl sm:text-2xl font-black text-slate-900 dark:text-white leading-none tracking-tighter truncate">
+        {value}<span className="text-sm ml-1 opacity-40">{suffix}</span>
+      </p>
     </div>
   </motion.div>
+);
+
+const BentoBox = ({ children, className = '', title = '', subtitle = '', icon: Icon, action, actionIcon: ActionIcon, actionText }: any) => (
+  <div className={`bg-white dark:bg-slate-900 rounded-[2.5rem] border border-slate-200 dark:border-slate-800 shadow-sm overflow-hidden relative group transition-all hover:shadow-2xl hover:border-slate-300 dark:hover:border-slate-700 ${className}`}>
+    <div className="absolute top-0 right-0 w-64 h-64 bg-blue-600 rounded-full blur-[100px] opacity-[0.02]" />
+    <div className="p-6 sm:p-8 relative z-10 flex flex-col h-full">
+      {(title || action) && (
+        <div className="flex items-center justify-between mb-6">
+          <div className="space-y-1">
+            {title && (
+              <h3 className="text-lg font-black text-slate-900 dark:text-white uppercase tracking-tighter flex items-center gap-2">
+                {Icon && <Icon size={20} className="text-blue-600" />} {title}
+              </h3>
+            )}
+            {subtitle && <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest leading-none">{subtitle}</p>}
+          </div>
+          {action && (
+            <button onClick={action} className="flex items-center gap-2 text-[9px] font-black text-blue-600 uppercase tracking-widest bg-blue-50 dark:bg-blue-900/20 px-4 py-2 rounded-xl hover:bg-blue-600 hover:text-white transition-all">
+              {actionText} {ActionIcon && <ActionIcon size={12} />}
+            </button>
+          )}
+        </div>
+      )}
+      <div className="flex-1">{children}</div>
+    </div>
+  </div>
 );
 
 const Dashboard: React.FC = () => {
@@ -64,6 +92,19 @@ const Dashboard: React.FC = () => {
     
   const pendingPaymentsCount = students.filter(s => s.status === StudentStatus.OVERDUE).length;
   const competitorsCount = students.filter(s => s.isCompetitor).length;
+
+  const candidatesCount = useMemo(() => {
+    return students.filter(s => {
+      if (s.status === StudentStatus.INACTIVE) return false;
+      const promoDate = s.lastPromotionDate ? new Date(s.lastPromotionDate + 'T12:00:00') : new Date(s.birthDate);
+      const monthsInBelt = Math.max(0, (now.getFullYear() - promoDate.getFullYear()) * 12 + (now.getMonth() - promoDate.getMonth()));
+      const rule = IBJJF_BELT_RULES[s.belt as string];
+      const minMonths = rule?.minTimeMonths ?? 0;
+      const effectiveMinMonths = (s.belt === BeltColor.WHITE || s.isKid) ? 4 : minMonths;
+      const attendanceThreshold = (s.belt === BeltColor.WHITE || s.isKid) ? 30 : 60;
+      return monthsInBelt >= effectiveMinMonths && s.attendanceCount >= attendanceThreshold;
+    }).length;
+  }, [students, now]);
 
   const upcomingBirthdays = useMemo(() => {
     const currentMonthIdx = now.getMonth();
@@ -99,446 +140,299 @@ const Dashboard: React.FC = () => {
   }, [schedules, now]);
 
   return (
-    <div className="space-y-6 pb-20 w-full animate-in fade-in duration-700 overflow-x-hidden max-w-[1600px] mx-auto px-4 sm:px-6">
-      {/* Hero Section - Compacta e Impactante */}
-      <motion.div 
-        initial={{ opacity: 0, y: -20 }}
-        animate={{ opacity: 1, y: 0 }}
-        className="relative overflow-hidden bg-slate-950 rounded-[2.5rem] p-6 sm:p-10 text-white shadow-3xl group border border-white/5"
-      >
-        <div className="absolute inset-0 bg-gradient-to-r from-blue-600/10 to-transparent z-10" />
-        
-        <div className="relative z-20 flex flex-col md:flex-row md:items-center justify-between gap-8 h-full">
-          <div className="space-y-3">
-            <div className="inline-flex items-center gap-2 px-3 py-1 bg-white/5 border border-white/10 rounded-full text-[9px] font-black text-blue-400 uppercase tracking-[0.3em] mb-1">
-              <Zap size={10} /> {t('dashboard.welcomeBack')}
+    <div className="space-y-8 pb-20 w-full animate-in fade-in duration-700 overflow-x-hidden max-w-[1600px] mx-auto px-4 sm:px-6">
+      {/* Executive Header & Quick Actions */}
+      <div className="grid grid-cols-1 xl:grid-cols-12 gap-6 items-stretch">
+        {/* Welcome Banner */}
+        <motion.div 
+          initial={{ opacity: 0, x: -20 }}
+          animate={{ opacity: 1, x: 0 }}
+          className="xl:col-span-8 relative overflow-hidden bg-slate-950 rounded-[2.5rem] p-8 sm:p-10 text-white shadow-3xl group border border-white/5"
+        >
+          <div className="absolute inset-0 bg-gradient-to-r from-blue-600/10 to-transparent z-10" />
+          <div className="relative z-20 flex flex-col md:flex-row md:items-center justify-between gap-8 h-full">
+            <div className="space-y-4">
+              <div className="inline-flex items-center gap-2 px-3 py-1 bg-white/5 border border-white/10 rounded-full text-[8px] font-black text-blue-400 uppercase tracking-[0.3em]">
+                <Zap size={10} /> {t('dashboard.welcomeBack')}
+              </div>
+              <h2 className="text-4xl sm:text-6xl font-black uppercase leading-[0.85] tracking-tighter mb-2 italic">
+                {t('dashboard.oss')} <span className="text-transparent bg-clip-text bg-gradient-to-r from-white to-blue-400">{profile.name.split(' ')[0]}!</span>
+              </h2>
+              <p className="text-slate-400 text-xs font-medium flex items-center gap-2 opacity-80 uppercase tracking-widest">
+                <Shield size={14} className="text-blue-500" />
+                {profile.academyName || 'SYSBJJ 2.0'} • {t('dashboard.evolutionReady')}
+              </p>
             </div>
-            <h2 className="text-3xl sm:text-5xl font-display font-black uppercase leading-none tracking-tighter mb-2">
-              {t('dashboard.oss')} <span className="text-transparent bg-clip-text bg-gradient-to-r from-white to-blue-400">{profile.name.split(' ')[0]}!</span>
-            </h2>
-            <p className="text-slate-400 text-xs sm:text-sm font-medium flex items-center gap-2 opacity-80">
-              <Shield size={14} className="text-blue-500" />
-              {profile.academyName || 'SYSBJJ 2.0'} • {t('dashboard.evolutionReady')}
-            </p>
-          </div>
-          
-          <div className="flex gap-3">
-            <button 
-              onClick={() => navigate('/classes')}
-              className="px-6 py-4 bg-white text-slate-900 text-[10px] font-black uppercase tracking-widest rounded-xl hover:bg-blue-50 hover:scale-105 transition-all shadow-xl flex items-center gap-3"
-            >
-              {t('dashboard.startClass')} <ChevronRight size={14} />
-            </button>
-            <button 
-              onClick={() => navigate('/students')}
-              className="px-6 py-4 bg-slate-800/50 backdrop-blur-md text-white text-[10px] font-black uppercase tracking-widest rounded-xl border border-white/10 hover:bg-slate-800 transition-all active:scale-95"
-            >
-              {t('dashboard.manageStudents')}
-            </button>
-          </div>
-        </div>
-      </motion.div>
-
-      {currentClass && (
-        <div className="bg-blue-600 dark:bg-blue-600 p-4 rounded-2xl flex items-center justify-between group shadow-lg animate-in slide-in-from-top duration-500">
-          <div className="flex items-center gap-4 text-white">
-            <div className="w-10 h-10 bg-white/20 rounded-lg flex items-center justify-center backdrop-blur-md">
-              <Zap size={20} />
-            </div>
-            <div>
-              <p className="text-[9px] font-black uppercase tracking-widest opacity-80">{t('dashboard.classInProgress')}</p>
-              <h3 className="text-sm font-black uppercase leading-none">{currentClass.title}</h3>
+            
+            <div className="flex flex-col sm:flex-row gap-3">
+              <button 
+                onClick={() => navigate('/attendance')}
+                className="px-8 py-5 bg-white text-slate-900 text-[10px] font-black uppercase tracking-widest rounded-2xl hover:bg-blue-50 hover:scale-105 transition-all shadow-xl flex items-center justify-center gap-3"
+              >
+                <QrCode size={16} /> {t('common.attendance')}
+              </button>
+              <button 
+                onClick={() => navigate('/classes')}
+                className="px-8 py-5 bg-slate-800/50 backdrop-blur-md text-white text-[10px] font-black uppercase tracking-widest rounded-2xl border border-white/10 hover:bg-slate-800 transition-all active:scale-95 flex items-center justify-center gap-3"
+              >
+                <Calendar size={16} /> {t('dashboard.manageStudents')}
+              </button>
             </div>
           </div>
-          <button 
-            onClick={() => navigate('/classes')}
-            className="px-4 py-2 bg-white text-blue-600 text-[9px] font-black uppercase tracking-widest rounded-lg hover:bg-blue-50 transition-colors"
-          >
-            {t('common.details')}
-          </button>
-        </div>
-      )}
+        </motion.div>
 
-      {/* Quick Action Navigation Bar - Alta Visibilidade */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-        <button 
-          onClick={() => navigate('/attendance')}
-          className="flex items-center gap-4 p-5 bg-white dark:bg-slate-900 rounded-3xl border border-slate-200 dark:border-slate-800 shadow-sm hover:shadow-xl hover:-translate-y-1 transition-all group"
+        {/* Current Class Status Mini-Bento */}
+        <BentoBox 
+          className="xl:col-span-4" 
+          title={t('dashboard.classInProgress')} 
+          subtitle={t('dashboard.training')}
+          icon={Activity}
+          action={() => navigate('/classes')}
+          actionText={t('common.details')}
+          actionIcon={ArrowRight}
         >
-          <div className="w-12 h-12 bg-blue-50 dark:bg-blue-900/20 rounded-[1.25rem] flex items-center justify-center text-blue-600 group-hover:scale-110 transition-transform shadow-inner">
-            <QrCode size={24} />
-          </div>
-          <div className="flex flex-col text-left">
-            <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest leading-none mb-1">{t('common.operation')}</span>
-            <span className="text-sm font-black text-slate-900 dark:text-white uppercase tracking-tighter leading-none">{t('common.attendance')}</span>
-          </div>
-        </button>
-
-        <button 
-          onClick={() => navigate('/exhibition')}
-          className="flex items-center gap-4 p-5 bg-white dark:bg-slate-900 rounded-3xl border border-slate-200 dark:border-slate-800 shadow-sm hover:shadow-xl hover:-translate-y-1 transition-all group"
-        >
-          <div className="w-12 h-12 bg-emerald-50 dark:bg-emerald-900/20 rounded-[1.25rem] flex items-center justify-center text-emerald-600 group-hover:scale-110 transition-transform shadow-inner">
-            <Monitor size={24} />
-          </div>
-          <div className="flex flex-col text-left">
-            <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest leading-none mb-1">{t('common.display')}</span>
-            <span className="text-sm font-black text-slate-900 dark:text-white uppercase tracking-tighter leading-none">{t('common.exhibitionMode')}</span>
-          </div>
-        </button>
-
-        <button 
-          onClick={() => navigate('/timer')}
-          className="flex items-center gap-4 p-5 bg-white dark:bg-slate-900 rounded-3xl border border-slate-200 dark:border-slate-800 shadow-sm hover:shadow-xl hover:-translate-y-1 transition-all group"
-        >
-          <div className="w-12 h-12 bg-rose-50 dark:bg-rose-900/20 rounded-[1.25rem] flex items-center justify-center text-rose-600 group-hover:scale-110 transition-transform shadow-inner">
-            <Timer size={24} />
-          </div>
-          <div className="flex flex-col text-left">
-            <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest leading-none mb-1">{t('dashboard.training')}</span>
-            <span className="text-sm font-black text-slate-900 dark:text-white uppercase tracking-tighter leading-none">{t('common.timer')}</span>
-          </div>
-        </button>
-
-        <button 
-          onClick={() => navigate('/settings')}
-          className="flex items-center gap-4 p-5 bg-white dark:bg-slate-900 rounded-3xl border border-slate-200 dark:border-slate-800 shadow-sm hover:shadow-xl hover:-translate-y-1 transition-all group"
-        >
-          <div className="w-12 h-12 bg-slate-50 dark:bg-slate-800/50 rounded-[1.25rem] flex items-center justify-center text-slate-600 group-hover:scale-110 transition-transform shadow-inner">
-            <Settings size={24} />
-          </div>
-          <div className="flex flex-col text-left">
-            <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest leading-none mb-1">{t('common.settings')}</span>
-            <span className="text-sm font-black text-slate-900 dark:text-white uppercase tracking-tighter leading-none">{t('settings.title')}</span>
-          </div>
-        </button>
-      </div>
-
-      {/* Integridade & Segurança Blockchain - Estética Profissional */}
-      <motion.div 
-        initial={{ opacity: 0, scale: 0.95 }}
-        animate={{ opacity: 1, scale: 1 }}
-        className="flex flex-wrap items-center justify-between gap-6 p-8 bg-white dark:bg-slate-900 rounded-[2.5rem] border border-slate-200 dark:border-slate-800 shadow-xl relative overflow-hidden group"
-      >
-        <div className="absolute top-0 right-0 w-64 h-64 bg-blue-600 rounded-full blur-[100px] opacity-[0.02]" />
-        
-        <div className="flex flex-col md:flex-row items-start md:items-center gap-8 relative z-10 w-full lg:w-auto">
-          <div className="flex -space-x-3">
-            <div className="w-12 h-12 rounded-2xl bg-blue-600 flex items-center justify-center text-[10px] font-black text-white ring-4 ring-white dark:ring-slate-900 shadow-2xl rotate-3 hover:translate-y-[-4px] transition-all cursor-default">DB</div>
-            <div className="w-12 h-12 rounded-2xl bg-amber-500 flex items-center justify-center text-[10px] font-black text-white ring-4 ring-white dark:ring-slate-900 shadow-2xl -rotate-3 hover:translate-y-[-4px] transition-all cursor-default">BC</div>
-          </div>
-          
-          <div className="space-y-3">
-            <p className="text-[10px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-[0.3em] leading-none">
-              {t('dashboard.status.ecosystem')}
-            </p>
-            <div className="flex flex-wrap items-center gap-x-6 gap-y-3">
-              <span className="flex items-center gap-2 text-[11px] font-black text-blue-600 dark:text-blue-400 uppercase tracking-tighter">
-                <div className="w-2 h-2 rounded-full bg-blue-600 animate-pulse" />
-                {t('dashboard.status.cloudActive')}
-              </span>
-              <span className="flex items-center gap-2 text-[11px] font-black text-amber-600 dark:text-amber-400 uppercase tracking-tighter">
-                <Shield size={14} className="animate-bounce" style={{ animationDuration: '3s' }} />
-                {t('dashboard.status.blockchainOk')}
-              </span>
-            </div>
-          </div>
-        </div>
-        
-        <div className="flex items-center gap-4 w-full md:w-auto">
-          <div className="px-6 py-3 bg-slate-50 dark:bg-slate-800/50 rounded-2xl border border-slate-100 dark:border-slate-800 shadow-inner flex items-center gap-4 flex-1 md:flex-none">
-            <div className="flex flex-col items-end">
-              <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest leading-none mb-1">{t('dashboard.status.lastSync')}</span>
-              <div className="flex items-center gap-2">
-                <span className="text-xs font-black text-slate-900 dark:text-white tabular-nums tracking-tighter">
-                  {now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' })}
-                </span>
-                <Clock size={12} className="text-blue-500" />
+          {currentClass ? (
+            <div className="space-y-4 pt-2">
+              <div className="bg-blue-600/10 border border-blue-600/20 p-5 rounded-2xl">
+                <div className="flex items-center justify-between mb-2">
+                  <span className="text-[10px] font-black text-blue-600 uppercase tracking-widest">{currentClass.time}</span>
+                  <div className="w-2 h-2 rounded-full bg-blue-600 animate-pulse" />
+                </div>
+                <h4 className="text-xl font-black text-slate-900 dark:text-white uppercase tracking-tighter leading-none mb-1">{currentClass.title}</h4>
+                <p className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">{currentClass.instructor}</p>
+              </div>
+              <div className="flex gap-2">
+                <div className="flex-1 bg-slate-50 dark:bg-slate-800 p-3 rounded-xl border border-slate-100 dark:border-slate-700 text-center">
+                  <p className="text-[8px] font-black text-slate-400 uppercase tracking-widest mb-1">{t('common.attendance')}</p>
+                  <p className="text-sm font-black dark:text-white">{t('dashboard.activeStatus')}</p>
+                </div>
+                <div className="flex-1 bg-slate-50 dark:bg-slate-800 p-3 rounded-xl border border-slate-100 dark:border-slate-700 text-center">
+                  <p className="text-[8px] font-black text-slate-400 uppercase tracking-widest mb-1">{t('common.timer')}</p>
+                  <p className="text-sm font-black dark:text-white">{t('dashboard.standbyStatus')}</p>
+                </div>
               </div>
             </div>
-            <div className="w-1 h-8 bg-blue-600/20 rounded-full overflow-hidden">
-              <div className="w-full h-1/2 bg-blue-600 animate-[bounce_2s_infinite]" />
+          ) : (
+            <div className="flex flex-col items-center justify-center h-full py-6 text-center opacity-40">
+              <History size={32} className="mb-2 text-slate-400" />
+              <p className="text-[10px] font-black uppercase tracking-widest">{t('dashboard.noClassesToday')}</p>
             </div>
-          </div>
-          
-          <button 
-            onClick={() => {
-              // Re-run animation/refresh effect
-              const btn = document.getElementById('sync-trigger');
-              if (btn) btn.classList.add('animate-spin');
-              setTimeout(() => { if (btn) btn.classList.remove('animate-spin'); }, 1000);
-            }}
-            className="p-4 bg-slate-900 dark:bg-white text-white dark:text-slate-900 rounded-2xl shadow-xl hover:scale-110 active:scale-95 transition-all group/sync"
-          >
-            <RefreshCw id="sync-trigger" size={18} className="group-hover/sync:rotate-180 transition-transform duration-500" />
-          </button>
-        </div>
-      </motion.div>
-
-      {/* Stats Quick Grid - Consolidada */}
-      <div className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-6 gap-4">
-        <StatCard title={t('dashboard.stats.total')} value={totalStudents} icon={<Users size={20} />} color="bg-blue-600" trend={t('dashboard.stats.registrations')} trendUp={true} delay={0.1} />
-        <StatCard title={t('dashboard.stats.active')} value={activeStudents} icon={<CheckCircle2 size={20} />} color="bg-cyan-600" trend={t('dashboard.stats.frequent')} trendUp={true} delay={0.2} />
-        <StatCard title={t('students.isCompetitor')} value={competitorsCount} icon={<TrophyIcon size={20} />} color="bg-yellow-500" trend={t('common.athletes')} trendUp={true} delay={0.3} />
-        <StatCard title={t('dashboard.stats.revenue')} value={`${t('common.currencySymbol')} ${monthlyRevenue}`} icon={<TrendingUp size={20} />} color="bg-orange-600" trend={t('dashboard.stats.month')} trendUp={true} delay={0.4} />
-        <StatCard title={t('dashboard.stats.extra')} value={`${t('common.currencySymbol')} ${monthlyExtra}`} icon={<Store size={20} />} color="bg-emerald-600" trend={t('dashboard.stats.services')} trendUp={true} delay={0.5} />
-        <StatCard title={t('dashboard.stats.pending')} value={pendingPaymentsCount} icon={<AlertCircle size={20} />} color="bg-red-600" trend={t('dashboard.stats.billing')} trendUp={false} delay={0.6} />
+          )}
+        </BentoBox>
       </div>
 
-      {/* Instagram Premium Destaque - Redesigned for High Impact */}
+      {/* Primary Stats Grid */}
+      <div className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-6 gap-6">
+        <StatCard title={t('dashboard.stats.total')} value={totalStudents} icon={<Users />} color="bg-blue-600" trend={`${t('dashboard.stats.registrations')}`} trendUp delay={0.1} />
+        <StatCard title={t('dashboard.stats.active')} value={activeStudents} icon={<CheckCircle2 />} color="bg-cyan-600" trend="+12.5%" trendUp delay={0.2} />
+        <StatCard title={t('students.isCompetitor')} value={competitorsCount} icon={<TrophyIcon />} color="bg-yellow-500" trend="Elite" trendUp delay={0.3} />
+        <StatCard title={t('dashboard.stats.revenue')} value={monthlyRevenue} icon={<TrendingUp />} color="bg-emerald-600" trend="+8.2%" trendUp delay={0.4} suffix={t('common.currencySymbol')} />
+        <StatCard title={t('dashboard.stats.extra')} value={monthlyExtra} icon={<Store />} color="bg-indigo-600" trend="Up" trendUp delay={0.5} suffix={t('common.currencySymbol')} />
+        <StatCard title={t('dashboard.stats.pending')} value={pendingPaymentsCount} icon={<AlertCircle />} color="bg-red-600" trend="Alert" trendUp={false} delay={0.6} />
+      </div>
+
+      {/* Main Intelligent Bento Section */}
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-stretch">
+        {/* QTD & Pedagogy Intelligence */}
+        <BentoBox 
+          className="lg:col-span-8" 
+          title={t('curriculum.title')} 
+          subtitle={t('curriculum.subtitle')}
+          icon={BookOpen}
+          action={() => navigate('/curriculum')}
+          actionText={t('curriculum.plannerTab')}
+          actionIcon={ArrowRight}
+        >
+          <div className="grid grid-cols-1 md:grid-cols-5 gap-6 mt-2">
+            <div className="md:col-span-3 space-y-4">
+              <div className="p-6 bg-slate-50 dark:bg-slate-800/50 rounded-3xl border border-slate-100 dark:border-slate-800 relative group/tech cursor-pointer" onClick={() => navigate('/curriculum')}>
+                <div className="flex items-center gap-4 mb-4">
+                  <div className="w-12 h-12 bg-blue-600 rounded-2xl flex items-center justify-center text-white shadow-xl rotate-3 group-hover/tech:rotate-6 transition-transform">
+                    <Zap size={24} />
+                  </div>
+                  <div>
+                    <h4 className="text-xl font-black dark:text-white uppercase tracking-tighter leading-none mb-1">{profile.technicalFocus || t('curriculum.techFocus')}</h4>
+                    <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">{t('curriculum.matStrategy')}</p>
+                  </div>
+                </div>
+                <p className="text-xs text-slate-600 dark:text-slate-400 font-medium leading-relaxed mb-6 italic">
+                  {profile.technicalFocusDescription || (latestPlan ? latestPlan.title : t('curriculum.noActivePlan'))}
+                </p>
+                <div className="flex gap-2">
+                  <span className="px-3 py-1.5 bg-blue-600/10 text-blue-600 dark:text-blue-400 rounded-lg text-[9px] font-black uppercase tracking-widest border border-blue-600/10">{t('dashboard.baseEvolution')}</span>
+                  <span className="px-3 py-1.5 bg-slate-900 dark:bg-white text-white dark:text-slate-900 rounded-lg text-[9px] font-black uppercase tracking-widest">{t('dashboard.masteryQ3')}</span>
+                </div>
+              </div>
+            </div>
+            
+            <div className="md:col-span-2 flex flex-col gap-4">
+              <div className="flex-1 p-5 border border-slate-100 dark:border-slate-800 rounded-3xl bg-slate-50/30 dark:bg-slate-900/50 flex flex-col justify-between">
+                <div className="flex items-center justify-between">
+                  <p className="text-[8px] font-black text-slate-400 uppercase tracking-widest mb-1">{t('dashboard.upcomingGraduation')}</p>
+                  <TrophyIcon size={14} className="text-yellow-500" />
+                </div>
+                <div>
+                  <p className="text-2xl font-black dark:text-white leading-none tracking-tighter mb-2">{candidatesCount} {t('dashboard.candidates')}</p>
+                  <div className="w-full h-1.5 bg-slate-200 dark:bg-slate-800 rounded-full overflow-hidden">
+                    <div className="h-full bg-yellow-500 rounded-full" style={{ width: `${Math.min((candidatesCount / (totalStudents || 1)) * 100, 100)}%` }} />
+                  </div>
+                </div>
+                <button onClick={() => navigate('/promotions', { state: { examMode: true } })} className="text-[9px] font-black text-blue-600 uppercase tracking-widest text-left mt-2">{t('dashboard.viewCandidates')} →</button>
+              </div>
+              <div className="flex-1 p-5 border border-slate-100 dark:border-slate-800 rounded-3xl bg-slate-950 text-white flex flex-col justify-between">
+                 <div className="flex items-center justify-between">
+                   <p className="text-[8px] font-black text-blue-400 uppercase tracking-widest mb-1">{t('dashboard.financialIntelligence')}</p>
+                   <TrendingUp size={14} className="text-emerald-500" />
+                 </div>
+                 <div>
+                   <p className="text-2xl font-black leading-none tracking-tighter mb-2">{(monthlyRevenue / revenueGoal * 100).toFixed(0)}% <span className="text-xs uppercase text-slate-400 tracking-widest ml-1">{t('dashboard.reached')}</span></p>
+                   <div className="w-full h-1.5 bg-white/10 rounded-full overflow-hidden">
+                     <div className="h-full bg-gradient-to-r from-blue-600 to-cyan-400" style={{ width: `${revenueProgress}%` }} />
+                   </div>
+                 </div>
+                 <button onClick={() => navigate('/business')} className="text-[9px] font-black text-slate-400 uppercase tracking-widest text-left mt-2 italic hover:text-white transition-colors">{t('dashboard.viewDetails')} →</button>
+              </div>
+            </div>
+          </div>
+        </BentoBox>
+
+        {/* Real-time Activity Hub */}
+        <BentoBox 
+          className="lg:col-span-4" 
+          title={t('dashboard.recentFlow')} 
+          subtitle={t('dashboard.history')}
+          icon={History}
+          action={() => navigate('/business')}
+          actionText={t('dashboard.viewDetails')}
+        >
+          <div className="space-y-3 mt-2 pr-1 max-h-[320px] overflow-y-auto scrollbar-hide">
+            {payments.length > 0 ? payments.slice(-6).reverse().map((act, i) => (
+              <motion.div 
+                key={i} 
+                initial={{ opacity: 0, x: 20 }}
+                animate={{ opacity: 1, x: 0 }}
+                transition={{ delay: i * 0.05 }}
+                className="p-4 bg-slate-50 dark:bg-slate-800/50 rounded-2xl flex items-center gap-4 border border-transparent hover:border-slate-200 dark:hover:border-slate-700 transition-all font-mono"
+              >
+                <div className={`w-10 h-10 rounded-xl ${act.status === 'Confirmed' ? 'bg-emerald-500/10 text-emerald-600' : 'bg-amber-500/10 text-amber-600'} flex items-center justify-center shrink-0`}>
+                  <CheckCircle2 size={18} />
+                </div>
+                <div className="min-w-0 flex-1">
+                  <p className="text-[10px] font-black dark:text-white uppercase truncate tracking-tighter">{act.name}</p>
+                  <p className="text-[9px] text-slate-400 font-bold uppercase">{act.date} • {t('common.currencySymbol')} {act.amount}</p>
+                </div>
+                <ArrowUpRight size={14} className="text-slate-300" />
+              </motion.div>
+            )) : (
+              <div className="p-8 text-center opacity-30 text-[9px] font-black uppercase tracking-widest">{t('dashboard.noRecentFlow')}</div>
+            )}
+          </div>
+        </BentoBox>
+      </div>
+
+      {/* Secondary Operational Row */}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+        {/* Quick Tools */}
+        <div className="lg:col-span-2 grid grid-cols-2 gap-4">
+           <button onClick={() => navigate('/timer')} className="p-6 bg-rose-600 text-white rounded-[2rem] flex flex-col justify-between group overflow-hidden relative border border-rose-500 shadow-xl hover:-translate-y-1 transition-all">
+             <div className="absolute top-0 right-0 w-32 h-32 bg-white/20 rounded-full blur-[40px] -translate-y-1/2 translate-x-1/2" />
+             <Timer size={32} className="mb-4 group-hover:scale-110 transition-transform" />
+             <div className="relative z-10 text-left">
+               <span className="text-[9px] font-black uppercase tracking-widest opacity-60">{t('dashboard.training')}</span>
+               <h4 className="text-xl font-black uppercase tracking-tighter leading-none">{t('common.timer')}</h4>
+             </div>
+           </button>
+           <button onClick={() => navigate('/exhibition')} className="p-6 bg-slate-900 dark:bg-slate-800 text-white rounded-[2rem] flex flex-col justify-between group overflow-hidden relative shadow-xl hover:-translate-y-1 transition-all">
+             <div className="absolute top-0 right-0 w-32 h-32 bg-blue-600/40 rounded-full blur-[40px] -translate-y-1/2 translate-x-1/2" />
+             <Monitor size={32} className="mb-4 group-hover:scale-110 transition-transform" />
+             <div className="relative z-10 text-left">
+               <span className="text-[9px] font-black uppercase tracking-widest opacity-60">{t('common.display')}</span>
+               <h4 className="text-xl font-black uppercase tracking-tighter leading-none">{t('common.exhibitionMode')}</h4>
+             </div>
+           </button>
+        </div>
+
+        {/* Birthdays Bento */}
+        <BentoBox className="lg:col-span-1" title={t('dashboard.celebrations')} icon={Cake} action={() => navigate('/reports')} actionText={t('common.viewAll')}>
+          <div className="space-y-2 pt-2">
+            {upcomingBirthdays.slice(0, 2).map((s, i) => (
+              <div key={i} className="flex items-center justify-between bg-slate-50 dark:bg-slate-800/50 p-3 rounded-2xl border border-slate-100 dark:border-slate-800">
+                <div className="flex items-center gap-3">
+                  <div className="w-8 h-8 bg-blue-600 text-white rounded-lg flex items-center justify-center font-black text-xs">
+                    {new Date(s.birthDate).getDate()}
+                  </div>
+                  <p className="text-[10px] font-black uppercase truncate max-w-[80px] dark:text-white">{s.name}</p>
+                </div>
+                <ArrowRight size={12} className="text-slate-300" />
+              </div>
+            ))}
+            {upcomingBirthdays.length === 0 && (
+              <p className="text-[9px] font-bold opacity-30 text-center py-4 italic uppercase tracking-widest">{t('reports.noBirthdays')}</p>
+            )}
+          </div>
+        </BentoBox>
+
+        {/* Sync & Health Bento */}
+        <div className="bg-white dark:bg-slate-900 rounded-[2.5rem] border border-slate-200 dark:border-slate-800 p-8 flex flex-col justify-between group shadow-sm hover:shadow-xl transition-all">
+          <div className="flex items-center justify-between mb-4">
+             <div className="flex -space-x-3">
+               <div className="w-10 h-10 rounded-xl bg-blue-600 flex items-center justify-center text-[8px] font-black text-white ring-4 ring-white dark:ring-slate-900 shadow-xl rotate-3">DB</div>
+               <div className="w-10 h-10 rounded-xl bg-amber-500 flex items-center justify-center text-[8px] font-black text-white ring-4 ring-white dark:ring-slate-900 shadow-xl -rotate-3">BC</div>
+             </div>
+             <button id="sync-btn" onClick={() => {
+                const btn = document.getElementById('sync-trigger-v2');
+                btn?.classList.add('animate-spin');
+                setTimeout(() => btn?.classList.remove('animate-spin'), 1000);
+             }} className="p-3 bg-slate-900 dark:bg-white text-white dark:text-slate-900 rounded-xl shadow-lg hover:scale-110 active:scale-95 transition-all">
+               <RefreshCw id="sync-trigger-v2" size={16} />
+             </button>
+          </div>
+          <div>
+            <div className="flex items-center gap-2 mb-2">
+              <div className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
+              <p className="text-[10px] font-black text-slate-900 dark:text-white uppercase tracking-tighter">{t('dashboard.status.ecosystem')}</p>
+            </div>
+            <p className="text-[9px] font-bold text-slate-400 uppercase tracking-widest">{t('dashboard.status.lastSync')} {now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</p>
+          </div>
+        </div>
+      </div>
+
+      {/* Instagram Premium Impact Card */}
       <motion.div 
         initial={{ opacity: 0, y: 30 }}
         whileInView={{ opacity: 1, y: 0 }}
         viewport={{ once: true }}
-        className="relative group h-full"
+        className="relative group cursor-pointer"
+        onClick={() => window.open('https://instagram.com/sistemabjj', '_blank')}
       >
-        <div className="absolute -inset-1 bg-gradient-to-r from-pink-600 via-purple-600 to-blue-600 rounded-[2.5rem] blur opacity-25 group-hover:opacity-100 transition duration-1000 group-hover:duration-200 animate-pulse" />
-        <div className="relative overflow-hidden bg-slate-950 rounded-[2.5rem] p-8 sm:p-12 flex flex-col md:flex-row items-center justify-between gap-10 border border-white/5 shadow-3xl">
-          <div className="absolute top-0 right-0 w-[500px] h-[500px] bg-gradient-to-br from-pink-500/20 to-transparent rounded-full blur-[100px] -mr-64 -mt-64 group-hover:scale-110 transition-transform duration-[2000ms]" />
-          
-          <div className="flex items-center gap-8 relative z-10">
-            <div className="w-20 h-20 bg-gradient-to-tr from-yellow-400 via-pink-500 to-purple-600 rounded-[1.75rem] flex items-center justify-center text-white shadow-3xl rotate-6 group-hover:rotate-12 group-hover:scale-110 transition-all duration-500 ring-4 ring-white/10 shrink-0">
-              <Instagram size={40} />
-            </div>
-            <div>
-              <div className="flex items-center gap-3 mb-2">
-                <span className="px-3 py-1 bg-pink-500/10 border border-pink-500/20 rounded-full text-[9px] font-black text-pink-500 uppercase tracking-[0.3em]">Comunidade VIP</span>
+        <div className="absolute -inset-1 bg-gradient-to-r from-pink-600 via-purple-600 to-blue-600 rounded-[3rem] blur opacity-20 group-hover:opacity-60 transition duration-1000" />
+        <div className="relative overflow-hidden bg-slate-950 rounded-[3rem] p-10 sm:p-14 border border-white/5 shadow-3xl text-center md:text-left">
+          <div className="absolute top-0 right-0 w-[600px] h-[600px] bg-gradient-to-br from-pink-500/20 to-transparent rounded-full blur-[120px] -mr-80 -mt-80 group-hover:scale-110 transition-transform duration-[3000ms]" />
+          <div className="flex flex-col md:flex-row items-center justify-between gap-10 relative z-10">
+            <div className="flex flex-col md:flex-row items-center gap-10">
+              <div className="w-24 h-24 bg-gradient-to-tr from-yellow-400 via-pink-500 to-purple-600 rounded-[2rem] flex items-center justify-center text-white shadow-3xl rotate-6 group-hover:rotate-12 transition-all duration-700 ring-4 ring-white/10 shrink-0">
+                <Instagram size={48} />
               </div>
-              <h3 className="text-2xl sm:text-4xl font-display font-black text-white uppercase tracking-tighter leading-none mb-3">Siga o <span className="text-transparent bg-clip-text bg-gradient-to-r from-pink-500 to-purple-400">Império SYSBJJ</span> no Instagram</h3>
-              <p className="text-slate-400 text-sm font-medium opacity-80 max-w-lg">Ocupe seu lugar na elite mundial. Acompanhe seminários, atualizações do sistema e conecte-se com mestres em todo o globo.</p>
+              <div className="space-y-4">
+                <div className="flex flex-col md:flex-row items-center gap-3">
+                  <span className="px-3 py-1 bg-pink-500/10 border border-pink-500/20 rounded-full text-[9px] font-black text-pink-500 uppercase tracking-[0.3em]">{t('dashboard.vipCommunity')}</span>
+                  <div className="flex -space-x-2">
+                    {[1,2,3,4].map(i => (
+                      <div key={i} className="w-6 h-6 rounded-full border-2 border-slate-950 bg-slate-800" />
+                    ))}
+                    <div className="w-6 h-6 rounded-full border-2 border-slate-950 bg-blue-600 flex items-center justify-center text-[8px] font-bold text-white">+k</div>
+                  </div>
+                </div>
+                <h3 className="text-3xl sm:text-5xl font-black text-white uppercase tracking-tighter leading-[0.9] italic">{t('dashboard.followEmpire')} <span className="text-transparent bg-clip-text bg-gradient-to-r from-pink-500 to-purple-400">SYSBJJ</span></h3>
+                <p className="text-slate-400 text-sm font-medium opacity-80 max-w-lg mx-auto md:mx-0">{t('dashboard.elitePlace')}</p>
+              </div>
+            </div>
+            <div className="px-12 py-6 bg-white text-slate-900 rounded-2xl font-black text-sm uppercase tracking-[0.2em] shadow-2xl flex items-center gap-4 group/btn transition-transform group-hover:scale-105 active:scale-95 shrink-0">
+              @sistemabjj <ChevronRight size={20} className="group-hover/btn:translate-x-1 transition-transform" />
             </div>
           </div>
-
-          <a 
-            href="https://instagram.com/sistemabjj" 
-            target="_blank" 
-            rel="noopener noreferrer"
-            className="relative z-10 px-12 py-5 bg-white text-slate-900 rounded-2xl font-black text-sm uppercase tracking-[0.2em] hover:bg-slate-100 active:scale-95 transition-all shadow-2xl shadow-white/10 flex items-center gap-4 group/btn shrink-0"
-          >
-            @sistemabjj 
-            <ChevronRight size={20} className="group-hover/btn:translate-x-1 transition-transform" />
-          </a>
         </div>
       </motion.div>
-
-      {/* Main Content Grid */}
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
-        {/* Left Column: QTD & Schedule */}
-        <div className="lg:col-span-8 space-y-8">
-          {/* QTD Card */}
-          <div className="bg-white dark:bg-slate-900 p-8 sm:p-10 rounded-[2.5rem] sm:rounded-[3rem] border border-slate-200 dark:border-slate-800 shadow-sm relative overflow-hidden group">
-            <div className="absolute top-0 right-0 w-64 h-64 bg-blue-600 rounded-full blur-[100px] opacity-[0.03]" />
-            <div className="flex items-center justify-between mb-8">
-              <div className="space-y-1">
-                <h3 className="text-2xl font-black dark:text-white uppercase tracking-tighter flex items-center gap-2 overflow-hidden">
-                  <BookOpen size={28} className="text-blue-600 shrink-0" /> 
-                  <span className="truncate">{t('curriculum.title')}</span>
-                </h3>
-                <p className="text-xs font-black text-slate-400 uppercase tracking-widest ml-9">{t('curriculum.subtitle')}</p>
-              </div>
-              <button 
-                onClick={() => navigate('/curriculum')} 
-                className="group flex items-center gap-3 text-xs font-black text-blue-600 uppercase tracking-widest bg-blue-50 dark:bg-blue-900/20 px-6 py-3 rounded-xl hover:bg-blue-600 hover:text-white transition-all"
-              >
-                {t('curriculum.plannerTab')} <ArrowRight size={14} className="group-hover:translate-x-1 transition-transform" />
-              </button>
-            </div>
-            
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              <div 
-                onClick={() => navigate('/curriculum')}
-                className="p-8 bg-slate-50 dark:bg-slate-800 rounded-[2rem] border border-slate-100 dark:border-slate-700 relative group cursor-pointer hover:border-blue-200 dark:hover:border-blue-800 transition-all shadow-sm"
-              >
-                <div className="flex items-center gap-5 mb-6">
-                   <div className="w-14 h-14 bg-blue-600 rounded-2xl flex items-center justify-center text-white shadow-xl rotate-3 group-hover:rotate-6 transition-transform">
-                      <Zap size={28} />
-                   </div>
-                   <div>
-                      <p className="font-black text-xl dark:text-white uppercase tracking-tight leading-none mb-1.5">{profile.technicalFocus || t('curriculum.techFocus')}</p>
-                      <p className="text-[10px] text-slate-400 font-bold uppercase tracking-widest line-clamp-1">
-                        {profile.technicalFocusDescription || (latestPlan ? latestPlan.title : t('curriculum.noActivePlan'))}
-                      </p>
-                   </div>
-                </div>
-                <div className="space-y-4">
-                  {latestPlan ? (
-                    <>
-                      <div className="grid grid-cols-2 gap-3">
-                        <div className="bg-white dark:bg-slate-900/50 p-3 rounded-xl border border-slate-100 dark:border-slate-700">
-                           <p className="text-[8px] font-black text-blue-600 uppercase tracking-widest mb-1">Aquecimento</p>
-                           <p className="text-[10px] font-bold text-slate-600 dark:text-slate-400 line-clamp-1">{latestPlan.warmup || 'Drills Base'}</p>
-                        </div>
-                        <div className="bg-white dark:bg-slate-900/50 p-3 rounded-xl border border-slate-100 dark:border-slate-700">
-                           <p className="text-[8px] font-black text-amber-600 uppercase tracking-widest mb-1">Regras</p>
-                           <p className="text-[10px] font-bold text-slate-600 dark:text-slate-400 line-clamp-1">{latestPlan.ruleFocus || 'IBJJF Padrao'}</p>
-                        </div>
-                      </div>
-                      <div className="space-y-2">
-                        <p className="text-[8px] font-black text-slate-400 uppercase tracking-widest">Técnicas do Dia</p>
-                        {latestPlan.techniques.slice(0, 2).map(tech => (
-                          <div key={tech.id} className="flex items-center gap-3">
-                            <div className="w-1.5 h-1.5 bg-blue-600 rounded-full" />
-                            <span className="text-xs font-bold text-slate-700 dark:text-slate-300 truncate">{tech.name}</span>
-                          </div>
-                        ))}
-                      </div>
-                    </>
-                  ) : (
-                    <p className="text-[10px] text-slate-400 italic">{t('curriculum.noActivePlanDesc')}</p>
-                  )}
-                </div>
-              </div>
-
-              <div className="p-6 bg-slate-900 rounded-[1.5rem] text-white relative flex flex-col justify-between group cursor-pointer overflow-hidden">
-                <div className="absolute top-0 right-0 w-24 h-24 bg-blue-600 rounded-full blur-[50px] opacity-20" />
-                <div className="relative z-10">
-                  <p className="text-[9px] font-black text-blue-400 uppercase tracking-[0.3em] mb-3">{t('dashboard.revenueGoal')}</p>
-                  <div className="flex items-end justify-between mb-3">
-                    <h4 className="text-2xl font-black tracking-tighter">{t('common.currencySymbol')} {monthlyRevenue}</h4>
-                    <span className="text-[10px] font-bold text-slate-400">{t('dashboard.goal')}: {t('common.currencySymbol')} {revenueGoal}</span>
-                  </div>
-                  <div className="h-2 bg-white/10 rounded-full overflow-hidden mb-2">
-                    <div 
-                      className="h-full bg-gradient-to-r from-blue-600 to-cyan-400 transition-all duration-1000 ease-out"
-                      style={{ width: `${revenueProgress}%` }}
-                    />
-                  </div>
-                  <p className="text-[9px] font-bold text-slate-500 uppercase tracking-widest">{revenueProgress.toFixed(1)}% {t('dashboard.reached')}</p>
-                </div>
-                <button 
-                  onClick={() => navigate('/business')}
-                  className="relative z-10 mt-4 flex items-center justify-center gap-2 py-2.5 bg-white/5 hover:bg-white/10 rounded-lg text-[9px] font-black uppercase tracking-widest transition-all"
-                >
-                  {t('dashboard.viewDetails')} <ArrowUpRight size={12} />
-                </button>
-              </div>
-            </div>
-          </div>
-
-          {/* Schedule Section - Mais Compacta e Sofisticada */}
-          <div className="bg-white dark:bg-slate-900 rounded-[2rem] border border-slate-200 dark:border-slate-800 shadow-sm overflow-hidden">
-            <div className="p-5 px-8 border-b border-slate-100 dark:border-slate-800 flex items-center justify-between bg-slate-50/50 dark:bg-slate-900/50">
-              <div className="space-y-0.5">
-                <h3 className="text-lg font-black text-slate-900 dark:text-white uppercase tracking-tighter">{t('dashboard.schedule')}</h3>
-                <p className="text-[8px] font-black text-slate-400 uppercase tracking-widest">{t('dashboard.dailySchedule')}</p>
-              </div>
-              <button onClick={() => navigate('/classes')} className="p-2 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg text-slate-400 hover:text-blue-600 transition-all">
-                <Calendar size={16} />
-              </button>
-            </div>
-            <div className="divide-y divide-slate-50 dark:divide-slate-800/50">
-              {schedules.length > 0 ? schedules.map((cls, i) => (
-                <div key={i} className="p-6 px-8 flex items-center justify-between hover:bg-slate-50/80 dark:hover:bg-slate-800/30 transition-all group cursor-pointer">
-                  <div className="flex items-center gap-6">
-                    <div className="w-12 h-12 bg-blue-50 dark:bg-blue-900/30 rounded-2xl flex flex-col items-center justify-center border border-blue-100 dark:border-blue-800 group-hover:scale-105 transition-transform">
-                      <span className="text-blue-600 dark:text-blue-400 font-black text-xs uppercase">{cls.time}</span>
-                    </div>
-                    <div>
-                      <p className="font-black text-slate-900 dark:text-white text-base tracking-tight uppercase leading-none mb-2">{cls.title}</p>
-                      <div className="flex items-center gap-4">
-                        <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest flex items-center gap-1.5">
-                          <Clock size={12} className="text-blue-500" /> {cls.instructor || t('common.instructor')}
-                        </p>
-                        <div className="w-1 h-1 bg-slate-300 rounded-full" />
-                        <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest flex items-center gap-1.5">
-                          <Users size={12} className="text-cyan-500" /> {cls.category}
-                        </p>
-                      </div>
-                    </div>
-                  </div>
-                  <button 
-                    onClick={(e) => { e.stopPropagation(); navigate('/attendance'); }} 
-                    className="opacity-0 group-hover:opacity-100 translate-x-2 group-hover:translate-x-0 transition-all px-6 py-2 bg-slate-900 dark:bg-white text-white dark:text-slate-900 rounded-lg font-black text-[9px] uppercase tracking-widest shadow-lg"
-                  >
-                    {t('common.attendance')}
-                  </button>
-                </div>
-              )) : (
-                <div className="py-12 text-center space-y-3">
-                  <div className="w-12 h-12 bg-slate-100 dark:bg-slate-800 rounded-full flex items-center justify-center mx-auto text-slate-400">
-                    <Calendar size={24} />
-                  </div>
-                  <p className="text-slate-400 font-black uppercase text-[10px] tracking-widest italic">{t('dashboard.noClassesToday')}</p>
-                </div>
-              )}
-            </div>
-          </div>
-        </div>
-
-        {/* Right Column: Operações & Atividades */}
-        <div className="lg:col-span-4 space-y-6">
-          {isMasterAdmin && (
-            <button 
-              onClick={() => navigate('/audit')}
-              className="w-full p-6 bg-slate-950 dark:bg-blue-600 rounded-3xl border border-white/5 shadow-2xl hover:-translate-y-1 transition-all group flex items-center gap-5"
-            >
-              <div className="w-12 h-12 bg-white/10 rounded-2xl flex items-center justify-center text-white backdrop-blur-md shadow-inner group-hover:rotate-12 transition-transform">
-                <Shield size={24} />
-              </div>
-              <div className="text-left flex-1">
-                <p className="text-[10px] font-black text-white/50 uppercase tracking-[0.3em] mb-1">{t('audit.masterAccess')}</p>
-                <p className="text-base font-black text-white uppercase tracking-tight leading-none">{t('audit.securityAuditor')}</p>
-              </div>
-              <ArrowRight size={20} className="text-white/20 group-hover:text-white group-hover:translate-x-1 transition-all" />
-            </button>
-          )}
-
-          {/* Unified Activity Panel */}
-          <div className="bg-white dark:bg-slate-900 rounded-[2rem] border border-slate-200 dark:border-slate-800 shadow-sm overflow-hidden">
-             <div className="p-5 px-6 border-b border-slate-100 dark:border-slate-800 flex items-center gap-3">
-                <History size={18} className="text-blue-600" />
-                <h3 className="text-xs font-black uppercase tracking-widest dark:text-white">{t('dashboard.recentFlow')}</h3>
-             </div>
-             <div className="divide-y divide-slate-50 dark:divide-slate-800/50 max-h-[300px] overflow-y-auto scrollbar-hide">
-               {payments.length > 0 ? payments.slice(-5).reverse().map((act, i) => (
-                 <div key={i} className="p-4 px-6 flex items-center gap-4 hover:bg-slate-50/50 dark:hover:bg-slate-800/50 transition-all">
-                    <div className="w-8 h-8 rounded-lg bg-green-500/10 text-green-600 flex items-center justify-center shrink-0">
-                      <CheckCircle2 size={14} />
-                    </div>
-                    <div className="min-w-0">
-                      <p className="text-[10px] font-black dark:text-white uppercase truncate">{act.name}</p>
-                      <p className="text-[9px] text-slate-400 font-bold">{t('common.currencySymbol')} {act.amount}</p>
-                    </div>
-                 </div>
-               )) : (
-                 <div className="p-8 text-center opacity-30 text-[9px] font-black uppercase tracking-widest">{t('dashboard.noRecentFlow')}</div>
-               )}
-             </div>
-             <button onClick={() => navigate('/business')} className="w-full p-4 bg-slate-50 dark:bg-slate-800/50 text-[9px] font-black uppercase tracking-widest text-slate-500 hover:text-blue-600 transition-colors border-t border-slate-100 dark:border-slate-800">
-               {t('dashboard.financialBtn')}
-             </button>
-          </div>
-
-          {/* Birthdays Card - Compacto */}
-          <div className="bg-amber-500 rounded-[2rem] p-6 text-white shadow-xl relative overflow-hidden group">
-            <div className="absolute top-0 right-0 w-32 h-32 bg-white rounded-full blur-[80px] opacity-20 pointer-events-none" />
-            <div className="flex items-center gap-3 mb-4">
-              <Cake size={18} />
-              <h3 className="text-[10px] font-black uppercase tracking-widest">{t('dashboard.celebrations')}</h3>
-            </div>
-            <div className="space-y-2">
-              {upcomingBirthdays.slice(0, 3).map((s, i) => (
-                <div key={i} className="flex items-center justify-between bg-white/10 backdrop-blur-md p-3 rounded-xl border border-white/5">
-                  <div className="flex items-center gap-3">
-                    <div className="w-8 h-8 bg-white/20 rounded-lg flex items-center justify-center font-black text-xs">
-                      {new Date(s.birthDate).getDate()}
-                    </div>
-                    <p className="text-[10px] font-black uppercase truncate max-w-[100px]">{s.name}</p>
-                  </div>
-                  <ArrowRight size={12} className="opacity-50" />
-                </div>
-              ))}
-              {upcomingBirthdays.length === 0 && (
-                <p className="text-[9px] font-bold opacity-70 text-center py-2 italic">{t('reports.noBirthdays')}</p>
-              )}
-            </div>
-            <button onClick={() => navigate('/reports')} className="w-full mt-4 py-2.5 bg-slate-900 text-white rounded-xl font-black text-[8px] uppercase tracking-widest shadow-lg hover:scale-105 transition-all">
-              {t('dashboard.viewCalendar')}
-            </button>
-          </div>
-        </div>
-      </div>
-
     </div>
   );
 };

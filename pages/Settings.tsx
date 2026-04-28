@@ -42,12 +42,13 @@ const Settings: React.FC = () => {
           geofenceRadius: formData.geofenceRadius || 100
         });
         setIsCapturing(false);
+        alert("Localização capturada com sucesso! Não esqueça de salvar as alterações. OSS!");
       }, (error) => {
         alert("Erro ao obter localização: " + error.message);
         setIsCapturing(false);
       }, {
         enableHighAccuracy: true,
-        timeout: 5000,
+        timeout: 10000,
         maximumAge: 0
       });
     } else {

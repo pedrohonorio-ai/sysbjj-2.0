@@ -13,6 +13,8 @@ import {
   Save,
   Baby,
   Medal,
+  Trophy,
+  Brain,
   Trash2,
   Zap,
   Phone,
@@ -829,6 +831,38 @@ const StudentDetailsModal = ({ student, onClose }: { student: Student; onClose: 
           {activeTab === 'overview' && (
             <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 sm:gap-10">
               <div className="lg:col-span-7 space-y-6 sm:space-y-10">
+                {/* Professional Performance Card */}
+                <section className="space-y-4">
+                  <h3 className="text-[10px] font-black text-slate-400 uppercase tracking-widest flex items-center gap-2"><Trophy size={14} className="text-blue-600"/> {t('students.professionalPerformance') || 'Performance Profissional (KPIs)'}</h3>
+                  <div className="p-8 rounded-[2.5rem] bg-slate-950 text-white border border-white/5 shadow-2xl relative overflow-hidden group">
+                    <div className="absolute top-0 right-0 w-64 h-64 bg-blue-600 rounded-full blur-[100px] opacity-10 group-hover:opacity-20 transition-opacity" />
+                    <div className="grid grid-cols-2 md:grid-cols-4 gap-8 relative z-10">
+                      <div className="text-center">
+                        <p className="text-[8px] font-black text-blue-400 uppercase tracking-widest mb-1">Assiduidade</p>
+                        <p className="text-2xl font-black">{Math.min(100, (student.attendanceCount / 100) * 100).toFixed(0)}%</p>
+                        <div className="w-full h-1 bg-white/10 rounded-full mt-2 overflow-hidden">
+                           <div className="h-full bg-blue-500 rounded-full" style={{ width: `${Math.min(100, (student.attendanceCount / 100) * 100)}%` }} />
+                        </div>
+                      </div>
+                      <div className="text-center">
+                        <p className="text-[8px] font-black text-blue-400 uppercase tracking-widest mb-1">Maturidade</p>
+                        <p className="text-2xl font-black">{beltAnalysis?.progress.toFixed(0) || 0}%</p>
+                        <div className="w-full h-1 bg-white/10 rounded-full mt-2 overflow-hidden">
+                           <div className="h-full bg-amber-500 rounded-full" style={{ width: `${beltAnalysis?.progress || 0}%` }} />
+                        </div>
+                      </div>
+                      <div className="text-center">
+                        <p className="text-[8px] font-black text-blue-400 uppercase tracking-widest mb-1">Nível de Foco</p>
+                        <p className="text-xl font-black uppercase text-emerald-400">{student.status === StudentStatus.ACTIVE ? 'Elite' : 'Frequente'}</p>
+                      </div>
+                      <div className="text-center">
+                        <p className="text-[8px] font-black text-blue-400 uppercase tracking-widest mb-1">Potencial Pro</p>
+                        <p className="text-xl font-black uppercase text-blue-400">{student.isCompetitor ? 'High Perf' : 'Standard'}</p>
+                      </div>
+                    </div>
+                  </div>
+                </section>
+
                 {/* Performance & Analysis Group */}
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <div className="p-4 sm:p-6 bg-green-50 dark:bg-green-900/10 rounded-2xl sm:rounded-3xl border border-green-100 dark:border-green-900/20">

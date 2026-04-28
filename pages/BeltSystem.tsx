@@ -1,6 +1,6 @@
 
-import React, { useMemo, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import React, { useMemo, useState, useEffect } from 'react';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { motion } from 'motion/react';
 import { 
   Trophy, 
@@ -43,9 +43,16 @@ const BeltSystem: React.FC = () => {
   const { students, updateStudent } = useData();
   const { profile } = useProfile();
   const navigate = useNavigate();
+  const location = useLocation();
   const [searchTerm, setSearchTerm] = useState('');
   const [filterBelt, setFilterBelt] = useState<string>('All');
   const [examMode, setExamMode] = useState(false);
+
+  useEffect(() => {
+    if (location.state?.examMode) {
+      setExamMode(true);
+    }
+  }, [location.state]);
   const [editingNotes, setEditingNotes] = useState<string | null>(null);
   const [selectedStudentReport, setSelectedStudentReport] = useState<Student | null>(null);
   const [showCriteriaManager, setShowCriteriaManager] = useState(false);
