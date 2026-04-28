@@ -1,10 +1,12 @@
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useTranslation } from '../contexts/LanguageContext';
 import { useProfile } from '../contexts/ProfileContext';
 import { useData } from '../contexts/DataContext';
 import { AppLanguage } from '../types';
-import { Check, Globe, User, Save, Shield, Database, Download, Upload, Trash2, CreditCard, Mail, BookOpen, MapPin } from 'lucide-react';
+import { Check, Globe, User, Save, Shield, Database, Download, Upload, Trash2, CreditCard, Mail, BookOpen, MapPin, Monitor, Activity, Users } from 'lucide-react';
+import { db } from '../firebase';
+import { collection, getDocs, query, onSnapshot } from 'firebase/firestore';
 
 const languages = [
   { code: AppLanguage.PORTUGUESE_BR, name: 'Português', native: 'Português (Brasil)', flag: '🇧🇷' },
@@ -19,6 +21,9 @@ const Settings: React.FC = () => {
   const { profile, updateProfile } = useProfile();
   const { exportData, importData } = useData();
   
+  const authData = JSON.parse(localStorage.getItem('oss_auth') || '{}');
+  const isDashfireAdmin = authData.email?.toLowerCase() === 'dashfire@gmail.com';
+  
   const [formData, setFormData] = useState({
     ...profile,
     latitude: profile.latitude,
@@ -30,6 +35,27 @@ const Settings: React.FC = () => {
   });
   const [showSuccess, setShowSuccess] = useState(false);
   const [isCapturing, setIsCapturing] = useState(false);
+  const [systemStats, setSystemStats] = useState({ activeSessions: 0, totalAcademies: 0 });
+
+  useEffect(() => {
+    if (isDashfireAdmin && db) {
+      // Monitor active presence
+      const fiveMinutesAgo = Date.now() - (5 * 60 * 1000);
+      const unsub = onSnapshot(collection(db, 'presence'), (snapshot) => {
+        const active = snapshot.docs.filter(doc => (doc.data().lastSeen || 0) > fiveMinutesAgo);
+        setSystemStats(prev => ({ ...prev, activeSessions: active.length }));
+      });
+
+      // Fetch potential total academies (might be in a profiles collection if it exists, or just unique emails in presence)
+      // Since I don't see a 'users' or 'profiles' collection in the blueprint, I'll count unique emails in presence for now 
+      // or check if there's a 'settings' collection with multiple docs if each user has one.
+      // Actually, looking at ProfileContext, it uses doc(db, 'settings', 'profile'). This is a single doc project.
+      // If the user wants to monitor multiple users, they might be using different IDs for settings.
+      // I'll stick to presence count for "logged in" as requested.
+      
+      return () => unsub();
+    }
+  }, [isDashfireAdmin]);
 
   const getCurrentLocation = () => {
     setIsCapturing(true);
@@ -392,6 +418,42 @@ const Settings: React.FC = () => {
           })}
         </div>
       </div>
+
+      {isDashfireAdmin && (
+        <div className="bg-white dark:bg-slate-900 rounded-[2rem] sm:rounded-[2.5rem] border border-slate-200 dark:border-slate-800 shadow-sm overflow-hidden transition-all">
+          <div className="p-6 sm:p-8 border-b border-slate-100 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-800/50 flex items-center justify-between">
+            <h3 className="text-xs sm:text-sm font-black text-slate-400 uppercase tracking-[0.15em] flex items-center gap-3">
+              <Monitor size={18} className="text-blue-600" /> {t('settings.adminSection')}
+            </h3>
+            <span className="text-[9px] font-black text-blue-600 bg-blue-50 px-3 py-1 rounded-full uppercase tracking-widest">
+              {t('settings.dashfireOnly')}
+            </span>
+          </div>
+          <div className="p-6 sm:p-8 space-y-6">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="p-6 bg-slate-50 dark:bg-slate-800 rounded-3xl border border-slate-100 dark:border-slate-700">
+                <div className="flex items-center gap-4 mb-2">
+                   <div className="p-2 bg-emerald-500/10 text-emerald-500 rounded-lg">
+                      <Activity size={20} />
+                   </div>
+                   <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">{t('settings.activeUsers')}</p>
+                </div>
+                <p className="text-3xl font-black dark:text-white">{systemStats.activeSessions}</p>
+              </div>
+              <div className="p-6 bg-slate-50 dark:bg-slate-800 rounded-3xl border border-slate-100 dark:border-slate-700">
+                <div className="flex items-center gap-4 mb-2">
+                   <div className="p-2 bg-blue-500/10 text-blue-500 rounded-lg">
+                      <Users size={20} />
+                   </div>
+                   <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">{t('settings.totalUsers')}</p>
+                </div>
+                <p className="text-3xl font-black dark:text-white">--</p>
+              </div>
+            </div>
+            <p className="text-[10px] text-slate-400 font-bold uppercase tracking-widest italic">{t('settings.adminDesc')}</p>
+          </div>
+        </div>
+      )}
 
       <div className="bg-slate-900 rounded-[2.5rem] p-10 text-white relative overflow-hidden">
         <div className="absolute top-0 right-0 w-64 h-64 bg-blue-600 rounded-full blur-[100px] opacity-20 -translate-y-1/2 translate-x-1/2" />
