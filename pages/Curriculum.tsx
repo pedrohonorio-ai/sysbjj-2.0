@@ -10,7 +10,6 @@ import {
   ChevronRight, 
   Trash2, 
   Layout, 
-  Wand2,
   CheckCircle2,
   Clock,
   ArrowRight,
@@ -27,7 +26,6 @@ import {
 import { useTranslation } from '../contexts/LanguageContext';
 import { useData } from '../contexts/DataContext';
 import { TechniqueCategory, LibraryTechnique, LessonPlan, BeltColor } from '../types';
-import { searchTechniqueInfo } from '../services/gemini';
 
 const Curriculum: React.FC = () => {
   const { t } = useTranslation();
@@ -38,8 +36,6 @@ const Curriculum: React.FC = () => {
   const [selectedTech, setSelectedTech] = useState<LibraryTechnique | null>(null);
   const [editingTech, setEditingTech] = useState<LibraryTechnique | null>(null);
   const [isAddingTech, setIsAddingTech] = useState(false);
-  const [aiDetails, setAiDetails] = useState<any>(null);
-  const [isAiLoading, setIsAiLoading] = useState(false);
   const [newTech, setNewTech] = useState<Omit<LibraryTechnique, 'id'>>({
     name: '',
     category: TechniqueCategory.SUBMISSIONS,
@@ -83,22 +79,8 @@ const Curriculum: React.FC = () => {
     setCurrentPlan({ title: '', techniques: [], ruleFocus: '', date: new Date().toISOString().split('T')[0] });
   };
 
-  const loadAiDetails = async (tech: LibraryTechnique) => {
-    setIsAiLoading(true);
-    setAiDetails(null);
-    try {
-      const details = await searchTechniqueInfo(tech.name);
-      setAiDetails(details);
-    } catch (error) {
-      console.error("Erro ao carregar detalhes da IA", error);
-    } finally {
-      setIsAiLoading(false);
-    }
-  };
-
   const handleOpenTechDetails = (tech: LibraryTechnique) => {
     setSelectedTech(tech);
-    loadAiDetails(tech);
   };
 
   const getEmbedUrl = (url?: string) => {
@@ -153,8 +135,8 @@ const Curriculum: React.FC = () => {
       </div>
 
       {/* Technical Focus of the Week - Dynamic Element */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-        <div className="md:col-span-2 bg-gradient-to-br from-slate-900 to-slate-800 dark:from-slate-800 dark:to-slate-900 rounded-[2.5rem] p-8 text-white relative overflow-hidden group shadow-2xl">
+      <div className="grid grid-cols-1 gap-6">
+        <div className="bg-gradient-to-br from-slate-900 to-slate-800 dark:from-slate-800 dark:to-slate-900 rounded-[2.5rem] p-8 text-white relative overflow-hidden group shadow-2xl">
           <div className="absolute top-0 right-0 w-64 h-64 bg-blue-600/10 rounded-full -translate-y-1/2 translate-x-1/2 blur-3xl group-hover:bg-blue-600/20 transition-all duration-700" />
           <div className="relative z-10 space-y-6">
             <div className="flex items-center gap-2">
@@ -179,21 +161,6 @@ const Curriculum: React.FC = () => {
               <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">{t('curriculum.plannedClasses')}: 12</p>
             </div>
           </div>
-        </div>
-
-        <div className="bg-white dark:bg-slate-900 rounded-[2.5rem] p-8 border border-slate-200 dark:border-slate-800 shadow-sm flex flex-col justify-between">
-          <div className="space-y-4">
-            <div className="w-12 h-12 bg-amber-50 dark:bg-amber-900/20 rounded-2xl flex items-center justify-center text-amber-600">
-              <Wand2 size={24} />
-            </div>
-            <h3 className="text-xl font-black dark:text-white uppercase tracking-tight">{t('curriculum.aiSuggestion')}</h3>
-            <p className="text-xs text-slate-500 leading-relaxed italic">
-              "Sensei, notei que a taxa de finalizações por triângulo aumentou 15% no último mês. Que tal um foco em defesas de triângulo para as turmas de fundamentos?"
-            </p>
-          </div>
-          <button className="mt-6 w-full py-4 bg-slate-50 dark:bg-slate-800 rounded-2xl text-[10px] font-black uppercase tracking-widest text-slate-400 hover:bg-blue-600 hover:text-white transition-all">
-            {t('curriculum.applySuggestion')}
-          </button>
         </div>
       </div>
 
@@ -300,10 +267,6 @@ const Curriculum: React.FC = () => {
                   </div>
 
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-8">
-                     <div className="p-6 bg-slate-50 dark:bg-slate-800 rounded-3xl border border-slate-100 dark:border-slate-700">
-                        <p className="text-[10px] font-black text-blue-600 uppercase mb-2">{t('curriculum.aiSuggestion')}</p>
-                        <p className="text-xs text-slate-500 dark:text-slate-400 leading-relaxed italic">"Baseado no currículo de Atleta Intermediário, sugiro focar no Kuzushi antes da entrada."</p>
-                     </div>
                      <button 
                       onClick={handleSavePlan}
                       disabled={!currentPlan.title}
@@ -432,18 +395,6 @@ const Curriculum: React.FC = () => {
                     allowFullScreen
                     title={selectedTech.name}
                   />
-                ) : aiDetails?.youtubeSearchQuery ? (
-                  <div className="flex flex-col items-center gap-4">
-                    <PlayCircle size={64} className="text-slate-300" />
-                    <a 
-                      href={`https://www.youtube.com/results?search_query=${encodeURIComponent(aiDetails.youtubeSearchQuery)}`}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="px-6 py-3 bg-red-600 text-white rounded-xl font-black text-[10px] uppercase tracking-widest shadow-lg flex items-center gap-2 hover:bg-red-700 transition-colors"
-                    >
-                      Buscar no YouTube <ExternalLink size={14} />
-                    </a>
-                  </div>
                 ) : (
                   <>
                     <div className="absolute inset-0 bg-gradient-to-t from-slate-900/40 to-transparent" />
@@ -454,51 +405,9 @@ const Curriculum: React.FC = () => {
               </div>
 
               <div className="space-y-6">
-                <div className="flex items-center justify-between">
-                  <h4 className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Análise da IA Sensei</h4>
-                  {isAiLoading && <Sparkles size={16} className="text-blue-500 animate-pulse" />}
-                </div>
-                
-                {isAiLoading ? (
-                  <div className="space-y-4">
-                    <div className="h-20 bg-slate-50 dark:bg-slate-800 rounded-2xl animate-pulse" />
-                    <div className="h-32 bg-slate-50 dark:bg-slate-800 rounded-2xl animate-pulse" />
-                  </div>
-                ) : aiDetails ? (
-                  <div className="space-y-6">
-                    <div className="bg-blue-50 dark:bg-blue-900/10 p-6 rounded-2xl border border-blue-100 dark:border-blue-900/30">
-                      <p className="text-sm text-slate-700 dark:text-slate-300 leading-relaxed">
-                        {aiDetails.description}
-                      </p>
-                    </div>
-
-                    <div className="space-y-3">
-                      <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest ml-1">Execução Passo a Passo</p>
-                      <div className="grid grid-cols-1 gap-2">
-                        {aiDetails.steps?.map((step: string, i: number) => (
-                          <div key={i} className="flex items-center gap-3 p-3 bg-slate-50 dark:bg-slate-800 rounded-xl border border-slate-100 dark:border-slate-700">
-                            <span className="text-blue-600 font-black text-xs">{i + 1}.</span>
-                            <span className="text-xs font-bold dark:text-slate-300">{step}</span>
-                          </div>
-                        ))}
-                      </div>
-                    </div>
-
-                    {aiDetails.safetyTips && (
-                      <div className="p-4 bg-amber-50 dark:bg-amber-900/10 rounded-2xl border border-amber-100 dark:border-amber-900/30 flex gap-3">
-                        <Shield size={16} className="text-amber-600 shrink-0" />
-                        <p className="text-[10px] font-bold text-amber-700 dark:text-amber-400 leading-tight">
-                          <span className="font-black uppercase block mb-1">Dica de Segurança:</span>
-                          {aiDetails.safetyTips}
-                        </p>
-                      </div>
-                    )}
-                  </div>
-                ) : (
-                  <p className="text-sm text-slate-500 leading-relaxed bg-slate-50 dark:bg-slate-800 p-6 rounded-2xl border border-slate-100 dark:border-slate-700">
-                    {selectedTech.description}
-                  </p>
-                )}
+                <p className="text-sm text-slate-500 leading-relaxed bg-slate-50 dark:bg-slate-800 p-6 rounded-2xl border border-slate-100 dark:border-slate-700">
+                  {selectedTech.description}
+                </p>
               </div>
 
               <div className="grid grid-cols-2 gap-4">

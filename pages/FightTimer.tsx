@@ -1,48 +1,15 @@
 
 import React, { useState, useEffect, useRef } from 'react';
-import { Play, Pause, RotateCcw, Timer as TimerIcon, ChevronUp, ChevronDown, BellRing, BellOff, Music, Trophy, Plus, Trash2, Save, Loader2, Shield } from 'lucide-react';
+import { Play, Pause, RotateCcw, Timer as TimerIcon, ChevronUp, ChevronDown, BellRing, BellOff, Music, Trophy, Plus, Trash2, Save, Shield } from 'lucide-react';
 import { useTranslation } from '../contexts/LanguageContext';
-import { GoogleGenAI, Modality } from "@google/genai";
 
-const SOUNDS = (t: any, mateUrl?: string | null) => ({
+const SOUNDS = (t: any) => ({
   bjj: { name: 'BJJ Buzzer (Oficial)', url: 'https://assets.mixkit.co/active_storage/sfx/2869/2869-preview.mp3' },
-  mate: { name: t('timer.soundMate'), url: mateUrl || 'https://assets.mixkit.co/active_storage/sfx/2571/2571-preview.mp3' }, 
   classic: { name: t('timer.soundClassic'), url: 'https://assets.mixkit.co/active_storage/sfx/2869/2869-preview.mp3' },
   military: { name: t('timer.soundMilitary'), url: 'https://assets.mixkit.co/active_storage/sfx/1000/1000-preview.mp3' },
   alarm: { name: t('timer.soundAlarm'), url: 'https://assets.mixkit.co/active_storage/sfx/951/951-preview.mp3' },
   bell: { name: t('timer.soundBell'), url: 'https://assets.mixkit.co/active_storage/sfx/1071/1071-preview.mp3' }
 });
-
-const pcmToWav = (pcmData: Int16Array, sampleRate: number): string => {
-  const buffer = new ArrayBuffer(44 + pcmData.length * 2);
-  const view = new DataView(buffer);
-  const writeString = (v: DataView, offset: number, string: string) => {
-    for (let i = 0; i < string.length; i++) {
-      v.setUint8(offset + i, string.charCodeAt(i));
-    }
-  };
-
-  writeString(view, 0, 'RIFF');
-  view.setUint32(4, 36 + pcmData.length * 2, true);
-  writeString(view, 8, 'WAVE');
-  writeString(view, 12, 'fmt ');
-  view.setUint32(16, 16, true);
-  view.setUint16(20, 1, true);
-  view.setUint16(22, 1, true);
-  view.setUint32(24, sampleRate, true);
-  view.setUint32(28, sampleRate * 2, true);
-  view.setUint16(32, 2, true);
-  view.setUint16(34, 16, true);
-  writeString(view, 36, 'data');
-  view.setUint32(40, pcmData.length * 2, true);
-
-  for (let i = 0; i < pcmData.length; i++) {
-    view.setInt16(44 + i * 2, pcmData[i], true);
-  }
-
-  const blob = new Blob([view], { type: 'audio/wav' });
-  return URL.createObjectURL(blob);
-};
 
 const PRESETS = [
   { name: 'Branca / White', time: 300, color: 'bg-white text-slate-900 border-slate-200' },
@@ -80,60 +47,12 @@ const FightTimer: React.FC = () => {
   });
   const [showSaveModel, setShowSaveModel] = useState(false);
   const [newModelName, setNewModelName] = useState('');
-  const [mateUrl, setMateUrl] = useState<string | null>(null);
-  const [isGeneratingMate, setIsGeneratingMate] = useState(false);
   
   const timerRef = useRef<any>(null);
   const audioRef = useRef<HTMLAudioElement | null>(null);
   const warningAudioRef = useRef<HTMLAudioElement | null>(null);
 
-  const sounds = React.useMemo(() => SOUNDS(t, mateUrl), [t, mateUrl]);
-
-  useEffect(() => {
-    const generateMate = async () => {
-      if (selectedSound === 'mate' && !mateUrl && !isGeneratingMate) {
-        setIsGeneratingMate(true);
-        try {
-          const apiKey = process.env.GEMINI_API_KEY;
-          if (!apiKey || apiKey === 'undefined' || apiKey === 'null' || apiKey.trim() === '') {
-            console.warn("FightTimer: GEMINI_API_KEY is not defined. Mate sound generation disabled.");
-            setIsGeneratingMate(false);
-            return;
-          }
-          const ai = new GoogleGenAI({ apiKey: apiKey.trim() });
-          const response = await ai.models.generateContent({
-            model: "gemini-3.1-flash-tts-preview",
-            contents: [{ parts: [{ text: 'Say in a thick, authoritative Japanese martial arts referee voice: "待て!" (Mate!)' }] }],
-            config: {
-              responseModalities: [Modality.AUDIO],
-              speechConfig: {
-                voiceConfig: {
-                  prebuiltVoiceConfig: { voiceName: 'Kore' },
-                },
-              },
-            },
-          });
-
-          const base64Audio = response.candidates?.[0]?.content?.parts?.[0]?.inlineData?.data;
-          if (base64Audio) {
-            const binaryString = window.atob(base64Audio);
-            const bytes = new Uint8Array(binaryString.length);
-            for (let i = 0; i < binaryString.length; i++) {
-              bytes[i] = binaryString.charCodeAt(i);
-            }
-            const pcmData = new Int16Array(bytes.buffer);
-            const wavUrl = pcmToWav(pcmData, 24000);
-            setMateUrl(wavUrl);
-          }
-        } catch (error) {
-          console.error("FightTimer: Error generating Mate sound:", error);
-        } finally {
-          setIsGeneratingMate(false);
-        }
-      }
-    };
-    generateMate();
-  }, [selectedSound, mateUrl, isGeneratingMate]);
+  const sounds = React.useMemo(() => SOUNDS(t), [t]);
 
   const applyPreset = (time: number) => {
     stopAlarm();
@@ -309,11 +228,7 @@ const FightTimer: React.FC = () => {
           
           <div className="flex items-center gap-3">
             <div className="flex items-center gap-2 bg-white dark:bg-slate-800 px-4 py-2 rounded-xl border border-slate-200 dark:border-slate-700 shadow-sm">
-              {isGeneratingMate ? (
-                <Loader2 size={16} className="text-amber-500 animate-spin" />
-              ) : (
-                <Music size={16} className="text-blue-500" />
-              )}
+              <Music size={16} className="text-blue-500" />
               <select 
                 value={selectedSound} 
                 onChange={(e) => setSelectedSound(e.target.value as any)}

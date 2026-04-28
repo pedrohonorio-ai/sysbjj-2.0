@@ -362,14 +362,6 @@ export interface PaymentReceipt {
   receiptUrl: string;
   status: 'Pending' | 'Approved' | 'Rejected';
   timestamp: number;
-  aiAnalysis?: {
-    isValid: boolean;
-    confidence: number;
-    fraudAlert?: string;
-    analysis: string;
-    isScheduled?: boolean;
-    detectedAmount?: number;
-  };
 }
 
 export interface TransactionLedger {
@@ -383,8 +375,3 @@ export interface TransactionLedger {
   hash: string;
 }
 
-export interface AIMessage {
-  role: 'user' | 'assistant';
-  text: string;
-  timestamp: number;
-}

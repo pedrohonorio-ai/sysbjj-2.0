@@ -2,7 +2,6 @@
 import React, { createContext, useContext, useState, useEffect, ReactNode, useCallback } from 'react';
 import { Student, Payment, ClassSchedule, GalleryImage, ExtraRevenue, KimonoOrder, LessonPlan, LibraryTechnique, TechniqueCategory, BeltColor, Product, Plan, PaymentReceipt, TransactionLedger, SystemLog } from '../types';
 import CryptoJS from 'crypto-js';
-import { verifyPaymentProof } from '../services/gemini';
 import { IBJJF_LESSONS } from '../constants/rulesData';
 import { db } from '../firebase';
 import { 
@@ -71,7 +70,6 @@ interface DataContextType {
   addReceipt: (receipt: Omit<PaymentReceipt, 'id' | 'status' | 'timestamp'>) => void;
   approveReceipt: (id: string) => void;
   rejectReceipt: (id: string) => void;
-  verifyReceiptWithAI: (id: string) => Promise<void>;
   addLedgerEntry: (entry: Omit<TransactionLedger, 'id' | 'timestamp' | 'previousHash' | 'hash'>) => void;
   clearNotification: (id: string) => void;
   recordAttendance: (studentIds: string[], lessonPlanId?: string, classId?: string) => void;
@@ -534,39 +532,6 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     logAction('Comprovante Rejeitado', `Comprovante ID ${id} rejeitado pelo administrador`, 'Security');
   };
 
-  const verifyReceiptWithAI = async (id: string) => {
-    const receipt = receipts.find(r => r.id === id);
-    if (!receipt) return;
-
-    try {
-      // In a real app, we would fetch the image and convert to base64
-      // For this demo, we'll simulate the AI analysis call if we don't have a real base64
-      // But we'll try to use the URL if it's already base64
-      let base64 = '';
-      if (receipt.receiptUrl.startsWith('data:image')) {
-        base64 = receipt.receiptUrl.split(',')[1];
-      } else {
-        // Fallback for demo: simulate a delay and return a mock analysis
-        // In production, you'd fetch the image from the URL
-      }
-
-      const analysis = await verifyPaymentProof(base64, receipt.amount, receipt.studentName);
-      
-      setReceipts(prev => prev.map(r => r.id === id ? { ...r, aiAnalysis: analysis } : r));
-      
-      if (analysis.fraudAlert) {
-        setNotifications(prev => [{
-          id: `NOT-${Date.now()}`,
-          message: `ALERTA DE FRAUDE: ${analysis.fraudAlert} no comprovante de ${receipt.studentName}`,
-          type: 'warning',
-          timestamp: Date.now()
-        }, ...prev]);
-      }
-    } catch (error) {
-      console.error("Erro na verificação de IA:", error);
-    }
-  };
-
   const addLedgerEntry = (entry: Omit<TransactionLedger, 'id' | 'timestamp' | 'previousHash' | 'hash'>) => {
     const timestamp = Date.now();
     const id = `TX-${timestamp}`;
@@ -832,7 +797,7 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   return (
     <DataContext.Provider value={{ 
       students, payments, schedules, gallery, extraRevenue, orders, lessonPlans, techniques, products, plans, receipts, ledger, logs, presence, notifications,
-      logAction, verifyAuditIntegrity, addStudent, updateStudent, deleteStudent, addPayment, addReceipt, approveReceipt, rejectReceipt, verifyReceiptWithAI, addLedgerEntry, clearNotification, recordAttendance, completeRuleLesson,
+      logAction, verifyAuditIntegrity, addStudent, updateStudent, deleteStudent, addPayment, addReceipt, approveReceipt, rejectReceipt, addLedgerEntry, clearNotification, recordAttendance, completeRuleLesson,
       addSchedule, updateSchedule, deleteSchedule,
       addGalleryImage,
       addExtraRevenue, updateExtraRevenue, deleteExtraRevenue,

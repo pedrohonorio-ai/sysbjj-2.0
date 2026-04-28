@@ -49,6 +49,8 @@ const BeltSystem: React.FC = () => {
   const [editingNotes, setEditingNotes] = useState<string | null>(null);
   const [selectedStudentReport, setSelectedStudentReport] = useState<Student | null>(null);
   const [showCriteriaManager, setShowCriteriaManager] = useState(false);
+  const [showRequirementLibrary, setShowRequirementLibrary] = useState(false);
+  const [requirementSearch, setRequirementSearch] = useState('');
   const [activeExamStudentId, setActiveExamStudentId] = useState<string | null>(null);
   const [showMilestoneModal, setShowMilestoneModal] = useState<{ isOpen: boolean, studentId: string | null }>({ isOpen: false, studentId: null });
   const [newMilestone, setNewMilestone] = useState<Partial<Milestone>>({ type: 'Seminar', title: '', date: new Date().toISOString().split('T')[0] });
@@ -122,31 +124,64 @@ const BeltSystem: React.FC = () => {
 
       let nextDegreeDate: string | null = null;
       let degreeRequirements: string[] = [];
+      let blackBeltTimeline: { degree: number, title: string, year: number, date: string, requirements: string[] }[] = [];
 
       // Black Belt Degree Logic
       if (isBlackBelt) {
-        maxStripes = 6; // 6 degrees before Coral
+        maxStripes = 6; 
         const promoDate = new Date(s.lastPromotionDate + 'T12:00:00');
         
-        if (s.belt === BeltColor.BLACK) {
-           if (s.stripes < 3) {
-             minMonthsRequired = 36; // 3 years for 1st, 2nd, 3rd
-             degreeRequirements = ["3 anos no grau atual", "Praticante ativo", "Certificado de Primeiros Socorros", "Curso de Regras IBJJF"];
-           } else {
-             minMonthsRequired = 60; // 5 years for 4th, 5th, 6th
-             degreeRequirements = ["5 anos no grau atual", "Praticante ativo", "Exame de integridade"];
-           }
-        } else if (s.belt === BeltColor.RED_BLACK || s.belt === BeltColor.RED_WHITE) {
-           minMonthsRequired = 84; // 7 years each
-           degreeRequirements = ["7 anos no grau atual", "Serviços relevantes ao esporte"];
-        } else if (s.belt === BeltColor.RED) {
-           minMonthsRequired = 120; // 10 years
-           degreeRequirements = ["10 anos no grau atual", "Grão-Mestre"];
-        }
+        // Full Timeline Calculation
+        let runningDate = new Date(promoDate);
+        const rules = [
+            { degree: 1, years: 3, title: '1º Grau', reqs: ["3 anos no grau zero", "Status ativo", "Primeiros Socorros"] },
+            { degree: 2, years: 3, title: '2º Grau', reqs: ["3 anos no 1º grau", "Status ativo"] },
+            { degree: 3, years: 3, title: '3º Grau', reqs: ["3 anos no 2º grau", "Status ativo"] },
+            { degree: 4, years: 5, title: '4º Grau', reqs: ["5 anos no 3º grau", "Curso de Regras", "Primeros Socorros"] },
+            { degree: 5, years: 5, title: '5º Grau', reqs: ["5 anos no 4º grau", "Atividade ativa"] },
+            { degree: 6, years: 5, title: '6º Grau', reqs: ["5 anos no 5º grau", "Integridade"] },
+            { degree: 7, years: 7, title: '7º Grau (Coral)', reqs: ["7 anos no 6º grau", "31 anos de faixa preta"] },
+            { degree: 8, years: 7, title: '8º Grau (Coral)', reqs: ["7 anos no 7º grau"] },
+            { degree: 9, years: 10, title: '9º Grau (Vermelha)', reqs: ["10 anos no 8º grau"] },
+        ];
 
-        const nextDate = new Date(promoDate);
-        nextDate.setMonth(nextDate.getMonth() + minMonthsRequired);
-        nextDegreeDate = nextDate.toLocaleDateString(undefined, { year: 'numeric', month: 'long' });
+        // Start from degree 0 (just black belt) and project forward
+        // If they already have degrees, we should respect that, but for now we project from lastPromotionDate
+        // Assuming lastPromotionDate is the date they got their CURRENT degree (stripes)
+        // This is tricky because we only have ONE lastPromotionDate.
+        // Let's assume lastPromotionDate is the start of the ENTIRE Black Belt journey if stripes=0, 
+        // or the start of the current degree.
+        
+        const currentDegree = s.stripes || 0;
+        
+        rules.forEach((r, idx) => {
+           const yearsToAdd = r.years;
+           runningDate = new Date(runningDate);
+           runningDate.setFullYear(runningDate.getFullYear() + yearsToAdd);
+           
+           const timelineItem = {
+              degree: r.degree,
+              title: r.title,
+              year: runningDate.getFullYear(),
+              date: runningDate.toLocaleDateString(undefined, { month: 'short', year: 'numeric' }),
+              requirements: r.reqs
+           };
+           blackBeltTimeline.push(timelineItem);
+           
+           if (r.degree === currentDegree + 1) {
+              nextDegreeDate = timelineItem.date;
+              degreeRequirements = r.reqs;
+              minMonthsRequired = r.years * 12;
+           }
+        });
+
+        // Fallback for graduation logic if stripes is very high
+        if (!nextDegreeDate) {
+            minMonthsRequired = 120;
+            const fallbackDate = new Date(promoDate);
+            fallbackDate.setFullYear(fallbackDate.getFullYear() + 10);
+            nextDegreeDate = fallbackDate.toLocaleDateString(undefined, { year: 'numeric' });
+        }
       }
 
       const timeProgress = Math.min((monthsInBelt / (minMonthsRequired || 1)) * 100, 100);
@@ -196,7 +231,8 @@ const BeltSystem: React.FC = () => {
         customProgress,
         customReady,
         nextDegreeDate,
-        degreeRequirements
+        degreeRequirements,
+        blackBeltTimeline
       };
     }).filter(s => {
       const matchesSearch = s.name.toLowerCase().includes(searchTerm.toLowerCase());
@@ -299,6 +335,62 @@ const BeltSystem: React.FC = () => {
   return (
     <div className="space-y-10 animate-in fade-in duration-500 max-w-7xl mx-auto pb-24 w-full px-4 sm:px-0">
       {/* Modals */}
+      {showRequirementLibrary && (
+        <div className="fixed inset-0 bg-slate-900/70 backdrop-blur-md z-[200] flex items-center justify-center p-4">
+          <div className="bg-white dark:bg-slate-900 rounded-[3rem] shadow-2xl w-full max-w-4xl flex flex-col animate-in zoom-in-95 duration-300 border border-slate-200 dark:border-slate-800 max-h-[85vh]">
+            <div className="p-8 border-b border-slate-100 dark:border-slate-800 flex items-center justify-between">
+              <div>
+                <h3 className="text-2xl font-black text-slate-900 dark:text-white uppercase tracking-tighter">Biblioteca de Requisitos IBJJF</h3>
+                <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Consulte as regras oficiais de graduação</p>
+              </div>
+              <button onClick={() => setShowRequirementLibrary(false)} className="p-2 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-xl transition-colors"><X/></button>
+            </div>
+            
+            <div className="p-8 border-b border-slate-100 dark:border-slate-800">
+               <div className="relative">
+                 <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" size={18} />
+                 <input 
+                   type="text" 
+                   placeholder="Pesquisar por requisitos de faixa (Ex: Azul, Marrom...)"
+                   className="w-full pl-12 pr-4 py-4 bg-slate-50 dark:bg-slate-800 border-2 border-slate-100 dark:border-slate-700 rounded-2xl outline-none focus:ring-2 focus:ring-blue-600 font-bold"
+                   value={requirementSearch}
+                   onChange={e => setRequirementSearch(e.target.value)}
+                 />
+               </div>
+            </div>
+
+            <div className="p-8 overflow-y-auto space-y-10">
+               {Object.keys(IBJJF_BELT_RULES).filter(key => key.toLowerCase().includes(requirementSearch.toLowerCase())).map((beltKey) => (
+                 <div key={beltKey} className="space-y-4">
+                    <div className="flex items-center gap-3">
+                       <div className={`w-3 h-8 rounded-full ${BELT_COLORS[beltKey]}`} />
+                       <h4 className="text-xl font-black text-slate-900 dark:text-white uppercase tracking-tighter">Faixa {t(`belts.${beltKey}`)}</h4>
+                    </div>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                       <div className="p-6 bg-slate-50 dark:bg-slate-800 rounded-3xl border border-slate-100 dark:border-slate-700">
+                          <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-2">Tempo Mínimo Permanência</p>
+                          <p className="text-xl font-black dark:text-white uppercase tracking-tighter">{IBJJF_BELT_RULES[beltKey].minTimeMonths} Meses</p>
+                       </div>
+                       <div className="p-6 bg-slate-50 dark:bg-slate-800 rounded-3xl border border-slate-100 dark:border-slate-700">
+                          <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-2">Idade Mínima</p>
+                          <p className="text-xl font-black dark:text-white uppercase tracking-tighter">{IBJJF_BELT_RULES[beltKey].minAge} Anos</p>
+                       </div>
+                    </div>
+                    <div className="p-6 bg-white dark:bg-slate-800 rounded-3xl border border-slate-100 dark:border-slate-700">
+                       <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-4">Requisitos Técnicos Sugeridos</p>
+                       <div className="flex flex-wrap gap-2">
+                          {((tObj(`beltRequirements.${beltKey}`) as string[]) || []).map((req, i) => (
+                            <span key={i} className="px-3 py-1.5 bg-slate-100 dark:bg-slate-700 text-[10px] font-bold text-slate-600 dark:text-slate-300 rounded-xl uppercase">{req}</span>
+                          ))}
+                       </div>
+                    </div>
+                 </div>
+               ))}
+            </div>
+          </div>
+        </div>
+      )}
+
       {showCriteriaManager && (
         <div className="fixed inset-0 bg-slate-900/70 backdrop-blur-md z-[200] flex items-center justify-center p-4">
           <div className="bg-white dark:bg-slate-900 rounded-[3rem] shadow-2xl w-full max-w-2xl flex flex-col animate-in zoom-in-95 duration-300 border border-slate-200 dark:border-slate-800">
@@ -467,7 +559,13 @@ const BeltSystem: React.FC = () => {
           <p className="text-slate-500 font-medium italic text-lg">{t('beltSystem.subtitle')}</p>
         </div>
         
-        <div className="flex flex-col sm:flex-row gap-4 w-full lg:w-auto">
+          <div className="flex flex-wrap gap-4 w-full lg:w-auto">
+          <button 
+            onClick={() => setShowRequirementLibrary(true)}
+            className="px-6 py-4 bg-white dark:bg-slate-900 border-2 border-slate-200 dark:border-slate-800 text-slate-900 dark:text-white rounded-2xl font-black uppercase text-[10px] tracking-widest flex items-center justify-center gap-2 hover:bg-slate-50 transition-all"
+          >
+            <Search size={18} /> Pesquisar Requisitos
+          </button>
           <button 
             onClick={() => setShowCriteriaManager(true)}
             className="px-6 py-4 bg-slate-900 text-white rounded-2xl font-black uppercase text-[10px] tracking-widest flex items-center justify-center gap-2 hover:bg-blue-600 transition-all shadow-lg shadow-slate-900/20"
@@ -698,41 +796,61 @@ const BeltSystem: React.FC = () => {
                 </div>
 
                 {s.isBlackBelt && s.nextDegreeDate && (
-                  <div className="mt-8 p-8 bg-blue-50/50 dark:bg-blue-900/10 rounded-[2.5rem] border border-blue-100 dark:border-blue-800/20 flex flex-col md:flex-row gap-8">
-                    <div className="flex-1 space-y-3">
-                       <div className="flex items-center justify-between">
-                         <p className="text-[10px] font-black text-blue-600 dark:text-blue-400 uppercase tracking-widest flex items-center gap-2">
-                           <Calendar size={16} /> Previsão Próximo Grau
+                  <div className="mt-8 space-y-6">
+                    <div className="p-8 bg-blue-50/50 dark:bg-blue-900/10 rounded-[2.5rem] border border-blue-100 dark:border-blue-800/20 flex flex-col md:flex-row gap-8">
+                      <div className="flex-1 space-y-3">
+                         <div className="flex items-center justify-between">
+                           <p className="text-[10px] font-black text-blue-600 dark:text-blue-400 uppercase tracking-widest flex items-center gap-2">
+                             <Calendar size={16} /> Previsão Próximo Grau
+                           </p>
+                           <span className="text-[10px] font-black text-blue-600 dark:text-blue-400">{Math.round(s.timeProgress)}% Tempo</span>
+                         </div>
+                         <p className="text-2xl font-black dark:text-white uppercase tracking-tighter">
+                           {s.nextDegreeDate}
                          </p>
-                         <span className="text-[10px] font-black text-blue-600 dark:text-blue-400">{Math.round(s.timeProgress)}% Tempo</span>
-                       </div>
-                       <p className="text-2xl font-black dark:text-white uppercase tracking-tighter">
-                         {s.nextDegreeDate}
-                       </p>
-                       <div className="w-full h-2 bg-slate-200 dark:bg-slate-800 rounded-full overflow-hidden">
-                         <motion.div 
-                           initial={{ width: 0 }}
-                           animate={{ width: `${s.timeProgress}%` }}
-                           className="h-full bg-blue-600 shadow-[0_0_12px_rgba(37,99,235,0.4)]" 
-                         />
-                       </div>
-                       <p className="text-[9px] font-bold text-slate-400 uppercase tracking-widest">
-                         Permanência mínima: {Math.floor(s.minMonthsRequired / 12)} anos no {s.stripes}º Grau
-                       </p>
-                    </div>
-                    <div className="flex-1 space-y-4">
-                       <p className="text-[10px] font-black text-slate-500 dark:text-slate-400 uppercase tracking-widest flex items-center gap-2">
-                         <ShieldCheck size={16} className="text-slate-400" /> Requisitos de Graduação da Federação
-                       </p>
-                       <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                         {s.degreeRequirements?.map((req: string, idx: number) => (
-                           <div key={idx} className="flex items-center gap-3 p-3 bg-white dark:bg-slate-800 rounded-2xl border border-slate-100 dark:border-slate-700 shadow-sm">
-                             <div className="w-5 h-5 rounded-full bg-blue-50 dark:bg-blue-900/30 flex items-center justify-center text-blue-600">
-                               <Check size={12} />
+                         <div className="w-full h-2 bg-slate-200 dark:bg-slate-800 rounded-full overflow-hidden">
+                           <motion.div 
+                             initial={{ width: 0 }}
+                             animate={{ width: `${s.timeProgress}%` }}
+                             className="h-full bg-blue-600 shadow-[0_0_12px_rgba(37,99,235,0.4)]" 
+                           />
+                         </div>
+                         <p className="text-[9px] font-bold text-slate-400 uppercase tracking-widest">
+                           Permanência mínima: {s.minMonthsRequired / 12} anos no {s.stripes}º Grau
+                         </p>
+                      </div>
+                      <div className="flex-1 space-y-4">
+                         <p className="text-[10px] font-black text-slate-500 dark:text-slate-400 uppercase tracking-widest flex items-center gap-2">
+                           <ShieldCheck size={16} className="text-slate-400" /> Requisitos de Graduação da Federação
+                         </p>
+                         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                           {s.degreeRequirements?.map((req: string, idx: number) => (
+                             <div key={idx} className="flex items-center gap-3 p-3 bg-white dark:bg-slate-800 rounded-2xl border border-slate-100 dark:border-slate-700 shadow-sm">
+                               <div className="w-5 h-5 rounded-full bg-blue-50 dark:bg-blue-900/30 flex items-center justify-center text-blue-600">
+                                 <Check size={12} />
+                               </div>
+                               <span className="text-[10px] font-black text-slate-700 dark:text-slate-300 uppercase leading-none">{req}</span>
                              </div>
-                             <span className="text-[10px] font-black text-slate-700 dark:text-slate-300 uppercase leading-none">{req}</span>
-                           </div>
-                         ))}
+                           ))}
+                         </div>
+                      </div>
+                    </div>
+
+                    <div className="p-8 bg-slate-50 dark:bg-slate-800/50 rounded-[2.5rem] border border-slate-100 dark:border-slate-800">
+                       <h4 className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-6 flex items-center gap-2">
+                         <Trophy size={14} /> Jornada Completa de Mestre (Projeção IBJJF)
+                       </h4>
+                       <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4">
+                          {s.blackBeltTimeline?.map((t: any, idx: number) => (
+                            <div key={idx} className={`p-4 rounded-2xl border-2 transition-all ${idx < s.stripes ? 'bg-indigo-600 text-white border-indigo-400' : 'bg-white dark:bg-slate-900 border-slate-100 dark:border-slate-800 opacity-60'}`}>
+                               <div className="flex items-center justify-between mb-2">
+                                  <span className="text-[9px] font-black uppercase tracking-widest">{t.title}</span>
+                                  {idx < s.stripes && <Check size={12} />}
+                               </div>
+                               <p className="text-lg font-black tracking-tighter">{t.year}</p>
+                               <p className="text-[8px] font-bold opacity-60 uppercase mt-1">{t.date}</p>
+                            </div>
+                          ))}
                        </div>
                     </div>
                   </div>

@@ -1,76 +1,42 @@
-
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState } from 'react';
 import { 
-  BookOpen, 
-  Shield, 
-  Clock, 
-  GraduationCap, 
-  ChevronRight, 
-  Info, 
-  AlertTriangle, 
-  CheckCircle2, 
-  MessageSquare,
-  Send,
-  Bot,
-  User as UserIcon,
-  Loader2,
+  ArrowRight,
+  ChevronRight,
+  BookOpen,
   Scale,
-  X,
+  Shield,
+  Clock,
+  Zap,
+  AlertTriangle,
+  GraduationCap,
   Trophy,
   Users,
-  ArrowRight
+  X,
+  CheckCircle2,
+  HelpCircle,
+  Search,
+  CheckCircle,
+  Copy,
+  DollarSign,
+  UserX,
+  PieChart as PieChartIcon,
+  Tag,
+  Eye,
+  Lock,
+  ShieldCheck,
+  QrCode
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { useTranslation } from '../contexts/LanguageContext';
 import { useProfile } from '../contexts/ProfileContext';
-import { GoogleGenAI } from "@google/genai";
 import { IBJJF_LESSONS } from '../constants/rulesData';
-import { chatWithRulesSensei } from '../services/gemini';
 import ReactMarkdown from 'react-markdown';
 import * as Icons from 'lucide-react';
 
 const IBJJFRules: React.FC = () => {
   const { t, tObj } = useTranslation();
   const { profile } = useProfile();
-  const [chatInput, setChatInput] = useState('');
-  const [messages, setMessages] = useState<{role: 'user' | 'bot', text: string}[]>([]);
-  const [isLoading, setIsLoading] = useState(false);
-  const chatEndRef = useRef<HTMLDivElement>(null);
-
-  const scrollToBottom = () => {
-    chatEndRef.current?.scrollIntoView({ behavior: "smooth" });
-  };
-
-  useEffect(() => {
-    scrollToBottom();
-  }, [messages]);
-
-  const handleSendMessage = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!chatInput.trim() || isLoading) return;
-
-    const userMessage = chatInput.trim();
-    setMessages(prev => [...prev, { role: 'user', text: userMessage }]);
-    setChatInput('');
-    setIsLoading(true);
-
-    try {
-      const response = await chatWithRulesSensei(
-        userMessage, 
-        t('ibjjfRules.aiSystemInstruction')
-      );
-      setMessages(prev => [...prev, { role: 'bot', text: response }]);
-    } catch (error: any) {
-      console.error('AI Error:', error);
-      const errorMsg = error?.message === "AI_KEY_NOT_CONFIGURED" 
-        ? t('ibjjfRules.aiKeyError') 
-        : t('ibjjfRules.errorAI');
-      setMessages(prev => [...prev, { role: 'bot', text: errorMsg }]);
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
+  
   const adultRules = tObj('ibjjfRules.adultRules') || [];
   const prohibitedTechniques = tObj('ibjjfRules.prohibitions') || [];
   const ruleCases = tObj('ibjjfRules.cases') || [];
@@ -81,7 +47,7 @@ const IBJJFRules: React.FC = () => {
   const simulados = tObj('ibjjfRules.simulados') || [];
 
   const handleAnswer = (idx: number) => {
-    const currentSim = simulados.find(s => s.id === activeSimulado);
+    const currentSim = simulados.find((s: any) => s.id === activeSimulado);
     if (idx === currentSim?.questions[currentQuestion].correct) {
       setScore(prev => prev + 1);
     }
@@ -113,7 +79,7 @@ const IBJJFRules: React.FC = () => {
             <div className="p-8 bg-blue-600 text-white flex justify-between items-center">
               <div>
                 <p className="text-[10px] font-black uppercase tracking-[0.2em] opacity-70">{t('ibjjfRules.simulatedPrep')}</p>
-                <h3 className="text-2xl font-black uppercase tracking-tighter">{simulados.find(s => s.id === activeSimulado)?.title}</h3>
+                <h3 className="text-2xl font-black uppercase tracking-tighter">{simulados.find((s: any) => s.id === activeSimulado)?.title}</h3>
               </div>
               <button onClick={() => setActiveSimulado(null)} className="p-2 hover:bg-white/10 rounded-xl transition-colors">
                 <X size={24} />
@@ -125,22 +91,22 @@ const IBJJFRules: React.FC = () => {
                 <div className="space-y-8">
                   <div className="flex justify-between items-end">
                     <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">
-                      {t('ibjjfRules.questionOf', { current: currentQuestion + 1, total: simulados.find(s => s.id === activeSimulado)?.questions.length })}
+                      {t('ibjjfRules.questionOf', { current: currentQuestion + 1, total: simulados.find((s: any) => s.id === activeSimulado)?.questions.length })}
                     </span>
                     <div className="h-1 flex-1 mx-4 bg-slate-100 dark:bg-slate-800 rounded-full overflow-hidden">
                       <div 
                         className="h-full bg-blue-600 transition-all duration-500" 
-                        style={{ width: `${((currentQuestion + 1) / (simulados.find(s => s.id === activeSimulado)?.questions.length || 1)) * 100}%` }}
+                        style={{ width: `${((currentQuestion + 1) / (simulados.find((s: any) => s.id === activeSimulado)?.questions.length || 1)) * 100}%` }}
                       />
                     </div>
                   </div>
                   
                   <h4 className="text-xl font-black text-slate-900 dark:text-white leading-tight">
-                    {simulados.find(s => s.id === activeSimulado)?.questions[currentQuestion].q}
+                    {simulados.find((s: any) => s.id === activeSimulado)?.questions[currentQuestion].q}
                   </h4>
 
                   <div className="space-y-3">
-                    {simulados.find(s => s.id === activeSimulado)?.questions[currentQuestion].options.map((opt, idx) => (
+                    {simulados.find((s: any) => s.id === activeSimulado)?.questions[currentQuestion].options.map((opt: string, idx: number) => (
                       <button 
                         key={idx}
                         onClick={() => handleAnswer(idx)}
@@ -160,12 +126,12 @@ const IBJJFRules: React.FC = () => {
                   <div>
                     <h4 className="text-3xl font-black text-slate-900 dark:text-white uppercase tracking-tighter">{t('ibjjfRules.finalResult')}</h4>
                     <p className="text-slate-500 font-medium mt-2">
-                      {t('ibjjfRules.correctCount', { score, total: simulados.find(s => s.id === activeSimulado)?.questions.length })}
+                      {t('ibjjfRules.correctCount', { score, total: simulados.find((s: any) => s.id === activeSimulado)?.questions.length })}
                     </p>
                   </div>
                   <div className="flex gap-4">
                     <button 
-                      onClick={() => startSimulado(activeSimulado)}
+                      onClick={() => activeSimulado && startSimulado(activeSimulado)}
                       className="flex-1 py-4 bg-slate-100 dark:bg-slate-800 text-slate-900 dark:text-white rounded-2xl font-black uppercase text-[10px] tracking-widest hover:bg-slate-200 transition-all"
                     >
                       {t('ibjjfRules.redo')}
@@ -262,54 +228,54 @@ const IBJJFRules: React.FC = () => {
       {/* Rules Academy Hub */}
       <div className="space-y-10 py-6 lg:py-10">
         <div className="flex flex-col md:flex-row md:items-end justify-between gap-6">
-              <div className="space-y-3">
-                <div className="flex items-center gap-3">
-                  <h2 className="text-3xl lg:text-5xl font-black text-slate-900 dark:text-white uppercase tracking-tighter">{t('ibjjfRules.rulesAcademyTitle')}</h2>
-                  <span className="px-3 py-1 bg-green-500/10 text-green-500 rounded-full border border-green-500/20 text-[8px] font-black tracking-widest uppercase">{t('ibjjfRules.masteryCourse')}</span>
-                </div>
-                <p className="text-slate-500 font-medium italic text-base lg:text-lg">{t('ibjjfRules.rulesAcademySmallDesc')}</p>
-              </div>
+          <div className="space-y-3">
+            <div className="flex items-center gap-3">
+              <h2 className="text-3xl lg:text-5xl font-black text-slate-900 dark:text-white uppercase tracking-tighter">{t('ibjjfRules.rulesAcademyTitle')}</h2>
+              <span className="px-3 py-1 bg-green-500/10 text-green-500 rounded-full border border-green-500/20 text-[8px] font-black tracking-widest uppercase">{t('ibjjfRules.masteryCourse')}</span>
             </div>
+            <p className="text-slate-500 font-medium italic text-base lg:text-lg">{t('ibjjfRules.rulesAcademySmallDesc')}</p>
+          </div>
+        </div>
 
-            <motion.div 
-              initial={{ opacity: 0, y: 20 }}
-              whileInView={{ opacity: 1, y: 0 }}
-              viewport={{ once: true }}
-              className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 lg:gap-6"
-            >
-              {IBJJF_LESSONS.map((lesson, idx) => {
-                const IconComponent = (Icons as any)[lesson.icon] || Icons.BookOpen;
-                const isFeatured = idx === 0;
-                return (
-                  <motion.div 
-                    key={lesson.id}
-                    initial={{ opacity: 0, scale: 0.95 }}
-                    whileInView={{ opacity: 1, scale: 1 }}
-                    viewport={{ once: true }}
-                    transition={{ delay: idx * 0.1 }}
-                    className={`${isFeatured ? 'md:col-span-2 md:row-span-2' : ''} bg-white dark:bg-zinc-900 rounded-3xl lg:rounded-[2.5rem] border border-slate-200 dark:border-zinc-800 p-6 lg:p-8 flex flex-col justify-between hover:border-blue-600 transition-all group relative overflow-hidden shadow-sm hover:shadow-2xl`}
-                  >
-                    <div className="relative z-10 space-y-6">
-                      <div className="flex items-center justify-between">
-                        <div className={`${isFeatured ? 'w-14 h-14 lg:w-16 lg:h-16 bg-blue-600 text-white' : 'w-10 h-10 lg:w-12 lg:h-12 bg-blue-50 dark:bg-blue-900/20 text-blue-600'} rounded-2xl flex items-center justify-center transition-transform group-hover:scale-110 shadow-lg`}>
-                          <IconComponent size={isFeatured ? 32 : 24} />
-                        </div>
-                        <span className="text-[8px] font-black text-slate-400 uppercase tracking-widest">NIV {idx + 1}</span>
-                      </div>
-                      <div className="space-y-4">
-                        <div className="flex items-center gap-2">
-                          <span className="px-2 py-0.5 bg-blue-600/10 text-blue-600 text-[8px] font-black uppercase tracking-widest rounded-md border border-blue-600/10">
-                            {t(`portal.categories.${lesson.category.toLowerCase()}`)}
-                          </span>
-                        </div>
-                        <h3 className={`${isFeatured ? 'text-2xl lg:text-3xl' : 'text-lg lg:text-xl'} font-black text-slate-900 dark:text-white uppercase tracking-tight leading-none`}>
-                          {lesson.title}
-                        </h3>
-                        <p className={`${isFeatured ? 'text-sm' : 'text-[11px]'} text-slate-500 dark:text-slate-400 font-medium leading-relaxed italic`}>
-                          {lesson.content}
-                        </p>
-                      </div>
+        <motion.div 
+          initial={{ opacity: 0, y: 20 }}
+          whileInView={{ opacity: 1, y: 0 }}
+          viewport={{ once: true }}
+          className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 lg:gap-6"
+        >
+          {IBJJF_LESSONS.map((lesson, idx) => {
+            const IconComponent = (Icons as any)[lesson.icon] || Icons.BookOpen;
+            const isFeatured = idx === 0;
+            return (
+              <motion.div 
+                key={lesson.id}
+                initial={{ opacity: 0, scale: 0.95 }}
+                whileInView={{ opacity: 1, scale: 1 }}
+                viewport={{ once: true }}
+                transition={{ delay: idx * 0.1 }}
+                className={`${isFeatured ? 'md:col-span-2 md:row-span-2' : ''} bg-white dark:bg-zinc-900 rounded-3xl lg:rounded-[2.5rem] border border-slate-200 dark:border-zinc-800 p-6 lg:p-8 flex flex-col justify-between hover:border-blue-600 transition-all group relative overflow-hidden shadow-sm hover:shadow-2xl`}
+              >
+                <div className="relative z-10 space-y-6">
+                  <div className="flex items-center justify-between">
+                    <div className={`${isFeatured ? 'w-14 h-14 lg:w-16 lg:h-16 bg-blue-600 text-white' : 'w-10 h-10 lg:w-12 lg:h-12 bg-blue-50 dark:bg-blue-900/20 text-blue-600'} rounded-2xl flex items-center justify-center transition-transform group-hover:scale-110 shadow-lg`}>
+                      <IconComponent size={isFeatured ? 32 : 24} />
                     </div>
+                    <span className="text-[8px] font-black text-slate-400 uppercase tracking-widest">NIV {idx + 1}</span>
+                  </div>
+                  <div className="space-y-4">
+                    <div className="flex items-center gap-2">
+                      <span className="px-2 py-0.5 bg-blue-600/10 text-blue-600 text-[8px] font-black uppercase tracking-widest rounded-md border border-blue-600/10">
+                        {t(`portal.categories.${lesson.category.toLowerCase()}`)}
+                      </span>
+                    </div>
+                    <h3 className={`${isFeatured ? 'text-2xl lg:text-3xl' : 'text-lg lg:text-xl'} font-black text-slate-900 dark:text-white uppercase tracking-tight leading-none`}>
+                      {lesson.title}
+                    </h3>
+                    <p className={`${isFeatured ? 'text-sm' : 'text-[11px]'} text-slate-500 dark:text-slate-400 font-medium leading-relaxed italic`}>
+                      {lesson.content}
+                    </p>
+                  </div>
+                </div>
                 <div className="relative z-10 pt-8 mt-auto group-hover:translate-x-2 transition-transform">
                   <div className="w-10 h-10 bg-slate-50 dark:bg-zinc-800 rounded-full flex items-center justify-center text-slate-400 group-hover:text-blue-600 group-hover:bg-blue-50 dark:group-hover:bg-blue-900/20 border border-slate-100 dark:border-zinc-700">
                     <ArrowRight size={18} />
@@ -331,11 +297,11 @@ const IBJJFRules: React.FC = () => {
           <h2 className="text-2xl lg:text-3xl font-black text-slate-900 dark:text-white uppercase tracking-tighter">{t('ibjjfRules.tacticalScenarios')}</h2>
         </div>
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {ruleCases.map((c, idx) => (
+          {ruleCases.map((c: any, idx: number) => (
             <div key={idx} className="bg-white dark:bg-slate-900 p-6 lg:p-8 rounded-3xl lg:rounded-[2.5rem] border border-slate-200 dark:border-slate-800 shadow-sm hover:shadow-xl transition-all group border-b-4 border-b-blue-600">
               <div className="flex items-center justify-between mb-6">
                 <div className="w-10 h-10 lg:w-12 lg:h-12 bg-blue-50 dark:bg-blue-900/20 rounded-2xl flex items-center justify-center text-blue-600 group-hover:scale-110 transition-transform">
-                  <Icons.Zap size={24} />
+                  <Zap size={24} />
                 </div>
                 <div className="flex items-center gap-2">
                   <AlertTriangle size={14} className="text-red-500" />
@@ -356,8 +322,8 @@ const IBJJFRules: React.FC = () => {
         </div>
       </div>
 
-      <div className="grid grid-cols-1 xl:grid-cols-3 gap-10">
-        <div className="xl:col-span-2 space-y-12">
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-10">
+        <div className="space-y-12 lg:col-span-2">
           <div className="space-y-8">
             <div className="flex items-center gap-4">
               <div className="w-12 h-12 lg:w-14 lg:h-14 bg-red-600 rounded-2xl flex items-center justify-center text-white shadow-xl shadow-red-600/20">
@@ -370,7 +336,7 @@ const IBJJFRules: React.FC = () => {
             </div>
             
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6 lg:gap-8">
-              {prohibitedTechniques.map((cat) => (
+              {prohibitedTechniques.map((cat: any) => (
                 <div key={cat.category} className="bg-white dark:bg-slate-900 rounded-3xl lg:rounded-[3rem] border border-slate-200 dark:border-slate-800 shadow-xl overflow-hidden group">
                   <div className="aspect-[16/10] relative overflow-hidden">
                     <img 
@@ -387,7 +353,7 @@ const IBJJFRules: React.FC = () => {
                   </div>
                   <div className="p-8 lg:p-10">
                     <ul className="space-y-4">
-                      {cat.items.map(item => (
+                      {cat.items.map((item: string) => (
                         <li key={item} className="flex items-start gap-4 text-xs font-bold text-slate-600 dark:text-slate-400 group/item">
                           <div className="mt-0.5 shrink-0 w-5 h-5 rounded-full bg-red-50 dark:bg-red-900/20 flex items-center justify-center text-red-500 border border-red-100 dark:border-red-900/30 group-hover/item:scale-110 transition-transform">
                             <X size={12} />
@@ -424,15 +390,15 @@ const IBJJFRules: React.FC = () => {
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-50 dark:divide-zinc-800">
-                  {adultRules.map((rule) => (
+                  {adultRules.map((rule: any) => (
                     <tr key={rule.belt} className="group hover:bg-slate-50/50 dark:hover:bg-zinc-800/20 transition-colors">
                       <td className="px-6 lg:px-10 py-6 lg:py-8">
                         <div className="flex items-center gap-4">
                           <div className={`w-12 h-4 rounded-sm shadow-sm border ${
-                            rule.belt === 'White' ? 'bg-white border-slate-200' : 
-                            rule.belt === 'Blue' ? 'bg-blue-600 border-blue-700' : 
-                            rule.belt === 'Purple' ? 'bg-purple-700 border-purple-800' : 
-                            rule.belt === 'Brown' ? 'bg-amber-900 border-amber-950' : 
+                            rule.belt === 'White' || rule.belt === 'Branca' ? 'bg-white border-slate-200' : 
+                            rule.belt === 'Blue' || rule.belt === 'Azul' ? 'bg-blue-600 border-blue-700' : 
+                            rule.belt === 'Purple' || rule.belt === 'Roxa' ? 'bg-purple-700 border-purple-800' : 
+                            rule.belt === 'Brown' || rule.belt === 'Marrom' ? 'bg-amber-900 border-amber-950' : 
                             'bg-slate-900 border-slate-800'
                           }`} />
                           <h3 className="font-black text-slate-900 dark:text-white uppercase tracking-tight text-base lg:text-lg">{t(`belts.${rule.belt}`)}</h3>
@@ -466,7 +432,7 @@ const IBJJFRules: React.FC = () => {
                 <h3 className="text-3xl lg:text-4xl font-black uppercase tracking-tighter leading-none">{t('ibjjfRules.examPrep')}</h3>
                 <p className="text-slate-400 font-medium leading-relaxed text-sm lg:text-base max-w-xl">{t('ibjjfRules.examDesc')}</p>
                 <div className="pt-4 flex flex-wrap gap-4 justify-center lg:justify-start">
-                  {simulados.map((simu: any, idx: number) => (
+                  {simulados.map((simu: any) => (
                     <button 
                       key={simu.id}
                       onClick={() => startSimulado(simu.id)}
@@ -483,7 +449,7 @@ const IBJJFRules: React.FC = () => {
         </div>
 
         {/* Kids System Section */}
-        <div className="bg-white dark:bg-zinc-900 rounded-3xl lg:rounded-[3rem] border border-slate-200 dark:border-zinc-800 shadow-xl overflow-hidden mt-8 lg:mt-12">
+        <div className="bg-white dark:bg-zinc-900 rounded-3xl lg:rounded-[3rem] border border-slate-200 dark:border-zinc-800 shadow-xl overflow-hidden mt-8 lg:mt-12 col-span-1 lg:col-span-2">
           <div className="p-8 lg:p-10 border-b border-slate-100 dark:border-zinc-800 bg-slate-50/50 dark:bg-zinc-800/20 flex flex-col md:flex-row md:items-center justify-between gap-6">
             <div className="flex items-center gap-5">
               <div className="w-14 h-14 lg:w-16 lg:h-16 bg-orange-500 rounded-3xl flex items-center justify-center text-white shadow-2xl">
@@ -533,112 +499,6 @@ const IBJJFRules: React.FC = () => {
                 ))}
               </tbody>
             </table>
-          </div>
-        </div>
-
-        <div className="relative">
-          <div className="sticky top-24 space-y-6">
-            <div className="bg-white dark:bg-zinc-900 rounded-[2.5rem] sm:rounded-[3.5rem] border border-slate-200 dark:border-zinc-800 shadow-2xl flex flex-col h-[600px] lg:h-[750px] overflow-hidden">
-              <div className="p-6 lg:p-10 border-b border-slate-100 dark:border-zinc-800 bg-slate-50/50 dark:bg-zinc-800/30">
-                <div className="flex items-center gap-5">
-                  <div className="relative">
-                    <div className="w-14 h-14 lg:w-16 lg:h-16 bg-blue-600 rounded-2xl flex items-center justify-center text-white shadow-xl shadow-blue-600/30">
-                      <Bot size={32} />
-                    </div>
-                    <div className="absolute -bottom-1 -right-1 w-5 h-5 bg-green-500 rounded-full border-4 border-white dark:border-zinc-900" />
-                  </div>
-                  <div>
-                    <h3 className="text-lg lg:text-xl font-black text-slate-900 dark:text-white uppercase tracking-tight">{t('ibjjfRules.digitalSensei')}</h3>
-                    <div className="flex items-center gap-2 mt-1">
-                       <span className="px-2 py-0.5 bg-green-500/10 text-green-500 text-[8px] font-black uppercase tracking-widest rounded border border-green-500/10">{t('ibjjfRules.tacticalOnline')}</span>
-                    </div>
-                  </div>
-                </div>
-              </div>
-
-              <div className="flex-1 overflow-y-auto p-6 lg:p-10 space-y-8 scrollbar-hide">
-                <AnimatePresence initial={false}>
-                  {messages.length === 0 && (
-                    <motion.div 
-                      key="empty-state"
-                      initial={{ opacity: 0, scale: 0.9 }}
-                      animate={{ opacity: 1, scale: 1 }}
-                      className="text-center space-y-6 py-12"
-                    >
-                      <div className="w-20 h-20 bg-slate-50 dark:bg-zinc-800/50 rounded-3xl flex items-center justify-center mx-auto text-slate-400 border border-slate-100 dark:border-zinc-800">
-                        <MessageSquare size={40} />
-                      </div>
-                    <div className="space-y-2">
-                       <p className="text-[10px] text-slate-400 font-bold leading-relaxed px-10 italic">
-                         {t('ibjjfRules.chatEmpty')}
-                       </p>
-                       <p className="text-[9px] text-slate-400/50 font-black leading-relaxed px-12 mt-4 uppercase tracking-[0.2em]">
-                         {t('ibjjfRules.needPhysicalCopy')}
-                       </p>
-                    </div>
-                  </motion.div>
-                )}
-                {messages.map((msg, idx) => (
-                  <motion.div 
-                    key={idx} 
-                    initial={{ opacity: 0, x: msg.role === 'user' ? 20 : -20 }}
-                    animate={{ opacity: 1, x: 0 }}
-                    className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}
-                  >
-                    <div className={`max-w-[90%] p-5 rounded-3xl text-sm font-medium leading-relaxed ${
-                      msg.role === 'user' 
-                      ? 'bg-blue-600 text-white rounded-tr-none shadow-xl shadow-blue-600/20' 
-                      : 'bg-slate-50 dark:bg-zinc-800 text-slate-800 dark:text-slate-200 rounded-tl-none border border-slate-100 dark:border-zinc-700 shadow-sm'
-                    }`}>
-                      <ReactMarkdown>{msg.text}</ReactMarkdown>
-                    </div>
-                  </motion.div>
-                ))}
-                {isLoading && (
-                  <motion.div 
-                    key="loading"
-                    initial={{ opacity: 0 }}
-                    animate={{ opacity: 1 }}
-                    className="flex justify-start"
-                  >
-                    <div className="bg-slate-50 dark:bg-zinc-800 p-5 rounded-3xl rounded-tl-none flex items-center gap-3">
-                      <Loader2 size={16} className="animate-spin text-blue-600" />
-                      <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">{t('ibjjfRules.masterThinking')}</span>
-                    </div>
-                  </motion.div>
-                )}
-              </AnimatePresence>
-              <div ref={chatEndRef} />
-            </div>
-
-            <form onSubmit={handleSendMessage} className="p-8 bg-slate-50 dark:bg-zinc-800/30 border-t border-slate-100 dark:border-zinc-800">
-              <div className="relative group/input">
-                <input 
-                  type="text" 
-                  placeholder={t('ibjjfRules.chatPlaceholder')}
-                  className="w-full pl-6 pr-16 py-5 bg-white dark:bg-zinc-900 border border-slate-200 dark:border-zinc-700 rounded-2xl outline-none focus:ring-2 focus:ring-blue-600 transition-all font-bold text-sm shadow-inner"
-                  value={chatInput}
-                  onChange={e => setChatInput(e.target.value)}
-                />
-                <button 
-                  type="submit"
-                  disabled={isLoading}
-                  className="absolute right-3 top-1/2 -translate-y-1/2 w-12 h-12 bg-blue-600 text-white rounded-xl flex items-center justify-center hover:bg-blue-700 transition-all shadow-xl shadow-blue-600/30 disabled:opacity-50 active:scale-95"
-                >
-                  <Send size={20} />
-                </button>
-              </div>
-            </form>
-          </div>
-          
-          <div className="bg-blue-600 rounded-3xl p-8 text-white shadow-xl flex items-center gap-5 group">
-            <div className="w-12 h-12 bg-white/20 rounded-xl flex items-center justify-center shrink-0 group-hover:rotate-12 transition-transform">
-              <Icons.HelpCircle size={24} />
-            </div>
-            <p className="text-[11px] font-black uppercase tracking-widest leading-relaxed">
-              {t('ibjjfRules.needPhysicalCopy')}
-            </p>
-          </div>
           </div>
         </div>
       </div>

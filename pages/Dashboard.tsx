@@ -6,7 +6,7 @@ import {
   Users, TrendingUp, AlertCircle, Calendar, CreditCard,
   Timer, UserPlus, CheckCircle2, Trophy as TrophyIcon, Plus,
   ArrowUpRight, ArrowDownRight, BarChart3, ArrowRight, Baby,
-  Edit2, X, Trash2, Clock, BookOpen, QrCode, Scan, Zap, Cake, Store, Activity, History, Shield, Instagram, ChevronRight, Monitor, RefreshCw
+  Edit2, X, Trash2, Clock, BookOpen, QrCode, Scan, Zap, Cake, Store, Activity, History, Shield, Instagram, ChevronRight, Monitor, RefreshCw, Settings
 } from 'lucide-react';
 import { useTranslation } from '../contexts/LanguageContext';
 import { useProfile } from '../contexts/ProfileContext';
@@ -201,15 +201,15 @@ const Dashboard: React.FC = () => {
         </button>
 
         <button 
-          onClick={() => navigate('/assistant')}
+          onClick={() => navigate('/settings')}
           className="flex items-center gap-4 p-5 bg-white dark:bg-slate-900 rounded-3xl border border-slate-200 dark:border-slate-800 shadow-sm hover:shadow-xl hover:-translate-y-1 transition-all group"
         >
-          <div className="w-12 h-12 bg-amber-50 dark:bg-amber-900/20 rounded-[1.25rem] flex items-center justify-center text-amber-600 group-hover:scale-110 transition-transform shadow-inner">
-            <Zap size={24} />
+          <div className="w-12 h-12 bg-slate-50 dark:bg-slate-800/50 rounded-[1.25rem] flex items-center justify-center text-slate-600 group-hover:scale-110 transition-transform shadow-inner">
+            <Settings size={24} />
           </div>
           <div className="flex flex-col text-left">
-            <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest leading-none mb-1">{t('dashboard.ia')}</span>
-            <span className="text-sm font-black text-slate-900 dark:text-white uppercase tracking-tighter leading-none">{t('common.assistant')}</span>
+            <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest leading-none mb-1">{t('common.settings')}</span>
+            <span className="text-sm font-black text-slate-900 dark:text-white uppercase tracking-tighter leading-none">{t('settings.title')}</span>
           </div>
         </button>
       </div>
@@ -226,7 +226,6 @@ const Dashboard: React.FC = () => {
           <div className="flex -space-x-3">
             <div className="w-12 h-12 rounded-2xl bg-blue-600 flex items-center justify-center text-[10px] font-black text-white ring-4 ring-white dark:ring-slate-900 shadow-2xl rotate-3 hover:translate-y-[-4px] transition-all cursor-default">DB</div>
             <div className="w-12 h-12 rounded-2xl bg-amber-500 flex items-center justify-center text-[10px] font-black text-white ring-4 ring-white dark:ring-slate-900 shadow-2xl -rotate-3 hover:translate-y-[-4px] transition-all cursor-default">BC</div>
-            <div className="w-12 h-12 rounded-2xl bg-emerald-500 flex items-center justify-center text-[10px] font-black text-white ring-4 ring-white dark:ring-slate-900 shadow-2xl rotate-2 hover:translate-y-[-4px] transition-all cursor-default">AI</div>
           </div>
           
           <div className="space-y-3">
@@ -241,10 +240,6 @@ const Dashboard: React.FC = () => {
               <span className="flex items-center gap-2 text-[11px] font-black text-amber-600 dark:text-amber-400 uppercase tracking-tighter">
                 <Shield size={14} className="animate-bounce" style={{ animationDuration: '3s' }} />
                 {t('dashboard.status.blockchainOk')}
-              </span>
-              <span className="flex items-center gap-2 text-[11px] font-black text-emerald-600 dark:text-emerald-400 uppercase tracking-tighter">
-                <Zap size={14} className="animate-pulse" />
-                {t('dashboard.status.aiGuardActive')}
               </span>
             </div>
           </div>

@@ -86,40 +86,81 @@ const SystemAudit: React.FC = () => {
     return groups;
   }, [filteredLogs]);
 
-  const userIntelligence = useMemo(() => {
+  const systemUsers = useMemo(() => {
     const users: Record<string, { 
       email: string, 
+      name?: string,
+      role: 'admin' | 'student',
       lastAction: number, 
       totalActions: number, 
       devices: Set<string>,
       categories: Record<string, number>,
-      riskLevel: 'Low' | 'Medium' | 'High'
+      riskLevel: 'Low' | 'Medium' | 'High',
+      status: 'Active' | 'Inactive' | 'Pending' | 'Overdue'
     }> = {};
 
-    logs.forEach(log => {
-      if (!users[log.userEmail]) {
-        users[log.userEmail] = {
-          email: log.userEmail,
+    // Initial base from students
+    students.forEach(s => {
+      if (s.email) {
+        users[s.email.toLowerCase()] = {
+          email: s.email.toLowerCase(),
+          name: s.name,
+          role: 'student',
           lastAction: 0,
           totalActions: 0,
           devices: new Set(),
           categories: {},
-          riskLevel: 'Low'
+          riskLevel: 'Low',
+          status: s.status as any || 'Active'
         };
       }
-      const u = users[log.userEmail];
+    });
+
+    // Add Master Admins
+    MASTER_ADMINS.forEach(email => {
+      users[email.toLowerCase()] = {
+        email: email.toLowerCase(),
+        name: 'Master Admin',
+        role: 'admin',
+        lastAction: 0,
+        totalActions: 0,
+        devices: new Set(),
+        categories: {},
+        riskLevel: 'Low',
+        status: 'Active'
+      };
+    });
+
+    // Merge in logs
+    logs.forEach(log => {
+      const email = (log.userEmail || '').toLowerCase();
+      if (!email) return;
+
+      if (!users[email]) {
+        users[email] = {
+          email,
+          role: 'student',
+          lastAction: 0,
+          totalActions: 0,
+          devices: new Set(),
+          categories: {},
+          riskLevel: 'Low',
+          status: 'Active'
+        };
+      }
+      const u = users[email];
       u.totalActions++;
       u.lastAction = Math.max(u.lastAction, log.timestamp);
-      u.devices.add(log.deviceInfo);
+      if (log.deviceInfo) u.devices.add(log.deviceInfo);
       u.categories[log.category] = (u.categories[log.category] || 0) + 1;
       
-      // Basic risk heuristic
-      if (u.categories['Security'] > 10 || u.devices.size > 3) u.riskLevel = 'High';
-      else if (u.categories['Security'] > 2 || u.devices.size > 1) u.riskLevel = 'Medium';
+      // Sophisticated risk heuristic
+      if (u.categories['Security'] > 15 || u.devices.size > 5) u.riskLevel = 'High';
+      else if (u.categories['Security'] > 5 || u.devices.size > 2) u.riskLevel = 'Medium';
     });
 
     return Object.values(users).sort((a, b) => b.lastAction - a.lastAction);
-  }, [logs]);
+  }, [logs, students]);
 
   const stats = useMemo(() => {
     const today = new Date().setHours(0, 0, 0, 0);
@@ -136,10 +177,10 @@ const SystemAudit: React.FC = () => {
       totalStudents: students.length,
       ledgerIntegrity: verifyLedgerIntegrity(),
       auditIntegrity: verifyAuditIntegrity(),
-      uniqueUsers: userIntelligence.length,
+      uniqueUsers: systemUsers.length,
       categoryUsage
     };
-  }, [logs, students, verifyLedgerIntegrity, userIntelligence]);
+  }, [logs, students, verifyLedgerIntegrity, systemUsers]);
 
   const onlineUsers = useMemo(() => {
     const fiveMinutesAgo = Date.now() - (5 * 60 * 1000);
@@ -380,6 +421,7 @@ const SystemAudit: React.FC = () => {
                 <thead className="bg-slate-50 dark:bg-slate-900/80">
                   <tr>
                     <th className="px-8 py-6 text-[10px] font-black text-slate-400 uppercase tracking-[0.2em]">{t('audit.user')}</th>
+                    <th className="px-8 py-6 text-[10px] font-black text-slate-400 uppercase tracking-[0.2em]">Status de Conta</th>
                     <th className="px-8 py-6 text-[10px] font-black text-slate-400 uppercase tracking-[0.2em]">Último Acesso</th>
                     <th className="px-8 py-6 text-[10px] font-black text-slate-400 uppercase tracking-[0.2em]">Volume</th>
                     <th className="px-8 py-6 text-[10px] font-black text-slate-400 uppercase tracking-[0.2em]">Dispositivos</th>
@@ -387,24 +429,39 @@ const SystemAudit: React.FC = () => {
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-50 dark:divide-slate-800">
-                  {userIntelligence
-                    .filter(u => u.email.toLowerCase().includes(searchTerm.toLowerCase()))
+                  {systemUsers
+                    .filter(u => u.email.toLowerCase().includes(searchTerm.toLowerCase()) || (u.name && u.name.toLowerCase().includes(searchTerm.toLowerCase())))
                     .map((user, i) => (
                       <tr key={i} className="hover:bg-slate-50 dark:hover:bg-slate-800/30 transition-all group">
                         <td className="px-8 py-6">
                            <div className="flex items-center gap-4">
-                             <div className="w-10 h-10 bg-blue-600/10 rounded-xl flex items-center justify-center text-blue-600 font-black">
-                               {user.email[0].toUpperCase()}
+                             <div className={`w-10 h-10 rounded-xl flex items-center justify-center font-black ${user.role === 'admin' ? 'bg-indigo-600 text-white' : 'bg-blue-600/10 text-blue-600'}`}>
+                                {user.name ? user.name[0].toUpperCase() : user.email[0].toUpperCase()}
                              </div>
                              <div>
-                               <p className="text-sm font-black dark:text-white uppercase tracking-tight">{user.email}</p>
-                               <span className="text-[9px] font-bold text-slate-400 uppercase">SYS ID: {Math.random().toString(36).substr(2, 8).toUpperCase()}</span>
+                                <p className="text-sm font-black dark:text-white uppercase tracking-tight">{user.name || 'Sem Nome'}</p>
+                                <p className="text-[10px] font-bold text-slate-400 uppercase tracking-tighter">{user.email}</p>
                              </div>
                            </div>
                         </td>
                         <td className="px-8 py-6">
-                           <p className="text-xs font-bold dark:text-white">{new Date(user.lastAction).toLocaleString()}</p>
-                           <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest mt-1">Conexão Estável</p>
+                           <div className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[8px] font-black uppercase tracking-widest ${
+                             user.status === 'Active' ? 'bg-green-500/10 text-green-500' :
+                             user.status === 'Overdue' ? 'bg-red-500/10 text-red-500' :
+                             'bg-slate-500/10 text-slate-500'
+                           }`}>
+                             {user.status || 'Active'}
+                           </div>
+                        </td>
+                        <td className="px-8 py-6">
+                           {user.lastAction > 0 ? (
+                             <>
+                               <p className="text-xs font-bold dark:text-white">{new Date(user.lastAction).toLocaleString()}</p>
+                               <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest mt-1">Conexão Estável</p>
+                             </>
+                           ) : (
+                             <p className="text-xs font-bold text-slate-300 uppercase italic">Nunca acessou</p>
+                           )}
                         </td>
                         <td className="px-8 py-6">
                            <div className="flex items-center gap-2">

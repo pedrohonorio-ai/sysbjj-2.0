@@ -29,7 +29,6 @@ export const NAVIGATION_ITEMS = [
   { id: 'promotions', label: 'Graduação', icon: <Trophy size={20} /> },
   { id: 'ibjjf-rules', label: 'Regras IBJJF', icon: <Shield size={20} /> },
   { id: 'timer', label: 'Cronômetro', icon: <Timer size={20} /> },
-  { id: 'assistant', label: 'Coach IA', icon: <MessageSquare size={20} /> },
   { id: 'audit', label: 'Auditoria', icon: <BarChart3 size={20} /> },
 ];
 

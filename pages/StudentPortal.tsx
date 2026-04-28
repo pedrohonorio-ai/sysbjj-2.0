@@ -18,7 +18,6 @@ import { BELT_COLORS, IBJJF_BELT_RULES } from '../constants';
 import { IBJJF_LESSONS, RuleLesson, RuleScenario } from '../constants/rulesData';
 import ReactMarkdown from 'react-markdown';
 import * as Icons from 'lucide-react';
-import { GoogleGenAI } from "@google/genai";
 
 const StudentPortal: React.FC = () => {
   const { code } = useParams();
@@ -139,8 +138,6 @@ const StudentPortal: React.FC = () => {
   const [currentScenarioIdx, setCurrentScenarioIdx] = useState(0);
   const [selectedOption, setSelectedOption] = useState<number | null>(null);
   const [quizState, setQuizState] = useState<'idle' | 'answering' | 'correct' | 'wrong'>('idle');
-  const [aiTip, setAiTip] = useState<string | null>(null);
-  const [loadingAi, setLoadingAi] = useState(false);
 
   const currentLesson = useMemo(() => 
     IBJJF_LESSONS.find(l => l.id === currentRuleLessonId), 
@@ -149,34 +146,6 @@ const StudentPortal: React.FC = () => {
   const currentScenario = useMemo(() => 
     currentLesson?.scenarios?.[currentScenarioIdx],
   [currentLesson, currentScenarioIdx]);
-
-  const getAISenseiTip = async (prompt?: string) => {
-    if (!prompt) return;
-    setLoadingAi(true);
-    try {
-      const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
-      const response = await ai.models.generateContent({
-        model: "gemini-3-flash-preview",
-        contents: prompt,
-        config: {
-          systemInstruction: t('ibjjfRules.aiSystemInstruction')
-        }
-      });
-      setAiTip(response.text);
-    } catch (error) {
-      console.error("Erro AI Sensei:", error);
-    } finally {
-      setLoadingAi(false);
-    }
-  };
-
-  useEffect(() => {
-    if (currentRuleLessonId && currentLesson?.aiSenseiPrompt) {
-      getAISenseiTip(currentLesson.aiSenseiPrompt);
-    } else {
-      setAiTip(null);
-    }
-  }, [currentRuleLessonId, currentLesson]);
 
   const handleStartQuiz = () => {
     setQuizMode(true);
@@ -235,7 +204,6 @@ const StudentPortal: React.FC = () => {
     setScenarioMode(false);
     setQuizState('idle');
     setSelectedOption(null);
-    setAiTip(null);
   };
 
   const monthlyBirthdays = useMemo(() => {
@@ -1021,24 +989,6 @@ const StudentPortal: React.FC = () => {
                       <h2 className="text-3xl font-black text-slate-900 dark:text-white uppercase tracking-tighter leading-none">
                         {currentLesson?.title}
                       </h2>
-
-                      {aiTip && (
-                        <motion.div 
-                          initial={{ opacity: 0, y: 10 }}
-                          animate={{ opacity: 1, y: 0 }}
-                          className="p-5 bg-blue-600/5 dark:bg-blue-600/10 rounded-3xl border border-blue-600/10 flex gap-4"
-                        >
-                           <div className="w-10 h-10 bg-blue-600 rounded-2xl flex items-center justify-center text-white shrink-0 shadow-lg">
-                              <Icons.Cpu size={20} />
-                           </div>
-                           <div className="space-y-1">
-                              <p className="text-[8px] font-black text-blue-500 uppercase tracking-widest">{t('portal.aiSenseiTip')}</p>
-                              <p className="text-xs font-bold text-slate-700 dark:text-slate-300 italic leading-relaxed">
-                                "{aiTip}"
-                              </p>
-                           </div>
-                        </motion.div>
-                      )}
 
                       {!quizMode && !scenarioMode && (
                         <div className="p-6 bg-slate-50 dark:bg-slate-800/50 rounded-3xl border border-slate-100 dark:border-slate-700/50 relative overflow-hidden group">

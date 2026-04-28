@@ -11,7 +11,6 @@ import BusinessHub from '../pages/BusinessHub';
 import AttendancePage from '../pages/Attendance';
 import BeltSystem from '../pages/BeltSystem';
 import FightTimer from '../pages/FightTimer';
-import AICoach from '../pages/AICoach';
 import Settings from '../pages/Settings';
 import StudentPortal from '../pages/StudentPortal';
 import Curriculum from '../pages/Curriculum';
@@ -476,7 +475,6 @@ const App: React.FC = () => {
                   <Route path="/promotions" element={<BeltSystem />} />
                   <Route path="/language" element={<LanguageSelection />} />
                   <Route path="/timer" element={<FightTimer />} />
-                  <Route path="/assistant" element={<AICoach />} />
                   <Route path="/settings" element={<Settings />} />
                   <Route path="/audit" element={<SystemAudit />} />
                   <Route path="/exhibition" element={<ExhibitionMode />} />
