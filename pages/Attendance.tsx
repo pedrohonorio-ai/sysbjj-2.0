@@ -7,6 +7,7 @@ import {
 import { StudentStatus, ClassSchedule } from '../types';
 import { useTranslation } from '../contexts/LanguageContext';
 import { useData } from '../contexts/DataContext';
+import { useProfile } from '../contexts/ProfileContext';
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
 import { QRCodeCanvas } from 'qrcode.react';
@@ -18,6 +19,7 @@ type AttendanceMode = 'manual' | 'scanner' | 'station';
 const AttendancePage: React.FC = () => {
   const { t } = useTranslation();
   const { students, recordAttendance, schedules } = useData();
+  const { profile } = useProfile();
   const [attendedIds, setAttendedIds] = useState<string[]>([]);
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedClassId, setSelectedClassId] = useState<string>('all');
@@ -92,12 +94,19 @@ const AttendancePage: React.FC = () => {
       return;
     }
 
+    if (!profile.latitude || !profile.longitude) {
+      alert(t('settings.locationSection') + ": " + "Coordinates not configured in Settings.");
+      return;
+    }
+
     setLocationStatus('verifying');
     navigator.geolocation.getCurrentPosition(
       (position) => {
-        const academyLat = -22.9068;
-        const academyLng = -43.1729;
-        const R = 6371e3;
+        const academyLat = profile.latitude!;
+        const academyLng = profile.longitude!;
+        const geofenceRadius = profile.geofenceRadius || 100;
+        
+        const R = 6371e3; // metres
         const φ1 = position.coords.latitude * Math.PI/180;
         const φ2 = academyLat * Math.PI/180;
         const Δφ = (academyLat-position.coords.latitude) * Math.PI/180;
@@ -109,14 +118,14 @@ const AttendancePage: React.FC = () => {
         const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
         const distance = R * c;
 
-        if (distance <= 500) {
+        if (distance <= geofenceRadius) {
           setLocationStatus('success');
         } else {
           setLocationStatus('fail');
         }
       },
       () => setLocationStatus('fail'),
-      { enableHighAccuracy: true }
+      { enableHighAccuracy: true, timeout: 5000, maximumAge: 0 }
     );
   };
 

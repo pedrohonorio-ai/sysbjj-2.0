@@ -194,7 +194,15 @@ const en = {
     supportSystem: "System Support (PIX)",
     quote: "Jiu-Jitsu is a journey of constant learning and evolution. Your suggestions are fundamental to keeping the system at the highest technical level. Oss!",
     graduationRulesSection: "Academy Graduation Rules",
-    graduationRulesDesc: "Define your team's specific criteria for student promotion (Markdown supported)."
+    graduationRulesDesc: "Define your team's specific criteria for student promotion (Markdown supported).",
+    locationSection: "Dojo Location (GPS)",
+    locationDesc: "Set coordinates for automatic presence validation.",
+    latitude: "Latitude",
+    longitude: "Longitude",
+    radius: "Radius (meters)",
+    locationPlaceholder: "Ex: -22.9068",
+    radiusPlaceholder: "Ex: 100",
+    locationBtn: "Get Current Location",
   },
   kimonos: {
     title: "Store Management",
@@ -1143,7 +1151,15 @@ const pt = {
     supportSystem: "Apoio ao Sistema (PIX)",
     quote: "O Jiu-Jitsu é uma jornada de constante aprendizado e evolução. Suas sugestões são fundamentais para mantermos o sistema no mais alto nível técnico. Oss!",
     graduationRulesSection: "Regras da Academia",
-    graduationRulesDesc: "Defina os critérios próprios de sua equipe para graduação dos alunos (Markdown suportado)."
+    graduationRulesDesc: "Defina os critérios próprios de sua equipe para graduação dos alunos (Markdown suportado).",
+    locationSection: "Localização do Dojo (GPS)",
+    locationDesc: "Defina as coordenadas para validação automática de presença.",
+    latitude: "Latitude",
+    longitude: "Longitude",
+    radius: "Raio (metros)",
+    locationPlaceholder: "Ex: -22.9068",
+    radiusPlaceholder: "Ex: 100",
+    locationBtn: "Capturar Localização Atual",
   },
   reports: {
     title: "Relatórios de Gestão",

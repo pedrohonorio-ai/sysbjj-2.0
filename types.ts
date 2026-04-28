@@ -181,6 +181,9 @@ export interface ProfessorProfile {
   backgroundImageUrl?: string;
   technicalFocus?: string;
   technicalFocusDescription?: string;
+  latitude?: number;
+  longitude?: number;
+  geofenceRadius?: number; // em metros
 }
 
 export interface ProgressRecord {

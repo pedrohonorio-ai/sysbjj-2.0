@@ -4,7 +4,7 @@ import { useTranslation } from '../contexts/LanguageContext';
 import { useProfile } from '../contexts/ProfileContext';
 import { useData } from '../contexts/DataContext';
 import { AppLanguage } from '../types';
-import { Check, Globe, User, Save, Shield, Database, Download, Upload, Trash2, CreditCard, Mail, BookOpen } from 'lucide-react';
+import { Check, Globe, User, Save, Shield, Database, Download, Upload, Trash2, CreditCard, Mail, BookOpen, MapPin } from 'lucide-react';
 
 const languages = [
   { code: AppLanguage.PORTUGUESE_BR, name: 'Português', native: 'Português (Brasil)', flag: '🇧🇷' },
@@ -26,6 +26,32 @@ const Settings: React.FC = () => {
     pixCity: profile.pixCity || ''
   });
   const [showSuccess, setShowSuccess] = useState(false);
+  const [isCapturing, setIsCapturing] = useState(false);
+
+  const getCurrentLocation = () => {
+    setIsCapturing(true);
+    if (navigator.geolocation) {
+      navigator.geolocation.getCurrentPosition((position) => {
+        setFormData({
+          ...formData,
+          latitude: position.coords.latitude,
+          longitude: position.coords.longitude,
+          geofenceRadius: formData.geofenceRadius || 100
+        });
+        setIsCapturing(false);
+      }, (error) => {
+        alert("Erro ao obter localização: " + error.message);
+        setIsCapturing(false);
+      }, {
+        enableHighAccuracy: true,
+        timeout: 5000,
+        maximumAge: 0
+      });
+    } else {
+      alert("Geolocalização não é suportada por este navegador.");
+      setIsCapturing(false);
+    }
+  };
 
   const handleSave = () => {
     updateProfile(formData);
@@ -232,6 +258,70 @@ const Settings: React.FC = () => {
             className="w-full px-5 sm:px-6 py-4 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-2xl focus:ring-2 focus:ring-blue-600 outline-none dark:text-white font-mono text-sm min-h-[300px]" 
             placeholder="# Regras de Graduação\n\n- Exemplo: 3 aulas por semana..."
           />
+        </div>
+      </div>
+
+      <div className="bg-white dark:bg-slate-900 rounded-[2rem] sm:rounded-[2.5rem] border border-slate-200 dark:border-slate-800 shadow-sm overflow-hidden transition-all">
+        <div className="p-6 sm:p-8 border-b border-slate-100 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-800/50 flex items-center justify-between">
+          <h3 className="text-xs sm:text-sm font-black text-slate-400 uppercase tracking-[0.15em] flex items-center gap-3">
+            <MapPin size={18} className="text-blue-600" /> {t('settings.locationSection')}
+          </h3>
+          <button onClick={handleSave} className="flex items-center gap-2 bg-blue-600 text-white px-4 py-2 rounded-xl font-black uppercase text-[10px] tracking-widest shadow-lg hover:bg-blue-700 transition-all">
+            <Save size={14} /> {t('settings.saveBtn')}
+          </button>
+        </div>
+        <div className="p-6 sm:p-8 space-y-6">
+          <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest leading-none">
+            {t('settings.locationDesc')}
+          </p>
+          
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+            <div className="space-y-2">
+              <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">{t('settings.latitude')}</label>
+              <input 
+                type="number" 
+                step="any"
+                value={formData.latitude || ''} 
+                onChange={e => setFormData({...formData, latitude: parseFloat(e.target.value)})} 
+                className="w-full px-5 py-3.5 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-2xl focus:ring-2 focus:ring-blue-600 outline-none dark:text-white font-bold" 
+                placeholder={t('settings.locationPlaceholder')}
+              />
+            </div>
+            <div className="space-y-2">
+              <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">{t('settings.longitude')}</label>
+              <input 
+                type="number" 
+                step="any"
+                value={formData.longitude || ''} 
+                onChange={e => setFormData({...formData, longitude: parseFloat(e.target.value)})} 
+                className="w-full px-5 py-3.5 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-2xl focus:ring-2 focus:ring-blue-600 outline-none dark:text-white font-bold" 
+                placeholder={t('settings.locationPlaceholder')}
+              />
+            </div>
+            <div className="space-y-2">
+              <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">{t('settings.radius')}</label>
+              <input 
+                type="number" 
+                value={formData.geofenceRadius || ''} 
+                onChange={e => setFormData({...formData, geofenceRadius: parseInt(e.target.value)})} 
+                className="w-full px-5 py-3.5 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-2xl focus:ring-2 focus:ring-blue-600 outline-none dark:text-white font-bold" 
+                placeholder={t('settings.radiusPlaceholder')}
+              />
+            </div>
+          </div>
+
+          <button 
+            onClick={getCurrentLocation}
+            disabled={isCapturing}
+            className={`w-full p-4 rounded-2xl flex items-center justify-center gap-3 text-[10px] font-black uppercase tracking-widest transition-all ${isCapturing ? 'bg-slate-100 text-slate-400 cursor-not-allowed' : 'bg-slate-900 dark:bg-white text-white dark:text-slate-900 hover:bg-blue-600 hover:text-white shadow-xl'}`}
+          >
+            {isCapturing ? (
+              <div className="w-4 h-4 border-2 border-slate-400 border-t-transparent rounded-full animate-spin" />
+            ) : (
+              <MapPin size={18} />
+            )}
+            {t('settings.locationBtn')}
+          </button>
         </div>
       </div>
 
