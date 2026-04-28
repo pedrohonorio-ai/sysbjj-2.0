@@ -49,6 +49,7 @@ export enum TechniqueCategory {
   TAKEDOWNS = 'Quedas',
   SWEEPS = 'Raspagens',
   POSITIONAL = 'Controle Posicional',
+  BACK_TAKES = 'Pegada de Costas',
   GUARD_PULL = 'Puxada de Guarda',
   SELF_DEFENSE = 'Defesa Pessoal'
 }

@@ -45,27 +45,28 @@ const IBJJFRules: React.FC = () => {
   const [score, setScore] = useState(0);
   const [showResult, setShowResult] = useState(false);
   const simulados = tObj('ibjjfRules.simulados') || [];
+  const pointsTable = tObj('ibjjfRules.pointsTable') || [];
 
   const prohibitionsWithImages = [
     { 
       category: prohibitedTechniques[0]?.category || 'General (All Belts)', 
       items: prohibitedTechniques[0]?.items || [],
-      image: 'https://upload.wikimedia.org/wikipedia/commons/thumb/4/4e/Slam_BJJ.jpg/640px-Slam_BJJ.jpg' // Slam/High impact placeholder style
+      image: 'https://images.unsplash.com/photo-1555597673-b21d5c935865?q=80&w=800&auto=format&fit=crop' // High impact/Dynamic focus
     },
     { 
       category: prohibitedTechniques[1]?.category || 'Kids (Up to 12)', 
       items: prohibitedTechniques[1]?.items || [],
-      image: 'https://images.unsplash.com/photo-1552072092-7f9b5d63efaf?q=80&w=640&auto=format&fit=crop' // Kids BJJ focus
+      image: 'https://images.unsplash.com/photo-1511225594233-0f983637651a?q=80&w=800&auto=format&fit=crop' // Focus on safety
     },
     { 
       category: prohibitedTechniques[3]?.category || 'White Belt', 
       items: prohibitedTechniques[3]?.items || [],
-      image: 'https://images.unsplash.com/photo-1599058917233-359f5115985b?q=80&w=640&auto=format&fit=crop' // White belt focus
+      image: 'https://images.unsplash.com/photo-1510488661603-8becc1b30538?q=80&w=800&auto=format&fit=crop' // Learning discipline
     },
     { 
       category: prohibitedTechniques[4]?.category || 'Blue/Purple', 
       items: prohibitedTechniques[4]?.items || [],
-      image: 'https://images.unsplash.com/photo-1509564343151-56191986427c?q=80&w=640&auto=format&fit=crop' // Focus on leg attacks/advanced
+      image: 'https://images.unsplash.com/photo-1549444394-1422894af396?q=80&w=800&auto=format&fit=crop' // Intermediate level focus
     }
   ];
 
@@ -259,8 +260,59 @@ const IBJJFRules: React.FC = () => {
       </div>
 
       {/* Rules Academy Hub */}
-      <div className="space-y-10 py-6 lg:py-10">
+      <div className="space-y-12">
         <div className="flex flex-col md:flex-row md:items-end justify-between gap-6">
+          <div className="space-y-3">
+            <div className="flex items-center gap-3">
+              <span className="w-2 h-10 bg-blue-600 rounded-full" />
+              <h2 className="text-3xl lg:text-5xl font-black text-slate-900 dark:text-white uppercase tracking-tighter italic">
+                {t('portal.categories.points')}
+              </h2>
+            </div>
+            <p className="text-slate-500 font-medium italic text-base lg:text-lg">{t('ibjjfRules.rulesAcademySmallDesc')}</p>
+          </div>
+        </div>
+
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+          {pointsTable.map((item: any, idx: number) => {
+            const ItemIcon = (Icons as any)[item.icon] || Icons.Star;
+            return (
+              <motion.div 
+                key={idx}
+                initial={{ opacity: 0, y: 20 }}
+                whileInView={{ opacity: 1, y: 0 }}
+                viewport={{ once: true }}
+                transition={{ delay: idx * 0.1 }}
+                className="bg-white dark:bg-slate-900 rounded-3xl p-8 border border-slate-100 dark:border-slate-800 shadow-xl hover:shadow-2xl transition-all group overflow-hidden relative"
+              >
+                <div className="absolute top-0 right-0 w-32 h-32 bg-blue-600/5 rounded-full -translate-y-1/2 translate-x-1/2 group-hover:scale-150 transition-transform" />
+                <div className="relative z-10 flex flex-col h-full">
+                  <div className="flex items-center justify-between mb-8">
+                    <div className="w-14 h-14 bg-slate-900 dark:bg-white text-white dark:text-slate-900 rounded-2xl flex items-center justify-center shadow-lg group-hover:rotate-6 transition-transform">
+                      <ItemIcon size={28} />
+                    </div>
+                    <div className="text-5xl font-black text-blue-600 tracking-tighter">{item.points}</div>
+                  </div>
+                  <div className="space-y-4">
+                    <p className="text-[10px] font-black text-slate-400 uppercase tracking-[0.3em]">
+                      {idx === 3 ? t('ibjjfRules.specialGrading') : t('portal.categories.points')}
+                    </p>
+                    <ul className="space-y-2">
+                      {item.items.map((pointItem: string) => (
+                        <li key={pointItem} className="font-black text-slate-900 dark:text-white uppercase tracking-tight text-sm leading-tight italic">
+                          {pointItem}
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                </div>
+              </motion.div>
+            );
+          })}
+        </div>
+
+        <div className="space-y-10 py-6 lg:py-10">
+          <div className="flex flex-col md:flex-row md:items-end justify-between gap-6">
           <div className="space-y-3">
             <div className="flex items-center gap-3">
               <h2 className="text-3xl lg:text-5xl font-black text-slate-900 dark:text-white uppercase tracking-tighter">{t('ibjjfRules.rulesAcademyTitle')}</h2>
@@ -269,9 +321,10 @@ const IBJJFRules: React.FC = () => {
             <p className="text-slate-500 font-medium italic text-base lg:text-lg">{t('ibjjfRules.rulesAcademySmallDesc')}</p>
           </div>
         </div>
+      </div>
 
-        <motion.div 
-          initial={{ opacity: 0, y: 20 }}
+      <motion.div 
+        initial={{ opacity: 0, y: 20 }}
           whileInView={{ opacity: 1, y: 0 }}
           viewport={{ once: true }}
           className="grid grid-cols-1 md:grid-cols-4 lg:grid-cols-6 gap-6 lg:gap-8"

@@ -122,6 +122,21 @@ const Curriculum: React.FC = () => {
     setCurrentPlan(plan);
     setEditingPlanId(plan.id);
     setIsPlanning(true);
+    // Scroll to top
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  };
+
+  const handleDuplicatePlan = (plan: LessonPlan) => {
+    const duplicatedPlan: Omit<LessonPlan, 'id'> = {
+      ...plan,
+      title: `${plan.title} (Cópia)`,
+      date: new Date().toISOString().split('T')[0]
+    };
+    addLessonPlan(duplicatedPlan);
+  };
+
+  const handlePrintPlan = (plan: LessonPlan) => {
+    window.print();
   };
 
   const handleDeletePlan = (id: string) => {
@@ -318,22 +333,41 @@ const Curriculum: React.FC = () => {
                   <div 
                     key={plan.id} 
                     onClick={() => handleEditPlan(plan)}
-                    className={`bg-white dark:bg-slate-900 p-6 rounded-3xl border transition-all cursor-pointer group flex items-center justify-between ${editingPlanId === plan.id ? 'border-blue-600 ring-2 ring-blue-600/10' : 'border-slate-200 dark:border-slate-800 shadow-sm hover:shadow-xl'}`}
+                    className={`bg-white dark:bg-slate-900 p-6 rounded-3xl border transition-all cursor-pointer group flex items-center justify-between ${editingPlanId === plan.id ? 'border-blue-600 ring-2 ring-blue-600/10 shadow-xl' : 'border-slate-200 dark:border-slate-800 shadow-sm hover:shadow-xl hover:border-blue-300'}`}
                   >
                     <div className="min-w-0">
-                      <p className="font-black dark:text-white uppercase tracking-tight truncate">{plan.title}</p>
-                      <p className="text-[9px] text-slate-400 font-bold mt-1 uppercase tracking-widest">
-                        {new Date(plan.date).toLocaleDateString()} • {plan.techniques.length} {t('curriculum.techniques')}
-                      </p>
+                      <div className="flex items-center gap-2 mb-1">
+                        <Calendar size={10} className="text-blue-500" />
+                        <span className="text-[9px] text-slate-400 font-black uppercase tracking-widest">
+                          {new Date(plan.date).toLocaleDateString()}
+                        </span>
+                      </div>
+                      <p className="font-black dark:text-white uppercase tracking-tight truncate text-sm">{plan.title}</p>
+                      <div className="flex items-center gap-3 mt-2">
+                        <span className="text-[8px] font-black bg-slate-100 dark:bg-slate-800 text-slate-500 px-2 py-0.5 rounded uppercase tracking-widest">
+                          {plan.techniques.length} Técnicas
+                        </span>
+                        {plan.ruleFocus && (
+                           <span className="text-[8px] font-black bg-blue-50 dark:bg-blue-900/20 text-blue-600 px-2 py-0.5 rounded uppercase tracking-widest">
+                             + Regras
+                           </span>
+                        )}
+                      </div>
                     </div>
-                    <div className="flex items-center gap-2">
-                       <button 
-                        onClick={(e) => { e.stopPropagation(); handleDeletePlan(plan.id); }}
-                        className="p-2 text-slate-300 hover:text-red-500 opacity-0 group-hover:opacity-100 transition-all"
+                    <div className="flex items-center gap-1">
+                      <button 
+                        onClick={(e) => { e.stopPropagation(); handleDuplicatePlan(plan); }}
+                        title="Duplicar Plano"
+                        className="p-2 text-slate-300 hover:text-blue-500 hover:bg-blue-50 dark:hover:bg-blue-900/20 rounded-lg transition-all"
                       >
-                        <Trash2 size={16} />
+                        <Icons.Copy size={14} />
                       </button>
-                      <ChevronRight size={18} className="text-slate-300 group-hover:text-blue-500 group-hover:translate-x-1 transition-all" />
+                      <button 
+                        onClick={(e) => { e.stopPropagation(); handleDeletePlan(plan.id); }}
+                        className="p-2 text-slate-300 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-900/10 rounded-lg transition-all"
+                      >
+                        <Trash2 size={14} />
+                      </button>
                     </div>
                   </div>
                 ))}

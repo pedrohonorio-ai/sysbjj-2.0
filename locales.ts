@@ -273,7 +273,19 @@ const en = {
     allStudents: "All Students",
     exportDaily: "Daily PDF",
     exportMonthly: "Monthly PDF",
-    activeAndPaid: "Active and Paid"
+    activeAndPaid: "Active and Paid",
+    modeManual: "Manual",
+    modeScanner: "Scanner",
+    modeSelfCheckIn: "Check-in Station",
+    scanTitle: "QR Scanner",
+    scanInstructions: "Scan student card to confirm attendance.",
+    cameraPermission: "We need camera permission to scan QR codes.",
+    invalidQR: "Invalid QR Code.",
+    geoRequired: "Location Required",
+    geoSuccess: "Location verified: You are at the Dojo.",
+    geoFail: "Location verification failed: You are outside the Dojo area.",
+    startScanner: "Start Scanner",
+    stopScanner: "Stop Scanner",
   },
   curriculum: {
     title: "Daily Work Board (QTD)",
@@ -376,6 +388,12 @@ const en = {
           { q: 'Who gets an advantage if they rise first from double guard pull?', options: ['2 points', 'Advantage', 'Nothing'], correct: 1 }
         ]
       }
+    ],
+    pointsTable: [
+      { points: '4', items: ['Mount', 'Back Control'], icon: 'Trophy' },
+      { points: '3', items: ['Guard Pass'], icon: 'Zap' },
+      { points: '2', items: ['Takedowns', 'Sweeps', 'Knee on Belly'], icon: 'ArrowUp' },
+      { points: 'Adv', items: ['Near Submission', 'Near Guard Pass'], icon: 'Star' }
     ]
   },
   exhibition: {
@@ -1507,7 +1525,19 @@ const pt = {
     allStudents: "Todos os Alunos",
     exportDaily: "PDF Diário",
     exportMonthly: "PDF Mensal",
-    activeAndPaid: "Ativos e Adimplentes"
+    activeAndPaid: "Ativos e Adimplentes",
+    modeManual: "Manual",
+    modeScanner: "Scanner",
+    modeSelfCheckIn: "Estação de Check-in",
+    scanTitle: "Scanner QR",
+    scanInstructions: "Escaneie a carteirinha do aluno para confirmar presença.",
+    cameraPermission: "Precisamos de permissão para usar a câmera.",
+    invalidQR: "QR Code Inválido.",
+    geoRequired: "Localização Necessária",
+    geoSuccess: "Localização verificada: Você está no Dojo.",
+    geoFail: "Falha na localização: Você está fora da área do Dojo.",
+    startScanner: "Iniciar Scanner",
+    stopScanner: "Parar Scanner",
   },
   classes: {
     title: "Gestão de Turmas",
@@ -1780,6 +1810,12 @@ const pt = {
           { q: 'Atleta que sobe da guarda dupla primeiro ganha o quê?', options: ['2 pontos', 'Vantagem', 'Nada'], correct: 1 }
         ]
       }
+    ],
+    pointsTable: [
+      { points: '4', items: ['Montada', 'Pegada de Costas'], icon: 'Trophy' },
+      { points: '3', items: ['Passagem de Guarda'], icon: 'Zap' },
+      { points: '2', items: ['Quedas', 'Raspagens', 'Joelho na Barriga'], icon: 'ArrowUp' },
+      { points: 'Vant', items: ['Quase Finalização', 'Quase Passagem/Raspagem'], icon: 'Star' }
     ]
   },
   exhibition: {

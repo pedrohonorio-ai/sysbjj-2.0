@@ -108,63 +108,58 @@ const DEFAULT_SCHEDULES: ClassSchedule[] = [
   { id: '2', time: '12:00', title: 'No-Gi Avançado', instructor: 'Sensei SYSBJJ', category: 'Adulto', days: ['Ter', 'Qui'] },
   { id: '3', time: '18:00', title: 'Kids - Branca/Amarela', instructor: 'Instrutor SYS', category: 'Kids', days: ['Seg', 'Qua', 'Sex'] }
 ];
-
 const DEFAULT_TECHNIQUES: LibraryTechnique[] = [
-  // FINALIZAÇÕES
+  // FINALIZAÇÕES (SUBMISSIONS)
   { id: 'T-001', name: 'Armlock da Guarda Fechada', category: TechniqueCategory.SUBMISSIONS, beltLevel: BeltColor.WHITE, description: 'Ataque básico de braço partindo da guarda fechada, utilizando o quadril para isolar o cotovelo.' },
   { id: 'T-002', name: 'Triângulo da Guarda', category: TechniqueCategory.SUBMISSIONS, beltLevel: BeltColor.WHITE, description: 'Estrangulamento com as pernas isolando o braço e o pescoço do adversário.' },
-  { id: 'T-003', name: 'Mata Leão', category: TechniqueCategory.SUBMISSIONS, beltLevel: BeltColor.WHITE, description: 'Estrangulamento clássico pelas costas, utilizando os bíceps e antebraço.' },
-  { id: 'T-004', name: 'Guilhotina', category: TechniqueCategory.SUBMISSIONS, beltLevel: BeltColor.WHITE, description: 'Estrangulamento frontal segurando a cabeça do adversário sob a axila.' },
-  { id: 'T-005', name: 'Kimura da Guarda', category: TechniqueCategory.SUBMISSIONS, beltLevel: BeltColor.WHITE, description: 'Chave de ombro utilizando a pegada de quatro.' },
-  { id: 'T-006', name: 'Americana do Controle Lateral', category: TechniqueCategory.SUBMISSIONS, beltLevel: BeltColor.WHITE, description: 'Chave de ombro rotacional partindo dos cem quilos.' },
-  { id: 'T-007', name: 'Omoplata', category: TechniqueCategory.SUBMISSIONS, beltLevel: BeltColor.BLUE, description: 'Chave de ombro utilizando as pernas para alavancar o braço do oponente.' },
-  { id: 'T-008', name: 'Ezequiel', category: TechniqueCategory.SUBMISSIONS, beltLevel: BeltColor.WHITE, description: 'Estrangulamento utilizando a própria manga do kimono por dentro da guarda ou na montada.' },
-  { id: 'T-009', name: 'Chave de Pé (Botinha)', category: TechniqueCategory.SUBMISSIONS, beltLevel: BeltColor.WHITE, description: 'Ataque básico de articulação no tornozelo permitido para brancas.' },
-  { id: 'T-010', name: 'Katagatame', category: TechniqueCategory.SUBMISSIONS, beltLevel: BeltColor.BLUE, description: 'Estrangulamento de triângulo de braço partindo da montada ou lateral.' },
+  { id: 'T-003', name: 'Mata Leão', category: TechniqueCategory.SUBMISSIONS, beltLevel: BeltColor.WHITE, description: 'Estrangulamento clássico pelas costas.' },
+  { id: 'T-004', name: 'Guilhotina', category: TechniqueCategory.SUBMISSIONS, beltLevel: BeltColor.WHITE, description: 'Estrangulamento frontal sob a axila.' },
+  { id: 'T-005', name: 'Kimura', category: TechniqueCategory.SUBMISSIONS, beltLevel: BeltColor.WHITE, description: 'Chave de ombro rotacional.' },
+  { id: 'T-006', name: 'Americana', category: TechniqueCategory.SUBMISSIONS, beltLevel: BeltColor.WHITE, description: 'Chave de ombro do controle lateral.' },
+  { id: 'T-007', name: 'Omoplata', category: TechniqueCategory.SUBMISSIONS, beltLevel: BeltColor.BLUE, description: 'Chave de ombro com as pernas.' },
+  { id: 'T-008', name: 'Ezequiel', category: TechniqueCategory.SUBMISSIONS, beltLevel: BeltColor.WHITE, description: 'Estrangulamento com a manga.' },
+  { id: 'T-009', name: 'Chave de Pé (Botinha)', category: TechniqueCategory.SUBMISSIONS, beltLevel: BeltColor.WHITE, description: 'Ataque de tornozelo básico.' },
+  { id: 'T-010', name: 'Katagatame', category: TechniqueCategory.SUBMISSIONS, beltLevel: BeltColor.BLUE, description: 'Triângulo de braço.' },
+  { id: 'T-041', name: 'Triângulo de Mão (D\'Arce)', category: TechniqueCategory.SUBMISSIONS, beltLevel: BeltColor.PURPLE, description: 'Triângulo de braço aplicado quando o oponente está de quatro apoios ou na meia guarda.' },
+  { id: 'T-042', name: 'Anaconda Choke', category: TechniqueCategory.SUBMISSIONS, beltLevel: BeltColor.PURPLE, description: 'Estrangulamento frontal girando sob o braço do oponente.' },
+  { id: 'T-043', name: 'Bolo de Rolo (Berimbolo)', category: TechniqueCategory.BACK_TAKES, beltLevel: BeltColor.PURPLE, description: 'Transição moderna para as costas saindo da De La Riva.' },
+  { id: 'T-044', name: 'Canto Choke', category: TechniqueCategory.SUBMISSIONS, beltLevel: BeltColor.PURPLE, description: 'Estrangulamento com a lapela utilizando a perna por cima do pescoço.' },
+  { id: 'T-045', name: 'Bow and Arrow Choke', category: TechniqueCategory.SUBMISSIONS, beltLevel: BeltColor.BLUE, description: 'Arco e flecha, o estrangulamento mais eficiente do BJJ com kimono.' },
+  { id: 'T-046', name: 'Heel Hook (Chave de Calcanhar)', category: TechniqueCategory.SUBMISSIONS, beltLevel: BeltColor.BROWN, description: 'Ataque rotacional de calcanhar extremamente perigoso (No-Gi).' },
+  { id: 'T-047', name: 'Kneebar (Chave de Joelho)', category: TechniqueCategory.SUBMISSIONS, beltLevel: BeltColor.BROWN, description: 'Hiperextensão do joelho.' },
+  { id: 'T-048', name: 'Chave de Pulso (Mão de Vaca)', category: TechniqueCategory.SUBMISSIONS, beltLevel: BeltColor.BLUE, description: 'Ataque rápido de punho.' },
   
-  // PASSAGEM DE GUARDA
-  { id: 'T-011', name: 'Passagem de Toureando', category: TechniqueCategory.GUARD_PASSING, beltLevel: BeltColor.WHITE, description: 'Passagem dinâmica onde se controla as calças ou tornozelos para desviar das pernas.' },
-  { id: 'T-012', name: 'Passagem de Joelho Cruzado', category: TechniqueCategory.GUARD_PASSING, beltLevel: BeltColor.BLUE, description: 'Conhecida como Knee Slide, focada em cruzar o joelho sobre a coxa do adversário.' },
-  { id: 'T-013', name: 'Passagem por Baixo (Double Under)', category: TechniqueCategory.GUARD_PASSING, beltLevel: BeltColor.WHITE, description: 'Passagem de pressão abraçando as duas pernas do oponente por baixo.' },
-  { id: 'T-014', name: 'Passagem Leg Drag', category: TechniqueCategory.GUARD_PASSING, beltLevel: BeltColor.PURPLE, description: 'Passagem moderna grampeando a perna do oponente para o lado oposto ao quadril.' },
-  { id: 'T-015', name: 'Passagem Over-Under', category: TechniqueCategory.GUARD_PASSING, beltLevel: BeltColor.BLUE, description: 'Passagem de pressão clássica de Bernardo Faria.' },
+  // PASSAGEM DE GUARDA (GUARD PASSING)
+  { id: 'T-011', name: 'Passagem de Toureando', category: TechniqueCategory.GUARD_PASSING, beltLevel: BeltColor.WHITE, description: 'Passagem dinâmica desviando das pernas.' },
+  { id: 'T-012', name: 'Passagem de Joelho Cruzado', category: TechniqueCategory.GUARD_PASSING, beltLevel: BeltColor.BLUE, description: 'Knee Slide.' },
+  { id: 'T-013', name: 'Passagem Double Under', category: TechniqueCategory.GUARD_PASSING, beltLevel: BeltColor.WHITE, description: 'Passagem por baixo abraçando as pernas.' },
+  { id: 'T-014', name: 'Passagem Leg Drag', category: TechniqueCategory.GUARD_PASSING, beltLevel: BeltColor.PURPLE, description: 'Grampeando a perna para o lado oposto.' },
+  { id: 'T-049', name: 'Passagem de Meia Guarda (Tripé)', category: TechniqueCategory.GUARD_PASSING, beltLevel: BeltColor.BLUE, description: 'Passagem clássica de pressão na meia guarda.' },
+  { id: 'T-050', name: 'Long Step Pass', category: TechniqueCategory.GUARD_PASSING, beltLevel: BeltColor.PURPLE, description: 'Passagem com passo longo cruzando a guarda aberta.' },
+  { id: 'T-051', name: 'Passagem Smash Pass', category: TechniqueCategory.GUARD_PASSING, beltLevel: BeltColor.BLUE, description: 'Amassando as pernas do oponente para um lado.' },
 
-  // RASPAGENS
-  { id: 'T-016', name: 'Raspagem de Tesoura', category: TechniqueCategory.SWEEPS, beltLevel: BeltColor.WHITE, description: 'Raspagem básica da guarda fechada utilizando o canêla como alavanca.' },
-  { id: 'T-017', name: 'Raspagem de Gancho', category: TechniqueCategory.SWEEPS, beltLevel: BeltColor.WHITE, description: 'Raspagem da guarda aberta utilizando os ganchos internos (Butterfly Sweep).' },
-  { id: 'T-018', name: 'Raspagem de Flor (Flower Sweep)', category: TechniqueCategory.SWEEPS, beltLevel: BeltColor.WHITE, description: 'Raspagem pendular utilizando a pegada na calça e manga.' },
-  { id: 'T-019', name: 'Raspagem de Dela Riva', category: TechniqueCategory.SWEEPS, beltLevel: BeltColor.BLUE, description: 'Raspagem utilizando o gancho de fora na perna do adversário em pé.' },
-  { id: 'T-020', name: 'Raspagem de Tripé', category: TechniqueCategory.SWEEPS, beltLevel: BeltColor.WHITE, description: 'Raspagem simples da guarda aberta empurrando o quadril e puxando o calcanhar.' },
-  { id: 'T-021', name: 'Raspagem da Guarda X', category: TechniqueCategory.SWEEPS, beltLevel: BeltColor.PURPLE, description: 'Sistemas de raspagem avançados utilizando o corpo sob o centro de gravidade do oponente.' },
+  // RASPAGENS (SWEEPS)
+  { id: 'T-016', name: 'Raspagem de Tesoura', category: TechniqueCategory.SWEEPS, beltLevel: BeltColor.WHITE, description: 'Raspagem básica da guarda fechada.' },
+  { id: 'T-017', name: 'Raspagem de Gancho', category: TechniqueCategory.SWEEPS, beltLevel: BeltColor.WHITE, description: 'Butterfly Sweep.' },
+  { id: 'T-018', name: 'Raspagem Flower Sweep', category: TechniqueCategory.SWEEPS, beltLevel: BeltColor.WHITE, description: 'Raspagem pendular.' },
+  { id: 'T-052', name: 'Raspagem Scissor Sweep', category: TechniqueCategory.SWEEPS, beltLevel: BeltColor.WHITE, description: 'Clássica tesourinha.' },
+  { id: 'T-053', name: 'Raspagem de Dela Riva (Tomoe Nage)', category: TechniqueCategory.SWEEPS, beltLevel: BeltColor.BLUE, description: 'Capotagem da Dela Riva.' },
+  { id: 'T-054', name: 'Raspagem Kiss of the Dragon', category: TechniqueCategory.SWEEPS, beltLevel: BeltColor.PURPLE, description: 'Inversão por baixo do oponente na De La Riva invertida.' },
+  { id: 'T-055', name: 'Raspagem X-Guard (Technical Stand-up)', category: TechniqueCategory.SWEEPS, beltLevel: BeltColor.PURPLE, description: 'Levantada técnica da guarda X.' },
 
-  // QUEDAS
-  { id: 'T-022', name: 'Baiana (Double Leg)', category: TechniqueCategory.TAKEDOWNS, beltLevel: BeltColor.WHITE, description: 'Queda clássica de entrada nas duas pernas com a cabeça por fora.' },
-  { id: 'T-023', name: 'Single Leg', category: TechniqueCategory.TAKEDOWNS, beltLevel: BeltColor.WHITE, description: 'Ataque em uma perna só com transição para derrubar.' },
-  { id: 'T-024', name: 'O Goshi (Quadril)', category: TechniqueCategory.TAKEDOWNS, beltLevel: BeltColor.WHITE, description: 'Projeção básica de Judô utilizando a cintura.' },
-  { id: 'T-025', name: 'Seoi Nage', category: TechniqueCategory.TAKEDOWNS, beltLevel: BeltColor.BLUE, description: 'Arremesso por cima do ombro carregando o peso do oponente.' },
-  { id: 'T-026', name: 'Osoto Gari', category: TechniqueCategory.TAKEDOWNS, beltLevel: BeltColor.WHITE, description: 'Grande ceifada por fora na perna do adversário.' },
+  // QUEDAS (TAKEDOWNS)
+  { id: 'T-022', name: 'Baiana (Double Leg)', category: TechniqueCategory.TAKEDOWNS, beltLevel: BeltColor.WHITE, description: 'Queda clássica de duas pernas.' },
+  { id: 'T-023', name: 'Single Leg', category: TechniqueCategory.TAKEDOWNS, beltLevel: BeltColor.WHITE, description: 'Ataque em uma perna.' },
+  { id: 'T-056', name: 'Uchimata', category: TechniqueCategory.TAKEDOWNS, beltLevel: BeltColor.PURPLE, description: 'Projeção poderosa com a perna por dentro.' },
+  { id: 'T-057', name: 'Ippon Seoi Nage', category: TechniqueCategory.TAKEDOWNS, beltLevel: BeltColor.BLUE, description: 'Arremesso por cima do ombro clássico.' },
+  { id: 'T-058', name: 'Fireman Carry', category: TechniqueCategory.TAKEDOWNS, beltLevel: BeltColor.PURPLE, description: 'Carregada de bombeiro (Kata Garuma).' },
 
-  // ESCAPADAS
-  { id: 'T-027', name: 'Saída da Montada (Ponte)', category: TechniqueCategory.ESCAPES, beltLevel: BeltColor.WHITE, description: 'Conhecida como Upa, utiliza a ponte para desequilibrar o oponente montado.' },
-  { id: 'T-028', name: 'Saída da Montada (Cotovelo)', category: TechniqueCategory.ESCAPES, beltLevel: BeltColor.WHITE, description: 'Reposição de meia guarda utilizando o cotovelo e o joelho.' },
-  { id: 'T-029', name: 'Fuga de Quadril do Cem Quilos', category: TechniqueCategory.ESCAPES, beltLevel: BeltColor.WHITE, description: 'Movimento essencial para repor a guarda quando imobilizado lateralmente.' },
-  { id: 'T-030', name: 'Saída das Costas', category: TechniqueCategory.ESCAPES, beltLevel: BeltColor.WHITE, description: 'Técnica de deslizar o quadril e proteger o pescoço para sair do domínio das costas.' },
-
-  // CONTROLE POSICIONAL
-  { id: 'T-031', name: 'Estabilização de Montada', category: TechniqueCategory.POSITIONAL, beltLevel: BeltColor.WHITE, description: 'Princípios de peso e equilíbrio para manter o domínio superior.' },
-  { id: 'T-032', name: 'Domínio de Costas (Ganchos)', category: TechniqueCategory.POSITIONAL, beltLevel: BeltColor.WHITE, description: 'Posicionamento dos ganchos e cinto de segurança (Seatbelt).' },
-  { id: 'T-033', name: 'Joelho na Barriga', category: TechniqueCategory.POSITIONAL, beltLevel: BeltColor.WHITE, description: 'Posição de transição que gera pressão e mobilidade.' },
-  { id: 'T-034', name: 'Domínio de 4 Apoios', category: TechniqueCategory.POSITIONAL, beltLevel: BeltColor.WHITE, description: 'Controle do oponente quando este tenta se encolher.' },
-
-  // DEFESA PESSOAL
-  { id: 'T-035', name: 'Defesa de Gravata Lateral', category: TechniqueCategory.SELF_DEFENSE, beltLevel: BeltColor.WHITE, description: 'Saída clássica de imobilização de pescoço em pé.' },
-  { id: 'T-036', name: 'Defesa de Empurrão no Peito', category: TechniqueCategory.SELF_DEFENSE, beltLevel: BeltColor.WHITE, description: 'Controle de distância e antecipação de agressão frontal.' },
-  { id: 'T-037', name: 'Saída de Abraço de Urso', category: TechniqueCategory.SELF_DEFENSE, beltLevel: BeltColor.WHITE, description: 'Defesa contra agarramento por trás (com e sem braços presos).' },
-
-  // AQUECIMENTO
-  { id: 'T-038', name: 'Drills de Reposição de Guarda', category: TechniqueCategory.WARMUP, beltLevel: BeltColor.WHITE, description: 'Movimentos solo e em dupla para agilidade de pernas.' },
-  { id: 'T-039', name: 'Queda de Braço (Hand Fight Drills)', category: TechniqueCategory.WARMUP, beltLevel: BeltColor.WHITE, description: 'Aquecimento focado em pegadas e postura em pé.' },
-  { id: 'T-040', name: 'Rolamentos e Quedas (Ukemi)', category: TechniqueCategory.WARMUP, beltLevel: BeltColor.WHITE, description: 'Técnicas de amortecimento de queda essenciais para segurança.' }
+  // POSICIONAL E ESCAPADAS
+  { id: 'T-027', name: 'Saída da Montada (Upa)', category: TechniqueCategory.ESCAPES, beltLevel: BeltColor.WHITE, description: 'Escapada básica com ponte.' },
+  { id: 'T-059', name: 'Escapada de Cotovelo (Montada)', category: TechniqueCategory.ESCAPES, beltLevel: BeltColor.WHITE, description: 'Reposição de meia guarda.' },
+  { id: 'T-060', name: 'Escapada de Quadril (100kg)', category: TechniqueCategory.ESCAPES, beltLevel: BeltColor.WHITE, description: 'Fuga essencial do controle lateral.' },
+  { id: 'T-061', name: 'Shrimping (Fuga de Quadril)', category: TechniqueCategory.WARMUP, beltLevel: BeltColor.WHITE, description: 'Movimento fundamental de sobrevivência.' },
+  { id: 'T-062', name: 'Pummeling (Esgrima)', category: TechniqueCategory.WARMUP, beltLevel: BeltColor.WHITE, description: 'Disputa de esgrima em pé ou solo.' }
 ];
 
 // Helper to compress base64 images to save LocalStorage space
