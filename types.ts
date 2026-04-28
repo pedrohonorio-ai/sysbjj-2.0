@@ -48,7 +48,9 @@ export enum TechniqueCategory {
   ESCAPES = 'Escapadas',
   TAKEDOWNS = 'Quedas',
   SWEEPS = 'Raspagens',
-  POSITIONAL = 'Controle Posicional'
+  POSITIONAL = 'Controle Posicional',
+  GUARD_PULL = 'Puxada de Guarda',
+  SELF_DEFENSE = 'Defesa Pessoal'
 }
 
 export enum ExtraRevenueCategory {
@@ -92,6 +94,9 @@ export interface LessonPlan {
   date: string;
   title: string;
   techniques: LibraryTechnique[];
+  warmup?: string;
+  specificTraining?: string;
+  sparring?: string;
   notes: string;
   isPublished: boolean;
   ruleFocus?: string;
@@ -173,6 +178,8 @@ export interface ProfessorProfile {
   customCriteria?: GraduationCriterion[];
   logoUrl?: string;
   backgroundImageUrl?: string;
+  technicalFocus?: string;
+  technicalFocusDescription?: string;
 }
 
 export interface ProgressRecord {

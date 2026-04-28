@@ -354,27 +354,34 @@ const Dashboard: React.FC = () => {
                       <Zap size={28} />
                    </div>
                    <div>
-                      <p className="font-black text-xl dark:text-white uppercase tracking-tight leading-none mb-1.5">{t('curriculum.techFocus')}</p>
-                      <p className="text-xs text-slate-400 font-bold uppercase tracking-widest truncate max-w-[200px]">
-                        {latestPlan ? latestPlan.title : t('curriculum.noActivePlan')}
+                      <p className="font-black text-xl dark:text-white uppercase tracking-tight leading-none mb-1.5">{profile.technicalFocus || t('curriculum.techFocus')}</p>
+                      <p className="text-[10px] text-slate-400 font-bold uppercase tracking-widest line-clamp-1">
+                        {profile.technicalFocusDescription || (latestPlan ? latestPlan.title : t('curriculum.noActivePlan'))}
                       </p>
                    </div>
                 </div>
-                <div className="space-y-3">
+                <div className="space-y-4">
                   {latestPlan ? (
                     <>
-                      {latestPlan.techniques.slice(0, 3).map(tech => (
-                        <div key={tech.id} className="flex items-center gap-3">
-                          <div className="w-1.5 h-1.5 bg-blue-600 rounded-full" />
-                          <span className="text-sm font-bold text-slate-600 dark:text-slate-300 truncate">{tech.name}</span>
+                      <div className="grid grid-cols-2 gap-3">
+                        <div className="bg-white dark:bg-slate-900/50 p-3 rounded-xl border border-slate-100 dark:border-slate-700">
+                           <p className="text-[8px] font-black text-blue-600 uppercase tracking-widest mb-1">Aquecimento</p>
+                           <p className="text-[10px] font-bold text-slate-600 dark:text-slate-400 line-clamp-1">{latestPlan.warmup || 'Drills Base'}</p>
                         </div>
-                      ))}
-                      {latestPlan.ruleFocus && (
-                        <div className="mt-3 p-2 bg-amber-50 dark:bg-amber-900/10 rounded-lg border border-amber-100 dark:border-amber-900/30">
-                          <p className="text-[8px] font-black text-amber-600 uppercase tracking-widest mb-0.5">{t('ibjjfRules.ruleFocus')}</p>
-                          <p className="text-[9px] font-bold text-slate-700 dark:text-slate-300 line-clamp-1">{latestPlan.ruleFocus}</p>
+                        <div className="bg-white dark:bg-slate-900/50 p-3 rounded-xl border border-slate-100 dark:border-slate-700">
+                           <p className="text-[8px] font-black text-amber-600 uppercase tracking-widest mb-1">Regras</p>
+                           <p className="text-[10px] font-bold text-slate-600 dark:text-slate-400 line-clamp-1">{latestPlan.ruleFocus || 'IBJJF Padrao'}</p>
                         </div>
-                      )}
+                      </div>
+                      <div className="space-y-2">
+                        <p className="text-[8px] font-black text-slate-400 uppercase tracking-widest">Técnicas do Dia</p>
+                        {latestPlan.techniques.slice(0, 2).map(tech => (
+                          <div key={tech.id} className="flex items-center gap-3">
+                            <div className="w-1.5 h-1.5 bg-blue-600 rounded-full" />
+                            <span className="text-xs font-bold text-slate-700 dark:text-slate-300 truncate">{tech.name}</span>
+                          </div>
+                        ))}
+                      </div>
                     </>
                   ) : (
                     <p className="text-[10px] text-slate-400 italic">{t('curriculum.noActivePlanDesc')}</p>

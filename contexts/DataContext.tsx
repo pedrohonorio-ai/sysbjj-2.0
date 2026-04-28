@@ -716,29 +716,55 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   };
 
   const addLessonPlan = (plan: Omit<LessonPlan, 'id'>) => {
-    setLessonPlans(prev => [{ ...plan, id: `PLAN-${Date.now()}` } as LessonPlan, ...prev]);
+    const id = `PLAN-${Date.now()}`;
+    const newPlan = { ...plan, id } as LessonPlan;
+    setLessonPlans(prev => [newPlan, ...prev]);
+    
+    if (db) {
+      setDoc(doc(db, 'lesson_plans', id), newPlan).catch(err => handleFirestoreError(err, OperationType.CREATE, 'lesson_plans'));
+    }
     logAction('Novo Plano de Aula', `QTD: ${plan.title} criado`, 'System');
   };
 
   const updateLessonPlan = (id: string, updates: Partial<LessonPlan>) => {
     setLessonPlans(prev => prev.map(p => p.id === id ? { ...p, ...updates } : p));
+    if (db) {
+      updateDoc(doc(db, 'lesson_plans', id), updates).catch(err => handleFirestoreError(err, OperationType.UPDATE, `lesson_plans/${id}`));
+    }
+    logAction('Plano Atualizado', `QTD ID ${id} modificado`, 'System');
   };
 
   const deleteLessonPlan = (id: string) => {
     setLessonPlans(prev => prev.filter(p => p.id !== id));
+    if (db) {
+      deleteDoc(doc(db, 'lesson_plans', id)).catch(err => handleFirestoreError(err, OperationType.DELETE, `lesson_plans/${id}`));
+    }
+    logAction('Plano Removido', `QTD ID ${id} excluído`, 'Security');
   };
 
   const addTechnique = (tech: Omit<LibraryTechnique, 'id'>) => {
-    setTechniques(prev => [...prev, { ...tech, id: `TECH-${Date.now()}` } as LibraryTechnique]);
+    const id = `TECH-${Date.now()}`;
+    const newTech = { ...tech, id } as LibraryTechnique;
+    setTechniques(prev => [...prev, newTech]);
+    
+    if (db) {
+      setDoc(doc(db, 'techniques', id), newTech).catch(err => handleFirestoreError(err, OperationType.CREATE, 'techniques'));
+    }
     logAction('Nova Técnica', `Técnica ${tech.name} adicionada à biblioteca`, 'System');
   };
 
   const updateTechnique = (id: string, updates: Partial<LibraryTechnique>) => {
     setTechniques(prev => prev.map(t => t.id === id ? { ...t, ...updates } : t));
+    if (db) {
+      updateDoc(doc(db, 'techniques', id), updates).catch(err => handleFirestoreError(err, OperationType.UPDATE, `techniques/${id}`));
+    }
   };
 
   const deleteTechnique = (id: string) => {
     setTechniques(prev => prev.filter(t => t.id !== id));
+    if (db) {
+      deleteDoc(doc(db, 'techniques', id)).catch(err => handleFirestoreError(err, OperationType.DELETE, `techniques/${id}`));
+    }
   };
 
   const addProduct = (product: Omit<Product, 'id'>) => {
