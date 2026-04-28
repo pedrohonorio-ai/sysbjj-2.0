@@ -3,6 +3,7 @@
   "description": "Sistema de gestão de elite para academias de Jiu-Jitsu com IA assistiva, blockchain para auditoria e ferramentas avançadas de business intelligence.",
   "requestFramePermissions": [
     "camera",
-    "microphone"
+    "microphone",
+    "geolocation"
   ]
 }

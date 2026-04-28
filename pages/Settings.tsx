@@ -21,6 +21,9 @@ const Settings: React.FC = () => {
   
   const [formData, setFormData] = useState({
     ...profile,
+    latitude: profile.latitude,
+    longitude: profile.longitude,
+    geofenceRadius: profile.geofenceRadius || 100,
     pixKey: profile.pixKey || '',
     pixName: profile.pixName || '',
     pixCity: profile.pixCity || ''
@@ -281,8 +284,8 @@ const Settings: React.FC = () => {
               <input 
                 type="number" 
                 step="any"
-                value={formData.latitude || ''} 
-                onChange={e => setFormData({...formData, latitude: parseFloat(e.target.value)})} 
+                value={formData.latitude ?? ''} 
+                onChange={e => setFormData({...formData, latitude: e.target.value === '' ? undefined : parseFloat(e.target.value)})} 
                 className="w-full px-5 py-3.5 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-2xl focus:ring-2 focus:ring-blue-600 outline-none dark:text-white font-bold" 
                 placeholder={t('settings.locationPlaceholder')}
               />
@@ -292,8 +295,8 @@ const Settings: React.FC = () => {
               <input 
                 type="number" 
                 step="any"
-                value={formData.longitude || ''} 
-                onChange={e => setFormData({...formData, longitude: parseFloat(e.target.value)})} 
+                value={formData.longitude ?? ''} 
+                onChange={e => setFormData({...formData, longitude: e.target.value === '' ? undefined : parseFloat(e.target.value)})} 
                 className="w-full px-5 py-3.5 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-2xl focus:ring-2 focus:ring-blue-600 outline-none dark:text-white font-bold" 
                 placeholder={t('settings.locationPlaceholder')}
               />
@@ -302,8 +305,8 @@ const Settings: React.FC = () => {
               <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">{t('settings.radius')}</label>
               <input 
                 type="number" 
-                value={formData.geofenceRadius || ''} 
-                onChange={e => setFormData({...formData, geofenceRadius: parseInt(e.target.value)})} 
+                value={formData.geofenceRadius ?? ''} 
+                onChange={e => setFormData({...formData, geofenceRadius: e.target.value === '' ? undefined : parseInt(e.target.value)})} 
                 className="w-full px-5 py-3.5 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-2xl focus:ring-2 focus:ring-blue-600 outline-none dark:text-white font-bold" 
                 placeholder={t('settings.radiusPlaceholder')}
               />
