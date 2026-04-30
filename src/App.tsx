@@ -337,11 +337,17 @@ const App: React.FC = () => {
   
   useEffect(() => {
     // Auto-login anonymously to enable Firestore writes if not authenticated
+    // This is useful for student portal check-ins and logs when not fully logged in via email
     if (firebaseAuth) {
       signInAnonymously(firebaseAuth).catch(err => {
-        // Silent specific restricted operation error common in semi-provisioned environments
-        if (err.code !== 'auth/admin-restricted-operation') {
-          console.error("Auth error:", err);
+        // Silent specific errors that are expected in restricted environments
+        const silentErrors = [
+          'auth/admin-restricted-operation',
+          'auth/operation-not-allowed',
+          'auth/configuration-not-found'
+        ];
+        if (!silentErrors.includes(err.code)) {
+          console.warn("Auth initialization note:", err.message);
         }
       });
     }

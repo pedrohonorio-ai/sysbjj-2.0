@@ -24,7 +24,7 @@ const StudentPortal: React.FC = () => {
   const { code } = useParams();
   const navigate = useNavigate();
   const { t, tObj } = useTranslation();
-  const { students, recordAttendance, gallery, payments, addGalleryImage, addReceipt, completeRuleLesson } = useData();
+  const { students, recordAttendance, gallery, payments, addGalleryImage, addReceipt, completeRuleLesson, logs } = useData();
   const { profile } = useProfile();
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState<'home' | 'training' | 'knowledge' | 'community' | 'wallet' | 'gallery'>('home');
@@ -41,6 +41,17 @@ const StudentPortal: React.FC = () => {
   const [medicalFile, setMedicalFile] = useState<string | null>(null);
   const [medicalIssueDate, setMedicalIssueDate] = useState(new Date().toISOString().split('T')[0]);
   const { updateStudent } = useData();
+
+  const calculateAge = (birthDate: string) => {
+    const today = new Date();
+    const birth = new Date(birthDate);
+    let age = today.getFullYear() - birth.getFullYear();
+    const m = today.getMonth() - birth.getMonth();
+    if (m < 0 || (m === 0 && today.getDate() < birth.getDate())) {
+      age--;
+    }
+    return age;
+  };
 
   const student = useMemo(() => students.find(s => s.portalAccessCode === code), [students, code]);
 
@@ -227,19 +238,42 @@ const StudentPortal: React.FC = () => {
         const d = new Date(a.date);
         return d.getMonth() === rankingMonthFilter && d.getFullYear() === rankingYearFilter;
       }).length || 0;
-      return { id: s.id, name: s.name, count, belt: s.belt };
-    }).sort((a, b) => b.count - a.count).slice(0, 50);
+      return { id: s.id, name: s.name, count, belt: s.belt, rewardPoints: s.rewardPoints || 0 };
+    }).sort((a, b) => b.count - a.count || b.rewardPoints - a.rewardPoints).slice(0, 50);
 
     const annual = filteredStudents.map(s => {
       const count = s.attendanceHistory?.filter(a => {
         const d = new Date(a.date);
         return d.getFullYear() === rankingYearFilter;
       }).length || 0;
-      return { id: s.id, name: s.name, count, belt: s.belt };
-    }).sort((a, b) => b.count - a.count).slice(0, 50);
+      return { id: s.id, name: s.name, count, belt: s.belt, rewardPoints: s.rewardPoints || 0 };
+    }).sort((a, b) => b.count - a.count || b.rewardPoints - a.rewardPoints).slice(0, 50);
 
     return { monthly, annual };
   }, [students, rankingBeltFilter, rankingClassFilter, rankingMonthFilter, rankingYearFilter]);
+
+  const activityFeed = useMemo(() => {
+    return logs
+      .filter(log => 
+        log.action.includes('Check-in') || 
+        log.action.includes('Graduou') || 
+        log.action.includes('Quiz')
+      )
+      .sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime())
+      .slice(0, 10);
+  }, [logs]);
+
+  const schoolAverageXP = useMemo(() => {
+    if (students.length === 0) return 0;
+    const totalXP = students.reduce((acc, s) => acc + (s.rewardPoints || 0), 0);
+    return Math.round(totalXP / students.length);
+  }, [students]);
+
+  const userRankPercentile = useMemo(() => {
+    if (!student || students.length === 0) return 100;
+    const higherThan = students.filter(s => (s.rewardPoints || 0) < (student.rewardPoints || 0)).length;
+    return Math.round(100 - (higherThan / students.length) * 100);
+  }, [students, student]);
 
   const hasPaidCurrentMonth = useMemo(() => {
     if (!student) return false;
@@ -340,17 +374,6 @@ const StudentPortal: React.FC = () => {
     }
   };
 
-  const calculateAge = (birthDate: string) => {
-    const today = new Date();
-    const birth = new Date(birthDate);
-    let age = today.getFullYear() - birth.getFullYear();
-    const m = today.getMonth() - birth.getMonth();
-    if (m < 0 || (m === 0 && today.getDate() < birth.getDate())) {
-      age--;
-    }
-    return age;
-  };
-
   useEffect(() => {
     let scanner: Html5QrcodeScanner | null = null;
     if (showScanner) {
@@ -436,7 +459,10 @@ const StudentPortal: React.FC = () => {
                 </div>
                 <div className="p-4 bg-white/5 rounded-2xl border border-white/10 flex flex-col justify-center">
                   <span className="text-[7px] font-black text-slate-500 uppercase tracking-widest block mb-1">XP ACUMULADO</span>
-                  <p className="text-xl font-black text-amber-500 tabular-nums">{student.rewardPoints || 0} pts</p>
+                  <div className="flex items-baseline gap-2">
+                    <p className="text-xl font-black text-amber-500 tabular-nums">{student.rewardPoints || 0}</p>
+                    <span className="text-[8px] font-black text-slate-500 uppercase">{t('portal.percentile', { percent: userRankPercentile })}</span>
+                  </div>
                 </div>
               </div>
             </div>
@@ -459,10 +485,10 @@ const StudentPortal: React.FC = () => {
               </div>
               <div className="bg-white dark:bg-slate-900 p-5 rounded-[2rem] border border-slate-200 dark:border-slate-800 text-center flex flex-col items-center group active:scale-95 transition-all">
                 <div className="w-10 h-10 rounded-xl bg-emerald-50 dark:bg-emerald-900/20 text-emerald-600 mb-3 flex items-center justify-center group-hover:scale-110 transition-transform">
-                  <ShieldCheck size={20} />
+                  <Star size={20} />
                 </div>
-                <p className="text-[8px] font-black text-slate-400 uppercase tracking-widest mb-1">{t('portal.rank')}</p>
-                <p className="text-lg font-black text-emerald-500 tabular-nums">#{rankingData.monthly.findIndex(r => r.id === student.id) + 1 || '--'}</p>
+                <p className="text-[8px] font-black text-slate-400 uppercase tracking-widest mb-1">{t('portal.schoolAverage')}</p>
+                <p className="text-lg font-black text-emerald-500 tabular-nums">{schoolAverageXP}</p>
               </div>
             </div>
 
@@ -804,27 +830,64 @@ const StudentPortal: React.FC = () => {
                   <Cake size={16} /> {t('portal.birthdaysTitle')}
                 </h3>
                 
-                <div className="space-y-4">
+                <div className="flex gap-4 overflow-x-auto pb-4 scrollbar-hide">
                   {monthlyBirthdays.map(b => (
-                    <div key={b.id} className="flex items-center justify-between bg-white/10 p-4 rounded-2xl border border-white/10 backdrop-blur-sm">
-                      <div className="flex items-center gap-4">
-                        <div className="w-10 h-10 rounded-xl bg-white/20 flex items-center justify-center text-xs font-black border border-white/30">{b.name[0]}</div>
-                        <div>
-                          <p className="text-sm font-black uppercase tracking-tight">{b.name}</p>
-                          <p className="text-[9px] font-bold opacity-70 uppercase tracking-widest">{t('portal.birthdayWishes')}</p>
-                        </div>
+                    <div key={b.id} className="min-w-[140px] bg-white/10 p-5 rounded-3xl border border-white/10 backdrop-blur-sm flex flex-col items-center text-center">
+                      <div className="w-12 h-12 rounded-2xl bg-white/20 flex items-center justify-center text-lg font-black border border-white/30 mb-3">
+                        {b.name[0]}
                       </div>
-                      <div className="text-right">
-                        <p className="text-lg font-black tracking-tight">{new Date(b.birthDate).getUTCDate()}/{new Date(b.birthDate).getUTCMonth() + 1}</p>
-                      </div>
+                      <p className="text-[10px] font-black uppercase tracking-tight line-clamp-1">{b.name}</p>
+                      <p className="text-[14px] font-black tracking-tight mt-1">{new Date(b.birthDate).getUTCDate()}/{new Date(b.birthDate).getUTCMonth() + 1}</p>
                     </div>
                   ))}
                   {monthlyBirthdays.length === 0 && (
-                    <div className="text-center py-6 border-2 border-dashed border-white/20 rounded-3xl">
+                    <div className="w-full text-center py-6 border-2 border-dashed border-white/20 rounded-3xl">
                        <p className="text-[10px] font-black uppercase tracking-widest opacity-60">Nenhum guerreiro assopra velas este mês.</p>
                     </div>
                   )}
                 </div>
+              </div>
+            </div>
+
+            {/* Dojo Activity Feed */}
+            <div className="bg-white dark:bg-slate-900 rounded-[2.5rem] p-8 border border-slate-200 dark:border-slate-800 shadow-sm space-y-6">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <TrendingUp size={20} className="text-blue-500" />
+                  <h3 className="text-sm font-black text-slate-900 dark:text-white uppercase tracking-tighter leading-none">{t('portal.activityLog')}</h3>
+                </div>
+                <span className="text-[8px] font-black text-slate-400 uppercase tracking-widest">{t('portal.live')}</span>
+              </div>
+
+              <div className="space-y-4">
+                {activityFeed.map((log, idx) => (
+                  <div key={idx} className="flex gap-4 group">
+                    <div className="relative">
+                      <div className={`w-8 h-8 rounded-xl flex items-center justify-center shrink-0 ${
+                        log.action.includes('Check-in') ? 'bg-blue-100 text-blue-600' : 'bg-amber-100 text-amber-600'
+                      }`}>
+                        {log.action.includes('Check-in') ? <Check size={16} /> : <Trophy size={16} />}
+                      </div>
+                      {idx !== activityFeed.length - 1 && (
+                        <div className="absolute top-8 bottom-[-16px] left-1/2 w-px bg-slate-100 dark:bg-slate-800 -translate-x-1/2" />
+                      )}
+                    </div>
+                    <div className="flex-1 pb-4">
+                      <div className="flex justify-between items-start">
+                        <p className="text-[10px] font-black text-slate-900 dark:text-white uppercase leading-none">
+                          {log.details.split(':')[0] || t('portal.warrior')}
+                        </p>
+                        <span className="text-[8px] text-slate-400 font-bold uppercase">{new Date(log.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
+                      </div>
+                      <p className="text-[9px] text-slate-500 dark:text-slate-400 mt-1 font-medium italic">
+                        {log.action}
+                      </p>
+                    </div>
+                  </div>
+                ))}
+                {activityFeed.length === 0 && (
+                  <p className="text-[10px] text-slate-400 text-center italic py-4">{t('portal.noActivity')}</p>
+                )}
               </div>
             </div>
 
@@ -1355,11 +1418,11 @@ const StudentPortal: React.FC = () => {
 
       <nav className="fixed bottom-0 left-0 right-0 bg-white/80 dark:bg-slate-900/80 backdrop-blur-lg border-t border-slate-200 dark:border-slate-800 px-2 py-4 flex items-center justify-around z-50">
         <button onClick={() => setActiveTab('home')} className={`flex flex-col items-center gap-1 ${activeTab === 'home' ? 'text-blue-600' : 'text-slate-400'}`}><Zap size={22} /><span className="text-[7px] font-black uppercase whitespace-nowrap">{t('portal.navHome')}</span></button>
-        <button onClick={() => setActiveTab('training')} className={`flex flex-col items-center gap-1 ${activeTab === 'training' ? 'text-blue-600' : 'text-slate-400'}`}><Play size={22} /><span className="text-[7px] font-black uppercase whitespace-nowrap">TREINO</span></button>
-        <button onClick={() => setActiveTab('knowledge')} className={`flex flex-col items-center gap-1 ${activeTab === 'knowledge' ? 'text-blue-600' : 'text-slate-400'}`}><BookOpen size={22} /><span className="text-[7px] font-black uppercase whitespace-nowrap">ACADEMIA</span></button>
-        <button onClick={() => setActiveTab('community')} className={`flex flex-col items-center gap-1 ${activeTab === 'community' ? 'text-blue-600' : 'text-slate-400'}`}><Users size={22} /><span className="text-[7px] font-black uppercase whitespace-nowrap">SOCIAL</span></button>
-        <button onClick={() => setActiveTab('wallet')} className={`flex flex-col items-center gap-1 ${activeTab === 'wallet' ? 'text-blue-600' : 'text-slate-400'}`}><CreditCard size={22} /><span className="text-[7px] font-black uppercase whitespace-nowrap">CARTEIRA</span></button>
-        <button onClick={() => setActiveTab('gallery')} className={`flex flex-col items-center gap-1 ${activeTab === 'gallery' ? 'text-blue-600' : 'text-slate-400'}`}><ImageIcon size={22} /><span className="text-[7px] font-black uppercase whitespace-nowrap">MÍDIA</span></button>
+        <button onClick={() => setActiveTab('training')} className={`flex flex-col items-center gap-1 ${activeTab === 'training' ? 'text-blue-600' : 'text-slate-400'}`}><Play size={22} /><span className="text-[7px] font-black uppercase whitespace-nowrap">{t('portal.navTraining')}</span></button>
+        <button onClick={() => setActiveTab('knowledge')} className={`flex flex-col items-center gap-1 ${activeTab === 'knowledge' ? 'text-blue-600' : 'text-slate-400'}`}><BookOpen size={22} /><span className="text-[7px] font-black uppercase whitespace-nowrap">{t('portal.navKnowledge')}</span></button>
+        <button onClick={() => setActiveTab('community')} className={`flex flex-col items-center gap-1 ${activeTab === 'community' ? 'text-blue-600' : 'text-slate-400'}`}><Users size={22} /><span className="text-[7px] font-black uppercase whitespace-nowrap">{t('portal.navCommunity')}</span></button>
+        <button onClick={() => setActiveTab('wallet')} className={`flex flex-col items-center gap-1 ${activeTab === 'wallet' ? 'text-blue-600' : 'text-slate-400'}`}><CreditCard size={22} /><span className="text-[7px] font-black uppercase whitespace-nowrap">{t('portal.navWallet')}</span></button>
+        <button onClick={() => setActiveTab('gallery')} className={`flex flex-col items-center gap-1 ${activeTab === 'gallery' ? 'text-blue-600' : 'text-slate-400'}`}><ImageIcon size={22} /><span className="text-[7px] font-black uppercase whitespace-nowrap">{t('portal.navGallery')}</span></button>
       </nav>
 
       <style>{` @keyframes scan { 0% { transform: translateY(-150px); } 100% { transform: translateY(150px); } } `}</style>
