@@ -8,7 +8,8 @@ import {
   QrCode, Clock, Info, Camera, CheckCircle2, AlertTriangle, X, Copy, Image as ImageIcon, Download, Maximize2,
   RefreshCw, FileText, Upload, ShieldCheck, AlertCircle, ShieldAlert, ChevronRight,
   Map, Star, Users2, Medal, Presentation, ClipboardCheck, GraduationCap, Check,
-  CreditCard, Video, ExternalLink, MessageSquare, Cake, TrendingUp, Users
+  CreditCard, Video, ExternalLink, MessageSquare, Cake, TrendingUp, Users,
+  Target
 } from 'lucide-react';
 import { Html5QrcodeScanner } from 'html5-qrcode';
 import { useTranslation } from '../contexts/LanguageContext';
@@ -18,7 +19,6 @@ import { StudentStatus, GalleryImage, BeltColor, KidsBeltColor } from '../types'
 import { BELT_COLORS, IBJJF_BELT_RULES } from '../constants';
 import { IBJJF_LESSONS, RuleLesson, RuleScenario } from '../constants/rulesData';
 import ReactMarkdown from 'react-markdown';
-import * as Icons from 'lucide-react';
 
 const StudentPortal: React.FC = () => {
   const { code } = useParams();
@@ -722,7 +722,7 @@ const StudentPortal: React.FC = () => {
                         <div key={m.id} className="flex items-center gap-2 px-3 py-2 bg-slate-50 dark:bg-slate-800/80 rounded-2xl border border-slate-100 dark:border-slate-700/50">
                           {m.type === 'Seminar' && <Users size={12} className="text-amber-500" />}
                           {m.type === 'Competition' && <Medal size={12} className="text-blue-500" />}
-                          {m.type === 'Course' && <Icons.Book size={12} className="text-purple-500" />}
+                          {m.type === 'Course' && <BookOpen size={12} className="text-purple-500" />}
                           {m.type === 'Other' && <Star size={12} className="text-slate-400" />}
                           <div className="flex flex-col">
                             <span className="text-[9px] font-black text-slate-900 dark:text-white uppercase leading-none">{m.title}</span>
@@ -945,8 +945,16 @@ const StudentPortal: React.FC = () => {
 
                   <div className="grid grid-cols-1 gap-4">
                     {IBJJF_LESSONS.map((lesson) => {
+                      const iconMap: Record<string, any> = {
+                        Trophy,
+                        ShieldCheck,
+                        AlertTriangle,
+                        BookOpen,
+                        Zap,
+                        Target
+                      };
+                      const IconComponent = iconMap[lesson.icon] || BookOpen;
                       const isCompleted = student.completedRuleLessons?.includes(lesson.id);
-                      const IconComponent = (Icons as any)[lesson.icon] || Icons.BookOpen;
 
                       return (
                         <motion.button 
@@ -1054,7 +1062,7 @@ const StudentPortal: React.FC = () => {
                         <div className="flex items-center justify-between">
                           <div className="flex items-center gap-3">
                             <div className={`p-2 rounded-lg ${quizMode ? 'bg-blue-100 text-blue-600' : 'bg-amber-100 text-amber-600'}`}>
-                              {quizMode ? <Shield size={16} /> : <Icons.Target size={16} />}
+                              {quizMode ? <Shield size={16} /> : <Target size={16} />}
                             </div>
                             <h4 className="text-[11px] font-black text-slate-900 dark:text-white uppercase tracking-tight">
                               {quizMode ? t('portal.knowledgeCheck') : `${t('portal.knowledgeCheckShort')} ${currentScenarioIdx + 1}/${currentLesson?.scenarios?.length}`}
