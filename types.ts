@@ -330,10 +330,21 @@ export interface Student {
   cons?: string;
   photoUrl?: string;
   emergencyContact?: string;
+  emergencyPhone?: string;
   medicalConditions?: string;
   address?: string;
+  city?: string;
+  state?: string;
+  zipCode?: string;
   bloodType?: string;
   responsiblePerson?: string;
+  responsibleCpf?: string;
+  civilStatus?: string;
+  occupation?: string;
+  nationality?: string;
+  rgIssuer?: string;
+  lgpdConsent?: boolean;
+  contractUrl?: string;
   attendanceHistory?: AttendanceRecord[];
   billingPaused?: boolean;
   completedRuleLessons?: string[];
@@ -349,6 +360,7 @@ export interface Student {
   positionVideos?: PositionVideo[];
   milestones?: Milestone[];
   examRequirements?: Record<string, boolean>;
+  lastAttendanceDate?: string;
 }
 
 export interface SystemLog {

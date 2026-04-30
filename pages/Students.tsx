@@ -42,21 +42,41 @@ import { useData } from '../contexts/DataContext';
 import { calculateCBJJCategory, calculateWeightClass } from '../services/cbjj';
 import { compressImage } from '../services/imageUtils';
 
+const formatCPF = (value: string) => {
+  return value
+    .replace(/\D/g, '')
+    .replace(/(\d{3})(\d)/, '$1.$2')
+    .replace(/(\d{3})(\d)/, '$1.$2')
+    .replace(/(\d{3})(\d{1,2})/, '$1-$2')
+    .replace(/(-\d{2})\d+?$/, '$1');
+};
+
+const formatPhone = (value: string) => {
+  return value
+    .replace(/\D/g, '')
+    .replace(/(\d{2})(\d)/, '($1) $2')
+    .replace(/(\d{5})(\d)/, '$1-$2')
+    .replace(/(-\d{4})\d+?$/, '$1');
+};
+
 const NewStudentModal = ({ onClose, defaultIsKid }: { onClose: () => void, defaultIsKid: boolean }) => {
   const { t } = useTranslation();
   const { addStudent, schedules } = useData();
   const [error, setError] = useState<string | null>(null);
+  const [activeTab, setActiveTab] = useState<'basics' | 'legal' | 'technical' | 'health'>('basics');
+  
   const [formData, setFormData] = useState({
     name: '',
     nickname: '',
     email: '',
     phone: '',
-    birthDate: '1990-01-01',
+    birthDate: new Date(new Date().getFullYear() - (defaultIsKid ? 10 : 25), 0, 1).toISOString().split('T')[0],
     gender: Gender.MALE,
     cpf: '',
     rg: '',
-    weight: 70,
-    height: 1.70,
+    rgIssuer: '',
+    weight: defaultIsKid ? 40 : 75,
+    height: defaultIsKid ? 1.40 : 1.75,
     federationId: '',
     category: CBJJCategory.ADULTO,
     weightClass: 'Pena',
@@ -73,10 +93,19 @@ const NewStudentModal = ({ onClose, defaultIsKid }: { onClose: () => void, defau
     cons: '',
     photoUrl: '',
     emergencyContact: '',
+    emergencyPhone: '',
     medicalConditions: '',
     address: '',
+    city: '',
+    state: '',
+    zipCode: '',
     bloodType: '',
     responsiblePerson: '',
+    responsibleCpf: '',
+    civilStatus: '',
+    occupation: '',
+    nationality: 'Brasileiro',
+    lgpdConsent: true,
     classId: ''
   });
 
@@ -100,27 +129,22 @@ const NewStudentModal = ({ onClose, defaultIsKid }: { onClose: () => void, defau
     setFormData(prev => ({
       ...prev,
       category,
-      weightClass,
-      belt: prev.isKid ? KidsBeltColor.WHITE : BeltColor.WHITE
+      weightClass
     }));
-  }, [formData.birthDate, formData.gender, formData.weight, formData.isKid]);
+  }, [formData.birthDate, formData.gender, formData.weight]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError(null);
     
-    // Email and Domain validation
-    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    if (!emailRegex.test(formData.email)) {
-      setError(t('students.invalidEmail'));
+    if (!formData.lgpdConsent) {
+      setError("O consentimento LGPD é obrigatório para o cadastro.");
       return;
     }
 
-    const domain = formData.email.split('@')[1].toLowerCase();
-    const disallowedDomains = ['tempmail.com', 'trashmail.com', 'guerrillamail.com', 'yopmail.com', 'mailinator.com'];
-    
-    if (disallowedDomains.includes(domain)) {
-      setError(t('students.disallowedDomain'));
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (formData.email && !emailRegex.test(formData.email)) {
+      setError(t('students.invalidEmail'));
       return;
     }
 
@@ -147,335 +171,480 @@ const NewStudentModal = ({ onClose, defaultIsKid }: { onClose: () => void, defau
 
   return (
     <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-md z-[110] flex items-center justify-center p-4">
-      <div className="bg-white dark:bg-slate-900 rounded-[2.5rem] shadow-2xl w-full max-w-2xl border border-slate-200 dark:border-slate-800 p-8 sm:p-10 animate-in zoom-in-95 duration-300 max-h-[90vh] overflow-y-auto scrollbar-hide">
-        <div className="flex items-center justify-between mb-8">
-          <h2 className="text-3xl font-black text-slate-900 dark:text-white uppercase tracking-tighter leading-none">
-            {formData.isKid ? t('students.newKidTitle') : t('students.newStudentTitle')}
-          </h2>
-          <button onClick={onClose} className="p-2 text-slate-400 hover:text-red-600 transition-colors">
-            <X size={28} />
-          </button>
+      <div className="bg-white dark:bg-slate-900 rounded-[2.5rem] shadow-2xl w-full max-w-2xl border border-slate-200 dark:border-slate-800 flex flex-col animate-in zoom-in-95 duration-300 max-h-[90vh] overflow-hidden">
+        <div className="p-8 sm:p-10 pb-0 shrink-0">
+          <div className="flex items-center justify-between mb-6">
+            <div>
+              <h2 className="text-3xl font-black text-slate-900 dark:text-white uppercase tracking-tighter leading-none">
+                {formData.isKid ? t('students.newKidTitle') : t('students.newStudentTitle')}
+              </h2>
+              <p className="text-[10px] font-bold text-slate-400 uppercase tracking-[0.2em] mt-2">
+                {activeTab.toUpperCase()} | {formData.isKid ? 'Kids' : 'Adult'}
+              </p>
+            </div>
+            <button onClick={onClose} className="p-2 text-slate-400 hover:text-red-600 transition-colors">
+              <X size={28} />
+            </button>
+          </div>
+
+          <div className="flex gap-2 mb-6 overflow-x-auto scrollbar-hide pb-2">
+            <button 
+              onClick={() => setActiveTab('basics')}
+              className={`px-4 py-2 rounded-xl text-[9px] font-black uppercase tracking-widest transition-all ${activeTab === 'basics' ? 'bg-blue-600 text-white shadow-lg shadow-blue-500/30' : 'bg-slate-100 dark:bg-slate-800 text-slate-400'}`}
+            >
+              {t('students.overviewTab')}
+            </button>
+            <button 
+              onClick={() => setActiveTab('technical')}
+              className={`px-4 py-2 rounded-xl text-[9px] font-black uppercase tracking-widest transition-all ${activeTab === 'technical' ? 'bg-blue-600 text-white shadow-lg shadow-blue-500/30' : 'bg-slate-100 dark:bg-slate-800 text-slate-400'}`}
+            >
+              {t('students.technicalTab')}
+            </button>
+            <button 
+              onClick={() => setActiveTab('legal')}
+              className={`px-4 py-2 rounded-xl text-[9px] font-black uppercase tracking-widest transition-all ${activeTab === 'legal' ? 'bg-blue-600 text-white shadow-lg shadow-blue-500/30' : 'bg-slate-100 dark:bg-slate-800 text-slate-400'}`}
+            >
+              {t('common.legalInfo')}
+            </button>
+            <button 
+              onClick={() => setActiveTab('health')}
+              className={`px-4 py-2 rounded-xl text-[9px] font-black uppercase tracking-widest transition-all ${activeTab === 'health' ? 'bg-blue-600 text-white shadow-lg shadow-blue-500/30' : 'bg-slate-100 dark:bg-slate-800 text-slate-400'}`}
+            >
+              {t('common.healthInfo')}
+            </button>
+          </div>
         </div>
 
-        {error && (
-          <div className="mb-6 p-4 bg-red-50 dark:bg-red-900/20 border border-red-100 dark:border-red-900/30 rounded-2xl flex items-center gap-3 text-red-600 dark:text-red-400 text-sm font-bold animate-in fade-in slide-in-from-top-2">
-            <AlertCircle size={20} />
-            {error}
-          </div>
-        )}
-        
-        <form className="grid grid-cols-1 md:grid-cols-2 gap-6" onSubmit={handleSubmit}>
-          {/* Photo Upload Section */}
-            <div className="md:col-span-2 flex flex-col items-center justify-center p-8 bg-slate-50 dark:bg-slate-800 rounded-[2.5rem] border-2 border-dashed border-slate-200 dark:border-slate-700">
-            <div 
-              className="relative w-40 h-40 rounded-[2.5rem] bg-slate-200 dark:bg-slate-700 overflow-hidden cursor-pointer group shadow-xl"
-              onClick={() => fileInputRef.current?.click()}
-            >
-              {formData.photoUrl ? (
-                <img src={formData.photoUrl} alt="Preview" className="w-full h-full object-cover" />
-              ) : (
-                <div className="w-full h-full flex items-center justify-center text-slate-400">
-                  <Camera size={48} />
-                </div>
-              )}
-              <div className="absolute inset-0 bg-black/40 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
-                <p className="text-[11px] font-black text-white uppercase tracking-widest">{t('common.uploadPhoto')}</p>
-              </div>
-            </div>
-            <p className="text-[11px] font-black text-slate-400 uppercase tracking-widest mt-6">{t('common.photo')}</p>
-            <input 
-              type="file" 
-              ref={fileInputRef} 
-              className="hidden" 
-              accept="image/*" 
-              onChange={handlePhotoUpload}
-            />
-          </div>
-
-          <div className="md:col-span-2 space-y-2">
-            <label className="text-xs font-black text-slate-400 uppercase tracking-widest ml-1">{t('common.name')}</label>
-            <input 
-              type="text" 
-              className="w-full px-6 py-4 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-2xl outline-none focus:ring-2 focus:ring-blue-600 dark:text-white font-bold" 
-              required 
-              value={formData.name}
-              onChange={e => setFormData({...formData, name: e.target.value})}
-            />
-          </div>
-
-          <div className="md:col-span-2 space-y-2">
-            <label className="text-xs font-black text-slate-400 uppercase tracking-widest ml-1">E-mail</label>
-            <input 
-              type="email" 
-              placeholder="aluno@email.com"
-              className="w-full px-6 py-4 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-2xl outline-none focus:ring-2 focus:ring-blue-600 dark:text-white font-bold" 
-              required 
-              value={formData.email}
-              onChange={e => setFormData({...formData, email: e.target.value})}
-            />
-          </div>
-
-          <div className="space-y-2">
-            <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">{t('common.birthDate')}</label>
-            <input 
-              type="date" 
-              className="w-full px-5 py-3.5 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-2xl outline-none focus:ring-2 focus:ring-blue-600 dark:text-white font-bold" 
-              value={formData.birthDate}
-              onChange={e => setFormData({...formData, birthDate: e.target.value})}
-            />
-          </div>
-
-          <div className="space-y-2">
-            <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">{t('students.lastPromotion')}</label>
-            <input 
-              type="date" 
-              className="w-full px-5 py-3.5 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-2xl outline-none focus:ring-2 focus:ring-blue-600 dark:text-white font-bold" 
-              value={formData.lastPromotionDate}
-              onChange={e => setFormData({...formData, lastPromotionDate: e.target.value})}
-            />
-          </div>
-
-          <div className="space-y-2">
-            <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">{t('common.phone')}</label>
-            <input 
-              type="text" 
-              className="w-full px-5 py-3.5 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-2xl outline-none focus:ring-2 focus:ring-blue-600 dark:text-white font-bold" 
-              value={formData.phone}
-              onChange={e => setFormData({...formData, phone: e.target.value})}
-            />
-          </div>
-
-          <div className="space-y-2">
-            <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">{t('common.gender')}</label>
-            <select 
-              className="w-full px-5 py-3.5 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-2xl outline-none focus:ring-2 focus:ring-blue-600 dark:text-white appearance-none font-bold"
-              value={formData.gender}
-              onChange={e => setFormData({...formData, gender: e.target.value as Gender})}
-            >
-              {Object.values(Gender).map(v => (
-                <option key={v} value={v}>{v}</option>
-              ))}
-            </select>
-          </div>
-
-          <div className="space-y-2">
-            <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">CPF</label>
-            <input 
-              type="text" 
-              className="w-full px-5 py-3.5 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-2xl outline-none focus:ring-2 focus:ring-blue-600 dark:text-white font-bold" 
-              value={formData.cpf}
-              onChange={e => setFormData({...formData, cpf: e.target.value})}
-            />
-          </div>
-
-          <div className="space-y-2">
-            <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">RG</label>
-            <input 
-              type="text" 
-              className="w-full px-5 py-3.5 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-2xl outline-none focus:ring-2 focus:ring-blue-600 dark:text-white font-bold" 
-              value={formData.rg}
-              onChange={e => setFormData({...formData, rg: e.target.value})}
-            />
-          </div>
-
-          <div className="md:col-span-2 space-y-2">
-            <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">{t('common.address')}</label>
-            <div className="relative">
-              <MapPin className="absolute left-5 top-1/2 -translate-y-1/2 text-slate-400" size={18} />
-              <input 
-                type="text" 
-                className="w-full pl-14 pr-6 py-4 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-2xl outline-none focus:ring-2 focus:ring-blue-600 dark:text-white font-bold" 
-                value={formData.address}
-                onChange={e => setFormData({...formData, address: e.target.value})}
-              />
-            </div>
-          </div>
-
-          <div className="space-y-2">
-            <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">{t('common.emergencyContact')}</label>
-            <div className="relative">
-              <UserPlus className="absolute left-5 top-1/2 -translate-y-1/2 text-slate-400" size={18} />
-              <input 
-                type="text" 
-                className="w-full pl-14 pr-6 py-4 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-2xl outline-none focus:ring-2 focus:ring-blue-600 dark:text-white font-bold" 
-                value={formData.emergencyContact}
-                onChange={e => setFormData({...formData, emergencyContact: e.target.value})}
-              />
-            </div>
-          </div>
-
-          <div className="space-y-2">
-            <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">{t('common.medicalConditions')}</label>
-            <div className="relative">
-              <HeartPulse className="absolute left-5 top-1/2 -translate-y-1/2 text-slate-400" size={18} />
-              <input 
-                type="text" 
-                className="w-full pl-14 pr-6 py-4 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-2xl outline-none focus:ring-2 focus:ring-blue-600 dark:text-white font-bold" 
-                value={formData.medicalConditions}
-                onChange={e => setFormData({...formData, medicalConditions: e.target.value})}
-              />
-            </div>
-          </div>
-
-          <div className="space-y-2">
-            <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">{t('common.bloodType')}</label>
-            <input 
-              type="text" 
-              className="w-full px-5 py-3.5 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-2xl outline-none focus:ring-2 focus:ring-blue-600 dark:text-white font-bold" 
-              value={formData.bloodType}
-              onChange={e => setFormData({...formData, bloodType: e.target.value})}
-            />
-          </div>
-
-          {formData.isKid && (
-            <div className="md:col-span-2 space-y-2">
-              <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">{t('common.responsiblePerson')}</label>
-              <input 
-                type="text" 
-                className="w-full px-5 py-3.5 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-2xl outline-none focus:ring-2 focus:ring-blue-600 dark:text-white font-bold" 
-                value={formData.responsiblePerson}
-                onChange={e => setFormData({...formData, responsiblePerson: e.target.value})}
-              />
+        <div className="flex-1 overflow-y-auto p-8 sm:p-10 pt-0 scrollbar-hide">
+          {error && (
+            <div className="mb-6 p-4 bg-red-50 dark:bg-red-900/20 border border-red-100 dark:border-red-900/30 rounded-2xl flex items-center gap-3 text-red-600 dark:text-red-400 text-sm font-bold animate-in fade-in slide-in-from-top-2">
+              <AlertCircle size={20} />
+              {error}
             </div>
           )}
+          
+          <form className="space-y-6" onSubmit={handleSubmit}>
+            {activeTab === 'basics' && (
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6 animate-in fade-in slide-in-from-right-4 duration-300">
+                <div className="md:col-span-2 flex flex-col items-center justify-center p-6 bg-slate-50 dark:bg-slate-800 rounded-[2.5rem] border-2 border-dashed border-slate-200 dark:border-slate-700">
+                  <div 
+                    className="relative w-32 h-32 rounded-[2rem] bg-slate-200 dark:bg-slate-700 overflow-hidden cursor-pointer group shadow-xl"
+                    onClick={() => fileInputRef.current?.click()}
+                  >
+                    {formData.photoUrl ? (
+                      <img src={formData.photoUrl} alt="Preview" className="w-full h-full object-cover" />
+                    ) : (
+                      <div className="w-full h-full flex items-center justify-center text-slate-400">
+                        <Camera size={40} />
+                      </div>
+                    )}
+                    <div className="absolute inset-0 bg-black/40 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
+                      <p className="text-[10px] font-black text-white uppercase tracking-widest">{t('common.uploadPhoto')}</p>
+                    </div>
+                  </div>
+                  <input type="file" ref={fileInputRef} className="hidden" accept="image/*" onChange={handlePhotoUpload} />
+                </div>
 
-          <div className="space-y-2">
-            <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">{t('common.weight')} (kg)</label>
-            <input 
-              type="number" 
-              step="0.1"
-              className="w-full px-5 py-3.5 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-2xl outline-none focus:ring-2 focus:ring-blue-600 dark:text-white font-bold" 
-              value={isNaN(formData.weight) ? '' : formData.weight}
-              onChange={e => setFormData({...formData, weight: parseFloat(e.target.value)})}
-            />
-          </div>
+                <div className="md:col-span-2 space-y-2">
+                  <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">{t('common.name')}</label>
+                  <input 
+                    type="text" 
+                    className="w-full px-6 py-4 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-2xl outline-none focus:ring-2 focus:ring-blue-600 dark:text-white font-bold" 
+                    required 
+                    value={formData.name}
+                    onChange={e => setFormData({...formData, name: e.target.value})}
+                  />
+                </div>
 
-          <div className="space-y-2">
-            <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">{t('common.height')} (m)</label>
-            <input 
-              type="number" 
-              step="0.01"
-              className="w-full px-5 py-3.5 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-2xl outline-none focus:ring-2 focus:ring-blue-600 dark:text-white font-bold" 
-              value={isNaN(formData.height) ? '' : formData.height}
-              onChange={e => setFormData({...formData, height: parseFloat(e.target.value)})}
-            />
-          </div>
+                <div className="space-y-2">
+                  <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">{t('common.nickname')}</label>
+                  <input 
+                    type="text" 
+                    className="w-full px-6 py-4 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-2xl outline-none focus:ring-2 focus:ring-blue-600 dark:text-white font-bold" 
+                    value={formData.nickname}
+                    onChange={e => setFormData({...formData, nickname: e.target.value})}
+                  />
+                </div>
 
-          <div className="space-y-2">
-            <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">{t('students.federationIdLabel')}</label>
-            <input 
-              type="text" 
-              className="w-full px-5 py-3.5 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-2xl outline-none focus:ring-2 focus:ring-blue-600 dark:text-white font-bold" 
-              value={formData.federationId}
-              onChange={e => setFormData({...formData, federationId: e.target.value})}
-            />
-          </div>
+                <div className="space-y-2">
+                  <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">{t('common.phone')}</label>
+                  <input 
+                    type="text" 
+                    className="w-full px-6 py-4 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-2xl outline-none focus:ring-2 focus:ring-blue-600 dark:text-white font-bold" 
+                    value={formData.phone}
+                    onChange={e => setFormData({...formData, phone: formatPhone(e.target.value)})}
+                    placeholder="(00) 00000-0000"
+                  />
+                </div>
 
-          <div className="md:col-span-2 space-y-2">
-            <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Turma (Classe)</label>
-            <select 
-              className="w-full px-5 py-3.5 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-2xl outline-none focus:ring-2 focus:ring-blue-600 dark:text-white appearance-none font-bold"
-              value={formData.classId}
-              onChange={e => setFormData({...formData, classId: e.target.value})}
-            >
-              <option value="">Sem Turma Fixa</option>
-              {schedules.map(s => (
-                <option key={s.id} value={s.id}>{s.title} ({s.time})</option>
-              ))}
-            </select>
-          </div>
+                <div className="md:col-span-2 space-y-2">
+                  <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">E-mail</label>
+                  <input 
+                    type="email" 
+                    className="w-full px-6 py-4 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-2xl outline-none focus:ring-2 focus:ring-blue-600 dark:text-white font-bold" 
+                    value={formData.email}
+                    onChange={e => setFormData({...formData, email: e.target.value})}
+                  />
+                </div>
 
-          <div className="md:col-span-2 p-6 bg-blue-50 dark:bg-blue-900/10 rounded-3xl border border-blue-100 dark:border-blue-900/20 grid grid-cols-2 gap-4">
-            <div>
-               <p className="text-[8px] font-black text-blue-600 uppercase tracking-widest mb-1">{t('students.suggestedCategory')}</p>
-               <p className="font-bold text-slate-900 dark:text-white">{formData.category}</p>
+                <div className="space-y-2">
+                  <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">{t('common.birthDate')}</label>
+                  <input 
+                    type="date" 
+                    className="w-full px-6 py-4 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-2xl outline-none focus:ring-2 focus:ring-blue-600 dark:text-white font-bold" 
+                    value={formData.birthDate}
+                    onChange={e => setFormData({...formData, birthDate: e.target.value})}
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">{t('common.gender')}</label>
+                  <select 
+                    className="w-full px-6 py-4 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-2xl outline-none focus:ring-2 focus:ring-blue-600 dark:text-white font-bold appearance-none"
+                    value={formData.gender}
+                    onChange={e => setFormData({...formData, gender: e.target.value as Gender})}
+                  >
+                    <option value={Gender.MALE}>{t('common.male') || 'Masculino'}</option>
+                    <option value={Gender.FEMALE}>{t('common.female') || 'Feminino'}</option>
+                  </select>
+                </div>
+
+                <div className="space-y-2">
+                  <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">{t('common.civilStatus')}</label>
+                  <select 
+                    className="w-full px-6 py-4 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-2xl outline-none focus:ring-2 focus:ring-blue-600 dark:text-white font-bold appearance-none"
+                    value={formData.civilStatus}
+                    onChange={e => setFormData({...formData, civilStatus: e.target.value})}
+                  >
+                    <option value="">{t('common.select')}</option>
+                    <option value="Solteiro(a)">Solteiro(a)</option>
+                    <option value="Casado(a)">Casado(a)</option>
+                    <option value="Divorciado(a)">Divorciado(a)</option>
+                    <option value="Viúvo(a)">Viúvo(a)</option>
+                    <option value="União Estável">União Estável</option>
+                  </select>
+                </div>
+
+                <div className="space-y-2">
+                  <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">{t('common.occupation')}</label>
+                  <input 
+                    type="text" 
+                    className="w-full px-6 py-4 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-2xl outline-none focus:ring-2 focus:ring-blue-600 dark:text-white font-bold" 
+                    value={formData.occupation}
+                    onChange={e => setFormData({...formData, occupation: e.target.value})}
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">{t('common.nationality')}</label>
+                  <input 
+                    type="text" 
+                    className="w-full px-6 py-4 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-2xl outline-none focus:ring-2 focus:ring-blue-600 dark:text-white font-bold" 
+                    value={formData.nationality}
+                    onChange={e => setFormData({...formData, nationality: e.target.value})}
+                  />
+                </div>
+              </div>
+            )}
+
+            {activeTab === 'technical' && (
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6 animate-in fade-in slide-in-from-right-4 duration-300">
+                <div className="space-y-2">
+                  <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">{t('students.currentBelt')}</label>
+                  <select 
+                    className="w-full px-6 py-4 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-2xl outline-none focus:ring-2 focus:ring-blue-600 dark:text-white font-bold appearance-none"
+                    value={formData.belt}
+                    onChange={e => setFormData({...formData, belt: e.target.value as any})}
+                  >
+                    {formData.isKid ? (
+                      Object.values(KidsBeltColor).map(v => (
+                        <option key={v} value={v}>{t(`belts.${v}`)}</option>
+                      ))
+                    ) : (
+                      Object.values(BeltColor).map(v => (
+                        <option key={v} value={v}>{t(`belts.${v}`)}</option>
+                      ))
+                    )}
+                  </select>
+                </div>
+
+                <div className="space-y-2">
+                  <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">{t('students.lastPromotion')}</label>
+                  <input 
+                    type="date" 
+                    className="w-full px-6 py-4 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-2xl outline-none focus:ring-2 focus:ring-blue-600 dark:text-white font-bold" 
+                    value={formData.lastPromotionDate}
+                    onChange={e => setFormData({...formData, lastPromotionDate: e.target.value})}
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">{t('common.weight')} (kg)</label>
+                  <input 
+                    type="number" 
+                    className="w-full px-6 py-4 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-2xl outline-none focus:ring-2 focus:ring-blue-600 dark:text-white font-bold" 
+                    value={formData.weight}
+                    onChange={e => setFormData({...formData, weight: parseFloat(e.target.value)})}
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">{t('common.height')} (m)</label>
+                  <input 
+                    type="number" 
+                    step="0.01"
+                    className="w-full px-6 py-4 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-2xl outline-none focus:ring-2 focus:ring-blue-600 dark:text-white font-bold" 
+                    value={formData.height}
+                    onChange={e => setFormData({...formData, height: parseFloat(e.target.value)})}
+                  />
+                </div>
+
+                <div className="md:col-span-2 p-6 bg-blue-50 dark:bg-blue-900/10 rounded-3xl border border-blue-100 dark:border-blue-900/20 grid grid-cols-2 gap-4">
+                  <div>
+                    <p className="text-[8px] font-black text-blue-600 uppercase tracking-widest mb-1">{t('students.suggestedCategory')}</p>
+                    <p className="font-bold text-slate-900 dark:text-white">{formData.category}</p>
+                  </div>
+                  <div>
+                    <p className="text-[8px] font-black text-blue-600 uppercase tracking-widest mb-1">{t('students.suggestedWeight')}</p>
+                    <p className="font-bold text-slate-900 dark:text-white">{formData.weightClass}</p>
+                  </div>
+                </div>
+
+                <div className="space-y-2">
+                  <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Turma (Classe)</label>
+                  <select 
+                    className="w-full px-6 py-4 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-2xl outline-none focus:ring-2 focus:ring-blue-600 dark:text-white font-bold appearance-none"
+                    value={formData.classId}
+                    onChange={e => setFormData({...formData, classId: e.target.value})}
+                  >
+                    <option value="">Sem Turma Fixa</option>
+                    {schedules.map(s => (
+                      <option key={s.id} value={s.id}>{s.title} ({s.time})</option>
+                    ))}
+                  </select>
+                </div>
+
+                <div className="space-y-2">
+                  <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">{t('common.value')} ({t('common.currencySymbol')})</label>
+                  <input 
+                    type="number" 
+                    className="w-full px-6 py-4 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-2xl outline-none focus:ring-2 focus:ring-blue-600 dark:text-white font-bold" 
+                    value={formData.monthlyValue}
+                    onChange={e => setFormData({...formData, monthlyValue: parseFloat(e.target.value)})}
+                  />
+                </div>
+
+                <div className="md:col-span-2 space-y-4 p-6 bg-slate-50 dark:bg-slate-800 rounded-3xl">
+                  <div className="flex flex-wrap gap-6">
+                    <label className="flex items-center gap-3 cursor-pointer">
+                      <input type="checkbox" checked={formData.isKid} onChange={e => setFormData({...formData, isKid: e.target.checked})} className="w-5 h-5 rounded border-slate-300 text-blue-600" />
+                      <span className="text-[10px] font-black uppercase dark:text-white">{t('common.kids')}</span>
+                    </label>
+                    <label className="flex items-center gap-3 cursor-pointer">
+                      <input type="checkbox" checked={formData.isInstructor} onChange={e => setFormData({...formData, isInstructor: e.target.checked})} className="w-5 h-5 rounded border-slate-300 text-blue-600" />
+                      <span className="text-[10px] font-black uppercase dark:text-white">{t('common.instructor')}</span>
+                    </label>
+                    <label className="flex items-center gap-3 cursor-pointer">
+                      <input type="checkbox" checked={formData.isCompetitor} onChange={e => setFormData({...formData, isCompetitor: e.target.checked})} className="w-5 h-5 rounded border-slate-300 text-blue-600" />
+                      <span className="text-[10px] font-black uppercase dark:text-white">{t('students.isCompetitor')}</span>
+                    </label>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {activeTab === 'legal' && (
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6 animate-in fade-in slide-in-from-right-4 duration-300">
+                <div className="space-y-2">
+                  <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">CPF</label>
+                  <input 
+                    type="text" 
+                    className="w-full px-6 py-4 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-2xl outline-none focus:ring-2 focus:ring-blue-600 dark:text-white font-bold" 
+                    value={formData.cpf}
+                    onChange={e => setFormData({...formData, cpf: formatCPF(e.target.value)})}
+                    placeholder="000.000.000-00"
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">RG</label>
+                  <input 
+                    type="text" 
+                    className="w-full px-6 py-4 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-2xl outline-none focus:ring-2 focus:ring-blue-600 dark:text-white font-bold" 
+                    value={formData.rg}
+                    onChange={e => setFormData({...formData, rg: e.target.value})}
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Órgão Emissor</label>
+                  <input 
+                    type="text" 
+                    className="w-full px-6 py-4 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-2xl outline-none focus:ring-2 focus:ring-blue-600 dark:text-white font-bold" 
+                    value={formData.rgIssuer}
+                    onChange={e => setFormData({...formData, rgIssuer: e.target.value})}
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">CEP</label>
+                  <input 
+                    type="text" 
+                    className="w-full px-6 py-4 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-2xl outline-none focus:ring-2 focus:ring-blue-600 dark:text-white font-bold" 
+                    value={formData.zipCode}
+                    onChange={e => setFormData({...formData, zipCode: e.target.value})}
+                  />
+                </div>
+
+                <div className="md:col-span-2 space-y-2">
+                  <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">{t('common.address')}</label>
+                  <input 
+                    type="text" 
+                    className="w-full px-6 py-4 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-2xl outline-none focus:ring-2 focus:ring-blue-600 dark:text-white font-bold" 
+                    value={formData.address}
+                    onChange={e => setFormData({...formData, address: e.target.value})}
+                    placeholder="Rua, Número, Complemento"
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">{t('common.city')}</label>
+                  <input 
+                    type="text" 
+                    className="w-full px-6 py-4 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-2xl outline-none focus:ring-2 focus:ring-blue-600 dark:text-white font-bold" 
+                    value={formData.city}
+                    onChange={e => setFormData({...formData, city: e.target.value})}
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">{t('common.state')}</label>
+                  <input 
+                    type="text" 
+                    className="w-full px-6 py-4 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-2xl outline-none focus:ring-2 focus:ring-blue-600 dark:text-white font-bold" 
+                    value={formData.state}
+                    onChange={e => setFormData({...formData, state: e.target.value})}
+                    placeholder="Ex: RJ"
+                  />
+                </div>
+
+                {formData.isKid && (
+                  <>
+                    <div className="space-y-2">
+                      <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">{t('common.responsiblePerson')}</label>
+                      <input 
+                        type="text" 
+                        className="w-full px-6 py-4 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-2xl outline-none focus:ring-2 focus:ring-blue-600 dark:text-white font-bold" 
+                        value={formData.responsiblePerson}
+                        onChange={e => setFormData({...formData, responsiblePerson: e.target.value})}
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">{t('common.responsibleCpf')}</label>
+                      <input 
+                        type="text" 
+                        className="w-full px-6 py-4 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-2xl outline-none focus:ring-2 focus:ring-blue-600 dark:text-white font-bold" 
+                        value={formData.responsibleCpf}
+                        onChange={e => setFormData({...formData, responsibleCpf: formatCPF(e.target.value)})}
+                        placeholder="000.000.000-00"
+                      />
+                    </div>
+                  </>
+                )}
+
+                <div className="md:col-span-2 p-6 bg-emerald-50 dark:bg-emerald-900/10 rounded-3xl border border-emerald-100 dark:border-emerald-900/20">
+                  <label className="flex items-center gap-4 cursor-pointer">
+                    <input 
+                      type="checkbox" 
+                      checked={formData.lgpdConsent} 
+                      onChange={e => setFormData({...formData, lgpdConsent: e.target.checked})} 
+                      className="w-6 h-6 rounded border-slate-300 text-emerald-600" 
+                    />
+                    <div className="flex-1">
+                      <p className="text-[10px] font-black uppercase text-emerald-700 dark:text-emerald-400">{t('common.lgpdConsent')}</p>
+                      <p className="text-[9px] text-slate-500 font-medium">Concordo com o armazenamento e processamento dos meus dados pessoais conforme a Lei Geral de Proteção de Dados.</p>
+                    </div>
+                  </label>
+                </div>
+              </div>
+            )}
+
+            {activeTab === 'health' && (
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6 animate-in fade-in slide-in-from-right-4 duration-300">
+                <div className="space-y-2">
+                  <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">{t('common.emergencyContact')}</label>
+                  <input 
+                    type="text" 
+                    className="w-full px-6 py-4 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-2xl outline-none focus:ring-2 focus:ring-blue-600 dark:text-white font-bold" 
+                    value={formData.emergencyContact}
+                    onChange={e => setFormData({...formData, emergencyContact: e.target.value})}
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">{t('common.emergencyPhone')}</label>
+                  <input 
+                    type="text" 
+                    className="w-full px-6 py-4 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-2xl outline-none focus:ring-2 focus:ring-blue-600 dark:text-white font-bold" 
+                    value={formData.emergencyPhone}
+                    onChange={e => setFormData({...formData, emergencyPhone: formatPhone(e.target.value)})}
+                    placeholder="(00) 00000-0000"
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">{t('common.bloodType')}</label>
+                  <select 
+                    className="w-full px-6 py-4 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-2xl outline-none focus:ring-2 focus:ring-blue-600 dark:text-white font-bold appearance-none"
+                    value={formData.bloodType}
+                    onChange={e => setFormData({...formData, bloodType: e.target.value})}
+                  >
+                    <option value="">Selecione</option>
+                    <option value="A+">A+</option>
+                    <option value="A-">A-</option>
+                    <option value="B+">B+</option>
+                    <option value="B-">B-</option>
+                    <option value="AB+">AB+</option>
+                    <option value="AB-">AB-</option>
+                    <option value="O+">O+</option>
+                    <option value="O-">O-</option>
+                  </select>
+                </div>
+
+                <div className="md:col-span-2 space-y-2">
+                  <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">{t('common.medicalConditions')}</label>
+                  <textarea 
+                    className="w-full px-6 py-4 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-2xl outline-none focus:ring-2 focus:ring-blue-600 dark:text-white font-bold min-h-[120px]" 
+                    value={formData.medicalConditions}
+                    onChange={e => setFormData({...formData, medicalConditions: e.target.value})}
+                    placeholder="Ex: Alergias, asma, problemas cardíacos, cirurgias recentes, etc."
+                  />
+                </div>
+              </div>
+            )}
+
+            <div className="flex gap-4 pt-6 border-t border-slate-100 dark:border-slate-800 sticky bottom-0 bg-white dark:bg-slate-900 mt-auto">
+              <button 
+                type="button"
+                onClick={onClose}
+                className="flex-1 py-5 text-slate-400 rounded-[1.5rem] font-black uppercase tracking-[0.2em] text-[10px] transition-all hover:bg-slate-100 dark:hover:bg-slate-800"
+              >
+                {t('common.cancel')}
+              </button>
+              <button type="submit" className={`flex-[2] py-5 text-white rounded-[1.5rem] font-black uppercase tracking-[0.2em] text-[10px] shadow-2xl transition-all active:scale-95 ${formData.isKid ? 'bg-yellow-500 shadow-yellow-500/30' : 'bg-blue-600 shadow-blue-500/30'}`}>
+                {t('students.enrollBtn').toUpperCase()}
+              </button>
             </div>
-            <div>
-               <p className="text-[8px] font-black text-blue-600 uppercase tracking-widest mb-1">{t('students.suggestedWeight')}</p>
-               <p className="font-bold text-slate-900 dark:text-white">{formData.weightClass}</p>
-            </div>
-          </div>
-
-          <div className="space-y-2">
-            <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">{t('students.currentBelt')}</label>
-            <select 
-              className="w-full px-5 py-3.5 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-2xl outline-none focus:ring-2 focus:ring-blue-600 dark:text-white appearance-none font-bold"
-              value={formData.belt}
-              onChange={e => setFormData({...formData, belt: e.target.value as any})}
-            >
-              {formData.isKid ? (
-                Object.values(KidsBeltColor).map(v => (
-                  <option key={v} value={v}>{t(`belts.${v}`)}</option>
-                ))
-              ) : (
-                Object.values(BeltColor).map(v => (
-                  <option key={v} value={v}>{t(`belts.${v}`)}</option>
-                ))
-              )}
-            </select>
-          </div>
-
-          <div className="space-y-2">
-            <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">{t('common.value')} ({t('common.currencySymbol')})</label>
-            <input 
-              type="number" 
-              className="w-full px-5 py-3.5 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-2xl outline-none focus:ring-2 focus:ring-blue-600 dark:text-white font-bold" 
-              value={isNaN(formData.monthlyValue) ? '' : formData.monthlyValue}
-              onChange={e => setFormData({...formData, monthlyValue: e.target.value === '' ? 0 : parseFloat(e.target.value)})}
-            />
-          </div>
-
-          <div className="md:col-span-2 flex items-center gap-6 p-4 bg-slate-50 dark:bg-slate-800 rounded-2xl">
-             <label className="flex items-center gap-3 cursor-pointer">
-                <input 
-                  type="checkbox" 
-                  checked={formData.isKid} 
-                  onChange={e => setFormData({...formData, isKid: e.target.checked})}
-                  className="w-5 h-5 rounded border-slate-300 text-blue-600 focus:ring-blue-500"
-                />
-                <span className="text-xs font-black uppercase dark:text-white">{t('common.kids')}</span>
-             </label>
-             <label className="flex items-center gap-3 cursor-pointer">
-                <input 
-                  type="checkbox" 
-                  checked={formData.isInstructor} 
-                  onChange={e => setFormData({...formData, isInstructor: e.target.checked})}
-                  className="w-5 h-5 rounded border-slate-300 text-blue-600 focus:ring-blue-500"
-                />
-                <span className="text-xs font-black uppercase dark:text-white">{t('common.instructor')}</span>
-             </label>
-             <label className="flex items-center gap-3 cursor-pointer">
-                <input 
-                  type="checkbox" 
-                  checked={formData.isCompetitor} 
-                  onChange={e => setFormData({...formData, isCompetitor: e.target.checked})}
-                  className="w-5 h-5 rounded border-slate-300 text-blue-600 focus:ring-blue-500"
-                />
-                <span className="text-xs font-black uppercase dark:text-white">{t('students.isCompetitor')}</span>
-             </label>
-          </div>
-
-          <div className="md:col-span-2 space-y-2">
-            <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">{t('students.technicalNotes')}</label>
-            <textarea 
-              className="w-full px-6 py-4 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-2xl outline-none focus:ring-2 focus:ring-blue-600 dark:text-white font-bold min-h-[100px]" 
-              value={formData.technicalNotes}
-              onChange={e => setFormData({...formData, technicalNotes: e.target.value})}
-              placeholder="Ex: Pontos fortes, dificuldades, lesões, etc."
-            />
-          </div>
-
-          <button type="submit" className={`md:col-span-2 w-full py-5 text-white rounded-[1.5rem] font-black uppercase tracking-[0.2em] text-xs shadow-2xl transition-all active:scale-95 mt-4 ${formData.isKid ? 'bg-yellow-500 shadow-yellow-500/30' : 'bg-blue-600 shadow-blue-500/30'}`}>
-            {t('students.enrollBtn').toUpperCase()}
-          </button>
-        </form>
+          </form>
+        </div>
       </div>
     </div>
   );
 };
 
 const StudentDetailsModal = ({ student, onClose }: { student: Student; onClose: () => void }) => {
-  const [activeTab, setActiveTab] = useState<'overview' | 'analysis' | 'edit' | 'admin' | 'videos'>('overview');
+  const [activeTab, setActiveTab] = useState<'overview' | 'analysis' | 'edit' | 'admin' | 'videos' | 'financial'>('overview');
+  const [editTab, setEditTab] = useState<'basics' | 'legal' | 'technical' | 'health'>('basics');
   const { t } = useTranslation();
   const { deleteStudent, updateStudent, schedules } = useData();
   const [editPros, setEditPros] = useState(student.pros || '');
@@ -614,6 +783,7 @@ const StudentDetailsModal = ({ student, onClose }: { student: Student; onClose: 
         <div className="flex px-4 sm:px-10 bg-slate-50 dark:bg-slate-800/50 border-b border-slate-200 dark:border-slate-800 overflow-x-auto scrollbar-hide shrink-0">
           <button onClick={() => setActiveTab('overview')} className={`px-4 sm:px-8 py-4 sm:py-6 text-[8px] sm:text-[10px] font-black uppercase tracking-[0.2em] border-b-4 transition-all whitespace-nowrap ${activeTab === 'overview' ? 'border-blue-600 text-blue-600' : 'border-transparent text-slate-400'}`}>{t('students.overviewTab')}</button>
           <button onClick={() => setActiveTab('edit')} className={`px-4 sm:px-8 py-4 sm:py-6 text-[8px] sm:text-[10px] font-black uppercase tracking-[0.2em] border-b-4 transition-all whitespace-nowrap ${activeTab === 'edit' ? 'border-blue-600 text-blue-600' : 'border-transparent text-slate-400'}`}>{t('common.edit').toUpperCase()}</button>
+          <button onClick={() => setActiveTab('financial')} className={`px-4 sm:px-8 py-4 sm:py-6 text-[8px] sm:text-[10px] font-black uppercase tracking-[0.2em] border-b-4 transition-all whitespace-nowrap ${activeTab === 'financial' ? 'border-blue-600 text-blue-600' : 'border-transparent text-slate-400'}`}>{t('students.financialTab')}</button>
           <button onClick={() => setActiveTab('analysis')} className={`px-4 sm:px-8 py-4 sm:py-6 text-[8px] sm:text-[10px] font-black uppercase tracking-[0.2em] border-b-4 transition-all whitespace-nowrap ${activeTab === 'analysis' ? 'border-blue-600 text-blue-600' : 'border-transparent text-slate-400'}`}>{t('students.analysisTab')}</button>
           <button onClick={() => setActiveTab('videos')} className={`px-4 sm:px-8 py-4 sm:py-6 text-[8px] sm:text-[10px] font-black uppercase tracking-[0.2em] border-b-4 transition-all whitespace-nowrap ${activeTab === 'videos' ? 'border-blue-600 text-blue-600' : 'border-transparent text-slate-400'}`}>{t('common.videos')}</button>
           <button onClick={() => setActiveTab('admin')} className={`px-4 sm:px-8 py-4 sm:py-6 text-[8px] sm:text-[10px] font-black uppercase tracking-[0.2em] border-b-4 transition-all whitespace-nowrap ${activeTab === 'admin' ? 'border-blue-600 text-blue-600' : 'border-transparent text-slate-400'}`}>{t('students.adminTab')}</button>
@@ -621,213 +791,325 @@ const StudentDetailsModal = ({ student, onClose }: { student: Student; onClose: 
 
         <div className="p-4 sm:p-10 flex-1 overflow-y-auto bg-white dark:bg-slate-900">
           {activeTab === 'edit' && (
-            <form className="grid grid-cols-1 md:grid-cols-2 gap-6 p-2" onSubmit={handleUpdateRegistration}>
-              <div className="md:col-span-2 space-y-2">
-                <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">{t('common.name')}</label>
-                <input 
-                  type="text" 
-                  className="w-full px-6 py-4 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-2xl outline-none focus:ring-2 focus:ring-blue-600 dark:text-white font-bold" 
-                  required 
-                  value={editFormData.name}
-                  onChange={e => setEditFormData({...editFormData, name: e.target.value})}
-                />
+            <div className="space-y-6">
+              <div className="flex gap-2 pb-4 overflow-x-auto scrollbar-hide">
+                <button onClick={() => setEditTab('basics')} className={`px-4 py-2 rounded-xl text-[9px] font-black uppercase tracking-widest transition-all ${editTab === 'basics' ? 'bg-blue-600 text-white shadow-lg' : 'bg-slate-100 dark:bg-slate-800 text-slate-400'}`}>{t('students.personalTab')}</button>
+                <button onClick={() => setEditTab('legal')} className={`px-4 py-2 rounded-xl text-[9px] font-black uppercase tracking-widest transition-all ${editTab === 'legal' ? 'bg-blue-600 text-white shadow-lg' : 'bg-slate-100 dark:bg-slate-800 text-slate-400'}`}>{t('common.legalInfo')}</button>
+                <button onClick={() => setEditTab('technical')} className={`px-4 py-2 rounded-xl text-[9px] font-black uppercase tracking-widest transition-all ${editTab === 'technical' ? 'bg-blue-600 text-white shadow-lg' : 'bg-slate-100 dark:bg-slate-800 text-slate-400'}`}>{t('students.technicalTab')}</button>
+                <button onClick={() => setEditTab('health')} className={`px-4 py-2 rounded-xl text-[9px] font-black uppercase tracking-widest transition-all ${editTab === 'health' ? 'bg-blue-600 text-white shadow-lg' : 'bg-slate-100 dark:bg-slate-800 text-slate-400'}`}>{t('common.healthInfo')}</button>
               </div>
 
-              <div className="md:col-span-2 space-y-2">
-                <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">E-mail</label>
-                <input 
-                  type="email" 
-                  className="w-full px-6 py-4 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-2xl outline-none focus:ring-2 focus:ring-blue-600 dark:text-white font-bold" 
-                  required 
-                  value={editFormData.email}
-                  onChange={e => setEditFormData({...editFormData, email: e.target.value})}
-                />
-              </div>
+              <form className="animate-in fade-in slide-in-from-right-4" onSubmit={handleUpdateRegistration}>
+                {editTab === 'basics' && (
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div className="md:col-span-2 space-y-2">
+                      <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">{t('common.name')}</label>
+                      <input 
+                        type="text" 
+                        className="w-full px-6 py-4 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-2xl outline-none focus:ring-2 focus:ring-blue-600 dark:text-white font-bold" 
+                        required 
+                        value={editFormData.name}
+                        onChange={e => setEditFormData({...editFormData, name: e.target.value})}
+                      />
+                    </div>
 
-              <div className="space-y-2">
-                <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">{t('common.nickname') || 'Apelido'}</label>
-                <input 
-                  type="text" 
-                  className="w-full px-5 py-3.5 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-2xl outline-none focus:ring-2 focus:ring-blue-600 dark:text-white font-bold" 
-                  value={editFormData.nickname || ''}
-                  onChange={e => setEditFormData({...editFormData, nickname: e.target.value})}
-                />
-              </div>
+                    <div className="md:col-span-2 space-y-2">
+                      <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">E-mail</label>
+                      <input 
+                        type="email" 
+                        className="w-full px-6 py-4 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-2xl outline-none focus:ring-2 focus:ring-blue-600 dark:text-white font-bold" 
+                        required 
+                        value={editFormData.email}
+                        onChange={e => setEditFormData({...editFormData, email: e.target.value})}
+                      />
+                    </div>
 
-              <div className="space-y-2">
-                <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">{t('common.phone')}</label>
-                <input 
-                  type="text" 
-                  className="w-full px-5 py-3.5 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-2xl outline-none focus:ring-2 focus:ring-blue-600 dark:text-white font-bold" 
-                  value={editFormData.phone}
-                  onChange={e => setEditFormData({...editFormData, phone: e.target.value})}
-                />
-              </div>
+                    <div className="space-y-2">
+                      <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">{t('common.nickname')}</label>
+                      <input 
+                        type="text" 
+                        className="w-full px-5 py-3.5 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-2xl outline-none focus:ring-2 focus:ring-blue-600 dark:text-white font-bold" 
+                        value={editFormData.nickname || ''}
+                        onChange={e => setEditFormData({...editFormData, nickname: e.target.value})}
+                      />
+                    </div>
 
-              <div className="space-y-2">
-                <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">{t('common.birthDate')}</label>
-                <input 
-                  type="date" 
-                  className="w-full px-5 py-3.5 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-2xl outline-none focus:ring-2 focus:ring-blue-600 dark:text-white font-bold" 
-                  value={editFormData.birthDate}
-                  onChange={e => setEditFormData({...editFormData, birthDate: e.target.value})}
-                />
-              </div>
+                    <div className="space-y-2">
+                      <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">{t('common.phone')}</label>
+                      <input 
+                        type="text" 
+                        className="w-full px-5 py-3.5 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-2xl outline-none focus:ring-2 focus:ring-blue-600 dark:text-white font-bold" 
+                        value={editFormData.phone}
+                        onChange={e => setEditFormData({...editFormData, phone: formatPhone(e.target.value)})}
+                      />
+                    </div>
 
-              <div className="space-y-2">
-                <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">{t('students.lastPromotion')}</label>
-                <input 
-                  type="date" 
-                  className="w-full px-5 py-3.5 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-2xl outline-none focus:ring-2 focus:ring-blue-600 dark:text-white font-bold" 
-                  value={editFormData.lastPromotionDate}
-                  onChange={e => setEditFormData({...editFormData, lastPromotionDate: e.target.value})}
-                />
-              </div>
+                    <div className="space-y-2">
+                      <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">{t('common.civilStatus')}</label>
+                      <select 
+                        className="w-full px-5 py-3.5 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-2xl outline-none focus:ring-2 focus:ring-blue-600 dark:text-white appearance-none font-bold"
+                        value={editFormData.civilStatus || ''}
+                        onChange={e => setEditFormData({...editFormData, civilStatus: e.target.value})}
+                      >
+                        <option value="">{t('common.select')}</option>
+                        <option value="Solteiro(a)">Solteiro(a)</option>
+                        <option value="Casado(a)">Casado(a)</option>
+                        <option value="Divorciado(a)">Divorciado(a)</option>
+                        <option value="Viúvo(a)">Viúvo(a)</option>
+                        <option value="União Estável">União Estável</option>
+                      </select>
+                    </div>
 
-              <div className="space-y-2">
-                <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">{t('common.value')} ({t('common.currencySymbol')})</label>
-                <input 
-                  type="number" 
-                  className="w-full px-5 py-3.5 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-2xl outline-none focus:ring-2 focus:ring-blue-600 dark:text-white font-bold" 
-                  value={isNaN(editFormData.monthlyValue) ? '' : editFormData.monthlyValue}
-                  onChange={e => setEditFormData({...editFormData, monthlyValue: e.target.value === '' ? 0 : parseFloat(e.target.value)})}
-                />
-              </div>
+                    <div className="space-y-2">
+                      <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">{t('common.occupation')}</label>
+                      <input 
+                        type="text" 
+                        className="w-full px-5 py-3.5 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-2xl outline-none focus:ring-2 focus:ring-blue-600 dark:text-white font-bold" 
+                        value={editFormData.occupation || ''}
+                        onChange={e => setEditFormData({...editFormData, occupation: e.target.value})}
+                      />
+                    </div>
 
-              <div className="space-y-2">
-                <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">{t('financial.dueDay') || 'Dia de Vencimento'}</label>
-                <input 
-                  type="number" 
-                  className="w-full px-5 py-3.5 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-2xl outline-none focus:ring-2 focus:ring-blue-600 dark:text-white font-bold" 
-                  value={isNaN(editFormData.dueDay) ? '' : editFormData.dueDay}
-                  onChange={e => setEditFormData({...editFormData, dueDay: e.target.value === '' ? 0 : parseInt(e.target.value)})}
-                />
-              </div>
+                    <div className="space-y-2">
+                      <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">{t('common.nationality')}</label>
+                      <input 
+                        type="text" 
+                        className="w-full px-5 py-3.5 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-2xl outline-none focus:ring-2 focus:ring-blue-600 dark:text-white font-bold" 
+                        value={editFormData.nationality || ''}
+                        onChange={e => setEditFormData({...editFormData, nationality: e.target.value})}
+                      />
+                    </div>
 
-              <div className="space-y-2">
-                <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">{t('students.currentBelt')}</label>
-                <select 
-                  className="w-full px-5 py-3.5 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-2xl outline-none focus:ring-2 focus:ring-blue-600 dark:text-white appearance-none font-bold"
-                  value={editFormData.belt}
-                  onChange={e => setEditFormData({...editFormData, belt: e.target.value as any})}
-                >
-                  {editFormData.isKid ? (
-                    Object.values(KidsBeltColor).map(v => (
-                      <option key={v} value={v}>{t(`belts.${v}`)}</option>
-                    ))
-                  ) : (
-                    Object.values(BeltColor).map(v => (
-                      <option key={v} value={v}>{t(`belts.${v}`)}</option>
-                    ))
-                  )}
-                </select>
-              </div>
+                    <div className="space-y-2">
+                      <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">{t('common.birthDate')}</label>
+                      <input 
+                        type="date" 
+                        className="w-full px-5 py-3.5 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-2xl outline-none focus:ring-2 focus:ring-blue-600 dark:text-white font-bold" 
+                        value={editFormData.birthDate}
+                        onChange={e => setEditFormData({...editFormData, birthDate: e.target.value})}
+                      />
+                    </div>
 
-              <div className="space-y-2">
-                <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">{t('students.stripesCount')}</label>
-                <input 
-                  type="number" 
-                  min="0"
-                  max="4"
-                  className="w-full px-5 py-3.5 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-2xl outline-none focus:ring-2 focus:ring-blue-600 dark:text-white font-bold" 
-                  value={isNaN(editFormData.stripes) ? '' : editFormData.stripes}
-                  onChange={e => setEditFormData({...editFormData, stripes: parseInt(e.target.value)})}
-                />
-              </div>
+                    <div className="space-y-2">
+                      <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">{t('common.gender')}</label>
+                      <select 
+                        className="w-full px-5 py-3.5 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-2xl outline-none focus:ring-2 focus:ring-blue-600 dark:text-white appearance-none font-bold"
+                        value={editFormData.gender}
+                        onChange={e => setEditFormData({...editFormData, gender: e.target.value as Gender})}
+                      >
+                        {Object.values(Gender).map(v => (
+                          <option key={v} value={v}>{v}</option>
+                        ))}
+                      </select>
+                    </div>
 
-              <div className="space-y-2">
-                <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">{t('students.status')}</label>
-                <select 
-                  className="w-full px-5 py-3.5 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-2xl outline-none focus:ring-2 focus:ring-blue-600 dark:text-white appearance-none font-bold"
-                  value={editFormData.status}
-                  onChange={e => setEditFormData({...editFormData, status: e.target.value as StudentStatus})}
-                >
-                  {Object.values(StudentStatus).map(v => (
-                    <option key={v} value={v}>{t(`status.${v}`)}</option>
-                  ))}
-                </select>
-              </div>
+                    <div className="space-y-2">
+                      <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">{t('students.status')}</label>
+                      <select 
+                        className="w-full px-5 py-3.5 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-2xl outline-none focus:ring-2 focus:ring-blue-600 dark:text-white appearance-none font-bold"
+                        value={editFormData.status}
+                        onChange={e => setEditFormData({...editFormData, status: e.target.value as StudentStatus})}
+                      >
+                        {Object.values(StudentStatus).map(v => (
+                          <option key={v} value={v}>{t(`status.${v}`)}</option>
+                        ))}
+                      </select>
+                    </div>
 
-              <div className="space-y-2">
-                <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">{t('common.type')}</label>
-                <div className="flex flex-wrap items-center gap-4 h-auto min-h-[54px] px-4 py-2 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-2xl">
-                  <label className="flex items-center gap-2 cursor-pointer">
-                    <input 
-                      type="checkbox" 
-                      checked={editFormData.isInstructor} 
-                      onChange={e => setEditFormData({...editFormData, isInstructor: e.target.checked})}
-                      className="w-4 h-4 rounded border-slate-300 text-blue-600 focus:ring-blue-500"
-                    />
-                    <span className="text-[10px] font-black uppercase dark:text-white">{t('common.instructor')}</span>
-                  </label>
-                  <label className="flex items-center gap-2 cursor-pointer">
-                    <input 
-                      type="checkbox" 
-                      checked={editFormData.isKid} 
-                      onChange={e => setEditFormData({...editFormData, isKid: e.target.checked})}
-                      className="w-4 h-4 rounded border-slate-300 text-blue-600 focus:ring-blue-500"
-                    />
-                    <span className="text-[10px] font-black uppercase dark:text-white">{t('common.kid')}</span>
-                  </label>
-                  <label className="flex items-center gap-2 cursor-pointer">
-                    <input 
-                      type="checkbox" 
-                      checked={editFormData.isCompetitor} 
-                      onChange={e => setEditFormData({...editFormData, isCompetitor: e.target.checked})}
-                      className="w-4 h-4 rounded border-slate-300 text-blue-600 focus:ring-blue-500"
-                    />
-                    <span className="text-[10px] font-black uppercase dark:text-white">{t('students.isCompetitor')}</span>
-                  </label>
-                </div>
-              </div>
-
-              <div className="md:col-span-2 space-y-2">
-                <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Turma (Classe)</label>
-                <select 
-                  className="w-full px-5 py-3.5 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-2xl outline-none focus:ring-2 focus:ring-blue-600 dark:text-white appearance-none font-bold"
-                  value={editFormData.classId || ''}
-                  onChange={e => setEditFormData({...editFormData, classId: e.target.value})}
-                >
-                  <option value="">Sem Turma Fixa</option>
-                  {schedules.map(s => (
-                    <option key={s.id} value={s.id}>{s.title} ({s.time})</option>
-                  ))}
-                </select>
-              </div>
-
-              <div className="md:col-span-2 space-y-2">
-                <textarea 
-                  className="w-full px-6 py-4 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-2xl outline-none focus:ring-2 focus:ring-blue-600 dark:text-white font-bold min-h-[100px]" 
-                  value={editFormData.technicalNotes || ''}
-                  onChange={e => setEditFormData({...editFormData, technicalNotes: e.target.value})}
-                  placeholder="Ex: Pontos fortes, dificuldades, etc."
-                />
-              </div>
-
-              <div className="md:col-span-2 space-y-2">
-                <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">{t('common.address')}</label>
-                <input 
-                  type="text" 
-                  className="w-full px-6 py-4 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-2xl outline-none focus:ring-2 focus:ring-blue-600 dark:text-white font-bold" 
-                  value={editFormData.address || ''}
-                  onChange={e => setEditFormData({...editFormData, address: e.target.value})}
-                />
-              </div>
-
-              <button type="submit" className="md:col-span-2 w-full py-5 bg-blue-600 text-white rounded-[1.5rem] font-black uppercase tracking-widest text-xs shadow-xl hover:bg-blue-700 transition-all flex items-center justify-center gap-3">
-                {showSuccess ? (
-                  <>
-                    <ThumbsUp size={20} />
-                    {t('common.saveSuccess').toUpperCase()}
-                  </>
-                ) : (
-                  <>
-                    <Save size={20} />
-                    {t('common.save').toUpperCase()}
-                  </>
+                    <div className="space-y-2">
+                      <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">{t('common.type')}</label>
+                      <div className="flex flex-wrap items-center gap-4 h-auto min-h-[54px] px-4 py-2 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-2xl">
+                        <label className="flex items-center gap-2 cursor-pointer">
+                          <input type="checkbox" checked={editFormData.isInstructor} onChange={e => setEditFormData({...editFormData, isInstructor: e.target.checked})} className="w-4 h-4 text-blue-600" />
+                          <span className="text-[10px] font-black uppercase dark:text-white">{t('common.instructor')}</span>
+                        </label>
+                        <label className="flex items-center gap-2 cursor-pointer">
+                          <input type="checkbox" checked={editFormData.isKid} onChange={e => setEditFormData({...editFormData, isKid: e.target.checked})} className="w-4 h-4 text-blue-600" />
+                          <span className="text-[10px] font-black uppercase dark:text-white">{t('common.kid')}</span>
+                        </label>
+                        <label className="flex items-center gap-2 cursor-pointer">
+                          <input type="checkbox" checked={editFormData.isCompetitor} onChange={e => setEditFormData({...editFormData, isCompetitor: e.target.checked})} className="w-4 h-4 text-blue-600" />
+                          <span className="text-[10px] font-black uppercase dark:text-white">{t('students.isCompetitor')}</span>
+                        </label>
+                      </div>
+                    </div>
+                  </div>
                 )}
-              </button>
-            </form>
+
+                {editTab === 'legal' && (
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div className="space-y-2">
+                      <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">CPF</label>
+                      <input 
+                        type="text" 
+                        className="w-full px-5 py-3.5 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-2xl outline-none focus:ring-2 focus:ring-blue-600 dark:text-white font-bold" 
+                        value={editFormData.cpf || ''}
+                        onChange={e => setEditFormData({...editFormData, cpf: formatCPF(e.target.value)})}
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">RG</label>
+                      <input 
+                        type="text" 
+                        className="w-full px-5 py-3.5 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-2xl outline-none focus:ring-2 focus:ring-blue-600 dark:text-white font-bold" 
+                        value={editFormData.rg || ''}
+                        onChange={e => setEditFormData({...editFormData, rg: e.target.value})}
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Órgão Emissor</label>
+                      <input 
+                        type="text" 
+                        className="w-full px-5 py-3.5 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-2xl outline-none focus:ring-2 focus:ring-blue-600 dark:text-white font-bold" 
+                        value={editFormData.rgIssuer || ''}
+                        onChange={e => setEditFormData({...editFormData, rgIssuer: e.target.value})}
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">CEP</label>
+                      <input 
+                        type="text" 
+                        className="w-full px-5 py-3.5 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-2xl outline-none focus:ring-2 focus:ring-blue-600 dark:text-white font-bold" 
+                        value={editFormData.zipCode || ''}
+                        onChange={e => setEditFormData({...editFormData, zipCode: e.target.value})}
+                      />
+                    </div>
+                    <div className="md:col-span-2 space-y-2">
+                      <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">{t('common.address')}</label>
+                      <input 
+                        type="text" 
+                        className="w-full px-5 py-3.5 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-2xl outline-none focus:ring-2 focus:ring-blue-600 dark:text-white font-bold" 
+                        value={editFormData.address || ''}
+                        onChange={e => setEditFormData({...editFormData, address: e.target.value})}
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">{t('common.city')}</label>
+                      <input 
+                        type="text" 
+                        className="w-full px-5 py-3.5 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-2xl outline-none focus:ring-2 focus:ring-blue-600 dark:text-white font-bold" 
+                        value={editFormData.city || ''}
+                        onChange={e => setEditFormData({...editFormData, city: e.target.value})}
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">{t('common.state')}</label>
+                      <input 
+                        type="text" 
+                        className="w-full px-5 py-3.5 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-2xl outline-none focus:ring-2 focus:ring-blue-600 dark:text-white font-bold" 
+                        value={editFormData.state || ''}
+                        onChange={e => setEditFormData({...editFormData, state: e.target.value})}
+                      />
+                    </div>
+                    {editFormData.isKid && (
+                      <>
+                        <div className="space-y-2">
+                          <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">{t('common.responsiblePerson')}</label>
+                          <input 
+                            type="text" 
+                            className="w-full px-5 py-3.5 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-2xl outline-none focus:ring-2 focus:ring-blue-600 dark:text-white font-bold" 
+                            value={editFormData.responsiblePerson || ''}
+                            onChange={e => setEditFormData({...editFormData, responsiblePerson: e.target.value})}
+                          />
+                        </div>
+                        <div className="space-y-2">
+                          <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">CPF Responsável</label>
+                          <input 
+                            type="text" 
+                            className="w-full px-5 py-3.5 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-2xl outline-none focus:ring-2 focus:ring-blue-600 dark:text-white font-bold" 
+                            value={editFormData.responsibleCpf || ''}
+                            onChange={e => setEditFormData({...editFormData, responsibleCpf: formatCPF(e.target.value)})}
+                          />
+                        </div>
+                      </>
+                    )}
+                    <div className="md:col-span-2 p-6 bg-emerald-50 dark:bg-emerald-900/10 rounded-2xl border border-emerald-100 dark:border-emerald-900/20">
+                      <label className="flex items-center gap-3 cursor-pointer">
+                        <input 
+                          type="checkbox" 
+                          checked={editFormData.lgpdConsent} 
+                          onChange={e => setEditFormData({...editFormData, lgpdConsent: e.target.checked})} 
+                          className="w-5 h-5 rounded border-slate-300 text-emerald-600" 
+                        />
+                        <span className="text-[10px] font-black uppercase text-emerald-700 dark:text-emerald-400">{t('common.lgpdConsent')}</span>
+                      </label>
+                    </div>
+                  </div>
+                )}
+
+                {editTab === 'technical' && (
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div className="space-y-2">
+                      <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">{t('students.currentBelt')}</label>
+                      <select 
+                        className="w-full px-5 py-3.5 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-2xl outline-none focus:ring-2 focus:ring-blue-600 dark:text-white appearance-none font-bold"
+                        value={editFormData.belt}
+                        onChange={e => setEditFormData({...editFormData, belt: e.target.value as any})}
+                      >
+                        {editFormData.isKid ? (
+                          Object.values(KidsBeltColor).map(v => (
+                            <option key={v} value={v}>{t(`belts.${v}`)}</option>
+                          ))
+                        ) : (
+                          Object.values(BeltColor).map(v => (
+                            <option key={v} value={v}>{t(`belts.${v}`)}</option>
+                          ))
+                        )}
+                      </select>
+                    </div>
+                    <div className="space-y-2">
+                      <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">{t('students.stripesCount')}</label>
+                      <input type="number" min="0" max="4" className="w-full px-5 py-3.5 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-2xl outline-none focus:ring-2 focus:ring-blue-600 dark:text-white font-bold" value={editFormData.stripes} onChange={e => setEditFormData({...editFormData, stripes: parseInt(e.target.value)})} />
+                    </div>
+                    <div className="space-y-2">
+                      <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">{t('students.lastPromotion')}</label>
+                      <input type="date" className="w-full px-5 py-3.5 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-2xl outline-none focus:ring-2 focus:ring-blue-600 dark:text-white font-bold" value={editFormData.lastPromotionDate} onChange={e => setEditFormData({...editFormData, lastPromotionDate: e.target.value})} />
+                    </div>
+                    <div className="space-y-2">
+                      <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Turma (Classe)</label>
+                      <select className="w-full px-5 py-3.5 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-2xl outline-none focus:ring-2 focus:ring-blue-600 dark:text-white appearance-none font-bold" value={editFormData.classId || ''} onChange={e => setEditFormData({...editFormData, classId: e.target.value})}>
+                        <option value="">Sem Turma Fixa</option>
+                        {schedules.map(s => <option key={s.id} value={s.id}>{s.title}</option>)}
+                      </select>
+                    </div>
+                    <div className="md:col-span-2 space-y-2">
+                      <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">{t('students.technicalNotes')}</label>
+                      <textarea className="w-full px-6 py-4 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-2xl outline-none focus:ring-2 focus:ring-blue-600 dark:text-white font-bold min-h-[100px]" value={editFormData.technicalNotes || ''} onChange={e => setEditFormData({...editFormData, technicalNotes: e.target.value})} />
+                    </div>
+                  </div>
+                )}
+
+                {editTab === 'health' && (
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div className="space-y-2">
+                      <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">{t('common.emergencyContact')}</label>
+                      <input type="text" className="w-full px-5 py-3.5 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-2xl outline-none focus:ring-2 focus:ring-blue-600 dark:text-white font-bold" value={editFormData.emergencyContact || ''} onChange={e => setEditFormData({...editFormData, emergencyContact: e.target.value})} />
+                    </div>
+                    <div className="space-y-2">
+                      <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">WhatsApp Emergência</label>
+                      <input 
+                        type="text" 
+                        className="w-full px-5 py-3.5 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-2xl outline-none focus:ring-2 focus:ring-blue-600 dark:text-white font-bold" 
+                        value={editFormData.emergencyPhone || ''} 
+                        onChange={e => setEditFormData({...editFormData, emergencyPhone: formatPhone(e.target.value)})} 
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">{t('common.bloodType')}</label>
+                      <input type="text" className="w-full px-5 py-3.5 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-2xl outline-none focus:ring-2 focus:ring-blue-600 dark:text-white font-bold" value={editFormData.bloodType || ''} onChange={e => setEditFormData({...editFormData, bloodType: e.target.value})} />
+                    </div>
+                    <div className="md:col-span-2 space-y-2">
+                      <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">{t('common.medicalConditions')}</label>
+                      <textarea className="w-full px-6 py-4 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-2xl outline-none focus:ring-2 focus:ring-blue-600 dark:text-white font-bold min-h-[100px]" value={editFormData.medicalConditions || ''} onChange={e => setEditFormData({...editFormData, medicalConditions: e.target.value})} />
+                    </div>
+                  </div>
+                )}
+
+                <button type="submit" className="w-full mt-6 py-5 bg-blue-600 text-white rounded-[1.5rem] font-black uppercase tracking-widest text-xs shadow-xl active:scale-95 transition-all flex items-center justify-center gap-3">
+                  {showSuccess ? <><ThumbsUp size={20} />{t('common.saveSuccess').toUpperCase()}</> : <><Save size={20} />{t('common.save').toUpperCase()}</>}
+                </button>
+              </form>
+            </div>
           )}
 
           {activeTab === 'overview' && (
@@ -887,22 +1169,61 @@ const StudentDetailsModal = ({ student, onClose }: { student: Student; onClose: 
                 {/* Personal & Contact Group */}
                 <section className="space-y-4">
                   <h3 className="text-[9px] sm:text-[10px] font-black text-slate-400 uppercase tracking-widest flex items-center gap-2"><User size={14} /> {t('students.personalInfo') || 'Informações Pessoais'}</h3>
-                  <div className="p-4 sm:p-6 rounded-2xl sm:rounded-3xl bg-slate-50 dark:bg-slate-800 border border-slate-100 dark:border-slate-700 grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <div className="p-4 sm:p-6 rounded-2xl sm:rounded-3xl bg-slate-50 dark:bg-slate-800 border border-slate-100 dark:border-slate-700 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 lg:gap-6">
                     <div>
                        <p className="text-[8px] font-black text-slate-400 uppercase tracking-widest mb-1">WhatsApp</p>
-                       <p className="font-bold text-slate-900 dark:text-white">+{student.phone}</p>
+                       <p className="font-bold text-slate-900 dark:text-white break-all">+{student.phone}</p>
+                    </div>
+                    <div>
+                       <p className="text-[8px] font-black text-slate-400 uppercase tracking-widest mb-1">E-mail</p>
+                       <p className="font-bold text-slate-900 dark:text-white break-all">{student.email || '--'}</p>
                     </div>
                     <div>
                        <p className="text-[8px] font-black text-slate-400 uppercase tracking-widest mb-1">{t('common.birthDate')}</p>
                        <p className="font-bold text-slate-900 dark:text-white">{new Date(student.birthDate).toLocaleDateString()}</p>
                     </div>
                     <div>
+                       <p className="text-[8px] font-black text-slate-400 uppercase tracking-widest mb-1">{t('common.civilStatus')}</p>
+                       <p className="font-bold text-slate-900 dark:text-white">{student.civilStatus || '--'}</p>
+                    </div>
+                    <div>
+                       <p className="text-[8px] font-black text-slate-400 uppercase tracking-widest mb-1">{t('common.occupation')}</p>
+                       <p className="font-bold text-slate-900 dark:text-white">{student.occupation || '--'}</p>
+                    </div>
+                    <div>
                        <p className="text-[8px] font-black text-slate-400 uppercase tracking-widest mb-1">{t('students.portalCode')}</p>
                        <p className="font-bold text-slate-900 dark:text-white">{student.portalAccessCode}</p>
                     </div>
-                    <div className="col-span-2">
+                    <div className="sm:col-span-2 lg:col-span-3">
                        <p className="text-[8px] font-black text-slate-400 uppercase tracking-widest mb-1">{t('common.address')}</p>
-                       <p className="font-bold text-slate-900 dark:text-white">{student.address || '--'}</p>
+                       <p className="font-bold text-slate-900 dark:text-white">{student.address || '--'}, {student.city || '--'} - {student.state || '--'}</p>
+                    </div>
+                  </div>
+                </section>
+
+                {/* LGPD & Legal Group */}
+                <section className="space-y-4">
+                  <h3 className="text-[9px] sm:text-[10px] font-black text-slate-400 uppercase tracking-widest flex items-center gap-2"><ShieldCheck size={14} /> {t('common.legalInfo') || 'Informações Legais & LGPD'}</h3>
+                  <div className="p-4 sm:p-6 rounded-2xl sm:rounded-3xl bg-slate-50 dark:bg-slate-800 border border-slate-100 dark:border-slate-700 grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <div className="flex items-center gap-3 p-3 bg-white dark:bg-slate-900 rounded-xl">
+                      <div className={`w-8 h-8 rounded-lg flex items-center justify-center ${student.lgpdConsent ? 'bg-emerald-100 text-emerald-600' : 'bg-slate-100 text-slate-400'}`}>
+                        <ShieldCheck size={18} />
+                      </div>
+                      <div>
+                        <p className="text-[8px] font-black text-slate-400 uppercase tracking-widest">Consentimento LGPD</p>
+                        <p className={`text-[10px] font-black uppercase ${student.lgpdConsent ? 'text-emerald-600' : 'text-slate-400'}`}>
+                          {student.lgpdConsent ? 'CONCEDIDO' : 'PENDENTE'}
+                        </p>
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-3 p-3 bg-white dark:bg-slate-900 rounded-xl">
+                      <div className="w-8 h-8 rounded-lg bg-blue-100 text-blue-600 flex items-center justify-center">
+                        <FileText size={18} />
+                      </div>
+                      <div>
+                        <p className="text-[8px] font-black text-slate-400 uppercase tracking-widest">Contrato</p>
+                        <p className="text-[10px] font-black uppercase text-blue-600">ATIVO</p>
+                      </div>
                     </div>
                   </div>
                 </section>
@@ -1136,6 +1457,105 @@ const StudentDetailsModal = ({ student, onClose }: { student: Student; onClose: 
                      </div>
                   </div>
               </div>
+            </div>
+          )}
+
+          {activeTab === 'financial' && (
+            <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4">
+               <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                 <div className="p-8 bg-blue-600 rounded-[2.5rem] text-white shadow-xl relative overflow-hidden group">
+                    <div className="absolute top-0 right-0 w-32 h-32 bg-white rounded-full blur-[60px] opacity-10 group-hover:opacity-20 transition-all" />
+                    <p className="text-[9px] font-black uppercase tracking-widest text-blue-100 mb-4">{t('students.monthlyPlan')}</p>
+                    <p className="text-4xl font-black tracking-tighter leading-none tabular-nums">{t('common.currencySymbol')} {student.monthlyValue}</p>
+                    <div className="mt-6 pt-6 border-t border-white/20">
+                      <p className="text-[10px] font-bold uppercase opacity-80 tracking-widest flex items-center gap-2"><Clock size={14}/> {t('financial.dueDay')}: Dia {student.dueDay}</p>
+                    </div>
+                 </div>
+                 <div className="md:col-span-2 p-8 bg-slate-50 dark:bg-slate-800 rounded-[2.5rem] border border-slate-200 dark:border-slate-700">
+                    <div className="flex justify-between items-center mb-6">
+                       <h3 className="text-xl font-black text-slate-900 dark:text-white uppercase tracking-tighter flex items-center gap-3">
+                         <ShieldCheck size={24} className="text-emerald-500"/>
+                         {t('financial.statusTitle') || 'Status de Pagamento'}
+                       </h3>
+                       <span className={`px-4 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest ${student.status === StudentStatus.ACTIVE ? 'bg-emerald-100 text-emerald-600' : 'bg-rose-100 text-rose-600'}`}>
+                         {student.status === StudentStatus.ACTIVE ? 'SISTEMA EM DIA' : 'PENDENTE'}
+                       </span>
+                    </div>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                       <div className="p-4 bg-white dark:bg-slate-900 rounded-2xl border border-slate-100 dark:border-slate-800">
+                          <p className="text-[10px] font-black uppercase text-slate-400 mb-2">{t('financial.lastPayment') || 'Último Pagamento'}</p>
+                          <div className="flex items-center justify-between">
+                            <p className="text-lg font-black dark:text-white">{student.lastPaymentDate ? new Date(student.lastPaymentDate).toLocaleDateString() : '--'}</p>
+                            <p className="font-black text-emerald-500">{t('common.currencySymbol')} {student.monthlyValue}</p>
+                          </div>
+                       </div>
+                       <div className="p-4 bg-white dark:bg-slate-900 rounded-2xl border border-slate-100 dark:border-slate-800">
+                          <p className="text-[10px] font-black uppercase text-slate-400 mb-2">{t('financial.nextPayment') || 'Próximo Vencimento'}</p>
+                          <div className="flex items-center justify-between">
+                            <p className="text-lg font-black dark:text-white">{student.dueDay}/{new Date().getMonth() + 2}/{new Date().getFullYear()}</p>
+                            <p className="font-black text-blue-500">{t('common.currencySymbol')} {student.monthlyValue}</p>
+                          </div>
+                       </div>
+                    </div>
+                 </div>
+               </div>
+               
+               <div className="p-8 bg-slate-900 rounded-[2.5rem] text-white min-h-[300px]">
+                  <div className="flex items-center justify-between mb-8">
+                    <h3 className="text-xl font-black uppercase tracking-tighter flex items-center gap-3">
+                      <FileText size={24} className="text-blue-400"/>
+                      {t('financial.historyTitle') || 'DRE - Histórico Financeiro'}
+                    </h3>
+                  </div>
+                  
+                  {(!student.billingPaused) ? (
+                    <div className="space-y-3">
+                      <div className="grid grid-cols-12 px-6 py-3 text-[9px] font-black uppercase tracking-widest text-slate-500 hidden md:grid">
+                        <div className="col-span-4">Descrição</div>
+                        <div className="col-span-3">Data</div>
+                        <div className="col-span-3 text-right">Valor</div>
+                        <div className="col-span-2 text-right">Status</div>
+                      </div>
+                      <div className="space-y-2">
+                        <div className="grid grid-cols-1 md:grid-cols-12 gap-4 items-center px-6 py-5 bg-white/5 rounded-2xl border border-white/5 hover:bg-white/10 transition-colors">
+                           <div className="md:col-span-4 flex items-center gap-3">
+                             <div className="w-10 h-10 rounded-full bg-blue-500/20 flex items-center justify-center text-blue-400">
+                               <Plus size={18}/>
+                             </div>
+                             <div>
+                               <p className="text-sm font-black uppercase tracking-tight">Mensalidade - Ativa</p>
+                               <p className="text-[8px] font-bold text-slate-500 uppercase tracking-widest">Inscrito no Plano Pro</p>
+                             </div>
+                           </div>
+                           <div className="md:col-span-3">
+                             <p className="text-[9px] font-black text-blue-400 uppercase tracking-widest md:hidden mb-1">Data</p>
+                             <p className="text-xs font-bold text-slate-400">{student.lastPaymentDate ? new Date(student.lastPaymentDate).toLocaleDateString() : 'Verifique Extrato'}</p>
+                           </div>
+                           <div className="md:col-span-3 text-right">
+                             <p className="text-[9px] font-black text-blue-400 uppercase tracking-widest md:hidden mb-1">Valor</p>
+                             <p className="text-sm font-black">{t('common.currencySymbol')} {student.monthlyValue}</p>
+                           </div>
+                           <div className="md:col-span-2 text-right">
+                              <span className="px-3 py-1 bg-emerald-500/20 text-emerald-400 rounded-lg text-[8px] font-black uppercase tracking-widest">
+                                LIQUIDADO
+                              </span>
+                           </div>
+                        </div>
+                      </div>
+                      <div className="pt-8 text-center opacity-40">
+                         <p className="text-[9px] font-black uppercase tracking-[0.3em]">Fim do histórico visível</p>
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="space-y-4 text-center py-20 bg-white/5 rounded-[2rem] border-2 border-dashed border-white/10">
+                      <Zap size={40} className="mx-auto text-amber-500" />
+                      <div>
+                        <p className="text-lg font-black uppercase italic tracking-tighter">Faturamento Pausado</p>
+                        <p className="text-xs font-bold text-slate-500 max-w-xs mx-auto mt-2">Este aluno está com as cobranças suspensas temporariamente pelo administrador.</p>
+                      </div>
+                    </div>
+                  )}
+               </div>
             </div>
           )}
 
