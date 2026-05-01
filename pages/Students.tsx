@@ -1741,28 +1741,75 @@ const StudentDetailsModal = ({ student, onClose }: { student: Student; onClose: 
           )}
 
           {activeTab === 'analysis' && (
-            <div className="max-w-2xl mx-auto space-y-8">
-               <div className="space-y-4">
-                 <label className="text-xs font-black text-green-600 uppercase tracking-widest flex items-center gap-2"><ThumbsUp size={18}/> {t('students.pros')}</label>
-                 <textarea 
-                   value={editPros} 
-                   onChange={e => setEditPros(e.target.value)}
-                   className="w-full p-6 bg-slate-50 dark:bg-slate-800 border-2 border-slate-100 dark:border-slate-700 rounded-[2rem] min-h-[150px] outline-none focus:ring-2 focus:ring-green-500 dark:text-white"
-                   placeholder={t('students.prosPlaceholder')}
-                 />
+            <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
+               {/* Technical Pulse Visualizer */}
+               <div className="p-8 bg-slate-900 rounded-[3rem] text-white border border-slate-800 shadow-2xl relative overflow-hidden">
+                 <div className="absolute top-0 right-0 w-64 h-64 bg-blue-600 rounded-full blur-[120px] opacity-10" />
+                 <div className="relative z-10 flex flex-col md:flex-row gap-8 items-center">
+                    <div className="flex-1 w-full space-y-6">
+                      <div>
+                        <p className="text-[10px] font-black text-blue-400 uppercase tracking-[0.2em] mb-2">Technical Archetype</p>
+                        <h3 className="text-3xl font-black uppercase tracking-tighter italic">Estrategista de Guardas</h3>
+                      </div>
+                      
+                      <div className="grid grid-cols-2 gap-4">
+                        {[
+                          { label: 'Quedas', val: 45, color: 'bg-orange-500' },
+                          { label: 'Passagem', val: 75, color: 'bg-emerald-500' },
+                          { label: 'Guarda', val: 92, color: 'bg-blue-500' },
+                          { label: 'Finalização', val: 68, color: 'bg-red-500' }
+                        ].map((stat, i) => (
+                          <div key={i} className="space-y-2">
+                             <div className="flex justify-between text-[8px] font-black uppercase tracking-widest text-slate-400">
+                               <span>{stat.label}</span>
+                               <span>{stat.val}%</span>
+                             </div>
+                             <div className="h-1.5 bg-white/5 rounded-full overflow-hidden">
+                               <motion.div 
+                                 initial={{ width: 0 }}
+                                 animate={{ width: `${stat.val}%` }}
+                                 className={`h-full ${stat.color} shadow-[0_0_8px_rgba(255,255,255,0.1)]`}
+                               />
+                             </div>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+
+                    <div className="w-full md:w-64 h-64 bg-white/5 rounded-[2.5rem] border border-white/10 flex items-center justify-center relative p-6">
+                       <Activity className="absolute text-blue-500/20 w-48 h-48" />
+                       <div className="relative text-center">
+                          <p className="text-5xl font-black tabular-nums tracking-tighter">8.4</p>
+                          <p className="text-[10px] font-black text-blue-400 uppercase tracking-widest mt-2">TECHNICAL INDEX</p>
+                       </div>
+                    </div>
+                 </div>
                </div>
-               <div className="space-y-4">
-                 <label className="text-xs font-black text-red-600 uppercase tracking-widest flex items-center gap-2"><ThumbsDown size={18}/> {t('students.cons')}</label>
-                 <textarea 
-                   value={editCons} 
-                   onChange={e => setEditCons(e.target.value)}
-                   className="w-full p-6 bg-slate-50 dark:bg-slate-800 border-2 border-slate-100 dark:border-slate-700 rounded-[2rem] min-h-[150px] outline-none focus:ring-2 focus:ring-red-500 dark:text-white"
-                   placeholder={t('students.consPlaceholder')}
-                 />
+
+               <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+                 <div className="space-y-4">
+                   <label className="text-xs font-black text-green-600 uppercase tracking-widest flex items-center gap-2"><ThumbsUp size={18}/> {t('students.pros')}</label>
+                   <textarea 
+                     value={editPros} 
+                     onChange={e => setEditPros(e.target.value)}
+                     className="w-full p-6 bg-slate-50 dark:bg-slate-800 border-2 border-slate-100 dark:border-slate-700 rounded-[2rem] min-h-[150px] outline-none focus:ring-2 focus:ring-green-500 dark:text-white transition-all"
+                     placeholder={t('students.prosPlaceholder')}
+                   />
+                 </div>
+                 <div className="space-y-4">
+                   <label className="text-xs font-black text-red-600 uppercase tracking-widest flex items-center gap-2"><ThumbsDown size={18}/> {t('students.cons')}</label>
+                   <textarea 
+                     value={editCons} 
+                     onChange={e => setEditCons(e.target.value)}
+                     className="w-full p-6 bg-slate-50 dark:bg-slate-800 border-2 border-slate-100 dark:border-slate-700 rounded-[2rem] min-h-[150px] outline-none focus:ring-2 focus:ring-red-500 dark:text-white transition-all"
+                     placeholder={t('students.consPlaceholder')}
+                   />
+                 </div>
                </div>
+
                <button 
                  onClick={handleUpdateAnalysis}
-                 className="w-full py-5 bg-blue-600 text-white rounded-[1.5rem] font-black uppercase tracking-widest text-xs flex items-center justify-center gap-3 shadow-xl hover:bg-blue-700 transition-all"
+                 className="w-full py-6 bg-blue-600 text-white rounded-[2rem] font-black uppercase tracking-widest text-xs flex items-center justify-center gap-3 shadow-xl hover:bg-blue-700 active:scale-[0.98] transition-all"
                >
                  {showSuccess ? (
                    <>

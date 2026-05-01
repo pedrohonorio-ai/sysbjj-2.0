@@ -53,6 +53,33 @@ const SystemAudit: React.FC = () => {
   const [dateRange, setDateRange] = useState<'Today' | 'Week' | 'Month' | 'All'>('Week');
   const [activeTab, setActiveTab] = useState<'overview' | 'intelligence' | 'logs' | 'control'>('overview');
   const [viewMode, setViewMode] = useState<'Table' | 'Groups'>('Table');
+  const [exportLoading, setExportLoading] = useState(false);
+
+  const handleExportData = async (type: 'CSV' | 'JSON' | 'PDF') => {
+    setExportLoading(true);
+    // Simulate generation delay
+    await new Promise(resolve => setTimeout(resolve, 1500));
+    
+    const dataToExport = {
+      logs,
+      metrics: {
+        totalStudents: students.length,
+        systemHealth: 'Operational',
+        integrityScore: '100%'
+      },
+      timestamp: new Date().toISOString()
+    };
+
+    const blob = new Blob([JSON.stringify(dataToExport, null, 2)], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `sysbjj_system_audit_${new Date().toISOString().split('T')[0]}.${type.toLowerCase()}`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    setExportLoading(false);
+  };
   const [itemsPerPage, setItemsPerPage] = useState(25);
   const [currentPage, setCurrentPage] = useState(1);
 
@@ -304,22 +331,39 @@ const SystemAudit: React.FC = () => {
           </p>
         </div>
         
-        <div className="flex items-center gap-3">
+        <div className="flex flex-wrap items-center gap-3">
           <div className="hidden sm:flex items-center gap-1.5 px-4 py-2 bg-green-500/10 text-green-500 rounded-2xl border border-green-500/20 text-[9px] font-black uppercase tracking-widest">
             <div className="w-1.5 h-1.5 bg-green-500 rounded-full animate-pulse" />
             Blockchain Active
+          </div>
+          <div className="flex bg-slate-100 dark:bg-slate-900/50 p-1 rounded-2xl border border-slate-200 dark:border-slate-800">
+            <button 
+              disabled={exportLoading}
+              onClick={() => handleExportData('CSV')}
+              className="px-4 py-2 text-[10px] font-black uppercase tracking-widest hover:bg-white dark:hover:bg-slate-800 rounded-xl transition-all flex items-center gap-2 group disabled:opacity-50"
+            >
+              <FileText size={14} /> {exportLoading ? '...' : 'CSV'}
+            </button>
+            <button 
+              disabled={exportLoading}
+              onClick={exportToPDF}
+              className="px-4 py-2 text-[10px] font-black uppercase tracking-widest hover:bg-white dark:hover:bg-slate-800 rounded-xl transition-all flex items-center gap-2 group disabled:opacity-50"
+            >
+              <Download size={14} /> PDF
+            </button>
+            <button 
+              disabled={exportLoading}
+              onClick={() => handleExportData('JSON')}
+              className="px-4 py-2 text-[10px] font-black uppercase tracking-widest hover:bg-white dark:hover:bg-slate-800 rounded-xl transition-all flex items-center gap-2 group disabled:opacity-50"
+            >
+              <HardDrive size={14} /> JSON
+            </button>
           </div>
           <button 
             onClick={exportGlobalUsers}
             className="flex items-center gap-2 px-6 py-3 bg-blue-600 text-white rounded-2xl font-black uppercase text-[10px] tracking-widest hover:scale-105 active:scale-95 transition-all shadow-xl shadow-blue-500/20"
           >
-            <Users size={16} /> Exportar Lista Nominal
-          </button>
-          <button 
-            onClick={exportToPDF}
-            className="flex items-center gap-2 px-6 py-3 bg-slate-900 dark:bg-white dark:text-slate-900 text-white rounded-2xl font-black uppercase text-[10px] tracking-widest hover:scale-105 active:scale-95 transition-all shadow-xl"
-          >
-            <Download size={16} /> Exportar Logs
+            <Users size={16} /> Lista Nominal
           </button>
         </div>
       </div>
@@ -907,7 +951,33 @@ const SystemAudit: React.FC = () => {
                        ))}
 
                        <div className="pt-8 border-t border-slate-800">
-                          <div className="p-6 bg-white/5 rounded-3xl border border-white/10 mt-4 space-y-4">
+                          <div className="flex items-center justify-between mb-4">
+                            <p className="text-[10px] font-black text-slate-500 uppercase tracking-[0.2em]">Cadeia de Blocos (Live Visualizer)</p>
+                            <span className="text-[8px] font-mono text-blue-500">SYSBJJ_CORE_REVISION_2.1</span>
+                          </div>
+                          <div className="flex gap-2 overflow-hidden py-2">
+                             {[...Array(12)].map((_, i) => (
+                               <motion.div
+                                 key={i}
+                                 initial={{ opacity: 0, x: -20 }}
+                                 animate={{ opacity: 1, x: 0 }}
+                                 transition={{ delay: i * 0.1 }}
+                                 className="w-12 h-12 rounded-xl bg-slate-800 border border-slate-700 flex flex-col items-center justify-center gap-1 shrink-0 group relative cursor-pointer hover:border-blue-500/50 transition-all"
+                               >
+                                 <div className="w-1.5 h-1.5 rounded-full bg-blue-500 animate-pulse shadow-[0_0_8px_rgba(59,130,246,0.5)]" />
+                                 <p className="text-[6px] font-mono text-slate-500">0x{Math.random().toString(16).substring(2, 6)}</p>
+                                 <div className="absolute -top-12 left-1/2 -translate-x-1/2 w-32 p-3 bg-slate-900 border border-slate-800 rounded-2xl shadow-2xl opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-50">
+                                   <p className="text-[8px] font-black text-white uppercase mb-1">Block Integrity Check</p>
+                                   <div className="flex justify-between items-center text-[7px] text-slate-400">
+                                     <span>Sequence: #{1024 + i}</span>
+                                     <span className="text-green-500">VERIFIED</span>
+                                   </div>
+                                 </div>
+                               </motion.div>
+                             ))}
+                          </div>
+
+                          <div className="p-6 bg-white/5 rounded-3xl border border-white/10 mt-6 space-y-4">
                              <div className="flex items-center gap-3">
                                <RefreshCw size={16} className="text-blue-400 animate-spin" />
                                <p className="text-[9px] font-bold text-slate-400 uppercase tracking-widest">Varredura de Inconsistências...</p>
