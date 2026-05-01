@@ -27,7 +27,15 @@ import {
   ArrowUpRight,
   UserCheck,
   AlertTriangle,
-  Monitor
+  Monitor,
+  Settings,
+  RefreshCw,
+  Power,
+  HardDrive,
+  Eye,
+  EyeOff,
+  Trash2,
+  Save
 } from 'lucide-react';
 import { useData } from '../contexts/DataContext';
 import { useTranslation } from '../contexts/LanguageContext';
@@ -39,11 +47,11 @@ import { motion, AnimatePresence } from 'motion/react';
 
 const SystemAudit: React.FC = () => {
   const { t } = useTranslation();
-  const { logs, students, ledger, verifyLedgerIntegrity, verifyAuditIntegrity, presence } = useData();
+  const { logs, students, ledger, verifyLedgerIntegrity, verifyAuditIntegrity, presence, updateStudent } = useData();
   const [searchTerm, setSearchTerm] = useState('');
   const [categoryFilter, setCategoryFilter] = useState<SystemLog['category'] | 'All'>('All');
   const [dateRange, setDateRange] = useState<'Today' | 'Week' | 'Month' | 'All'>('Week');
-  const [activeTab, setActiveTab] = useState<'overview' | 'intelligence' | 'logs'>('overview');
+  const [activeTab, setActiveTab] = useState<'overview' | 'intelligence' | 'logs' | 'control'>('overview');
   const [viewMode, setViewMode] = useState<'Table' | 'Groups'>('Table');
   const [itemsPerPage, setItemsPerPage] = useState(25);
   const [currentPage, setCurrentPage] = useState(1);
@@ -317,11 +325,12 @@ const SystemAudit: React.FC = () => {
       </div>
 
       {/* Main Tabs */}
-      <div className="flex bg-slate-100 dark:bg-slate-900/50 p-1.5 rounded-[2rem] border border-slate-200 dark:border-slate-800 w-fit">
+      <div className="flex bg-slate-100 dark:bg-slate-900/50 p-1.5 rounded-[2rem] border border-slate-200 dark:border-slate-800 w-fit overflow-x-auto">
         {[
           { id: 'overview', label: 'Monitoramento', icon: <Cpu size={16} /> },
           { id: 'intelligence', label: t('userAccessCenter'), icon: <Fingerprint size={16} /> },
-          { id: 'logs', label: 'Histórico de Logs', icon: <Terminal size={16} /> }
+          { id: 'logs', label: 'Histórico de Logs', icon: <Terminal size={16} /> },
+          { id: 'control', label: 'Master Control', icon: <Settings size={16} /> }
         ].map(tab => (
           <button
             key={tab.id}
@@ -517,6 +526,7 @@ const SystemAudit: React.FC = () => {
                     <th className="px-8 py-6 text-[10px] font-black text-slate-400 uppercase tracking-[0.2em]">Volume</th>
                     <th className="px-8 py-6 text-[10px] font-black text-slate-400 uppercase tracking-[0.2em]">Dispositivos</th>
                     <th className="px-8 py-6 text-[10px] font-black text-slate-400 uppercase tracking-[0.2em]">{t('threatLevel')}</th>
+                    <th className="px-8 py-6 text-[10px] font-black text-slate-400 uppercase tracking-[0.2em]">Ações Master</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-50 dark:divide-slate-800">
@@ -603,6 +613,29 @@ const SystemAudit: React.FC = () => {
                                'bg-green-500'
                              }`} />
                              {user.riskLevel === 'Low' ? t('lowRisk') : user.riskLevel === 'Medium' ? t('mediumRisk') : t('highRisk')}
+                           </div>
+                        </td>
+                        <td className="px-8 py-6">
+                           <div className="flex items-center gap-2 opacity-0 group-hover:opacity-100 transition-all">
+                              <button 
+                                title="Resetar Acesso"
+                                className="p-2 bg-slate-100 dark:bg-slate-800 hover:bg-blue-600 hover:text-white rounded-lg transition-all"
+                                onClick={() => alert(`Reset de acesso enviado para ${user.email}`)}
+                              >
+                                <RefreshCw size={14} />
+                              </button>
+                              <button 
+                                title={user.status === 'Active' ? 'Suspender' : 'Ativar'}
+                                className={`p-2 bg-slate-100 dark:bg-slate-800 transition-all rounded-lg ${user.status === 'Active' ? 'hover:bg-red-600' : 'hover:bg-green-600'} hover:text-white`}
+                              >
+                                <Power size={14} />
+                              </button>
+                              <button 
+                                title="Ver Detalhes"
+                                className="p-2 bg-slate-100 dark:bg-slate-800 hover:bg-slate-900 dark:hover:bg-white dark:hover:text-slate-900 hover:text-white rounded-lg transition-all"
+                              >
+                                <ArrowUpRight size={14} />
+                              </button>
                            </div>
                         </td>
                       </tr>
@@ -754,6 +787,154 @@ const SystemAudit: React.FC = () => {
                  </div>
                )}
             </div>
+          </motion.div>
+        )}
+
+        {activeTab === 'control' && (
+          <motion.div 
+            key="control"
+            initial={{ opacity: 0, scale: 0.98 }}
+            animate={{ opacity: 1, scale: 1 }}
+            exit={{ opacity: 0, scale: 0.98 }}
+            className="space-y-8"
+          >
+             <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+               {/* System Health */}
+               <div className="lg:col-span-2 space-y-8">
+                 <div className="bg-white dark:bg-slate-900 p-8 rounded-[3.5rem] border border-slate-200 dark:border-slate-800 shadow-xl">
+                   <div className="flex items-center justify-between mb-8">
+                     <div>
+                       <h3 className="text-xl font-black dark:text-white uppercase tracking-tighter">Status da Infraestrutura</h3>
+                       <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mt-1">Conexão direta com os nós de processamento</p>
+                     </div>
+                     <div className="px-4 py-2 bg-green-500/10 text-green-500 rounded-2xl text-[9px] font-black uppercase tracking-widest border border-green-500/20">
+                       All Systems Operational
+                     </div>
+                   </div>
+
+                   <div className="grid grid-cols-1 sm:grid-cols-3 gap-6">
+                     {[
+                       { label: 'Latência do Banco', value: '24ms', icon: <ArrowUpRight size={18} />, status: 'green' },
+                       { label: 'Uso de Memória', value: '18%', icon: <HardDrive size={18} />, status: 'blue' },
+                       { label: 'Carga da CPU', value: '0.4%', icon: <Cpu size={18} />, status: 'yellow' }
+                     ].map((box, i) => (
+                       <div key={i} className="p-6 bg-slate-50 dark:bg-slate-800/50 rounded-3xl border border-slate-100 dark:border-slate-700/50">
+                          <div className={`w-10 h-10 rounded-xl bg-white dark:bg-slate-800 shadow-sm flex items-center justify-center mb-4 ${box.status === 'green' ? 'text-green-500' : box.status === 'blue' ? 'text-blue-500' : 'text-yellow-500'}`}>
+                            {box.icon}
+                          </div>
+                          <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest">{box.label}</p>
+                          <p className="text-2xl font-black dark:text-white mt-1">{box.value}</p>
+                       </div>
+                     ))}
+                   </div>
+
+                   <div className="mt-8 p-6 bg-indigo-600 rounded-[2.5rem] text-white flex items-center justify-between shadow-xl shadow-indigo-600/20">
+                     <div className="flex items-center gap-4">
+                       <div className="w-12 h-12 bg-white/10 rounded-2xl flex items-center justify-center">
+                         <Zap size={24} />
+                       </div>
+                       <div>
+                         <p className="text-[8px] font-black uppercase tracking-[0.2em] opacity-70">Turbo Engine Status</p>
+                         <p className="text-sm font-black uppercase tracking-tight">Otimização de Query Ativa</p>
+                       </div>
+                     </div>
+                     <div className="flex items-center gap-2">
+                       <span className="text-[10px] font-bold uppercase mr-2">99.9% Uptime</span>
+                       <div className="w-24 h-8 bg-white/20 rounded-full relative p-1 cursor-pointer">
+                         <div className="absolute right-1 top-1 w-6 h-6 bg-white rounded-full shadow-lg" />
+                       </div>
+                     </div>
+                   </div>
+                 </div>
+
+                 {/* Master Configs */}
+                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                   <div className="bg-white dark:bg-slate-900 p-8 rounded-[3rem] border border-slate-200 dark:border-slate-800 shadow-xl group hover:border-red-500/30 transition-all">
+                     <div className="w-12 h-12 bg-red-500 rounded-2xl flex items-center justify-center text-white mb-6 group-hover:scale-110 transition-transform">
+                        <Lock size={20} />
+                     </div>
+                     <h4 className="text-lg font-black dark:text-white uppercase tracking-tighter">Modo de Manutenção</h4>
+                     <p className="text-xs text-slate-500 mt-2 font-medium">Bloqueia todos os acessos não-admin para atualizações críticas no banco de dados.</p>
+                     <button className="w-full mt-6 py-4 bg-slate-100 dark:bg-slate-800 hover:bg-red-600 hover:text-white dark:hover:bg-red-600 text-slate-900 dark:text-white rounded-2xl font-black uppercase text-[10px] tracking-widest transition-all">
+                        Ativar Modo Darklock
+                     </button>
+                   </div>
+
+                   <div className="bg-white dark:bg-slate-900 p-8 rounded-[3rem] border border-slate-200 dark:border-slate-800 shadow-xl group hover:border-green-500/30 transition-all">
+                     <div className="w-12 h-12 bg-green-500 rounded-2xl flex items-center justify-center text-white mb-6 group-hover:scale-110 transition-transform">
+                        <UserCheck size={20} />
+                     </div>
+                     <h4 className="text-lg font-black dark:text-white uppercase tracking-tighter">Novos Registros</h4>
+                     <p className="text-xs text-slate-500 mt-2 font-medium">Define se o portal está aberto para novos cadastros de alunos externos através do app.</p>
+                     <button className="w-full mt-6 py-4 bg-green-600 text-white rounded-2xl font-black uppercase text-[10px] tracking-widest transition-all">
+                        Portal: Ativo/Aberto
+                     </button>
+                   </div>
+                 </div>
+               </div>
+
+               {/* Integrity Pulse */}
+               <div className="space-y-8">
+                  <div className="bg-slate-900 p-8 rounded-[3.5rem] border border-slate-800 shadow-2xl relative overflow-hidden h-full min-h-[500px]">
+                    <div className="absolute inset-0 bg-[radial-gradient(circle_at_50%_0%,rgba(59,130,246,0.1),transparent_70%)]" />
+                    <h3 className="text-xl font-black text-white uppercase tracking-tighter mb-8 flex items-center gap-2">
+                       <Activity className="text-blue-500" size={20} /> Data Integrity Pulse
+                    </h3>
+                    
+                    <div className="space-y-8 relative">
+                       {[
+                         { label: 'Blockchain Chain', status: 'Healthy', val: 100 },
+                         { label: 'Financial Ledger', status: 'Synced', val: 100 },
+                         { label: 'User Signatures', status: 'Valid', val: 98 },
+                         { label: 'Storage Sync', status: 'Live', val: 100 }
+                       ].map((p, i) => (
+                         <div key={i} className="space-y-3">
+                           <div className="flex justify-between items-end">
+                              <div>
+                                <p className="text-[10px] font-black text-white uppercase tracking-widest">{p.label}</p>
+                                <p className="text-[8px] font-bold text-blue-400 uppercase tracking-[0.2em]">{p.status}</p>
+                              </div>
+                              <p className="text-xs font-black text-white">{p.val}%</p>
+                           </div>
+                           <div className="w-full h-1.5 bg-slate-800 rounded-full overflow-hidden">
+                              <motion.div 
+                                initial={{ width: 0 }}
+                                animate={{ width: `${p.val}%` }}
+                                className="h-full bg-blue-500 shadow-[0_0_8px_rgba(59,130,246,0.5)]"
+                              />
+                           </div>
+                         </div>
+                       ))}
+
+                       <div className="pt-8 border-t border-slate-800">
+                          <div className="p-6 bg-white/5 rounded-3xl border border-white/10 mt-4 space-y-4">
+                             <div className="flex items-center gap-3">
+                               <RefreshCw size={16} className="text-blue-400 animate-spin" />
+                               <p className="text-[9px] font-bold text-slate-400 uppercase tracking-widest">Varredura de Inconsistências...</p>
+                             </div>
+                             <button className="w-full py-4 bg-blue-600 text-white rounded-2xl font-black uppercase text-[10px] tracking-widest shadow-lg shadow-blue-600/20 hover:scale-105 transition-all">
+                               Forçar Re-Sync Global
+                             </button>
+                          </div>
+                          
+                          <div className="mt-8">
+                             <p className="text-[10px] font-black text-slate-500 uppercase tracking-[0.2em] mb-4">Consumo de Recursos</p>
+                             <div className="flex items-end gap-1 h-20">
+                               {[40, 60, 35, 70, 90, 45, 60, 30, 50, 40, 70, 85].map((h, i) => (
+                                 <motion.div 
+                                   key={i}
+                                   initial={{ height: 0 }}
+                                   animate={{ height: `${h}%` }}
+                                   className="flex-1 bg-slate-800 rounded-t-sm hover:bg-blue-500 transition-colors cursor-help"
+                                 />
+                               ))}
+                             </div>
+                          </div>
+                       </div>
+                    </div>
+                  </div>
+               </div>
+             </div>
           </motion.div>
         )}
       </AnimatePresence>
