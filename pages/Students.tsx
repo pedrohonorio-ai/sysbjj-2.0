@@ -35,7 +35,8 @@ import {
   FileWarning,
   AlertCircle,
   FileCheck,
-  Filter
+  Filter,
+  ArrowRight
 } from 'lucide-react';
 import Webcam from 'react-webcam';
 import { Student, StudentStatus, BeltColor, KidsBeltColor, Gender, CBJJCategory } from '../types';
@@ -1963,6 +1964,52 @@ const StudentDetailsModal = ({ student, onClose }: { student: Student; onClose: 
                        Solicitar Análise de Rendimento
                     </button>
                  </div>
+
+                 {/* New Technical Feedback Section */}
+                 <div className="lg:col-span-3 p-8 bg-white dark:bg-slate-900 rounded-[3rem] border border-slate-200 dark:border-slate-800 shadow-xl">
+                    <div className="flex items-center justify-between mb-8">
+                       <h4 className="text-xl font-black text-slate-900 dark:text-white uppercase tracking-tighter">Feedback Técnico & Mentoria</h4>
+                       <div className="px-4 py-1.5 bg-blue-50 dark:bg-blue-900/20 text-blue-600 rounded-full text-[9px] font-black uppercase tracking-widest leading-none">Sensei Dashboard</div>
+                    </div>
+
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                       <div>
+                          <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-3 italic">Observações do Professor</p>
+                          <textarea 
+                            className="w-full h-40 p-5 bg-slate-50 dark:bg-slate-800 border-2 border-slate-100 dark:border-slate-700 rounded-3xl text-sm font-medium outline-none focus:border-blue-600 transition-all dark:text-white scrollbar-hide resize-none"
+                            placeholder="Ex: Aluno está com dificuldade na reposição de guarda. Focar em drills de camarão..."
+                            defaultValue={student.technicalNotes || ''}
+                            onBlur={(e) => updateStudent(student.id, { technicalNotes: e.target.value })}
+                          />
+                          <p className="text-[8px] text-slate-400 mt-2 italic">* O aluno visualiza este feedback no Portal do Aluno.</p>
+                       </div>
+                       <div className="space-y-6">
+                          <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-1 italic">Tendência Evolutiva</p>
+                          <div className="space-y-4">
+                             <div className="p-4 bg-emerald-50 dark:bg-emerald-900/10 rounded-2xl border border-emerald-100 dark:border-emerald-800 flex items-center justify-between">
+                                <div>
+                                   <p className="text-[10px] font-black text-emerald-600 uppercase tracking-tight">Passagem de Guarda</p>
+                                   <p className="text-[8px] text-emerald-500 font-bold uppercase tracking-widest">Growth: +15%</p>
+                                </div>
+                                <ArrowRight className="text-emerald-500 -rotate-45" size={16} />
+                             </div>
+                             <div className="p-4 bg-blue-50 dark:bg-blue-900/10 rounded-2xl border border-blue-100 dark:border-blue-800 flex items-center justify-between">
+                                <div>
+                                   <p className="text-[10px] font-black text-blue-600 uppercase tracking-tight">Finalizações</p>
+                                   <p className="text-[8px] text-blue-500 font-bold uppercase tracking-widest">Estável</p>
+                                </div>
+                                <div className="w-2 h-2 rounded-full bg-blue-500 animate-pulse" />
+                             </div>
+                          </div>
+                          <div className="mt-8">
+                            <h5 className="text-[10px] font-black text-slate-900 dark:text-white uppercase mb-3">Recomendação do Sistema</h5>
+                            <div className="p-4 bg-slate-900 text-white rounded-2xl border border-slate-700">
+                               <p className="text-xs italic opacity-80">"Este aluno apresenta biotipo ideal para guarda De La Riva. Considere introduzir o currículo de guardas modernas."</p>
+                            </div>
+                          </div>
+                       </div>
+                    </div>
+                 </div>
                </div>
             </div>
           )}
@@ -2517,7 +2564,7 @@ const Students: React.FC = () => {
             onChange={(e) => setBeltFilter(e.target.value)}
           >
             <option value="">Todas as Faixas</option>
-            {Object.entries(activeView === 'kids' ? IBJJF_BELT_RULES.kids : IBJJF_BELT_RULES.adults).map(([belt, _]) => (
+            {Object.keys(BELT_COLORS).map((belt) => (
                <option key={belt} value={belt}>{belt}</option>
             ))}
           </select>

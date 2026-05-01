@@ -60,7 +60,9 @@ const StudentPortal: React.FC = () => {
     const age = calculateAge(student.birthDate);
     const isKid = student.isKid || age < 16;
     const isBlackBelt = student.belt === BeltColor.BLACK || student.belt === BeltColor.RED_BLACK || student.belt === BeltColor.RED_WHITE || student.belt === BeltColor.RED;
-    const chain = (isKid ? Object.values(KidsBeltColor) : Object.values(BeltColor)) as any[];
+    const kidsValues = KidsBeltColor ? Object.values(KidsBeltColor) : [];
+    const adultValues = BeltColor ? Object.values(BeltColor) : [];
+    const chain = (isKid ? kidsValues : adultValues) as any[];
     const currentIdx = chain.indexOf(student.belt);
     const nextBelt = currentIdx !== -1 && currentIdx < chain.length - 1 ? chain[currentIdx + 1] : (isKid ? 'Adulto' : 'Mestre');
     const futurePath = currentIdx !== -1 ? chain.slice(currentIdx + 1, currentIdx + 4) : [];
@@ -70,7 +72,7 @@ const StudentPortal: React.FC = () => {
     let maxStripes = 4;
     
     if (!isKid) {
-      const rule = IBJJF_BELT_RULES[student.belt as string];
+      const rule = (IBJJF_BELT_RULES as any)[student.belt as string];
       minMonths = rule?.minTimeMonths ?? 0;
       if (student.belt === 'Purple' && age === 17) minMonths = 12;
       

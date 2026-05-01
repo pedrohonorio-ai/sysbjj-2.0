@@ -115,7 +115,7 @@ const BeltSystem: React.FC = () => {
         attendanceThreshold = 30;
         minMonthsRequired = 4; // Usual school rule for kids stripes
       } else {
-        const rule = IBJJF_BELT_RULES[s.belt as string];
+        const rule = (IBJJF_BELT_RULES as any)[s.belt as string];
         minMonthsRequired = rule?.minTimeMonths ?? 0;
 
         if (s.belt === BeltColor.PURPLE && age === 17) {
@@ -367,32 +367,35 @@ const BeltSystem: React.FC = () => {
             </div>
 
             <div className="p-8 overflow-y-auto space-y-10">
-               {Object.keys(IBJJF_BELT_RULES).filter(key => key.toLowerCase().includes(requirementSearch.toLowerCase())).map((beltKey) => (
-                 <div key={beltKey} className="space-y-4">
-                    <div className="flex items-center gap-3">
-                       <div className={`w-3 h-8 rounded-full ${BELT_COLORS[beltKey]}`} />
-                       <h4 className="text-xl font-black text-slate-900 dark:text-white uppercase tracking-tighter">Faixa {t(`belts.${beltKey}`)}</h4>
-                    </div>
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                       <div className="p-6 bg-slate-50 dark:bg-slate-800 rounded-3xl border border-slate-100 dark:border-slate-700">
-                          <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-2">Tempo Mínimo Permanência</p>
-                          <p className="text-xl font-black dark:text-white uppercase tracking-tighter">{IBJJF_BELT_RULES[beltKey].minTimeMonths} Meses</p>
-                       </div>
-                       <div className="p-6 bg-slate-50 dark:bg-slate-800 rounded-3xl border border-slate-100 dark:border-slate-700">
-                          <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-2">Idade Mínima</p>
-                          <p className="text-xl font-black dark:text-white uppercase tracking-tighter">{IBJJF_BELT_RULES[beltKey].minAge} Anos</p>
-                       </div>
-                    </div>
-                    <div className="p-6 bg-white dark:bg-slate-800 rounded-3xl border border-slate-100 dark:border-slate-700">
-                       <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-4">Requisitos Técnicos Sugeridos</p>
-                       <div className="flex flex-wrap gap-2">
-                          {((tObj(`beltRequirements.${beltKey}`) as string[]) || []).map((req, i) => (
-                            <span key={i} className="px-3 py-1.5 bg-slate-100 dark:bg-slate-700 text-[10px] font-bold text-slate-600 dark:text-slate-300 rounded-xl uppercase">{req}</span>
-                          ))}
-                       </div>
-                    </div>
-                 </div>
-               ))}
+               {Object.keys(IBJJF_BELT_RULES || {}).filter(key => key.toLowerCase().includes(requirementSearch.toLowerCase())).map((beltKey) => {
+                 const rule = (IBJJF_BELT_RULES as any)[beltKey];
+                 return (
+                  <div key={beltKey} className="space-y-4">
+                     <div className="flex items-center gap-3">
+                        <div className={`w-3 h-8 rounded-full ${BELT_COLORS[beltKey] || ''}`} />
+                        <h4 className="text-xl font-black text-slate-900 dark:text-white uppercase tracking-tighter">Faixa {t(`belts.${beltKey}`)}</h4>
+                     </div>
+                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div className="p-6 bg-slate-50 dark:bg-slate-800 rounded-3xl border border-slate-100 dark:border-slate-700">
+                           <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-2">Tempo Mínimo Permanência</p>
+                           <p className="text-xl font-black dark:text-white uppercase tracking-tighter">{rule?.minTimeMonths ?? 0} Meses</p>
+                        </div>
+                        <div className="p-6 bg-slate-50 dark:bg-slate-800 rounded-3xl border border-slate-100 dark:border-slate-700">
+                           <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-2">Idade Mínima</p>
+                           <p className="text-xl font-black dark:text-white uppercase tracking-tighter">{rule?.minAge ?? 0} Anos</p>
+                        </div>
+                     </div>
+                     <div className="p-6 bg-white dark:bg-slate-800 rounded-3xl border border-slate-100 dark:border-slate-700">
+                        <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-4">Requisitos Técnicos Sugeridos</p>
+                        <div className="flex flex-wrap gap-2">
+                           {((tObj(`beltRequirements.${beltKey}`) as string[]) || []).map((req, i) => (
+                             <span key={i} className="px-3 py-1.5 bg-slate-100 dark:bg-slate-700 text-[10px] font-bold text-slate-600 dark:text-slate-300 rounded-xl uppercase">{req}</span>
+                           ))}
+                        </div>
+                     </div>
+                  </div>
+                 );
+               })}
             </div>
           </div>
         </div>

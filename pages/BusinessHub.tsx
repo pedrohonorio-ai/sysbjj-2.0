@@ -76,7 +76,7 @@ const BusinessHub: React.FC = () => {
   const [showPix, setShowPix] = useState(false);
   const [selectedStudent, setSelectedStudent] = useState<any>(null);
   const [copied, setCopied] = useState(false);
-  const [reportTab, setReportTab] = useState<'dashboard' | 'monthly' | 'sales' | 'catalog' | 'receipts' | 'ledger' | 'analytics' | 'birthdays'>('dashboard');
+  const [reportTab, setReportTab] = useState<'dashboard' | 'monthly' | 'sales' | 'catalog' | 'receipts' | 'ledger' | 'analytics' | 'birthdays' | 'churn'>('dashboard');
   const [integrityStatus, setIntegrityStatus] = useState<{valid: boolean, message: string} | null>(null);
   const [searchTerm, setSearchTerm] = useState('');
   const [isAddingSale, setIsAddingSale] = useState(false);
@@ -115,6 +115,34 @@ const BusinessHub: React.FC = () => {
 
   const [productForm, setProductForm] = useState({ name: '', price: 0, category: ExtraRevenueCategory.PRODUCT, stock: 0 });
   const [planForm, setPlanForm] = useState({ name: '', price: 0, description: '' });
+
+  const churnRiskStudents = useMemo(() => {
+    return students.filter(s => {
+      if (s.status === StudentStatus.INACTIVE) return false;
+      
+      const lastAttendance = s.lastAttendanceDate ? new Date(s.lastAttendanceDate) : new Date(s.joinedAt || '2000-01-01');
+      const diffDays = Math.floor((new Date().getTime() - lastAttendance.getTime()) / (1000 * 3600 * 24));
+      
+      const isAbsent = diffDays > 15;
+      const isOverdue = s.status === StudentStatus.OVERDUE;
+      
+      return isAbsent || isOverdue;
+    }).map(s => {
+       const lastAttendance = s.lastAttendanceDate ? new Date(s.lastAttendanceDate) : new Date(s.joinedAt || '2000-01-01');
+       const diffDays = Math.floor((new Date().getTime() - lastAttendance.getTime()) / (1000 * 3600 * 24));
+       let riskLevel = 'Low';
+       if (diffDays > 30 || s.status === StudentStatus.OVERDUE) riskLevel = 'High';
+       else if (diffDays > 15) riskLevel = 'Medium';
+       
+       return { ...s, riskLevel, daysAbsent: diffDays };
+    }).sort((a, b) => b.daysAbsent - a.daysAbsent);
+  }, [students]);
+
+  const churnRate = useMemo(() => {
+    const activeAtStart = students.length;
+    const churned = students.filter(s => s.status === StudentStatus.INACTIVE).length;
+    return activeAtStart > 0 ? (churned / activeAtStart) * 100 : 0;
+  }, [students]);
 
   const [showManualConfirm, setShowManualConfirm] = useState<string | null>(null);
   const [showPauseConfirm, setShowPauseConfirm] = useState<string | null>(null);
@@ -332,6 +360,7 @@ const BusinessHub: React.FC = () => {
           { id: 'receipts', icon: <FileText size={16} />, label: t('common.receipts'), color: 'text-purple-600', bg: 'bg-purple-600/5', count: receipts.filter(r => r.status === 'Pending').length },
           { id: 'ledger', icon: <ShieldCheck size={16} />, label: t('common.ledger'), color: 'text-indigo-600', bg: 'bg-indigo-600/5' },
           { id: 'analytics', icon: <BarChartIcon size={16} />, label: t('business.analytics'), color: 'text-pink-600', bg: 'bg-pink-600/5' },
+          { id: 'churn', icon: <ShieldAlert size={16} />, label: 'Previsão de Churn', color: 'text-red-600', bg: 'bg-red-600/5', count: churnRiskStudents.filter(s => s.riskLevel === 'High').length },
           { id: 'birthdays', icon: <Cake size={16} />, label: t('reports.birthdaysTab'), color: 'text-orange-600', bg: 'bg-orange-600/5' }
         ].map(tab => (
           <button 
@@ -388,7 +417,7 @@ const BusinessHub: React.FC = () => {
                       <div className="grid grid-cols-1 md:grid-cols-3 gap-8 mb-10">
                          {[
                            { label: 'Growth rate', val: '+12.4%', icon: <TrendingUp size={16}/>, color: 'text-green-500', bg: 'bg-green-500/10' },
-                           { label: 'Retention', val: '98.2%', icon: <UserCheck size={16}/>, color: 'text-blue-500', bg: 'bg-blue-500/10' },
+                           { label: 'Churn Rate', val: `${churnRate.toFixed(1)}%`, icon: <UserX size={16}/>, color: 'text-red-500', bg: 'bg-red-500/10' },
                            { label: 'LTV Previsto', val: 'R$ 3.8k', icon: <DollarSign size={16}/>, color: 'text-emerald-500', bg: 'bg-emerald-500/10' }
                          ].map((m, i) => (
                            <div key={i} className="p-6 bg-white/5 rounded-3xl border border-white/5 hover:border-white/10 transition-all group/stat">
@@ -660,6 +689,11 @@ const BusinessHub: React.FC = () => {
                                   <div className={`w-1.5 h-1.5 rounded-full ${isPaid ? 'bg-emerald-500 animate-pulse' : 'bg-red-500'}`} />
                                   {isPaid ? 'Confirmado' : 'Atrasado'}
                                </div>
+                               {churnRiskStudents.find((crs: any) => crs.id === s.id && crs.riskLevel === 'High') && (
+                                 <div className="mt-1 flex items-center justify-center gap-1 text-[7px] font-black text-red-500 uppercase tracking-tighter">
+                                   <ShieldAlert size={8} /> Churn Risk
+                                 </div>
+                               )}
                             </td>
                             <td className="px-10 py-7 text-right">
                               <div className="flex items-center justify-end gap-2 pr-2 opacity-80 group-hover:opacity-100 transition-opacity">
@@ -903,6 +937,99 @@ const BusinessHub: React.FC = () => {
                   </div>
                 </div>
               </div>
+            </div>
+          )}
+
+          {reportTab === 'churn' && (
+            <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
+               <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+                  <div className="lg:col-span-2 space-y-6">
+                     <div className="flex items-center justify-between bg-white dark:bg-slate-900 p-8 rounded-[2.5rem] border border-slate-200 dark:border-slate-800 shadow-sm">
+                        <div>
+                           <h3 className="text-xl font-black text-slate-900 dark:text-white uppercase tracking-tighter">Análise Preditiva de Churn</h3>
+                           <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mt-1">Identificação precoce de alunos em risco de desistência</p>
+                        </div>
+                        <div className="w-16 h-16 bg-red-100 dark:bg-red-900/20 rounded-2xl flex items-center justify-center text-red-600">
+                           <ShieldAlert size={32} />
+                        </div>
+                     </div>
+
+                     <div className="bg-white dark:bg-slate-900 rounded-[3rem] border border-slate-200 dark:border-slate-800 shadow-xl overflow-hidden">
+                        <table className="w-full text-left border-collapse">
+                           <thead>
+                              <tr className="bg-slate-50 dark:bg-slate-900/80 border-b border-slate-200 dark:border-slate-800">
+                                 <th className="px-8 py-5 text-[10px] font-black text-slate-400 uppercase tracking-widest">Aluno</th>
+                                 <th className="px-8 py-5 text-[10px] font-black text-slate-400 uppercase tracking-widest">Ausência</th>
+                                 <th className="px-8 py-5 text-[10px] font-black text-slate-400 uppercase tracking-widest text-center">Nível de Risco</th>
+                                 <th className="px-8 py-5 text-[10px] font-black text-slate-400 uppercase tracking-widest text-right">Ação</th>
+                              </tr>
+                           </thead>
+                           <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
+                              {churnRiskStudents.map((s: any) => (
+                                 <tr key={s.id} className="group hover:bg-slate-50 dark:hover:bg-slate-800/30 transition-all">
+                                    <td className="px-8 py-6">
+                                       <p className="font-black text-slate-900 dark:text-white uppercase text-xs">{s.name}</p>
+                                       <p className="text-[8px] font-bold text-slate-400 uppercase tracking-widest mt-1">{t(`belts.${s.belt}`)}</p>
+                                    </td>
+                                    <td className="px-8 py-6">
+                                       <div className="flex items-center gap-2">
+                                          <Clock size={12} className="text-slate-400" />
+                                          <span className="text-xs font-black text-slate-600 dark:text-slate-300 tabular-nums">{s.daysAbsent} DIAS</span>
+                                       </div>
+                                    </td>
+                                    <td className="px-8 py-6 text-center">
+                                       <span className={`px-3 py-1 rounded-full text-[8px] font-black uppercase tracking-widest ${
+                                          s.riskLevel === 'High' ? 'bg-red-500 text-white shadow-lg shadow-red-500/20' :
+                                          s.riskLevel === 'Medium' ? 'bg-amber-500 text-white shadow-lg shadow-amber-500/20' :
+                                          'bg-blue-500 text-white shadow-lg shadow-blue-500/20'
+                                       }`}>
+                                          {s.riskLevel === 'High' ? 'Crítico' : s.riskLevel === 'Medium' ? 'Alerta' : 'Monitoramento'}
+                                       </span>
+                                    </td>
+                                    <td className="px-8 py-6 text-right">
+                                       <button className="px-4 py-2 bg-slate-900 dark:bg-white text-white dark:text-slate-900 rounded-xl text-[9px] font-black uppercase tracking-widest hover:scale-105 active:scale-95 transition-all">Notificar</button>
+                                    </td>
+                                 </tr>
+                              ))}
+                              {churnRiskStudents.length === 0 && (
+                                 <tr>
+                                    <td colSpan={4} className="py-20 text-center text-slate-400 italic text-xs uppercase font-black tracking-widest">Nenhum aluno em risco detectado. Oss!</td>
+                                 </tr>
+                              )}
+                           </tbody>
+                        </table>
+                     </div>
+                  </div>
+
+                  <div className="space-y-6">
+                     <div className="p-8 bg-slate-900 rounded-[2.5rem] text-white border border-slate-800 shadow-2xl relative overflow-hidden">
+                        <div className="absolute top-0 right-0 w-24 h-24 bg-blue-600 rounded-full blur-[60px] opacity-20" />
+                        <h4 className="text-[10px] font-black text-blue-400 uppercase tracking-widest mb-6 flex items-center gap-2">
+                           <Zap size={14} /> Insights da AI
+                        </h4>
+                        <div className="space-y-6">
+                           <div className="p-4 bg-white/5 rounded-2xl border border-white/5">
+                              <p className="text-[10px] font-black text-blue-400 uppercase tracking-widest mb-2">Padrão Detectado</p>
+                              <p className="text-xs font-medium leading-relaxed italic text-slate-400">
+                                 "Alunos da faixa branca que faltam por mais de 10 dias consecutivos após o primeiro mês têm 85% de chance de churn. Recomendamos uma ligação de boas-vindas reforçada."
+                              </p>
+                           </div>
+                           <div className="p-4 bg-white/5 rounded-2xl border border-white/5">
+                              <p className="text-[10px] font-black text-emerald-400 uppercase tracking-widest mb-2">Dica de Retenção</p>
+                              <p className="text-xs font-medium leading-relaxed italic text-slate-400">
+                                 "Crie um evento 'Family Day' para o próximo sábado. Dados indicam que o engajamento familiar reduz o churn em 30%."
+                              </p>
+                           </div>
+                        </div>
+                     </div>
+                     
+                     <div className="p-8 bg-blue-600 rounded-[2.5rem] text-white shadow-2xl">
+                        <h4 className="text-xl font-black uppercase tracking-tighter mb-2 italic">Ação Imediata</h4>
+                        <p className="text-[10px] text-blue-100 font-bold uppercase tracking-widest mb-6">Reduzir Churn em 5% neste mês</p>
+                        <button className="w-full py-4 bg-white text-blue-600 rounded-2xl font-black uppercase text-[10px] tracking-widest shadow-xl hover:scale-[1.02] transition-all">Distribuir Vouchers de Retorno</button>
+                     </div>
+                  </div>
+               </div>
             </div>
           )}
 

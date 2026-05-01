@@ -6,7 +6,7 @@ import {
   Users, TrendingUp, AlertCircle, Calendar, CreditCard,
   Timer, UserPlus, CheckCircle2, Trophy as TrophyIcon, Plus,
   ArrowUpRight, ArrowDownRight, BarChart3, ArrowRight, Baby,
-  Edit2, X, Trash2, Clock, BookOpen, QrCode, Scan, Zap, Cake, Store, Activity, History, Shield, Instagram, ChevronRight, Monitor, RefreshCw, Settings
+  Edit2, X, Trash2, Clock, BookOpen, QrCode, Scan, Zap, Cake, Store, Activity, History, Shield, Instagram, ChevronRight, Monitor, RefreshCw, Settings, ShieldAlert
 } from 'lucide-react';
 import { useTranslation } from '../contexts/LanguageContext';
 import { useProfile } from '../contexts/ProfileContext';
@@ -93,12 +93,21 @@ const Dashboard: React.FC = () => {
   const pendingPaymentsCount = students.filter(s => s.status === StudentStatus.OVERDUE).length;
   const competitorsCount = students.filter(s => s.isCompetitor).length;
 
+  const churnRiskCount = useMemo(() => {
+    return students.filter(s => {
+      if (s.status === StudentStatus.INACTIVE) return false;
+      const lastAttendance = s.lastAttendanceDate ? new Date(s.lastAttendanceDate) : new Date(s.joinedAt || '2000-01-01');
+      const diffDays = Math.floor((now.getTime() - lastAttendance.getTime()) / (1000 * 3600 * 24));
+      return diffDays > 20 || s.status === StudentStatus.OVERDUE;
+    }).length;
+  }, [students, now]);
+
   const candidatesCount = useMemo(() => {
     return students.filter(s => {
       if (s.status === StudentStatus.INACTIVE) return false;
       const promoDate = s.lastPromotionDate ? new Date(s.lastPromotionDate + 'T12:00:00') : new Date(s.birthDate);
       const monthsInBelt = Math.max(0, (now.getFullYear() - promoDate.getFullYear()) * 12 + (now.getMonth() - promoDate.getMonth()));
-      const rule = IBJJF_BELT_RULES[s.belt as string];
+      const rule = (IBJJF_BELT_RULES as any)[s.belt as string];
       const minMonths = rule?.minTimeMonths ?? 0;
       const effectiveMinMonths = (s.belt === BeltColor.WHITE || s.isKid) ? 4 : minMonths;
       const attendanceThreshold = (s.belt === BeltColor.WHITE || s.isKid) ? 30 : 60;
@@ -228,7 +237,7 @@ const Dashboard: React.FC = () => {
         <StatCard title={t('students.isCompetitor')} value={competitorsCount} icon={<TrophyIcon />} color="bg-yellow-500" trend="Elite" trendUp delay={0.3} />
         <StatCard title={t('dashboard.stats.revenue')} value={monthlyRevenue} icon={<TrendingUp />} color="bg-emerald-600" trend="+8.2%" trendUp delay={0.4} suffix={t('common.currencySymbol')} />
         <StatCard title={t('dashboard.stats.extra')} value={monthlyExtra} icon={<Store />} color="bg-indigo-600" trend="Up" trendUp delay={0.5} suffix={t('common.currencySymbol')} />
-        <StatCard title={t('dashboard.stats.pending')} value={pendingPaymentsCount} icon={<AlertCircle />} color="bg-red-600" trend="Alert" trendUp={false} delay={0.6} />
+        <StatCard title="Risco Churn" value={churnRiskCount} icon={<ShieldAlert />} color="bg-orange-600" trend={churnRiskCount > 0 ? "ALERTA" : "NORMAL"} trendUp={false} delay={0.6} />
       </div>
 
       {/* Main Intelligent Bento Section */}
@@ -402,7 +411,38 @@ const Dashboard: React.FC = () => {
         initial={{ opacity: 0, y: 30 }}
         whileInView={{ opacity: 1, y: 0 }}
         viewport={{ once: true }}
-        className="relative group cursor-pointer"
+        className="lg:col-span-12 grid grid-cols-1 md:grid-cols-2 gap-6"
+      >
+         <div className="bg-slate-900 rounded-[2.5rem] p-8 border border-white/5 relative overflow-hidden group">
+            <div className="absolute top-0 right-0 w-32 h-32 bg-blue-600/10 rounded-full blur-3xl" />
+            <h3 className="text-xl font-black text-white uppercase tracking-tighter mb-4 flex items-center gap-3">
+               <Zap size={20} className="text-blue-500" /> Sensei Master Insights
+            </h3>
+            <div className="space-y-4">
+               <div className="p-4 bg-white/5 rounded-2xl border border-white/5">
+                  <p className="text-[9px] font-black text-blue-400 uppercase tracking-widest mb-1">Pedagogia</p>
+                  <p className="text-xs text-slate-400 leading-relaxed">Sua turma de Terça 19h está com 40% de novos alunos (faixa branca). Foque em fundamentos de guarda fechada para aumentar a retenção inicial.</p>
+               </div>
+               <div className="p-4 bg-white/5 rounded-2xl border border-white/5">
+                  <p className="text-[9px] font-black text-emerald-400 uppercase tracking-widest mb-1">Negócios</p>
+                  <p className="text-xs text-slate-400 leading-relaxed">Vendas de acessórios (faixas/patches) aumentaram 15%. Considere um kit de graduação exclusivo.</p>
+               </div>
+            </div>
+         </div>
+
+         <div className="bg-indigo-600 rounded-[2.5rem] p-8 text-white relative overflow-hidden group">
+            <div className="absolute top-0 right-0 w-32 h-32 bg-white/10 rounded-full blur-3xl animate-pulse" />
+            <h3 className="text-xl font-black uppercase tracking-tighter mb-2 italic">Ação Turbo</h3>
+            <p className="text-xs text-indigo-100 opacity-80 mb-6 font-medium">Detectamos {churnRiskCount} alunos com risco de churn. Clique abaixo para enviar uma mensagem automatizada de "Sentimos sua falta".</p>
+            <button onClick={() => navigate('/business')} className="w-full py-4 bg-white text-indigo-600 rounded-xl font-black uppercase text-[10px] tracking-widest shadow-xl hover:scale-105 active:scale-95 transition-all">Protocolo de Retenção</button>
+         </div>
+      </motion.div>
+
+      <motion.div 
+        initial={{ opacity: 0, y: 30 }}
+        whileInView={{ opacity: 1, y: 0 }}
+        viewport={{ once: true }}
+        className="relative group cursor-pointer lg:col-span-12"
         onClick={() => window.open('https://instagram.com/sistemabjj', '_blank')}
       >
         <div className="absolute -inset-1 bg-gradient-to-r from-pink-600 via-purple-600 to-blue-600 rounded-[3rem] blur opacity-20 group-hover:opacity-60 transition duration-1000" />
