@@ -18,6 +18,7 @@ import {
   Brain,
   Trash2,
   Zap,
+  TrendingUp,
   Phone,
   Mail,
   Calendar,
@@ -753,7 +754,7 @@ const NewStudentModal = ({ onClose, defaultIsKid }: { onClose: () => void, defau
 };
 
 const StudentDetailsModal = ({ student, onClose }: { student: Student; onClose: () => void }) => {
-  const [activeTab, setActiveTab] = useState<'overview' | 'analysis' | 'edit' | 'admin' | 'videos' | 'financial' | 'security'>('overview');
+  const [activeTab, setActiveTab] = useState<'overview' | 'analysis' | 'progress' | 'edit' | 'admin' | 'videos' | 'financial' | 'security'>('overview');
   const [editTab, setEditTab] = useState<'basics' | 'legal' | 'technical' | 'health'>('basics');
   const { t } = useTranslation();
   const { deleteStudent, updateStudent, schedules } = useData();
@@ -911,6 +912,8 @@ const StudentDetailsModal = ({ student, onClose }: { student: Student; onClose: 
 
         <div className="flex px-4 sm:px-10 bg-slate-50 dark:bg-slate-800/50 border-b border-slate-200 dark:border-slate-800 overflow-x-auto scrollbar-hide shrink-0">
           <button onClick={() => setActiveTab('overview')} className={`px-4 sm:px-8 py-4 sm:py-6 text-[8px] sm:text-[10px] font-black uppercase tracking-[0.2em] border-b-4 transition-all whitespace-nowrap ${activeTab === 'overview' ? 'border-blue-600 text-blue-600' : 'border-transparent text-slate-400'}`}>{t('students.overviewTab')}</button>
+          <button onClick={() => setActiveTab('analysis')} className={`px-4 sm:px-8 py-4 sm:py-6 text-[8px] sm:text-[10px] font-black uppercase tracking-[0.2em] border-b-4 transition-all whitespace-nowrap ${activeTab === 'analysis' ? 'border-blue-600 text-blue-600' : 'border-transparent text-slate-400'}`}>Análise Técnica</button>
+          <button onClick={() => setActiveTab('progress')} className={`px-4 sm:px-8 py-4 sm:py-6 text-[8px] sm:text-[10px] font-black uppercase tracking-[0.2em] border-b-4 transition-all whitespace-nowrap ${activeTab === 'progress' ? 'border-amber-600 text-amber-600' : 'border-transparent text-slate-400'}`}>Evolução</button>
           <button onClick={() => setActiveTab('edit')} className={`px-4 sm:px-8 py-4 sm:py-6 text-[8px] sm:text-[10px] font-black uppercase tracking-[0.2em] border-b-4 transition-all whitespace-nowrap ${activeTab === 'edit' ? 'border-blue-600 text-blue-600' : 'border-transparent text-slate-400'}`}>{t('common.edit').toUpperCase()}</button>
           <button onClick={() => setActiveTab('security')} className={`px-4 sm:px-8 py-4 sm:py-6 text-[8px] sm:text-[10px] font-black uppercase tracking-[0.2em] border-b-4 transition-all whitespace-nowrap ${activeTab === 'security' ? 'border-indigo-600 text-indigo-600' : 'border-transparent text-slate-400'}`}>Selo de Integridade</button>
           <button onClick={() => setActiveTab('financial')} className={`px-4 sm:px-8 py-4 sm:py-6 text-[8px] sm:text-[10px] font-black uppercase tracking-[0.2em] border-b-4 transition-all whitespace-nowrap ${activeTab === 'financial' ? 'border-blue-600 text-blue-600' : 'border-transparent text-slate-400'}`}>{t('students.financialTab')}</button>
@@ -1777,7 +1780,7 @@ const StudentDetailsModal = ({ student, onClose }: { student: Student; onClose: 
                     </div>
 
                     <div className="w-full md:w-64 h-64 bg-white/5 rounded-[2.5rem] border border-white/10 flex items-center justify-center relative p-6">
-                       <Activity className="absolute text-blue-500/20 w-48 h-48" />
+                       <HeartPulse className="absolute text-blue-500/20 w-48 h-48" />
                        <div className="relative text-center">
                           <p className="text-5xl font-black tabular-nums tracking-tighter">8.4</p>
                           <p className="text-[10px] font-black text-blue-400 uppercase tracking-widest mt-2">TECHNICAL INDEX</p>
@@ -1823,6 +1826,78 @@ const StudentDetailsModal = ({ student, onClose }: { student: Student; onClose: 
                    </>
                  )}
                </button>
+            </div>
+          )}
+
+          {activeTab === 'progress' && (
+            <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
+               {/* Timeline de Graduação */}
+               <section className="space-y-6">
+                 <h3 className="text-[10px] font-black text-slate-400 uppercase tracking-widest flex items-center gap-2">
+                   <Trophy size={14} className="text-amber-500" /> Jornada de Mestria
+                 </h3>
+                 <div className="relative pt-12 pb-8 px-10 bg-slate-50 dark:bg-slate-800/50 rounded-[3rem] border border-slate-200 dark:border-slate-800">
+                   <div className="absolute top-1/2 left-10 right-10 h-0.5 bg-slate-200 dark:bg-slate-700 -translate-y-1/2" />
+                   <div className="relative flex justify-between">
+                     {[
+                       { belt: 'WHITE', date: 'Jan 2024', status: 'completed' },
+                       { belt: 'BLUE', date: 'Mar 2025', status: 'current' },
+                       { belt: 'PURPLE', date: 'Estimativa 2027', status: 'next' }
+                     ].map((step, i) => (
+                       <div key={i} className="flex flex-col items-center gap-4 relative z-10">
+                         <div className={`w-12 h-12 rounded-2xl flex items-center justify-center border-4 shadow-xl transition-all ${
+                           step.status === 'completed' ? 'bg-emerald-500 border-white text-white' : 
+                           step.status === 'current' ? 'bg-blue-600 border-white text-white scale-125' : 
+                           'bg-slate-200 dark:bg-slate-700 border-slate-300 dark:border-slate-600 text-slate-400'
+                         }`}>
+                           <Medal size={20} />
+                         </div>
+                         <div className="text-center">
+                           <p className="text-[9px] font-black uppercase tracking-widest dark:text-white">{step.belt}</p>
+                           <p className="text-[8px] font-bold text-slate-400 uppercase tracking-tighter mt-1">{step.date}</p>
+                         </div>
+                       </div>
+                     ))}
+                   </div>
+                 </div>
+               </section>
+
+               {/* Assiduidade & Consistência */}
+               <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                 <div className="p-8 bg-white dark:bg-slate-800 rounded-[2.5rem] border border-slate-200 dark:border-slate-800 shadow-xl">
+                   <h4 className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-6 flex items-center gap-2">
+                     <TrendingUp size={14} className="text-blue-500" /> Frequência Mensal
+                   </h4>
+                   <div className="flex items-end gap-2 h-40">
+                      {[60, 45, 90, 70, 85, 100].map((h, i) => (
+                        <div key={i} className="flex-1 space-y-2">
+                           <motion.div 
+                             initial={{ height: 0 }}
+                             animate={{ height: `${h}%` }}
+                             className={`w-full rounded-t-xl transition-all ${h === 100 ? 'bg-blue-600' : 'bg-slate-200 dark:bg-slate-700 hover:bg-blue-400'}`}
+                           />
+                           <p className="text-[7px] font-black text-slate-400 text-center uppercase tracking-widest">M0{i+1}</p>
+                        </div>
+                      ))}
+                   </div>
+                 </div>
+
+                 <div className="p-8 bg-slate-900 rounded-[2.5rem] text-white border border-slate-800 shadow-2xl flex flex-col justify-between">
+                   <div>
+                     <h4 className="text-[10px] font-black text-blue-400 uppercase tracking-widest mb-4">Insights do Professor</h4>
+                     <p className="text-sm font-medium leading-relaxed italic text-slate-400">
+                       "O aluno demonstra excelente retenção de conceitos de guarda, mas precisa focar na explosão ao realizar quedas. Recomendamos o módulo de Wrestling Semanal."
+                     </p>
+                   </div>
+                   <div className="flex items-center gap-4 mt-8 pt-6 border-t border-white/5">
+                      <div className="w-10 h-10 bg-blue-600 rounded-xl flex items-center justify-center"><Brain size={20}/></div>
+                      <div>
+                        <p className="text-[9px] font-black uppercase tracking-widest">Technical Readiness</p>
+                        <p className="text-[8px] font-bold text-slate-500 uppercase tracking-widest mt-1">Próximo Grau em 45 dias</p>
+                      </div>
+                   </div>
+                 </div>
+               </div>
             </div>
           )}
 
@@ -2187,6 +2262,8 @@ const Students: React.FC = () => {
   const { students, schedules } = useData();
   const [searchTerm, setSearchTerm] = useState('');
   const [classFilter, setClassFilter] = useState('');
+  const [beltFilter, setBeltFilter] = useState('');
+  const [statusFilter, setStatusFilter] = useState<StudentStatus | ''>('');
   const [activeView, setActiveView] = useState<'adult' | 'kids' | 'competitors'>('adult');
   const [selectedStudent, setSelectedStudent] = useState<Student | null>(null);
   const handleExportCSV = () => {
@@ -2230,12 +2307,14 @@ const Students: React.FC = () => {
       const matchesSearch = nameMatch || nicknameMatch;
       
       const matchesClass = classFilter === '' || s.classId === classFilter;
+      const matchesBelt = beltFilter === '' || s.belt === beltFilter;
+      const matchesStatus = statusFilter === '' || s.status === statusFilter;
       
-      if (activeView === 'competitors') return matchesSearch && s.isCompetitor && matchesClass;
+      if (activeView === 'competitors') return matchesSearch && s.isCompetitor && matchesClass && matchesBelt && matchesStatus;
       const matchesView = activeView === 'kids' ? s.isKid : !s.isKid;
-      return matchesSearch && matchesView && matchesClass;
+      return matchesSearch && matchesView && matchesClass && matchesBelt && matchesStatus;
     });
-  }, [searchTerm, students, activeView, classFilter]);
+  }, [searchTerm, students, activeView, classFilter, beltFilter, statusFilter]);
 
   return (
     <div className="space-y-4 max-w-7xl mx-auto pb-12 w-full animate-in fade-in duration-700 overflow-x-hidden">
@@ -2320,6 +2399,34 @@ const Students: React.FC = () => {
             {schedules.map(s => (
               <option key={s.id} value={s.id}>{s.title}</option>
             ))}
+          </select>
+        </div>
+
+        <div className="relative w-full lg:w-48">
+          <Medal className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={12} />
+          <select 
+            className="w-full pl-9 pr-4 py-2.5 bg-white dark:bg-slate-800 border-none rounded-xl focus:ring-4 focus:ring-blue-500/10 transition-all text-[9px] font-black uppercase tracking-widest text-slate-900 dark:text-white appearance-none"
+            value={beltFilter}
+            onChange={(e) => setBeltFilter(e.target.value)}
+          >
+            <option value="">Todas as Faixas</option>
+            {Object.entries(activeView === 'kids' ? IBJJF_BELT_RULES.kids : IBJJF_BELT_RULES.adults).map(([belt, _]) => (
+               <option key={belt} value={belt}>{belt}</option>
+            ))}
+          </select>
+        </div>
+
+        <div className="relative w-full lg:w-48">
+          <Zap className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={12} />
+          <select 
+            className="w-full pl-9 pr-4 py-2.5 bg-white dark:bg-slate-800 border-none rounded-xl focus:ring-4 focus:ring-blue-500/10 transition-all text-[9px] font-black uppercase tracking-widest text-slate-900 dark:text-white appearance-none"
+            value={statusFilter}
+            onChange={(e) => setStatusFilter(e.target.value as StudentStatus)}
+          >
+            <option value="">Todos Status</option>
+            <option value={StudentStatus.ACTIVE}>Ativos</option>
+            <option value={StudentStatus.INACTIVE}>Inativos</option>
+            <option value={StudentStatus.SUSPENDED}>Suspensos</option>
           </select>
         </div>
       </div>

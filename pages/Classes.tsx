@@ -22,6 +22,7 @@ const Classes: React.FC = () => {
   ];
 
   const [isAdding, setIsAdding] = useState(false);
+  const [viewMode, setViewMode] = useState<'cards' | 'grid'>('grid');
   const [editingId, setEditingId] = useState<string | null>(null);
   const [formData, setFormData] = useState<Omit<ClassSchedule, 'id'>>({
     time: '09:00',
@@ -69,7 +70,23 @@ const Classes: React.FC = () => {
       <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-6 mb-12">
         <div className="animate-in slide-in-from-left duration-700">
           <h1 className="text-4xl font-black text-slate-900 dark:text-white tracking-tighter uppercase leading-none">{t('classes.title')}</h1>
-          <p className="text-slate-500 font-bold italic mt-2 text-xs opacity-70">{t('classes.subtitle')}</p>
+          <div className="flex items-center gap-4 mt-2">
+            <p className="text-slate-500 font-bold italic text-xs opacity-70">{t('classes.subtitle')}</p>
+            <div className="flex items-center p-1 bg-slate-100 dark:bg-slate-800 rounded-lg shadow-inner">
+               <button 
+                 onClick={() => setViewMode('grid')}
+                 className={`p-1.5 rounded-md transition-all ${viewMode === 'grid' ? 'bg-white dark:bg-slate-700 shadow-sm text-blue-600' : 'text-slate-400'}`}
+               >
+                 <Calendar size={14} />
+               </button>
+               <button 
+                 onClick={() => setViewMode('cards')}
+                 className={`p-1.5 rounded-md transition-all ${viewMode === 'cards' ? 'bg-white dark:bg-slate-700 shadow-sm text-blue-600' : 'text-slate-400'}`}
+               >
+                 <Edit2 size={14} />
+               </button>
+            </div>
+          </div>
         </div>
         <button 
           onClick={() => { setIsAdding(true); setEditingId(null); setFormData({ time: '09:00', title: '', instructor: '', category: t('common.adult'), days: [] }); }}
@@ -80,10 +97,56 @@ const Classes: React.FC = () => {
         </button>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-        {schedules.map((s) => (
-          <div key={s.id} className="bg-white dark:bg-slate-900 p-8 rounded-[2.5rem] border border-slate-200 dark:border-slate-800 shadow-sm hover:shadow-md transition-all group">
-            <div className="flex justify-between items-start mb-6">
+      {viewMode === 'grid' ? (
+        <div className="bg-white dark:bg-slate-900 rounded-[3rem] border border-slate-200 dark:border-slate-800 shadow-xl overflow-hidden p-2 sm:p-10">
+           <div className="grid grid-cols-8 gap-2 min-w-[800px]">
+              <div className="p-4"></div>
+              {DAYS_OF_WEEK.map(day => (
+                <div key={day} className="p-4 text-center">
+                   <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">{day}</p>
+                </div>
+              ))}
+              
+              {/* Organized by time slots */}
+              {Array.from(new Set(schedules.map(s => s.time))).sort().map(timeSlot => (
+                <React.Fragment key={timeSlot}>
+                  <div className="p-4 flex items-center justify-center border-r border-slate-50 dark:border-slate-800/50">
+                     <p className="text-xs font-black text-slate-800 dark:text-white tabular-nums">{timeSlot}</p>
+                  </div>
+                  {DAYS_OF_WEEK.map(day => {
+                    const classForDay = schedules.find(s => s.time === timeSlot && s.days?.includes(day));
+                    return (
+                      <div key={day} className="p-1">
+                        {classForDay ? (
+                          <div 
+                            onClick={() => startEdit(classForDay)}
+                            className="h-full p-4 bg-blue-50 dark:bg-blue-900/10 border-l-4 border-blue-600 rounded-[1.2rem] hover:scale-[1.02] transition-all cursor-pointer group relative overflow-hidden"
+                          >
+                             <div className="absolute top-0 right-0 p-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                               <Edit2 size={10} className="text-blue-400" />
+                             </div>
+                             <p className="text-[8px] font-black text-blue-600 uppercase tracking-tighter line-clamp-1 mb-1">{classForDay.category}</p>
+                             <p className="text-[10px] font-black text-slate-900 dark:text-white leading-tight uppercase tracking-tight line-clamp-2">{classForDay.title}</p>
+                             <div className="mt-3 flex items-center gap-1.5 text-slate-400">
+                               <User size={8} />
+                               <span className="text-[7px] font-black uppercase tracking-widest truncate">{classForDay.instructor}</span>
+                             </div>
+                          </div>
+                        ) : (
+                          <div className="h-full border border-dashed border-slate-100 dark:border-slate-800/50 rounded-[1.2rem]"></div>
+                        )}
+                      </div>
+                    );
+                  })}
+                </React.Fragment>
+              ))}
+           </div>
+        </div>
+      ) : (
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          {schedules.map((s) => (
+            <div key={s.id} className="bg-white dark:bg-slate-900 p-8 rounded-[2.5rem] border border-slate-200 dark:border-slate-800 shadow-sm hover:shadow-md transition-all group">
+              <div className="flex justify-between items-start mb-6">
               <div className="flex items-center gap-3">
                 <div className="w-12 h-12 bg-blue-50 dark:bg-blue-900/20 rounded-2xl flex items-center justify-center text-blue-600">
                   <Clock size={24} />
@@ -123,6 +186,7 @@ const Classes: React.FC = () => {
           </div>
         ))}
       </div>
+      )}
 
       {isAdding && (
         <div className="fixed inset-0 bg-slate-950/80 backdrop-blur-md z-[100] flex items-center justify-center p-4 sm:p-6">

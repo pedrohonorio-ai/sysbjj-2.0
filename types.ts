@@ -38,7 +38,8 @@ export enum StudentStatus {
   ACTIVE = 'Active',
   PENDING = 'Pending',
   OVERDUE = 'Overdue',
-  INACTIVE = 'Inactive'
+  INACTIVE = 'Inactive',
+  SUSPENDED = 'Suspended'
 }
 
 export enum TechniqueCategory {

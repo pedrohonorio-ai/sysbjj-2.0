@@ -19,6 +19,7 @@ import {
   LayoutList,
   History,
   ShieldCheck,
+  FileText,
   Zap,
   Terminal,
   Cpu,
