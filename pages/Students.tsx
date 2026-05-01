@@ -1,5 +1,6 @@
 
 import React, { useState, useMemo, useEffect } from 'react';
+import { motion, AnimatePresence } from 'motion/react';
 import { 
   Search, 
   MoreVertical, 
@@ -32,8 +33,10 @@ import {
   ShieldAlert,
   FileWarning,
   AlertCircle,
-  FileCheck
+  FileCheck,
+  Filter
 } from 'lucide-react';
+import Webcam from 'react-webcam';
 import { Student, StudentStatus, BeltColor, KidsBeltColor, Gender, CBJJCategory } from '../types';
 import { BELT_COLORS, IBJJF_BELT_RULES } from '../constants';
 import { IBJJF_LESSONS } from '../constants/rulesData';
@@ -59,11 +62,55 @@ const formatPhone = (value: string) => {
     .replace(/(-\d{4})\d+?$/, '$1');
 };
 
+const CameraCapture = ({ onCapture, onClose }: { onCapture: (img: string) => void, onClose: () => void }) => {
+  const webcamRef = React.useRef<Webcam>(null);
+  const { t } = useTranslation();
+
+  const capture = React.useCallback(() => {
+    const imageSrc = webcamRef.current?.getScreenshot();
+    if (imageSrc) {
+      onCapture(imageSrc);
+      onClose();
+    }
+  }, [webcamRef, onCapture, onClose]);
+
+  return (
+    <div className="fixed inset-0 bg-slate-900/90 backdrop-blur-xl z-[150] flex items-center justify-center p-4">
+      <div className="bg-white dark:bg-slate-900 rounded-[2.5rem] overflow-hidden shadow-2xl max-w-lg w-full border border-slate-200 dark:border-slate-800">
+        <div className="p-6 border-b border-slate-100 dark:border-slate-800 flex justify-between items-center bg-slate-50 dark:bg-slate-800/50">
+          <h3 className="text-xl font-black text-slate-900 dark:text-white uppercase tracking-tighter">Capturar Foto</h3>
+          <button onClick={onClose} className="p-2 bg-white dark:bg-slate-900 rounded-xl text-slate-400 hover:text-red-500 transition-colors">
+            <X size={20} />
+          </button>
+        </div>
+        <div className="p-8 space-y-6">
+          <div className="relative rounded-[2rem] overflow-hidden border-4 border-slate-100 dark:border-slate-800 shadow-inner aspect-[4/3] bg-black">
+            <Webcam
+              audio={false}
+              ref={webcamRef}
+              screenshotFormat="image/jpeg"
+              className="w-full h-full object-cover"
+              videoConstraints={{ facingMode: "user" }}
+            />
+            <div className="absolute inset-0 border-[1.5rem] border-blue-600/10 pointer-events-none rounded-[1.8rem]" />
+          </div>
+          <button 
+            onClick={capture}
+            className="w-full py-5 bg-blue-600 text-white rounded-[1.5rem] font-black uppercase text-xs tracking-widest hover:bg-blue-700 shadow-xl shadow-blue-500/20 active:scale-95 transition-all flex items-center justify-center gap-3"
+          >
+            <Camera size={20} /> Bater Foto Agora
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+};
+
 const NewStudentModal = ({ onClose, defaultIsKid }: { onClose: () => void, defaultIsKid: boolean }) => {
   const { t } = useTranslation();
   const { addStudent, schedules } = useData();
   const [error, setError] = useState<string | null>(null);
-  const [activeTab, setActiveTab] = useState<'basics' | 'legal' | 'technical' | 'health'>('basics');
+  const [activeTab, setActiveTab] = useState<'basics' | 'legal' | 'technical' | 'health' | 'security'>('basics');
   
   const [formData, setFormData] = useState({
     name: '',
@@ -109,6 +156,7 @@ const NewStudentModal = ({ onClose, defaultIsKid }: { onClose: () => void, defau
     classId: ''
   });
 
+  const [showCamera, setShowCamera] = useState(false);
   const fileInputRef = React.useRef<HTMLInputElement>(null);
 
   const handlePhotoUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -144,7 +192,7 @@ const NewStudentModal = ({ onClose, defaultIsKid }: { onClose: () => void, defau
 
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     if (formData.email && !emailRegex.test(formData.email)) {
-      setError(t('students.invalidEmail'));
+      setError("Email inválido. Por favor, verifique.");
       return;
     }
 
@@ -187,32 +235,38 @@ const NewStudentModal = ({ onClose, defaultIsKid }: { onClose: () => void, defau
             </button>
           </div>
 
-          <div className="flex gap-2 mb-6 overflow-x-auto scrollbar-hide pb-2">
-            <button 
-              onClick={() => setActiveTab('basics')}
-              className={`px-4 py-2 rounded-xl text-[9px] font-black uppercase tracking-widest transition-all ${activeTab === 'basics' ? 'bg-blue-600 text-white shadow-lg shadow-blue-500/30' : 'bg-slate-100 dark:bg-slate-800 text-slate-400'}`}
-            >
-              {t('students.overviewTab')}
-            </button>
-            <button 
-              onClick={() => setActiveTab('technical')}
-              className={`px-4 py-2 rounded-xl text-[9px] font-black uppercase tracking-widest transition-all ${activeTab === 'technical' ? 'bg-blue-600 text-white shadow-lg shadow-blue-500/30' : 'bg-slate-100 dark:bg-slate-800 text-slate-400'}`}
-            >
-              {t('students.technicalTab')}
-            </button>
-            <button 
-              onClick={() => setActiveTab('legal')}
-              className={`px-4 py-2 rounded-xl text-[9px] font-black uppercase tracking-widest transition-all ${activeTab === 'legal' ? 'bg-blue-600 text-white shadow-lg shadow-blue-500/30' : 'bg-slate-100 dark:bg-slate-800 text-slate-400'}`}
-            >
-              {t('common.legalInfo')}
-            </button>
-            <button 
-              onClick={() => setActiveTab('health')}
-              className={`px-4 py-2 rounded-xl text-[9px] font-black uppercase tracking-widest transition-all ${activeTab === 'health' ? 'bg-blue-600 text-white shadow-lg shadow-blue-500/30' : 'bg-slate-100 dark:bg-slate-800 text-slate-400'}`}
-            >
-              {t('common.healthInfo')}
-            </button>
-          </div>
+            <div className="flex gap-2 mb-6 overflow-x-auto scrollbar-hide pb-2">
+              <button 
+                onClick={() => setActiveTab('basics')}
+                className={`px-4 py-2 rounded-xl text-[9px] font-black uppercase tracking-widest transition-all ${activeTab === 'basics' ? 'bg-blue-600 text-white shadow-lg shadow-blue-500/30' : 'bg-slate-100 dark:bg-slate-800 text-slate-400'}`}
+              >
+                {t('students.overviewTab')}
+              </button>
+              <button 
+                onClick={() => setActiveTab('technical')}
+                className={`px-4 py-2 rounded-xl text-[9px] font-black uppercase tracking-widest transition-all ${activeTab === 'technical' ? 'bg-blue-600 text-white shadow-lg shadow-blue-500/30' : 'bg-slate-100 dark:bg-slate-800 text-slate-400'}`}
+              >
+                {t('students.technicalTab')}
+              </button>
+              <button 
+                onClick={() => setActiveTab('security')}
+                className={`px-4 py-2 rounded-xl text-[9px] font-black uppercase tracking-widest transition-all ${activeTab === 'security' ? 'bg-indigo-600 text-white shadow-lg shadow-indigo-500/30' : 'bg-slate-100 dark:bg-slate-800 text-slate-400'}`}
+              >
+                SEGURANÇA & INTEGRIDADE
+              </button>
+              <button 
+                onClick={() => setActiveTab('legal')}
+                className={`px-4 py-2 rounded-xl text-[9px] font-black uppercase tracking-widest transition-all ${activeTab === 'legal' ? 'bg-blue-600 text-white shadow-lg shadow-blue-500/30' : 'bg-slate-100 dark:bg-slate-800 text-slate-400'}`}
+              >
+                {t('common.legalInfo')}
+              </button>
+              <button 
+                onClick={() => setActiveTab('health')}
+                className={`px-4 py-2 rounded-xl text-[9px] font-black uppercase tracking-widest transition-all ${activeTab === 'health' ? 'bg-blue-600 text-white shadow-lg shadow-blue-500/30' : 'bg-slate-100 dark:bg-slate-800 text-slate-400'}`}
+              >
+                {t('common.healthInfo')}
+              </button>
+            </div>
         </div>
 
         <div className="flex-1 overflow-y-auto p-8 sm:p-10 pt-0 scrollbar-hide">
@@ -229,21 +283,43 @@ const NewStudentModal = ({ onClose, defaultIsKid }: { onClose: () => void, defau
                 <div className="md:col-span-2 flex flex-col items-center justify-center p-6 bg-slate-50 dark:bg-slate-800 rounded-[2.5rem] border-2 border-dashed border-slate-200 dark:border-slate-700">
                   <div 
                     className="relative w-32 h-32 rounded-[2rem] bg-slate-200 dark:bg-slate-700 overflow-hidden cursor-pointer group shadow-xl"
-                    onClick={() => fileInputRef.current?.click()}
                   >
                     {formData.photoUrl ? (
-                      <img src={formData.photoUrl} alt="Preview" className="w-full h-full object-cover" />
+                      <img src={formData.photoUrl} alt="Preview" className="w-full h-full object-cover" onClick={() => fileInputRef.current?.click()} />
                     ) : (
-                      <div className="w-full h-full flex items-center justify-center text-slate-400">
+                      <div className="w-full h-full flex items-center justify-center text-slate-400" onClick={() => fileInputRef.current?.click()}>
                         <Camera size={40} />
                       </div>
                     )}
-                    <div className="absolute inset-0 bg-black/40 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
+                    <div className="absolute inset-0 bg-black/40 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none">
                       <p className="text-[10px] font-black text-white uppercase tracking-widest">{t('common.uploadPhoto')}</p>
                     </div>
                   </div>
+                  <div className="flex gap-4 mt-6">
+                    <button 
+                      type="button"
+                      onClick={() => setShowCamera(true)}
+                      className="px-4 py-2 bg-blue-600 text-white rounded-xl font-black uppercase text-[9px] tracking-widest shadow-lg shadow-blue-500/20 flex items-center gap-2"
+                    >
+                      <Camera size={14} /> Usar Câmera
+                    </button>
+                    <button 
+                      type="button"
+                      onClick={() => fileInputRef.current?.click()}
+                      className="px-4 py-2 bg-white dark:bg-slate-900 text-slate-600 dark:text-slate-400 border border-slate-200 dark:border-slate-700 rounded-xl font-black uppercase text-[9px] tracking-widest flex items-center gap-2 shadow-sm"
+                    >
+                      <Plus size={14} /> Galeria
+                    </button>
+                  </div>
                   <input type="file" ref={fileInputRef} className="hidden" accept="image/*" onChange={handlePhotoUpload} />
                 </div>
+
+                {showCamera && (
+                  <CameraCapture 
+                    onCapture={(img) => setFormData(prev => ({ ...prev, photoUrl: img }))} 
+                    onClose={() => setShowCamera(false)} 
+                  />
+                )}
 
                 <div className="md:col-span-2 space-y-2">
                   <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">{t('common.name')}</label>
@@ -343,6 +419,40 @@ const NewStudentModal = ({ onClose, defaultIsKid }: { onClose: () => void, defau
                     value={formData.nationality}
                     onChange={e => setFormData({...formData, nationality: e.target.value})}
                   />
+                </div>
+
+                <div className="md:col-span-2 space-y-2">
+                  <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">{t('common.address')}</label>
+                  <input 
+                    type="text" 
+                    className="w-full px-6 py-4 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-2xl outline-none focus:ring-2 focus:ring-blue-600 dark:text-white font-bold" 
+                    value={formData.address}
+                    onChange={e => setFormData({...formData, address: e.target.value})}
+                    placeholder="Rua, Número, Bairro, Cidade - UF"
+                  />
+                </div>
+              </div>
+            )}
+
+            {activeTab === 'security' && (
+              <div className="space-y-6 animate-in fade-in slide-in-from-right-4 duration-300">
+                <div className="p-8 bg-indigo-50 dark:bg-indigo-900/10 rounded-[2.5rem] border border-indigo-100 dark:border-indigo-900/20 text-center">
+                  <div className="w-16 h-16 bg-indigo-100 dark:bg-indigo-900/30 rounded-2xl flex items-center justify-center mx-auto text-indigo-600 mb-6">
+                    <ShieldCheck size={32} />
+                  </div>
+                  <h3 className="text-xl font-black text-indigo-900 dark:text-white uppercase tracking-tighter">Blockchain Registry</h3>
+                  <p className="text-xs text-indigo-500 mt-2 font-medium">Os dados deste aluno serão selados criptograficamente. Toda alteração gerará um novo hash de integridade irreversível.</p>
+                </div>
+
+                <div className="space-y-4">
+                  <div className="flex items-center gap-4 p-5 bg-white dark:bg-slate-800 rounded-2xl border border-slate-100 dark:border-slate-700 shadow-sm">
+                    <div className="w-10 h-10 rounded-xl bg-slate-100 dark:bg-slate-900 flex items-center justify-center text-slate-400"><Zap size={20}/></div>
+                    <div className="flex-1">
+                      <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Hash de Entrada</p>
+                      <p className="text-[10px] font-mono text-slate-500 truncate">SYSBJJ_GENESIS_NODE_STATIC</p>
+                    </div>
+                  </div>
+                  <p className="text-[9px] font-bold text-slate-400 uppercase text-center tracking-[0.2em]">O sistema irá assinar digitalmente o registro ao salvar.</p>
                 </div>
               </div>
             )}
@@ -643,7 +753,7 @@ const NewStudentModal = ({ onClose, defaultIsKid }: { onClose: () => void, defau
 };
 
 const StudentDetailsModal = ({ student, onClose }: { student: Student; onClose: () => void }) => {
-  const [activeTab, setActiveTab] = useState<'overview' | 'analysis' | 'edit' | 'admin' | 'videos' | 'financial'>('overview');
+  const [activeTab, setActiveTab] = useState<'overview' | 'analysis' | 'edit' | 'admin' | 'videos' | 'financial' | 'security'>('overview');
   const [editTab, setEditTab] = useState<'basics' | 'legal' | 'technical' | 'health'>('basics');
   const { t } = useTranslation();
   const { deleteStudent, updateStudent, schedules } = useData();
@@ -669,7 +779,21 @@ const StudentDetailsModal = ({ student, onClose }: { student: Student; onClose: 
     }
   };
 
+  const [showCamera, setShowCamera] = useState(false);
   const [editFormData, setEditFormData] = useState({ ...student });
+  const fileInputRef = React.useRef<HTMLInputElement>(null);
+
+  const handlePhotoUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      const reader = new FileReader();
+      reader.onloadend = async () => {
+        const compressed = await compressImage(reader.result as string, 400, 0.7);
+        setEditFormData(prev => ({ ...prev, photoUrl: compressed }));
+      };
+      reader.readAsDataURL(file);
+    }
+  };
 
   const getBeltTimeAnalysis = () => {
     let minTimeMonths = student.isKid ? 4 : (IBJJF_BELT_RULES[student.belt as string]?.minTimeMonths ?? 0);
@@ -720,6 +844,11 @@ const StudentDetailsModal = ({ student, onClose }: { student: Student; onClose: 
 
   const handleUpdateRegistration = (e: React.FormEvent) => {
     e.preventDefault();
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (editFormData.email && !emailRegex.test(editFormData.email)) {
+      alert("Email inválido.");
+      return;
+    }
     updateStudent(student.id, editFormData);
     setShowSuccess(true);
     setTimeout(() => {
@@ -783,8 +912,8 @@ const StudentDetailsModal = ({ student, onClose }: { student: Student; onClose: 
         <div className="flex px-4 sm:px-10 bg-slate-50 dark:bg-slate-800/50 border-b border-slate-200 dark:border-slate-800 overflow-x-auto scrollbar-hide shrink-0">
           <button onClick={() => setActiveTab('overview')} className={`px-4 sm:px-8 py-4 sm:py-6 text-[8px] sm:text-[10px] font-black uppercase tracking-[0.2em] border-b-4 transition-all whitespace-nowrap ${activeTab === 'overview' ? 'border-blue-600 text-blue-600' : 'border-transparent text-slate-400'}`}>{t('students.overviewTab')}</button>
           <button onClick={() => setActiveTab('edit')} className={`px-4 sm:px-8 py-4 sm:py-6 text-[8px] sm:text-[10px] font-black uppercase tracking-[0.2em] border-b-4 transition-all whitespace-nowrap ${activeTab === 'edit' ? 'border-blue-600 text-blue-600' : 'border-transparent text-slate-400'}`}>{t('common.edit').toUpperCase()}</button>
+          <button onClick={() => setActiveTab('security')} className={`px-4 sm:px-8 py-4 sm:py-6 text-[8px] sm:text-[10px] font-black uppercase tracking-[0.2em] border-b-4 transition-all whitespace-nowrap ${activeTab === 'security' ? 'border-indigo-600 text-indigo-600' : 'border-transparent text-slate-400'}`}>Selo de Integridade</button>
           <button onClick={() => setActiveTab('financial')} className={`px-4 sm:px-8 py-4 sm:py-6 text-[8px] sm:text-[10px] font-black uppercase tracking-[0.2em] border-b-4 transition-all whitespace-nowrap ${activeTab === 'financial' ? 'border-blue-600 text-blue-600' : 'border-transparent text-slate-400'}`}>{t('students.financialTab')}</button>
-          <button onClick={() => setActiveTab('analysis')} className={`px-4 sm:px-8 py-4 sm:py-6 text-[8px] sm:text-[10px] font-black uppercase tracking-[0.2em] border-b-4 transition-all whitespace-nowrap ${activeTab === 'analysis' ? 'border-blue-600 text-blue-600' : 'border-transparent text-slate-400'}`}>{t('students.analysisTab')}</button>
           <button onClick={() => setActiveTab('videos')} className={`px-4 sm:px-8 py-4 sm:py-6 text-[8px] sm:text-[10px] font-black uppercase tracking-[0.2em] border-b-4 transition-all whitespace-nowrap ${activeTab === 'videos' ? 'border-blue-600 text-blue-600' : 'border-transparent text-slate-400'}`}>{t('common.videos')}</button>
           <button onClick={() => setActiveTab('admin')} className={`px-4 sm:px-8 py-4 sm:py-6 text-[8px] sm:text-[10px] font-black uppercase tracking-[0.2em] border-b-4 transition-all whitespace-nowrap ${activeTab === 'admin' ? 'border-blue-600 text-blue-600' : 'border-transparent text-slate-400'}`}>{t('students.adminTab')}</button>
         </div>
@@ -802,6 +931,47 @@ const StudentDetailsModal = ({ student, onClose }: { student: Student; onClose: 
               <form className="animate-in fade-in slide-in-from-right-4" onSubmit={handleUpdateRegistration}>
                 {editTab === 'basics' && (
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div className="md:col-span-2 flex flex-col items-center justify-center p-6 bg-slate-50 dark:bg-slate-800 rounded-[2.5rem] border-2 border-dashed border-slate-200 dark:border-slate-700">
+                      <div 
+                        className="relative w-32 h-32 rounded-[2rem] bg-slate-200 dark:bg-slate-700 overflow-hidden cursor-pointer group shadow-xl"
+                      >
+                        {editFormData.photoUrl ? (
+                          <img src={editFormData.photoUrl} alt="Preview" className="w-full h-full object-cover" onClick={() => fileInputRef.current?.click()} />
+                        ) : (
+                          <div className="w-full h-full flex items-center justify-center text-slate-400" onClick={() => fileInputRef.current?.click()}>
+                            <Camera size={40} />
+                          </div>
+                        )}
+                        <div className="absolute inset-0 bg-black/40 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none">
+                          <p className="text-[10px] font-black text-white uppercase tracking-widest">{t('common.uploadPhoto')}</p>
+                        </div>
+                      </div>
+                      <div className="flex gap-4 mt-6">
+                        <button 
+                          type="button"
+                          onClick={() => setShowCamera(true)}
+                          className="px-4 py-2 bg-blue-600 text-white rounded-xl font-black uppercase text-[9px] tracking-widest shadow-lg shadow-blue-500/20 flex items-center gap-2"
+                        >
+                          <Camera size={14} /> Usar Câmera
+                        </button>
+                        <button 
+                          type="button"
+                          onClick={() => fileInputRef.current?.click()}
+                          className="px-4 py-2 bg-white dark:bg-slate-900 text-slate-600 dark:text-slate-400 border border-slate-200 dark:border-slate-700 rounded-xl font-black uppercase text-[9px] tracking-widest flex items-center gap-2 shadow-sm"
+                        >
+                          <Plus size={14} /> Galeria
+                        </button>
+                      </div>
+                      <input type="file" ref={fileInputRef} className="hidden" accept="image/*" onChange={handlePhotoUpload} />
+                    </div>
+
+                    {showCamera && (
+                      <CameraCapture 
+                        onCapture={(img) => setEditFormData(prev => ({ ...prev, photoUrl: img }))} 
+                        onClose={() => setShowCamera(false)} 
+                      />
+                    )}
+
                     <div className="md:col-span-2 space-y-2">
                       <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">{t('common.name')}</label>
                       <input 
@@ -877,6 +1047,17 @@ const StudentDetailsModal = ({ student, onClose }: { student: Student; onClose: 
                         className="w-full px-5 py-3.5 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-2xl outline-none focus:ring-2 focus:ring-blue-600 dark:text-white font-bold" 
                         value={editFormData.nationality || ''}
                         onChange={e => setEditFormData({...editFormData, nationality: e.target.value})}
+                      />
+                    </div>
+
+                    <div className="md:col-span-2 space-y-2">
+                      <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">{t('common.address')}</label>
+                      <input 
+                        type="text" 
+                        className="w-full px-5 py-3.5 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-2xl outline-none focus:ring-2 focus:ring-blue-600 dark:text-white font-bold" 
+                        value={editFormData.address || ''}
+                        onChange={e => setEditFormData({...editFormData, address: e.target.value})}
+                        placeholder="Rua, Número, Bairro, Cidade - UF"
                       />
                     </div>
 
@@ -1598,6 +1779,47 @@ const StudentDetailsModal = ({ student, onClose }: { student: Student; onClose: 
             </div>
           )}
 
+           {activeTab === 'security' && (
+            <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
+               <div className="p-10 bg-indigo-50 dark:bg-indigo-900/10 rounded-[3rem] border-2 border-dashed border-indigo-100 dark:border-indigo-900/30 text-center space-y-6">
+                 <div className="w-20 h-20 bg-indigo-100 dark:bg-indigo-900/30 rounded-3xl flex items-center justify-center mx-auto text-indigo-600"><ShieldCheck size={40}/></div>
+                 <div>
+                   <h3 className="text-2xl font-black text-indigo-900 dark:text-white uppercase tracking-tighter">Blockchain Proof of Identity</h3>
+                   <p className="text-sm text-indigo-500/70 font-medium max-w-md mx-auto">Este aluno possui identidade verificada e carimbada criptograficamente no ledger descentralizado da SYSBJJ.</p>
+                 </div>
+                 <div className="flex justify-center gap-4">
+                    <div className="px-4 py-2 bg-indigo-600 text-white rounded-xl text-[9px] font-black uppercase tracking-[0.2em] shadow-lg shadow-indigo-500/20">Registro Seguro</div>
+                    <div className="px-4 py-2 bg-white dark:bg-slate-900 text-indigo-600 rounded-xl text-[9px] font-black uppercase tracking-[0.2em] border border-indigo-100 dark:border-indigo-800">Immutable Hash</div>
+                 </div>
+               </div>
+
+               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                 <div className="p-6 bg-slate-50 dark:bg-slate-800 rounded-2xl border border-slate-100 dark:border-slate-700">
+                   <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-3 flex items-center gap-2"><Zap size={14}/> Ledger de Atividades</p>
+                   <div className="space-y-3">
+                     {[1,2,3].map(i => (
+                       <div key={i} className="flex items-center gap-3 p-3 bg-white dark:bg-slate-900 rounded-xl border border-slate-50 dark:border-slate-800 shadow-sm">
+                         <div className="w-2 h-2 rounded-full bg-indigo-400" />
+                         <div className="flex-1">
+                           <p className="text-[9px] font-black text-slate-600 dark:text-slate-300 uppercase tracking-tight">Alteração de Graduação Detectada</p>
+                           <p className="text-[8px] font-mono text-slate-400 lowercase">block_v2_ledger_seal</p>
+                         </div>
+                       </div>
+                     ))}
+                   </div>
+                 </div>
+                 <div className="p-8 bg-slate-900 rounded-[2.5rem] text-white flex flex-col justify-between">
+                   <div>
+                     <h4 className="text-lg font-black uppercase tracking-tighter mb-2 italic">Certificado de Autenticidade</h4>
+                     <p className="text-[10px] text-slate-500 font-bold uppercase tracking-widest tracking-widest mb-6">Emissão Controlada pela Blockchain SYSBJJ</p>
+                   </div>
+                   <button className="w-full py-4 bg-indigo-600 text-white rounded-2xl font-black uppercase text-[10px] tracking-widest hover:bg-indigo-700 transition-all flex items-center justify-center gap-2 shadow-xl shadow-indigo-500/20">
+                     <FileCheck size={16} /> Emitir Comprovante Ledger
+                   </button>
+                 </div>
+               </div>
+            </div>
+          )}
           {activeTab === 'videos' && (
             <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
                <div className="flex justify-between items-center bg-slate-50 dark:bg-slate-800 p-6 rounded-[2rem] border border-slate-200 dark:border-slate-700">
@@ -1915,8 +2137,9 @@ const CompetitorSelectorModal = ({ onClose }: { onClose: () => void }) => {
 
 const Students: React.FC = () => {
   const { t } = useTranslation();
-  const { students } = useData();
+  const { students, schedules } = useData();
   const [searchTerm, setSearchTerm] = useState('');
+  const [classFilter, setClassFilter] = useState('');
   const [activeView, setActiveView] = useState<'adult' | 'kids' | 'competitors'>('adult');
   const [selectedStudent, setSelectedStudent] = useState<Student | null>(null);
   const handleExportCSV = () => {
@@ -1959,11 +2182,13 @@ const Students: React.FC = () => {
       const nicknameMatch = nickname.toLowerCase().includes(searchTerm.toLowerCase());
       const matchesSearch = nameMatch || nicknameMatch;
       
-      if (activeView === 'competitors') return matchesSearch && s.isCompetitor;
+      const matchesClass = classFilter === '' || s.classId === classFilter;
+      
+      if (activeView === 'competitors') return matchesSearch && s.isCompetitor && matchesClass;
       const matchesView = activeView === 'kids' ? s.isKid : !s.isKid;
-      return matchesSearch && matchesView;
+      return matchesSearch && matchesView && matchesClass;
     });
-  }, [searchTerm, students, activeView]);
+  }, [searchTerm, students, activeView, classFilter]);
 
   return (
     <div className="space-y-4 max-w-7xl mx-auto pb-12 w-full animate-in fade-in duration-700 overflow-x-hidden">
@@ -2015,25 +2240,41 @@ const Students: React.FC = () => {
         </div>
       </div>
 
-      <div className="flex p-1 bg-white dark:bg-slate-800 rounded-xl w-full max-w-[450px] shadow-sm border border-slate-100 dark:border-slate-700">
-        <button 
-          onClick={() => setActiveView('adult')}
-          className={`flex-1 flex items-center justify-center gap-2 py-2 rounded-lg text-[9px] font-black uppercase tracking-widest transition-all ${activeView === 'adult' ? 'bg-slate-900 text-white shadow-lg' : 'text-slate-500 hover:text-slate-600'}`}
-        >
-          <User size={14}/> {t('common.adult')}
-        </button>
-        <button 
-          onClick={() => setActiveView('kids')}
-          className={`flex-1 flex items-center justify-center gap-2 py-2 rounded-lg text-[9px] font-black uppercase tracking-widest transition-all ${activeView === 'kids' ? 'bg-yellow-500 text-white shadow-lg' : 'text-slate-500 hover:text-slate-600'}`}
-        >
-          <Baby size={14}/> {t('common.kid')}
-        </button>
-        <button 
-          onClick={() => setActiveView('competitors')}
-          className={`flex-1 flex items-center justify-center gap-2 py-2 rounded-lg text-[9px] font-black uppercase tracking-widest transition-all ${activeView === 'competitors' ? 'bg-blue-600 text-white shadow-lg' : 'text-slate-500 hover:text-slate-600 dark:text-slate-400 dark:hover:text-slate-300'}`}
-        >
-          <Medal size={14}/> {t('students.isCompetitor')}
-        </button>
+      <div className="flex flex-wrap lg:flex-nowrap gap-3 items-center w-full lg:max-w-6xl">
+        <div className="flex p-1 bg-white dark:bg-slate-800 rounded-xl w-full lg:max-w-md shadow-sm border border-slate-100 dark:border-slate-700">
+          <button 
+            onClick={() => setActiveView('adult')}
+            className={`flex-1 flex items-center justify-center gap-2 py-2 rounded-lg text-[9px] font-black uppercase tracking-widest transition-all ${activeView === 'adult' ? 'bg-slate-900 text-white shadow-lg' : 'text-slate-500 hover:text-slate-600'}`}
+          >
+            <User size={14}/> {t('common.adult')}
+          </button>
+          <button 
+            onClick={() => setActiveView('kids')}
+            className={`flex-1 flex items-center justify-center gap-2 py-2 rounded-lg text-[9px] font-black uppercase tracking-widest transition-all ${activeView === 'kids' ? 'bg-yellow-500 text-white shadow-lg' : 'text-slate-500 hover:text-slate-600'}`}
+          >
+            <Baby size={14}/> {t('common.kid')}
+          </button>
+          <button 
+            onClick={() => setActiveView('competitors')}
+            className={`flex-1 flex items-center justify-center gap-2 py-2 rounded-lg text-[9px] font-black uppercase tracking-widest transition-all ${activeView === 'competitors' ? 'bg-blue-600 text-white shadow-lg' : 'text-slate-500 hover:text-slate-600 dark:text-slate-400 dark:hover:text-slate-300'}`}
+          >
+            <Medal size={14}/> {t('students.isCompetitor')}
+          </button>
+        </div>
+
+        <div className="relative w-full lg:w-48">
+          <Filter className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={12} />
+          <select 
+            className="w-full pl-9 pr-4 py-2.5 bg-white dark:bg-slate-800 border-none rounded-xl focus:ring-4 focus:ring-blue-500/10 transition-all text-[9px] font-black uppercase tracking-widest text-slate-900 dark:text-white appearance-none"
+            value={classFilter}
+            onChange={(e) => setClassFilter(e.target.value)}
+          >
+            <option value="">Todas as Turmas</option>
+            {schedules.map(s => (
+              <option key={s.id} value={s.id}>{s.title}</option>
+            ))}
+          </select>
+        </div>
       </div>
 
       <div className="bg-white dark:bg-slate-900 rounded-[1.5rem] sm:rounded-[2rem] border border-slate-200 dark:border-slate-800 shadow-xl overflow-hidden">
@@ -2050,129 +2291,141 @@ const Students: React.FC = () => {
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-50 dark:divide-slate-800/50">
-              {filteredStudents.map((student) => (
-                <tr 
-                  key={student.id} 
-                  className="hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-all cursor-pointer group" 
-                  onClick={() => setSelectedStudent(student)}
-                >
-                  <td className="px-8 py-4">
-                    <div className="flex items-center gap-4">
-                      <div className={`w-10 h-10 rounded-lg flex items-center justify-center font-black transition-all group-hover:rotate-12 shrink-0 overflow-hidden ${student.isKid ? 'bg-yellow-100 text-yellow-600' : 'bg-blue-50 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400'}`}>
-                        {student.photoUrl ? (
-                          <img src={student.photoUrl} alt={student.name} className="w-full h-full object-cover" referrerPolicy="no-referrer" />
-                        ) : (
-                          (student?.name || '?')[0]
-                        )}
+              <AnimatePresence mode='popLayout'>
+                {filteredStudents.map((student, idx) => (
+                  <motion.tr 
+                    key={student.id}
+                    initial={{ opacity: 0, x: -20 }}
+                    animate={{ opacity: 1, x: 0 }}
+                    exit={{ opacity: 0, scale: 0.95 }}
+                    transition={{ delay: idx * 0.03 }}
+                    className="hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-all cursor-pointer group" 
+                    onClick={() => setSelectedStudent(student)}
+                  >
+                    <td className="px-8 py-4">
+                      <div className="flex items-center gap-4">
+                        <div className={`w-10 h-10 rounded-lg flex items-center justify-center font-black transition-all group-hover:rotate-12 shrink-0 overflow-hidden ${student.isKid ? 'bg-yellow-100 text-yellow-600' : 'bg-blue-50 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400'}`}>
+                          {student.photoUrl ? (
+                            <img src={student.photoUrl} alt={student.name} className="w-full h-full object-cover" referrerPolicy="no-referrer" />
+                          ) : (
+                            (student?.name || '?')[0]
+                          )}
+                        </div>
+                        <div className="min-w-0">
+                          <div className="flex items-center gap-2">
+                            <p className="font-black text-slate-900 dark:text-white text-base tracking-tight uppercase leading-none truncate group-hover:text-blue-600 transition-colors uppercase">{student.name}</p>
+                            {student.isCompetitor && <Medal size={12} className="text-blue-600 shrink-0" />}
+                          </div>
+                          {student.nickname && <p className="text-[8px] text-slate-400 dark:text-slate-500 uppercase font-black mt-0.5 italic truncate">"{student.nickname}"</p>}
+                        </div>
                       </div>
-                      <div className="min-w-0">
+                    </td>
+                    <td className="px-8 py-4">
+                      <span className={`px-3 py-1 rounded-lg text-[9px] font-black uppercase tracking-widest shadow-sm border whitespace-nowrap ${BELT_COLORS[student.belt] || 'bg-slate-100 dark:bg-slate-800 dark:border-slate-700 dark:text-slate-300'}`}>
+                        {t(`belts.${student.belt}`)}
+                      </span>
+                    </td>
+                    <td className="px-8 py-4">
+                      <div className="flex flex-col gap-2">
                         <div className="flex items-center gap-2">
-                          <p className="font-black text-slate-900 dark:text-white text-base tracking-tight uppercase leading-none truncate group-hover:text-blue-600 transition-colors uppercase">{student.name}</p>
-                          {student.isCompetitor && <Medal size={12} className="text-blue-600 shrink-0" />}
+                          <span className={`px-2 py-0.5 rounded-full text-[8px] font-black uppercase tracking-[0.2em] ${
+                            student.status === StudentStatus.ACTIVE ? 'bg-green-100 text-green-700' : 
+                            student.status === StudentStatus.OVERDUE ? 'bg-red-100 text-red-700' : 'bg-slate-100 text-slate-500'
+                          }`}>
+                            {t(`status.${student.status}`)}
+                          </span>
+                          <div className="flex items-center gap-1">
+                            <Shield size={10} className="text-blue-500" />
+                            <span className="text-[10px] font-black text-blue-600">{student.rulesKnowledge || 0}%</span>
+                          </div>
                         </div>
-                        {student.nickname && <p className="text-[8px] text-slate-400 dark:text-slate-500 uppercase font-black mt-0.5 italic truncate">"{student.nickname}"</p>}
-                      </div>
-                    </div>
-                  </td>
-                  <td className="px-8 py-4">
-                    <span className={`px-3 py-1 rounded-lg text-[9px] font-black uppercase tracking-widest shadow-sm border whitespace-nowrap ${BELT_COLORS[student.belt] || 'bg-slate-100 dark:bg-slate-800 dark:border-slate-700 dark:text-slate-300'}`}>
-                      {t(`belts.${student.belt}`)}
-                    </span>
-                  </td>
-                  <td className="px-8 py-4">
-                    <div className="flex flex-col gap-2">
-                      <div className="flex items-center gap-2">
-                        <span className={`px-2 py-0.5 rounded-full text-[8px] font-black uppercase tracking-[0.2em] ${
-                          student.status === StudentStatus.ACTIVE ? 'bg-green-100 text-green-700' : 
-                          student.status === StudentStatus.OVERDUE ? 'bg-red-100 text-red-700' : 'bg-slate-100 text-slate-500'
-                        }`}>
-                          {t(`status.${student.status}`)}
-                        </span>
-                        <div className="flex items-center gap-1">
-                          <Shield size={10} className="text-blue-500" />
-                          <span className="text-[10px] font-black text-blue-600">{student.rulesKnowledge || 0}%</span>
+                        <div className="flex items-center gap-1.5 opacity-60">
+                          <Medal size={10} className="text-yellow-500" />
+                          <span className="text-[8px] font-black tabular-nums">{student.rewardPoints || 0} PTS MÉRITO</span>
                         </div>
                       </div>
-                      <div className="flex items-center gap-1.5 opacity-60">
-                        <Medal size={10} className="text-yellow-500" />
-                        <span className="text-[8px] font-black tabular-nums">{student.rewardPoints || 0} PTS MÉRITO</span>
-                      </div>
-                    </div>
-                  </td>
-                  <td className="px-8 py-4 text-center">
-                     <p className="font-black text-lg leading-none dark:text-white tabular-nums">{student.attendanceCount || 0}</p>
-                     <p className="text-[7px] uppercase font-bold text-slate-400 mt-0.5">{t('students.totalClasses')}</p>
-                  </td>
-                  <td className="px-8 py-4 text-right">
-                    <MoreVertical size={18} className="text-slate-400 group-hover:text-blue-600 transition-colors ml-auto" />
-                  </td>
-                </tr>
-              ))}
+                    </td>
+                    <td className="px-8 py-4 text-center">
+                       <p className="font-black text-lg leading-none dark:text-white tabular-nums">{student.attendanceCount || 0}</p>
+                       <p className="text-[7px] uppercase font-bold text-slate-400 mt-0.5">{t('students.totalClasses')}</p>
+                    </td>
+                    <td className="px-8 py-4 text-right">
+                      <MoreVertical size={18} className="text-slate-400 group-hover:text-blue-600 transition-colors ml-auto" />
+                    </td>
+                  </motion.tr>
+                ))}
+              </AnimatePresence>
             </tbody>
           </table>
         </div>
 
         {/* Mobile/Tablet Card View */}
         <div className="lg:hidden divide-y divide-slate-100 dark:divide-slate-800">
-          {filteredStudents.map((student) => (
-            <div 
-              key={student.id} 
-              className="p-4 sm:p-6 hover:bg-slate-50 dark:hover:bg-slate-800/30 transition-all cursor-pointer group active:bg-slate-100 dark:active:bg-slate-800"
-              onClick={() => setSelectedStudent(student)}
-            >
-              <div className="flex items-center justify-between mb-4">
-                <div className="flex items-center gap-4">
-                  <div className={`w-12 h-12 rounded-xl flex items-center justify-center font-black transition-all group-hover:rotate-6 shrink-0 overflow-hidden ${student.isKid ? 'bg-yellow-100 text-yellow-600' : 'bg-blue-50 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400'}`}>
-                    {student.photoUrl ? (
-                      <img src={student.photoUrl} alt={student.name} className="w-full h-full object-cover" referrerPolicy="no-referrer" />
-                    ) : (
-                      <span className="text-xl">{(student?.name || '?')[0]}</span>
-                    )}
-                  </div>
-                  <div className="min-w-0">
-                    <div className="flex items-center gap-2">
-                      <p className="font-black text-slate-900 dark:text-white text-base tracking-tight uppercase leading-none truncate uppercase">{student.name}</p>
-                      {student.isCompetitor && <Medal size={14} className="text-blue-600 shrink-0" />}
+          <AnimatePresence mode='popLayout'>
+            {filteredStudents.map((student, idx) => (
+              <motion.div 
+                key={student.id} 
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, scale: 0.95 }}
+                transition={{ delay: idx * 0.02 }}
+                className="p-4 sm:p-6 hover:bg-slate-50 dark:hover:bg-slate-800/30 transition-all cursor-pointer group active:bg-slate-100 dark:active:bg-slate-800"
+                onClick={() => setSelectedStudent(student)}
+              >
+                <div className="flex items-center justify-between mb-4">
+                  <div className="flex items-center gap-4">
+                    <div className={`w-12 h-12 rounded-xl flex items-center justify-center font-black transition-all group-hover:rotate-6 shrink-0 overflow-hidden ${student.isKid ? 'bg-yellow-100 text-yellow-600' : 'bg-blue-50 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400'}`}>
+                      {student.photoUrl ? (
+                        <img src={student.photoUrl} alt={student.name} className="w-full h-full object-cover" referrerPolicy="no-referrer" />
+                      ) : (
+                        <span className="text-xl">{(student?.name || '?')[0]}</span>
+                      )}
                     </div>
-                    {student.nickname && <p className="text-[9px] text-slate-400 dark:text-slate-500 uppercase font-black mt-1 italic">"{student.nickname}"</p>}
+                    <div className="min-w-0">
+                      <div className="flex items-center gap-2">
+                        <p className="font-black text-slate-900 dark:text-white text-base tracking-tight uppercase leading-none truncate uppercase">{student.name}</p>
+                        {student.isCompetitor && <Medal size={14} className="text-blue-600 shrink-0" />}
+                      </div>
+                      {student.nickname && <p className="text-[9px] text-slate-400 dark:text-slate-500 uppercase font-black mt-1 italic">"{student.nickname}"</p>}
+                    </div>
+                  </div>
+                  <MoreVertical size={18} className="text-slate-300" />
+                </div>
+
+                <div className="flex flex-wrap items-center gap-2">
+                  <span className={`px-3 py-1.5 rounded-lg text-[9px] font-black uppercase tracking-widest shadow-sm border ${BELT_COLORS[student.belt] || 'bg-slate-100 dark:bg-slate-800 dark:border-slate-700 dark:text-slate-300'}`}>
+                    {t(`belts.${student.belt}`)}
+                  </span>
+                  
+                  {activeView === 'kids' ? (
+                    <div className="flex items-center gap-1.5 px-3 py-1.5 bg-yellow-50 dark:bg-yellow-900/10 rounded-lg border border-yellow-100 dark:border-yellow-900/20">
+                      <Medal size={12} className="text-yellow-600" />
+                      <span className="font-black text-yellow-700 dark:text-yellow-500 text-[9px] uppercase tracking-wider">{student.rewardPoints || 0} OSS PTS</span>
+                    </div>
+                  ) : (
+                    <div className="flex items-center gap-2">
+                      <span className={`px-3 py-1.5 rounded-full text-[8px] font-black uppercase tracking-wider shadow-sm border ${
+                        student.status === StudentStatus.ACTIVE ? 'bg-green-50 text-green-700 border-green-100 dark:bg-green-900/20 dark:border-green-900/30' : 
+                        student.status === StudentStatus.OVERDUE ? 'bg-red-50 text-red-700 border-red-100 dark:bg-red-900/20 dark:border-red-900/30' : 
+                        'bg-slate-50 text-slate-500 border-slate-100 dark:bg-slate-800 dark:border-slate-700'
+                      }`}>
+                        {t(`status.${student.status}`)}
+                      </span>
+                      {!student.liabilityWaiverAccepted && <ShieldAlert size={14} className="text-amber-500" />}
+                      {(!student.medicalCertificateUrl || (student.medicalCertificateExpiration && new Date(student.medicalCertificateExpiration) < new Date())) && (
+                        <FileWarning size={14} className="text-rose-500" />
+                      )}
+                    </div>
+                  )}
+
+                  <div className="flex items-center gap-2 ml-auto">
+                    <p className="text-[10px] font-black dark:text-white tabular-nums">{student.attendanceCount || 0}</p>
+                    <p className="text-[8px] uppercase font-bold text-slate-400">{t('students.totalClasses')}</p>
                   </div>
                 </div>
-                <MoreVertical size={18} className="text-slate-300" />
-              </div>
-
-              <div className="flex flex-wrap items-center gap-2">
-                <span className={`px-3 py-1.5 rounded-lg text-[9px] font-black uppercase tracking-widest shadow-sm border ${BELT_COLORS[student.belt] || 'bg-slate-100 dark:bg-slate-800 dark:border-slate-700 dark:text-slate-300'}`}>
-                  {t(`belts.${student.belt}`)}
-                </span>
-                
-                {activeView === 'kids' ? (
-                  <div className="flex items-center gap-1.5 px-3 py-1.5 bg-yellow-50 dark:bg-yellow-900/10 rounded-lg border border-yellow-100 dark:border-yellow-900/20">
-                    <Medal size={12} className="text-yellow-600" />
-                    <span className="font-black text-yellow-700 dark:text-yellow-500 text-[9px] uppercase tracking-wider">{student.rewardPoints || 0} OSS PTS</span>
-                  </div>
-                ) : (
-                  <div className="flex items-center gap-2">
-                    <span className={`px-3 py-1.5 rounded-full text-[8px] font-black uppercase tracking-wider shadow-sm border ${
-                      student.status === StudentStatus.ACTIVE ? 'bg-green-50 text-green-700 border-green-100 dark:bg-green-900/20 dark:border-green-900/30' : 
-                      student.status === StudentStatus.OVERDUE ? 'bg-red-50 text-red-700 border-red-100 dark:bg-red-900/20 dark:border-red-900/30' : 
-                      'bg-slate-50 text-slate-500 border-slate-100 dark:bg-slate-800 dark:border-slate-700'
-                    }`}>
-                      {t(`status.${student.status}`)}
-                    </span>
-                    {!student.liabilityWaiverAccepted && <ShieldAlert size={14} className="text-amber-500" />}
-                    {(!student.medicalCertificateUrl || (student.medicalCertificateExpiration && new Date(student.medicalCertificateExpiration) < new Date())) && (
-                      <FileWarning size={14} className="text-rose-500" />
-                    )}
-                  </div>
-                )}
-
-                <div className="flex items-center gap-2 ml-auto">
-                   <p className="text-[10px] font-black dark:text-white tabular-nums">{student.attendanceCount || 0}</p>
-                   <p className="text-[8px] uppercase font-bold text-slate-400">{t('students.totalClasses')}</p>
-                </div>
-              </div>
-            </div>
-          ))}
+              </motion.div>
+            ))}
+          </AnimatePresence>
         </div>
 
         {filteredStudents.length === 0 && (

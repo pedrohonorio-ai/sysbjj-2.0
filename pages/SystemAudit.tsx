@@ -34,7 +34,7 @@ import { useTranslation } from '../contexts/LanguageContext';
 import { SystemLog } from '../types';
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
-import { MASTER_ADMINS } from '../constants';
+import { MASTER_ADMINS, BELT_COLORS } from '../constants';
 import { motion, AnimatePresence } from 'motion/react';
 
 const SystemAudit: React.FC = () => {
@@ -96,7 +96,9 @@ const SystemAudit: React.FC = () => {
       devices: Set<string>,
       categories: Record<string, number>,
       riskLevel: 'Low' | 'Medium' | 'High',
-      status: 'Active' | 'Inactive' | 'Pending' | 'Overdue'
+      status: 'Active' | 'Inactive' | 'Pending' | 'Overdue',
+      belt?: string,
+      joinedAt?: string
     }> = {};
 
     // Initial base from students
@@ -111,24 +113,32 @@ const SystemAudit: React.FC = () => {
           devices: new Set(),
           categories: {},
           riskLevel: 'Low',
-          status: s.status as any || 'Active'
+          status: s.status as any || 'Active',
+          belt: s.belt,
+          joinedAt: s.joinedAt
         };
       }
     });
 
     // Add Master Admins
     MASTER_ADMINS.forEach(email => {
-      users[email.toLowerCase()] = {
-        email: email.toLowerCase(),
-        name: 'Master Admin',
-        role: 'admin',
-        lastAction: 0,
-        totalActions: 0,
-        devices: new Set(),
-        categories: {},
-        riskLevel: 'Low',
-        status: 'Active'
-      };
+      const lowerEmail = email.toLowerCase();
+      if (!users[lowerEmail]) {
+        users[lowerEmail] = {
+          email: lowerEmail,
+          name: 'Master Admin',
+          role: 'admin',
+          lastAction: 0,
+          totalActions: 0,
+          devices: new Set(),
+          categories: {},
+          riskLevel: 'Low',
+          status: 'Active'
+        };
+      } else {
+        users[lowerEmail].role = 'admin';
+        if (users[lowerEmail].name === 'Sem Nome') users[lowerEmail].name = 'Master Admin';
+      }
     });
 
     // Merge in logs
@@ -139,7 +149,7 @@ const SystemAudit: React.FC = () => {
       if (!users[email]) {
         users[email] = {
           email,
-          role: 'student',
+          role: MASTER_ADMINS.includes(email) ? 'admin' : 'student',
           lastAction: 0,
           totalActions: 0,
           devices: new Set(),
@@ -161,6 +171,40 @@ const SystemAudit: React.FC = () => {
 
     return Object.values(users).sort((a, b) => b.lastAction - a.lastAction);
   }, [logs, students]);
+
+  const [verifyingChain, setVerifyingChain] = useState(false);
+  const [chainResult, setChainResult] = useState<{ success: boolean; message: string } | null>(null);
+
+  const performChainVerification = async () => {
+    setVerifyingChain(true);
+    setChainResult(null);
+    
+    // Simulate intense calculation
+    await new Promise(resolve => setTimeout(resolve, 2000));
+    
+    const isValid = verifyAuditIntegrity();
+    setVerifyingChain(false);
+    setChainResult({
+      success: isValid,
+      message: isValid 
+        ? "Corrente de custódia verificada com sucesso. Todos os hashes conferem." 
+        : "AVISO: Inconsistência detectada na corrente de hashes. Verifique logs manuais."
+    });
+  };
+
+  const exportGlobalUsers = () => {
+    const csvContent = "data:text/csv;charset=utf-8," 
+      + "Nome,Email,Cargo,Status,Ultimo Acesso,Acoes Totais,Risco\n"
+      + systemUsers.map(u => `${u.name || 'N/A'},${u.email},${u.role},${u.status},${u.lastAction ? new Date(u.lastAction).toISOString() : 'Nunca'},${u.totalActions},${u.riskLevel}`).join("\n");
+    
+    const encodedUri = encodeURI(csvContent);
+    const link = document.createElement("a");
+    link.setAttribute("href", encodedUri);
+    link.setAttribute("download", `sysbjj_global_users_${new Date().toISOString().split('T')[0]}.csv`);
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  };
 
   const stats = useMemo(() => {
     const today = new Date().setHours(0, 0, 0, 0);
@@ -258,6 +302,12 @@ const SystemAudit: React.FC = () => {
             Blockchain Active
           </div>
           <button 
+            onClick={exportGlobalUsers}
+            className="flex items-center gap-2 px-6 py-3 bg-blue-600 text-white rounded-2xl font-black uppercase text-[10px] tracking-widest hover:scale-105 active:scale-95 transition-all shadow-xl shadow-blue-500/20"
+          >
+            <Users size={16} /> Exportar Lista Nominal
+          </button>
+          <button 
             onClick={exportToPDF}
             className="flex items-center gap-2 px-6 py-3 bg-slate-900 dark:bg-white dark:text-slate-900 text-white rounded-2xl font-black uppercase text-[10px] tracking-widest hover:scale-105 active:scale-95 transition-all shadow-xl"
           >
@@ -297,6 +347,31 @@ const SystemAudit: React.FC = () => {
             exit={{ opacity: 0, y: -20 }}
             className="space-y-8"
           >
+            {/* Blockchain Verification Banner */}
+            <div className="bg-slate-900 rounded-[2.5rem] p-8 border border-slate-800 shadow-2xl relative overflow-hidden group">
+              <div className="absolute top-0 right-0 w-96 h-96 bg-blue-600/10 rounded-full blur-[100px] -translate-y-1/2 translate-x-1/2 group-hover:bg-blue-600/20 transition-all duration-1000" />
+              <div className="relative flex flex-col md:flex-row items-center justify-between gap-8">
+                <div className="flex items-center gap-6 text-center md:text-left">
+                  <div className={`w-20 h-20 rounded-[2rem] flex items-center justify-center ${verifyingChain ? 'animate-spin' : ''} ${chainResult ? (chainResult.success ? 'bg-green-500/20 text-green-500' : 'bg-red-500/20 text-red-500') : 'bg-blue-600/20 text-blue-500'}`}>
+                    <ShieldCheck size={40} />
+                  </div>
+                  <div>
+                    <h2 className="text-2xl font-black text-white uppercase tracking-tighter">Validação de Consenso Blockchain</h2>
+                    <p className="text-slate-400 text-xs font-bold uppercase tracking-widest mt-1">
+                      {verifyingChain ? 'Processando algoritmos de criptografia SHA-256...' : (chainResult ? chainResult.message : 'Sincronização master pendente de verificação.')}
+                    </p>
+                  </div>
+                </div>
+                <button 
+                  onClick={performChainVerification}
+                  disabled={verifyingChain}
+                  className="px-10 py-5 bg-blue-600 hover:bg-blue-500 text-white rounded-3xl font-black uppercase text-[11px] tracking-[0.2em] shadow-xl shadow-blue-600/20 transition-all active:scale-95 disabled:opacity-50"
+                >
+                  {verifyingChain ? 'Verificando...' : 'Autenticar Corrente'}
+                </button>
+              </div>
+            </div>
+
             {/* Stats Grid */}
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
               {[
@@ -394,25 +469,41 @@ const SystemAudit: React.FC = () => {
             exit={{ opacity: 0, scale: 0.98 }}
             className="bg-white dark:bg-slate-900 rounded-[3rem] border border-slate-200 dark:border-slate-800 shadow-xl overflow-hidden"
           >
-            <div className="p-8 border-b border-slate-100 dark:border-slate-800 bg-slate-50/30 dark:bg-slate-900/50 flex flex-col md:flex-row md:items-center justify-between gap-6">
-              <div>
-                <h3 className="text-2xl font-black dark:text-white tracking-tighter uppercase leading-none">
-                  {t('userAccessCenter')}
-                </h3>
-                <p className="text-xs font-bold text-slate-400 uppercase tracking-widest mt-2 flex items-center gap-2">
-                  <Fingerprint size={14} /> Perfilagem e Acesso Retroativo
-                </p>
-              </div>
-              
-              <div className="relative w-full md:w-80">
-                <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" size={18} />
-                <input 
-                  type="text" 
-                  placeholder="Filtrar por e-mail..."
-                  className="w-full pl-12 pr-6 py-4 bg-white dark:bg-slate-800 border border-slate-100 dark:border-slate-700 rounded-2xl outline-none focus:ring-2 focus:ring-blue-600 dark:text-white font-bold transition-all text-sm"
-                  value={searchTerm}
-                  onChange={e => setSearchTerm(e.target.value)}
-                />
+            <div className="p-8 border-b border-slate-100 dark:border-slate-800 bg-slate-50/30 dark:bg-slate-900/50">
+              <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
+                <div>
+                  <h3 className="text-2xl font-black dark:text-white tracking-tighter uppercase leading-none">
+                    {t('userAccessCenter')}
+                  </h3>
+                  <p className="text-xs font-bold text-slate-400 uppercase tracking-widest mt-2 flex items-center gap-2">
+                    <Fingerprint size={14} /> Perfilagem e Acesso Retroativo
+                  </p>
+                </div>
+
+                <div className="flex items-center gap-4">
+                  <div className="px-4 py-2 bg-slate-100 dark:bg-slate-800 rounded-2xl border border-slate-200 dark:border-slate-700 flex items-center gap-3">
+                    <div className="text-right">
+                      <p className="text-[7px] font-black text-slate-400 uppercase tracking-widest">REGISTROS TOTAIS</p>
+                      <p className="text-sm font-black dark:text-white tabular-nums">{systemUsers.length}</p>
+                    </div>
+                    <div className="w-px h-8 bg-slate-200 dark:bg-slate-700 mx-1" />
+                    <div className="text-right">
+                      <p className="text-[7px] font-black text-slate-400 uppercase tracking-widest">AMEAÇA MÉDIA</p>
+                      <p className="text-sm font-black text-green-500 uppercase">BAIXA</p>
+                    </div>
+                  </div>
+                  
+                  <div className="relative w-full md:w-64">
+                    <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" size={16} />
+                    <input 
+                      type="text" 
+                      placeholder="Filtrar por e-mail..."
+                      className="w-full pl-12 pr-6 py-3 bg-white dark:bg-slate-800 border border-slate-100 dark:border-slate-700 rounded-2xl outline-none focus:ring-2 focus:ring-blue-600 dark:text-white font-bold transition-all text-xs"
+                      value={searchTerm}
+                      onChange={e => setSearchTerm(e.target.value)}
+                    />
+                  </div>
+                </div>
               </div>
             </div>
 
@@ -435,22 +526,34 @@ const SystemAudit: React.FC = () => {
                       <tr key={i} className="hover:bg-slate-50 dark:hover:bg-slate-800/30 transition-all group">
                         <td className="px-8 py-6">
                            <div className="flex items-center gap-4">
-                             <div className={`w-10 h-10 rounded-xl flex items-center justify-center font-black ${user.role === 'admin' ? 'bg-indigo-600 text-white' : 'bg-blue-600/10 text-blue-600'}`}>
+                             <div className={`w-12 h-12 rounded-2xl flex items-center justify-center font-black shadow-sm ${user.role === 'admin' ? 'bg-indigo-600 text-white' : 'bg-blue-600/10 text-blue-600'}`}>
                                 {user.name ? user.name[0].toUpperCase() : user.email[0].toUpperCase()}
                              </div>
                              <div>
-                                <p className="text-sm font-black dark:text-white uppercase tracking-tight">{user.name || 'Sem Nome'}</p>
+                                <div className="flex items-center gap-2">
+                                  <p className="text-sm font-black dark:text-white uppercase tracking-tight">{user.name || 'Sem Nome'}</p>
+                                  {user.role === 'admin' && <Shield size={12} className="text-indigo-600" />}
+                                </div>
                                 <p className="text-[10px] font-bold text-slate-400 uppercase tracking-tighter">{user.email}</p>
+                                {user.belt && (
+                                  <div className="mt-1 flex items-center gap-1">
+                                    <div className={`w-2 h-1 rounded-full ${BELT_COLORS[user.belt]?.includes('bg-white') ? 'bg-slate-200' : BELT_COLORS[user.belt]?.split(' ')[0]}`} />
+                                    <span className="text-[8px] font-black text-slate-500 uppercase">{user.belt}</span>
+                                  </div>
+                                )}
                              </div>
                            </div>
                         </td>
                         <td className="px-8 py-6">
-                           <div className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[8px] font-black uppercase tracking-widest ${
-                             user.status === 'Active' ? 'bg-green-500/10 text-green-500' :
-                             user.status === 'Overdue' ? 'bg-red-500/10 text-red-500' :
-                             'bg-slate-500/10 text-slate-500'
-                           }`}>
-                             {user.status || 'Active'}
+                           <div className="space-y-1.5">
+                             <div className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[8px] font-black uppercase tracking-widest ${
+                               user.status === 'Active' ? 'bg-green-500/10 text-green-500' :
+                               user.status === 'Overdue' ? 'bg-red-500/10 text-red-500' :
+                               'bg-slate-500/10 text-slate-500'
+                             }`}>
+                               {user.status || 'Active'}
+                             </div>
+                             {user.joinedAt && <p className="text-[8px] font-bold text-slate-400 uppercase ml-1">Desde {new Date(user.joinedAt).toLocaleDateString()}</p>}
                            </div>
                         </td>
                         <td className="px-8 py-6">

@@ -361,6 +361,7 @@ export interface Student {
   milestones?: Milestone[];
   examRequirements?: Record<string, boolean>;
   lastAttendanceDate?: string;
+  joinedAt?: string;
 }
 
 export interface SystemLog {
