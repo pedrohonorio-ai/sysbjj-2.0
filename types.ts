@@ -363,6 +363,18 @@ export interface Student {
   examRequirements?: Record<string, boolean>;
   lastAttendanceDate?: string;
   joinedAt?: string;
+  graduationHistory?: {
+    belt: string;
+    date: string;
+    instructor: string;
+  }[];
+  technicalMetrics?: {
+    striking?: number;
+    grappling?: number;
+    cardio?: number;
+    strategy?: number;
+  };
+  securityAuditStatus?: 'Verified' | 'Unverified' | 'Compromised';
 }
 
 export interface SystemLog {

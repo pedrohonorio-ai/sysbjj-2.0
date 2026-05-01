@@ -1378,6 +1378,25 @@ const StudentDetailsModal = ({ student, onClose }: { student: Student; onClose: 
                        <p className="text-[8px] font-black text-slate-400 uppercase tracking-widest mb-1">{t('students.portalCode')}</p>
                        <p className="font-bold text-slate-900 dark:text-white">{student.portalAccessCode}</p>
                     </div>
+                    <div>
+                       <p className="text-[8px] font-black text-slate-400 uppercase tracking-widest mb-1">Data de Início</p>
+                       <p className="font-bold text-blue-600 uppercase italic">{student.joinedAt ? new Date(student.joinedAt).toLocaleDateString() : 'Não registrado'}</p>
+                    </div>
+                    <div>
+                       <p className="text-[8px] font-black text-slate-400 uppercase tracking-widest mb-1">Selo de Integridade</p>
+                       <div className="flex items-center gap-1.5">
+                          <ShieldCheck size={14} className={student.securityAuditStatus === 'Verified' ? 'text-emerald-500' : 'text-slate-300'} />
+                          <p className={`font-black uppercase text-[10px] ${
+                             student.securityAuditStatus === 'Verified' ? 'text-emerald-600' : 
+                             student.securityAuditStatus === 'Compromised' ? 'text-red-600' : 
+                             'text-slate-400'
+                          }`}>
+                            {student.securityAuditStatus === 'Verified' ? 'Verificado' : 
+                             student.securityAuditStatus === 'Compromised' ? 'Comprometido' : 
+                             'Pendente'}
+                          </p>
+                       </div>
+                    </div>
                     <div className="sm:col-span-2 lg:col-span-3">
                        <p className="text-[8px] font-black text-slate-400 uppercase tracking-widest mb-1">{t('common.address')}</p>
                        <p className="font-bold text-slate-900 dark:text-white">{student.address || '--'}, {student.city || '--'} - {student.state || '--'}</p>
@@ -1836,112 +1855,190 @@ const StudentDetailsModal = ({ student, onClose }: { student: Student; onClose: 
                  <h3 className="text-[10px] font-black text-slate-400 uppercase tracking-widest flex items-center gap-2">
                    <Trophy size={14} className="text-amber-500" /> Jornada de Mestria
                  </h3>
-                 <div className="relative pt-12 pb-8 px-10 bg-slate-50 dark:bg-slate-800/50 rounded-[3rem] border border-slate-200 dark:border-slate-800">
-                   <div className="absolute top-1/2 left-10 right-10 h-0.5 bg-slate-200 dark:bg-slate-700 -translate-y-1/2" />
-                   <div className="relative flex justify-between">
-                     {[
-                       { belt: 'WHITE', date: 'Jan 2024', status: 'completed' },
-                       { belt: 'BLUE', date: 'Mar 2025', status: 'current' },
-                       { belt: 'PURPLE', date: 'Estimativa 2027', status: 'next' }
-                     ].map((step, i) => (
-                       <div key={i} className="flex flex-col items-center gap-4 relative z-10">
-                         <div className={`w-12 h-12 rounded-2xl flex items-center justify-center border-4 shadow-xl transition-all ${
-                           step.status === 'completed' ? 'bg-emerald-500 border-white text-white' : 
-                           step.status === 'current' ? 'bg-blue-600 border-white text-white scale-125' : 
-                           'bg-slate-200 dark:bg-slate-700 border-slate-300 dark:border-slate-600 text-slate-400'
+                 <div className="relative pt-12 pb-8 px-10 bg-white dark:bg-slate-900 rounded-[3.5rem] border border-slate-200 dark:border-slate-800 shadow-xl overflow-x-auto">
+                   <div className="absolute top-1/2 left-10 right-10 h-0.5 bg-slate-100 dark:bg-slate-800 -translate-y-1/2" />
+                   <div className="relative flex justify-between min-w-[600px] gap-8">
+                     {(student.graduationHistory && student.graduationHistory.length > 0 ? student.graduationHistory : [
+                       { belt: 'BRANCA', date: student.joinedAt || 'Jan 2024', instructor: 'Sistema' },
+                       { belt: student.belt.toUpperCase(), date: student.lastPromotionDate || 'Jan 2025', instructor: 'Sensei Master' }
+                     ]).map((step, i) => (
+                       <div key={i} className="flex flex-col items-center gap-4 relative z-10 group">
+                         <div className={`w-14 h-14 rounded-2xl flex items-center justify-center border-4 shadow-xl transition-all ${
+                           i === (student.graduationHistory?.length || 1) ? 'bg-blue-600 border-white text-white scale-110' : 
+                           'bg-slate-100 dark:bg-slate-800 border-white dark:border-slate-700 text-slate-600 dark:text-slate-300'
                          }`}>
-                           <Medal size={20} />
+                           <Medal size={24} />
                          </div>
                          <div className="text-center">
-                           <p className="text-[9px] font-black uppercase tracking-widest dark:text-white">{step.belt}</p>
+                           <p className="text-[10px] font-black uppercase tracking-widest dark:text-white">{step.belt}</p>
                            <p className="text-[8px] font-bold text-slate-400 uppercase tracking-tighter mt-1">{step.date}</p>
+                           <p className="text-[7px] text-blue-500 font-bold uppercase mt-1 opacity-0 group-hover:opacity-100 transition-opacity">Prof. {step.instructor}</p>
                          </div>
                        </div>
                      ))}
+                     
+                     <div className="flex flex-col items-center gap-4 relative z-10 opacity-30">
+                        <div className="w-14 h-14 rounded-2xl flex items-center justify-center bg-slate-100 dark:bg-slate-800 border-4 border-dashed border-slate-300 dark:border-slate-600 text-slate-400">
+                           <Zap size={24} />
+                        </div>
+                        <div className="text-center">
+                           <p className="text-[10px] font-black uppercase tracking-widest text-slate-400">NEXT</p>
+                        </div>
+                     </div>
                    </div>
                  </div>
                </section>
 
-               {/* Assiduidade & Consistência */}
-               <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-                 <div className="p-8 bg-white dark:bg-slate-800 rounded-[2.5rem] border border-slate-200 dark:border-slate-800 shadow-xl">
-                   <h4 className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-6 flex items-center gap-2">
-                     <TrendingUp size={14} className="text-blue-500" /> Frequência Mensal
-                   </h4>
-                   <div className="flex items-end gap-2 h-40">
-                      {[60, 45, 90, 70, 85, 100].map((h, i) => (
-                        <div key={i} className="flex-1 space-y-2">
-                           <motion.div 
-                             initial={{ height: 0 }}
-                             animate={{ height: `${h}%` }}
-                             className={`w-full rounded-t-xl transition-all ${h === 100 ? 'bg-blue-600' : 'bg-slate-200 dark:bg-slate-700 hover:bg-blue-400'}`}
-                           />
-                           <p className="text-[7px] font-black text-slate-400 text-center uppercase tracking-widest">M0{i+1}</p>
+               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+                 {/* Technical Radar */}
+                 <div className="p-8 bg-slate-900 rounded-[2.5rem] border border-slate-800 shadow-2xl relative overflow-hidden group">
+                    <div className="absolute inset-0 bg-[radial-gradient(circle_at_50%_0%,rgba(59,130,246,0.1),transparent_70%)]" />
+                    <h4 className="text-[10px] font-black text-blue-400 uppercase tracking-widest mb-8 flex items-center gap-2 relative z-10">
+                      <Brain size={14} /> Power Grid 
+                    </h4>
+                    
+                    <div className="space-y-6 relative z-10">
+                       {[
+                         { label: 'Técnica', val: 85, color: 'bg-blue-600' },
+                         { label: 'Gás', val: 70, color: 'bg-emerald-600' },
+                         { label: 'Estratégia', val: 92, color: 'bg-amber-600' },
+                         { label: 'Força', val: 65, color: 'bg-red-600' }
+                       ].map((stat, i) => (
+                         <div key={i} className="space-y-2">
+                           <div className="flex justify-between text-[8px] font-black uppercase tracking-widest text-slate-400">
+                             <span>{stat.label}</span>
+                             <span className="text-white">{stat.val}%</span>
+                           </div>
+                           <div className="h-1.5 bg-white/5 rounded-full overflow-hidden">
+                             <motion.div 
+                               initial={{ width: 0 }}
+                               animate={{ width: `${stat.val}%` }}
+                               className={`h-full ${stat.color} shadow-[0_0_12px_rgba(59,130,246,0.3)]`}
+                             />
+                           </div>
+                         </div>
+                       ))}
+                    </div>
+                 </div>
+
+                 <div className="p-8 bg-white dark:bg-slate-800 rounded-[2.5rem] border border-slate-200 dark:border-slate-800 shadow-xl flex flex-col justify-between">
+                   <div>
+                     <h4 className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-6 flex items-center gap-2">
+                       <TrendingUp size={14} className="text-blue-500" /> Frequência
+                     </h4>
+                     <div className="flex items-end gap-2 h-32">
+                        {[40, 60, 35, 75, 95, 60, 80, 50, 70, 85].map((h, i) => (
+                          <div key={i} className="flex-1">
+                             <motion.div 
+                               initial={{ height: 0 }}
+                               animate={{ height: `${h}%` }}
+                               className={`w-full rounded-t-sm transition-all ${h > 80 ? 'bg-blue-600' : 'bg-slate-100 dark:bg-slate-700 hover:bg-blue-400'}`}
+                             />
+                          </div>
+                        ))}
+                     </div>
+                   </div>
+                   <div className="mt-8 p-4 bg-slate-50 dark:bg-slate-900 rounded-2xl border border-slate-100 dark:border-slate-700">
+                      <p className="text-[9px] font-black text-slate-500 uppercase tracking-widest">Consistency Rating</p>
+                      <p className="text-lg font-black text-blue-600 uppercase mt-1 italic">9.2 Elite</p>
+                   </div>
+                 </div>
+
+                 <div className="p-8 bg-indigo-600 rounded-[2.5rem] text-white shadow-2xl flex flex-col justify-between group h-full">
+                    <div className="flex items-center gap-4">
+                       <div className="w-12 h-12 bg-white/20 rounded-[1.2rem] flex items-center justify-center">
+                          <Zap size={24} className="text-white" />
+                       </div>
+                       <div>
+                          <p className="text-[9px] font-black uppercase tracking-[0.2em] opacity-70">AI Prediction</p>
+                          <p className="text-sm font-black uppercase tracking-tight">Candidato a Competidor</p>
+                       </div>
+                    </div>
+                    <div className="mt-10 mb-8">
+                       <p className="text-xs font-medium leading-relaxed opacity-90 italic">
+                         "Padrão de movimentação sugere alta performance em torneios Open. Recomendamos inscrição antecipada para o Próximo Regional."
+                       </p>
+                    </div>
+                    <button className="w-full py-4 bg-white text-indigo-600 rounded-2xl font-black uppercase text-[10px] tracking-widest shadow-2xl hover:scale-105 active:scale-95 transition-all">
+                       Solicitar Análise de Rendimento
+                    </button>
+                 </div>
+               </div>
+            </div>
+          )}
+
+          {activeTab === 'security' && (
+             <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
+                <div className={`p-10 rounded-[3rem] border-2 border-dashed text-center space-y-6 ${
+                  student.securityAuditStatus === 'Verified' ? 'bg-emerald-50 dark:bg-emerald-900/10 border-emerald-100 dark:border-emerald-900/30' :
+                  student.securityAuditStatus === 'Compromised' ? 'bg-red-50 dark:bg-red-900/10 border-red-100 dark:border-red-900/30' :
+                  'bg-indigo-50 dark:bg-indigo-900/10 border-indigo-100 dark:border-indigo-900/30'
+                }`}>
+                  <div className={`w-20 h-20 rounded-3xl flex items-center justify-center mx-auto ${
+                    student.securityAuditStatus === 'Verified' ? 'bg-emerald-100 dark:bg-emerald-900/30 text-emerald-600' :
+                    student.securityAuditStatus === 'Compromised' ? 'bg-red-100 dark:bg-red-900/30 text-red-600' :
+                    'bg-indigo-100 dark:bg-indigo-900/30 text-indigo-600'
+                  }`}><ShieldCheck size={40}/></div>
+                  <div>
+                    <h3 className={`text-2xl font-black uppercase tracking-tighter ${
+                      student.securityAuditStatus === 'Verified' ? 'text-emerald-900 dark:text-white' :
+                      student.securityAuditStatus === 'Compromised' ? 'text-red-900 dark:text-white' :
+                      'text-indigo-900 dark:text-white'
+                    }`}>
+                      {student.securityAuditStatus === 'Verified' ? 'Blockchain Identity Verified' : 
+                       student.securityAuditStatus === 'Compromised' ? 'Integrity Compromised' : 
+                       'Identity Seal Pending'}
+                    </h3>
+                    <p className="text-sm text-slate-500 font-medium max-w-md mx-auto mt-2">
+                       {student.securityAuditStatus === 'Verified' ? 'Este aluno possui histórico imutável verificado e carimbado na blockchain SYSBJJ.' : 
+                        student.securityAuditStatus === 'Compromised' ? 'Foram detectadas inconsistências nos registros deste aluno. Auditoria manual obrigatória.' : 
+                        'Aguardando verificação biométrica e documental para carimbo de integridade.'}
+                    </p>
+                  </div>
+                  <div className="flex justify-center gap-4">
+                     <button className="px-6 py-2.5 bg-indigo-600 text-white rounded-xl text-[9px] font-black uppercase tracking-[0.2em] shadow-lg shadow-indigo-500/20 hover:scale-105 transition-all">
+                        {student.securityAuditStatus === 'Verified' ? 'Re-Verificar' : 'Solicitar Verificação'}
+                     </button>
+                     <button className="px-6 py-2.5 bg-white dark:bg-slate-900 text-slate-500 rounded-xl text-[9px] font-black uppercase tracking-[0.2em] border border-slate-200 dark:border-slate-800">Ver Ledger</button>
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  <div className="p-8 bg-slate-50 dark:bg-slate-800 rounded-[2.5rem] border border-slate-100 dark:border-slate-700">
+                    <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-4 flex items-center gap-2"><Zap size={14}/> Forensic Logs</p>
+                    <div className="space-y-4">
+                      {[
+                        { action: 'Acesso ao Portal', color: 'bg-emerald-400', date: 'Hoje, 14:20' },
+                        { action: 'Upload de Documento', color: 'bg-blue-400', date: 'Ontem, 09:15' },
+                        { action: 'Login Suspeito Bloqueado', color: 'bg-red-400', date: '3 dias atrás' }
+                      ].map((log, i) => (
+                        <div key={i} className="flex items-center gap-4 p-4 bg-white dark:bg-slate-900 rounded-2xl border border-slate-50 dark:border-slate-800 shadow-sm group">
+                          <div className={`w-3 h-3 rounded-full ${log.color} group-hover:scale-125 transition-transform`} />
+                          <div className="flex-1">
+                            <p className="text-[10px] font-black text-slate-800 dark:text-white uppercase tracking-tight">{log.action}</p>
+                            <p className="text-[8px] font-bold text-slate-400 uppercase tracking-widest mt-0.5">{log.date}</p>
+                          </div>
+                          <div className="text-[8px] font-mono text-slate-300 dark:text-slate-600">#hash_{i}f82</div>
                         </div>
                       ))}
-                   </div>
-                 </div>
-
-                 <div className="p-8 bg-slate-900 rounded-[2.5rem] text-white border border-slate-800 shadow-2xl flex flex-col justify-between">
-                   <div>
-                     <h4 className="text-[10px] font-black text-blue-400 uppercase tracking-widest mb-4">Insights do Professor</h4>
-                     <p className="text-sm font-medium leading-relaxed italic text-slate-400">
-                       "O aluno demonstra excelente retenção de conceitos de guarda, mas precisa focar na explosão ao realizar quedas. Recomendamos o módulo de Wrestling Semanal."
-                     </p>
-                   </div>
-                   <div className="flex items-center gap-4 mt-8 pt-6 border-t border-white/5">
-                      <div className="w-10 h-10 bg-blue-600 rounded-xl flex items-center justify-center"><Brain size={20}/></div>
-                      <div>
-                        <p className="text-[9px] font-black uppercase tracking-widest">Technical Readiness</p>
-                        <p className="text-[8px] font-bold text-slate-500 uppercase tracking-widest mt-1">Próximo Grau em 45 dias</p>
+                    </div>
+                  </div>
+                  <div className="p-8 bg-slate-900 rounded-[2.5rem] text-white flex flex-col justify-between border border-slate-800">
+                    <div>
+                      <div className="flex items-center gap-2 text-indigo-400 mb-4">
+                        <ShieldCheck size={24} />
+                        <span className="text-[10px] font-black uppercase tracking-[0.3em]">Master Seal</span>
                       </div>
-                   </div>
-                 </div>
-               </div>
-            </div>
-          )}
-
-           {activeTab === 'security' && (
-            <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
-               <div className="p-10 bg-indigo-50 dark:bg-indigo-900/10 rounded-[3rem] border-2 border-dashed border-indigo-100 dark:border-indigo-900/30 text-center space-y-6">
-                 <div className="w-20 h-20 bg-indigo-100 dark:bg-indigo-900/30 rounded-3xl flex items-center justify-center mx-auto text-indigo-600"><ShieldCheck size={40}/></div>
-                 <div>
-                   <h3 className="text-2xl font-black text-indigo-900 dark:text-white uppercase tracking-tighter">Blockchain Proof of Identity</h3>
-                   <p className="text-sm text-indigo-500/70 font-medium max-w-md mx-auto">Este aluno possui identidade verificada e carimbada criptograficamente no ledger descentralizado da SYSBJJ.</p>
-                 </div>
-                 <div className="flex justify-center gap-4">
-                    <div className="px-4 py-2 bg-indigo-600 text-white rounded-xl text-[9px] font-black uppercase tracking-[0.2em] shadow-lg shadow-indigo-500/20">Registro Seguro</div>
-                    <div className="px-4 py-2 bg-white dark:bg-slate-900 text-indigo-600 rounded-xl text-[9px] font-black uppercase tracking-[0.2em] border border-indigo-100 dark:border-indigo-800">Immutable Hash</div>
-                 </div>
-               </div>
-
-               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                 <div className="p-6 bg-slate-50 dark:bg-slate-800 rounded-2xl border border-slate-100 dark:border-slate-700">
-                   <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-3 flex items-center gap-2"><Zap size={14}/> Ledger de Atividades</p>
-                   <div className="space-y-3">
-                     {[1,2,3].map(i => (
-                       <div key={i} className="flex items-center gap-3 p-3 bg-white dark:bg-slate-900 rounded-xl border border-slate-50 dark:border-slate-800 shadow-sm">
-                         <div className="w-2 h-2 rounded-full bg-indigo-400" />
-                         <div className="flex-1">
-                           <p className="text-[9px] font-black text-slate-600 dark:text-slate-300 uppercase tracking-tight">Alteração de Graduação Detectada</p>
-                           <p className="text-[8px] font-mono text-slate-400 lowercase">block_v2_ledger_seal</p>
-                         </div>
-                       </div>
-                     ))}
-                   </div>
-                 </div>
-                 <div className="p-8 bg-slate-900 rounded-[2.5rem] text-white flex flex-col justify-between">
-                   <div>
-                     <h4 className="text-lg font-black uppercase tracking-tighter mb-2 italic">Certificado de Autenticidade</h4>
-                     <p className="text-[10px] text-slate-500 font-bold uppercase tracking-widest tracking-widest mb-6">Emissão Controlada pela Blockchain SYSBJJ</p>
-                   </div>
-                   <button className="w-full py-4 bg-indigo-600 text-white rounded-2xl font-black uppercase text-[10px] tracking-widest hover:bg-indigo-700 transition-all flex items-center justify-center gap-2 shadow-xl shadow-indigo-500/20">
-                     <FileCheck size={16} /> Emitir Comprovante Ledger
-                   </button>
-                 </div>
-               </div>
-            </div>
-          )}
+                      <h4 className="text-2xl font-black uppercase tracking-tighter mb-2 italic">Certificado Digital</h4>
+                      <p className="text-[10px] text-slate-500 font-bold uppercase tracking-widest mb-6">Emissão e Assinatura via Trust-Protocol</p>
+                    </div>
+                    <button className="w-full py-5 bg-indigo-600 text-white rounded-2xl font-black uppercase text-[10px] tracking-widest hover:bg-indigo-700 transition-all flex items-center justify-center gap-3 shadow-2xl shadow-indigo-500/20">
+                      <FileCheck size={18} /> Download Blockchain Certificate
+                    </button>
+                  </div>
+                </div>
+             </div>
+           )}
           {activeTab === 'videos' && (
             <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
                <div className="flex justify-between items-center bg-slate-50 dark:bg-slate-800 p-6 rounded-[2rem] border border-slate-200 dark:border-slate-700">
@@ -2300,11 +2397,21 @@ const Students: React.FC = () => {
 
   const filteredStudents = useMemo(() => {
     return students.filter(s => {
+      const lowerSearch = searchTerm.toLowerCase();
       const name = s?.name || '';
       const nickname = s?.nickname || '';
-      const nameMatch = name.toLowerCase().includes(searchTerm.toLowerCase());
-      const nicknameMatch = nickname.toLowerCase().includes(searchTerm.toLowerCase());
-      const matchesSearch = nameMatch || nicknameMatch;
+      
+      // Advanced keyword recognition
+      const isSearchingBelt = ['branca', 'azul', 'roxa', 'marrom', 'preta', 'white', 'blue', 'purple', 'brown', 'black'].some(b => lowerSearch.includes(b));
+      const matchesBeltKeyword = isSearchingBelt && s.belt.toLowerCase().includes(lowerSearch);
+      
+      const isSearchingStatus = ['ativo', 'inativo', 'suspenso', 'active', 'inactive', 'suspended'].some(st => lowerSearch.includes(st));
+      const matchesStatusKeyword = isSearchingStatus && s.status.toLowerCase().includes(lowerSearch);
+
+      const nameMatch = name.toLowerCase().includes(lowerSearch);
+      const nicknameMatch = nickname.toLowerCase().includes(lowerSearch);
+      
+      const matchesSearch = nameMatch || nicknameMatch || matchesBeltKeyword || matchesStatusKeyword;
       
       const matchesClass = classFilter === '' || s.classId === classFilter;
       const matchesBelt = beltFilter === '' || s.belt === beltFilter;
