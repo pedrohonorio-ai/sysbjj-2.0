@@ -280,26 +280,6 @@ const Header = ({ toggleSidebar, auth, onLogout }: { toggleSidebar: () => void, 
         <button onClick={toggleSidebar} className="p-2.5 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-slate-500 dark:text-slate-400 rounded-xl active:scale-95 transition-all">
           <Menu size={20} />
         </button>
-        
-        <div className="hidden sm:flex items-center gap-6 border-l border-slate-200 dark:border-slate-800/80 pl-8 h-12 ml-2">
-           <div className="flex flex-col items-start justify-center h-full">
-             <div className="flex items-baseline gap-2 leading-none group/time">
-               <h2 className="text-3xl font-display font-black text-slate-900 dark:text-white tracking-tighter tabular-nums drop-shadow-sm group-hover/time:text-blue-600 transition-colors duration-500">
-                 {currentTime.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-               </h2>
-               <div className="flex flex-col">
-                 <span className="text-[11px] font-black text-blue-600 dark:text-blue-500 font-mono tabular-nums leading-none mb-[2px] animate-pulse">
-                   {currentTime.toLocaleTimeString([], { second: '2-digit' })}
-                 </span>
-                 <div className="w-full h-[1.5px] bg-gradient-to-r from-blue-500 to-transparent" />
-               </div>
-             </div>
-             <p className="text-[8px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-[0.45em] whitespace-nowrap flex items-center gap-2 mt-2 leading-none">
-               <span className="w-1.5 h-1.5 rounded-full bg-blue-500 animate-pulse shadow-[0_0_12px_rgba(59,130,246,0.6)]" />
-               {currentTime.toLocaleDateString(t('common.dateLocale'), { weekday: 'long', day: '2-digit', month: 'short', year: 'numeric' }).toUpperCase()}
-             </p>
-           </div>
-        </div>
       </div>
 
       <div className="flex items-center gap-3 sm:gap-6">
@@ -445,15 +425,23 @@ const App: React.FC = () => {
     <div 
       className="min-h-screen flex bg-slate-50 dark:bg-slate-950 text-slate-900 dark:text-slate-100 transition-colors duration-400 selection:bg-blue-600 selection:text-white overflow-x-hidden font-sans group/app relative"
       style={profile.backgroundImageUrl ? {
-        backgroundImage: `linear-gradient(rgba(var(--bg-overlay), 0.94), rgba(var(--bg-overlay), 0.94)), url(${profile.backgroundImageUrl})`,
+        backgroundImage: `linear-gradient(rgba(var(--bg-overlay), 0.95), rgba(var(--bg-overlay), 0.95)), url(${profile.backgroundImageUrl})`,
         backgroundSize: 'cover',
         backgroundPosition: 'center',
-        backgroundAttachment: 'fixed'
+        backgroundAttachment: 'fixed',
+        transition: 'background-image 1s ease-in-out'
       } : {}}
     >
       <style>{`
         :root { --bg-overlay: 248, 250, 252; }
         .dark { --bg-overlay: 2, 6, 23; }
+        .page-transition {
+          animation: fade-in 0.5s ease-out;
+        }
+        @keyframes fade-in {
+          from { opacity: 0; transform: translateY(10px); }
+          to { opacity: 1; transform: translateY(0); }
+        }
       `}</style>
       {(isAdmin && !isPortal) && <Sidebar isOpen={sidebarOpen} toggle={() => setSidebarOpen(!sidebarOpen)} onLogout={handleLogout} />}
       <div className={`flex-1 flex flex-col w-full min-h-screen transition-all duration-500 ease-[cubic-bezier(0.2,0.8,0.2,1)]

@@ -80,7 +80,7 @@ const CameraCapture = ({ onCapture, onClose }: { onCapture: (img: string) => voi
     <div className="fixed inset-0 bg-slate-900/90 backdrop-blur-xl z-[150] flex items-center justify-center p-4">
       <div className="bg-white dark:bg-slate-900 rounded-[2.5rem] overflow-hidden shadow-2xl max-w-lg w-full border border-slate-200 dark:border-slate-800">
         <div className="p-6 border-b border-slate-100 dark:border-slate-800 flex justify-between items-center bg-slate-50 dark:bg-slate-800/50">
-          <h3 className="text-xl font-black text-slate-900 dark:text-white uppercase tracking-tighter">Capturar Foto</h3>
+          <h3 className="text-xl font-black text-slate-900 dark:text-white uppercase tracking-tighter">{t('settings.capturePhoto')}</h3>
           <button onClick={onClose} className="p-2 bg-white dark:bg-slate-900 rounded-xl text-slate-400 hover:text-red-500 transition-colors">
             <X size={20} />
           </button>
@@ -100,7 +100,7 @@ const CameraCapture = ({ onCapture, onClose }: { onCapture: (img: string) => voi
             onClick={capture}
             className="w-full py-5 bg-blue-600 text-white rounded-[1.5rem] font-black uppercase text-xs tracking-widest hover:bg-blue-700 shadow-xl shadow-blue-500/20 active:scale-95 transition-all flex items-center justify-center gap-3"
           >
-            <Camera size={20} /> Bater Foto Agora
+            <Camera size={20} /> {t('settings.takePhotoNow')}
           </button>
         </div>
       </div>
@@ -156,6 +156,9 @@ const NewStudentModal = ({ onClose, defaultIsKid }: { onClose: () => void, defau
     nationality: 'Brasileiro',
     lgpdConsent: true,
     classId: '',
+    responsibleEmail: '',
+    responsiblePhone: '',
+    waitlistRank: 0,
     documents: [] as { id: string; name: string; url: string; type: string; size: number; uploadDate: string; }[]
   });
 
@@ -559,13 +562,13 @@ const NewStudentModal = ({ onClose, defaultIsKid }: { onClose: () => void, defau
                 </div>
 
                 <div className="space-y-2">
-                  <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Turma (Classe)</label>
+                  <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">{t('students.class')}</label>
                   <select 
                     className="w-full px-6 py-4 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-2xl outline-none focus:ring-2 focus:ring-blue-600 dark:text-white font-bold appearance-none"
                     value={formData.classId}
                     onChange={e => setFormData({...formData, classId: e.target.value})}
                   >
-                    <option value="">Sem Turma Fixa</option>
+                    <option value="">{t('students.noFixedClass')}</option>
                     {schedules.map(s => (
                       <option key={s.id} value={s.id}>{s.title} ({s.time})</option>
                     ))}
@@ -581,6 +584,30 @@ const NewStudentModal = ({ onClose, defaultIsKid }: { onClose: () => void, defau
                     onChange={e => setFormData({...formData, monthlyValue: parseFloat(e.target.value)})}
                   />
                 </div>
+
+                <div className="space-y-2">
+                  <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">{t('common.status')}</label>
+                  <select 
+                    className="w-full px-6 py-4 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-2xl outline-none focus:ring-2 focus:ring-blue-600 dark:text-white font-bold appearance-none"
+                    value={formData.status}
+                    onChange={e => setFormData({...formData, status: e.target.value as StudentStatus})}
+                  >
+                    <option value={StudentStatus.ACTIVE}>{t('students.statusActive')}</option>
+                    <option value={StudentStatus.WAITLIST}>{t('students.statusWaitlist')}</option>
+                  </select>
+                </div>
+
+                {formData.status === StudentStatus.WAITLIST && (
+                  <div className="space-y-2">
+                    <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">{t('common.waitlistRank')}</label>
+                    <input 
+                      type="number" 
+                      className="w-full px-6 py-4 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-2xl outline-none focus:ring-2 focus:ring-blue-600 dark:text-white font-bold" 
+                      value={formData.waitlistRank}
+                      onChange={e => setFormData({...formData, waitlistRank: parseInt(e.target.value)})}
+                    />
+                  </div>
+                )}
 
                 <div className="md:col-span-2 space-y-4 p-6 bg-slate-50 dark:bg-slate-800 rounded-3xl">
                   <div className="flex flex-wrap gap-6">
@@ -695,6 +722,25 @@ const NewStudentModal = ({ onClose, defaultIsKid }: { onClose: () => void, defau
                         value={formData.responsibleCpf}
                         onChange={e => setFormData({...formData, responsibleCpf: formatCPF(e.target.value)})}
                         placeholder="000.000.000-00"
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">{t('common.responsibleEmail')}</label>
+                      <input 
+                        type="email" 
+                        className="w-full px-6 py-4 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-2xl outline-none focus:ring-2 focus:ring-blue-600 dark:text-white font-bold" 
+                        value={formData.responsibleEmail || ''}
+                        onChange={e => setFormData({...formData, responsibleEmail: e.target.value})}
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">{t('common.responsiblePhone')}</label>
+                      <input 
+                        type="text" 
+                        className="w-full px-6 py-4 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-2xl outline-none focus:ring-2 focus:ring-blue-600 dark:text-white font-bold" 
+                        value={formData.responsiblePhone || ''}
+                        onChange={e => setFormData({...formData, responsiblePhone: formatPhone(e.target.value)})}
+                        placeholder="(00) 00000-0000"
                       />
                     </div>
                   </>
@@ -842,7 +888,7 @@ const NewStudentModal = ({ onClose, defaultIsKid }: { onClose: () => void, defau
 };
 
 const StudentDetailsModal = ({ student, onClose }: { student: Student; onClose: () => void }) => {
-  const [activeTab, setActiveTab] = useState<'overview' | 'analysis' | 'progress' | 'edit' | 'admin' | 'videos' | 'financial' | 'security'>('overview');
+  const [activeTab, setActiveTab] = useState<'overview' | 'analysis' | 'progress' | 'edit' | 'admin' | 'videos' | 'financial' | 'security' | 'contract'>('overview');
   const [editTab, setEditTab] = useState<'basics' | 'legal' | 'technical' | 'health'>('basics');
   const { t } = useTranslation();
   const { deleteStudent, updateStudent, schedules } = useData();
@@ -1045,6 +1091,7 @@ const StudentDetailsModal = ({ student, onClose }: { student: Student; onClose: 
           <button onClick={() => setActiveTab('security')} className={`px-4 sm:px-8 py-4 sm:py-6 text-[8px] sm:text-[10px] font-black uppercase tracking-[0.2em] border-b-4 transition-all whitespace-nowrap ${activeTab === 'security' ? 'border-indigo-600 text-indigo-600' : 'border-transparent text-slate-400'}`}>Selo de Integridade</button>
           <button onClick={() => setActiveTab('financial')} className={`px-4 sm:px-8 py-4 sm:py-6 text-[8px] sm:text-[10px] font-black uppercase tracking-[0.2em] border-b-4 transition-all whitespace-nowrap ${activeTab === 'financial' ? 'border-blue-600 text-blue-600' : 'border-transparent text-slate-400'}`}>{t('students.financialTab')}</button>
           <button onClick={() => setActiveTab('videos')} className={`px-4 sm:px-8 py-4 sm:py-6 text-[8px] sm:text-[10px] font-black uppercase tracking-[0.2em] border-b-4 transition-all whitespace-nowrap ${activeTab === 'videos' ? 'border-blue-600 text-blue-600' : 'border-transparent text-slate-400'}`}>{t('common.videos')}</button>
+          <button onClick={() => setActiveTab('contract')} className={`px-4 sm:px-8 py-4 sm:py-6 text-[8px] sm:text-[10px] font-black uppercase tracking-[0.2em] border-b-4 transition-all whitespace-nowrap ${activeTab === 'contract' ? 'border-blue-600 text-blue-600' : 'border-transparent text-slate-400'}`}>{t('common.contract')}</button>
           <button onClick={() => setActiveTab('admin')} className={`px-4 sm:px-8 py-4 sm:py-6 text-[8px] sm:text-[10px] font-black uppercase tracking-[0.2em] border-b-4 transition-all whitespace-nowrap ${activeTab === 'admin' ? 'border-blue-600 text-blue-600' : 'border-transparent text-slate-400'}`}>{t('students.adminTab')}</button>
         </div>
 
@@ -1224,6 +1271,18 @@ const StudentDetailsModal = ({ student, onClose }: { student: Student; onClose: 
                         {Object.values(StudentStatus).map(v => (
                           <option key={v} value={v}>{t(`status.${v}`)}</option>
                         ))}
+                      </select>
+                    </div>
+
+                    <div className="space-y-2">
+                      <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Lista de Espera</label>
+                      <select 
+                        className="w-full px-5 py-3.5 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-2xl outline-none focus:ring-2 focus:ring-blue-600 dark:text-white appearance-none font-bold"
+                        value={editFormData.status === StudentStatus.WAITLIST ? 'Yes' : 'No'}
+                        onChange={e => setEditFormData({...editFormData, status: e.target.value === 'Yes' ? StudentStatus.WAITLIST : StudentStatus.ACTIVE})}
+                      >
+                        <option value="No">Não</option>
+                        <option value="Yes">Sim</option>
                       </select>
                     </div>
 
@@ -1624,10 +1683,20 @@ const StudentDetailsModal = ({ student, onClose }: { student: Student; onClose: 
                        <p className="font-bold text-orange-600">{student.medicalConditions || '--'}</p>
                     </div>
                     {student.isKid && (
-                      <div className="col-span-2">
-                         <p className="text-[8px] font-black text-slate-400 uppercase tracking-widest mb-1">{t('common.responsiblePerson')}</p>
-                         <p className="font-bold text-slate-900 dark:text-white">{student.responsiblePerson || '--'}</p>
-                      </div>
+                      <>
+                        <div className="col-span-2 sm:col-span-1">
+                           <p className="text-[8px] font-black text-slate-400 uppercase tracking-widest mb-1">{t('common.responsiblePerson')}</p>
+                           <p className="font-bold text-slate-900 dark:text-white">{student.responsiblePerson || '--'}</p>
+                        </div>
+                        <div>
+                           <p className="text-[8px] font-black text-slate-400 uppercase tracking-widest mb-1">{t('common.responsibleEmail')}</p>
+                           <p className="font-bold text-slate-900 dark:text-white break-all">{student.responsibleEmail || '--'}</p>
+                        </div>
+                        <div>
+                           <p className="text-[8px] font-black text-slate-400 uppercase tracking-widest mb-1">{t('common.responsiblePhone')}</p>
+                           <p className="font-bold text-slate-900 dark:text-white break-all">{student.responsiblePhone || '--'}</p>
+                        </div>
+                      </>
                     )}
                   </div>
                 </section>
@@ -2421,6 +2490,68 @@ const StudentDetailsModal = ({ student, onClose }: { student: Student; onClose: 
             </div>
           )}
 
+          {activeTab === 'contract' && (
+            <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
+               <div className="flex justify-between items-center bg-slate-50 dark:bg-slate-800 p-6 rounded-[2rem] border border-slate-200 dark:border-slate-700">
+                 <div>
+                   <h3 className="text-xl font-black text-slate-900 dark:text-white uppercase tracking-tighter">{t('common.contract')}</h3>
+                   <p className="text-[10px] text-slate-400 mt-1 uppercase font-bold tracking-widest">Contrato de Prestação de Serviços</p>
+                 </div>
+                 <button 
+                   onClick={() => window.print()}
+                   className="px-6 py-3 bg-slate-900 dark:bg-white text-white dark:text-slate-900 rounded-xl font-black uppercase text-[10px] tracking-widest flex items-center gap-2 hover:bg-slate-700 transition-all shadow-xl"
+                 >
+                   <Download size={16} /> GERAR PDF / IMPRIMIR
+                 </button>
+               </div>
+
+               <div className="p-12 sm:p-20 bg-white dark:bg-white text-slate-900 rounded-[3rem] shadow-2xl border border-slate-200 font-serif leading-relaxed max-w-4xl mx-auto overflow-y-auto max-h-[80vh] scrollbar-hide">
+                  <div className="text-center mb-16 space-y-4">
+                     <h2 className="text-3xl font-black uppercase tracking-tighter">CONTRATO DE ADESÃO & PRESTAÇÃO DE SERVIÇOS</h2>
+                     <p className="text-xs font-bold uppercase tracking-widest text-slate-500">Unidade: {profile.academyName}</p>
+                  </div>
+
+                  <div className="space-y-8 text-sm italic">
+                    <p>
+                      <strong>I. DAS PARTES:</strong> Pelo presente instrumento, a academia <strong>{profile.academyName}</strong>, doravante denominada ACADEMIA, e <strong>{student.name}</strong>, portador do CPF <strong>{student.cpf || '____.____.____-___'}</strong>, doravante denominado ALUNO(A).
+                    </p>
+
+                    <p>
+                      <strong>II. DO OBJETO:</strong> O presente contrato tem por objeto a prestação de serviços de ensino e treinamento de Jiu-Jitsu Brasileiro (BJJ), conforme a modalidade escolhida e os horários estabelecidos pela ACADEMIA.
+                    </p>
+
+                    <p>
+                      <strong>III. DO VALOR E PAGAMENTO:</strong> O ALUNO(A) compromete-se ao pagamento da mensalidade no valor de <strong>{new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(student.monthlyValue)}</strong>, com vencimento todo dia <strong>{student.dueDay}</strong> de cada mês.
+                    </p>
+
+                    <p>
+                      <strong>IV. DA ÉTICA E CONDUTA:</strong> O ALUNO(A) declara estar ciente do código de conduta (OSS!) da academia, comprometendo-se a zelar pela integridade física dos colegas e pela disciplina no tatame.
+                    </p>
+
+                    <p>
+                      <strong>V. DA LGPD:</strong> O ALUNO(A) autoriza o tratamento de seus dados pessoais para fins exclusivos de gestão administrativa e técnica, conforme a Lei Geral de Proteção de Dados.
+                    </p>
+                  </div>
+
+                  <div className="mt-24 grid grid-cols-2 gap-20">
+                     <div className="border-t border-slate-300 pt-4 text-center">
+                        <p className="text-[10px] font-black uppercase text-slate-400">Assinatura do Aluno / Responsável</p>
+                        <p className="mt-2 font-bold text-xs">{student.name}</p>
+                     </div>
+                     <div className="border-t border-slate-300 pt-4 text-center">
+                        <p className="text-[10px] font-black uppercase text-slate-400">Pela Academia</p>
+                        <p className="mt-2 font-bold text-xs">{profile.professorName || 'Diretoria Tática'}</p>
+                     </div>
+                  </div>
+
+                  <div className="mt-16 text-center">
+                     <p className="text-[8px] font-bold text-slate-300 uppercase tracking-widest italic">Documento gerado digitalmente via protocolo SYSBJJ Blockchain</p>
+                     <p className="text-[8px] font-mono text-slate-300 mt-1">HASH ID: {student.id}-signed-{Date.now()}</p>
+                  </div>
+               </div>
+            </div>
+          )}
+
           {activeTab === 'admin' && (
             <div className="space-y-8">
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -2621,7 +2752,7 @@ const Students: React.FC = () => {
   const [classFilter, setClassFilter] = useState('');
   const [beltFilter, setBeltFilter] = useState('');
   const [statusFilter, setStatusFilter] = useState<StudentStatus | ''>('');
-  const [activeView, setActiveView] = useState<'adult' | 'kids' | 'competitors'>('adult');
+  const [activeView, setActiveView] = useState<'adult' | 'kids' | 'competitors' | 'waitlist'>('adult');
   const [selectedStudent, setSelectedStudent] = useState<Student | null>(null);
   const handleExportCSV = () => {
     const headers = ['ID', 'Nome', 'Apelido', 'Email', 'Telefone', 'Faixa', 'Graus', 'Status', 'Mensalidade'];
@@ -2678,6 +2809,7 @@ const Students: React.FC = () => {
       const matchesStatus = statusFilter === '' || s.status === statusFilter;
       
       if (activeView === 'competitors') return matchesSearch && s.isCompetitor && matchesClass && matchesBelt && matchesStatus;
+      if (activeView === 'waitlist') return matchesSearch && s.status === StudentStatus.WAITLIST && matchesClass && matchesBelt;
       const matchesView = activeView === 'kids' ? s.isKid : !s.isKid;
       return matchesSearch && matchesView && matchesClass && matchesBelt && matchesStatus;
     });
@@ -2753,6 +2885,12 @@ const Students: React.FC = () => {
           >
             <Medal size={14}/> {t('students.isCompetitor')}
           </button>
+          <button 
+            onClick={() => setActiveView('waitlist')}
+            className={`flex-1 flex items-center justify-center gap-2 py-2 rounded-lg text-[9px] font-black uppercase tracking-widest transition-all ${activeView === 'waitlist' ? 'bg-indigo-600 text-white shadow-lg' : 'text-slate-500 hover:text-slate-600 dark:text-slate-400 dark:hover:text-slate-300'}`}
+          >
+            <Clock size={14}/> {t('status.Waitlist')}
+          </button>
         </div>
 
         <div className="relative w-full lg:w-48">
@@ -2794,6 +2932,7 @@ const Students: React.FC = () => {
             <option value={StudentStatus.ACTIVE}>Ativos</option>
             <option value={StudentStatus.INACTIVE}>Inativos</option>
             <option value={StudentStatus.SUSPENDED}>Suspensos</option>
+            <option value={StudentStatus.WAITLIST}>Lista de Espera</option>
           </select>
         </div>
       </div>
@@ -2806,7 +2945,7 @@ const Students: React.FC = () => {
               <tr>
                 <th className="px-8 py-4 text-[9px] font-black text-slate-400 uppercase tracking-[0.3em]">{t('common.name')}</th>
                 <th className="px-8 py-4 text-[9px] font-black text-slate-400 uppercase tracking-[0.3em]">{t('students.currentBelt')}</th>
-                <th className="px-8 py-4 text-[9px] font-black text-slate-400 uppercase tracking-[0.3em]">Status / Mestria</th>
+                <th className="px-8 py-4 text-[9px] font-black text-slate-400 uppercase tracking-[0.3em]">{activeView === 'waitlist' ? 'Fila / Rank' : 'Status / Mestria'}</th>
                 <th className="px-8 py-4 text-[9px] font-black text-slate-400 uppercase tracking-[0.3em] text-center">Frequência</th>
                 <th className="px-8 py-4 text-[9px] font-black text-slate-400 uppercase tracking-[0.3em] text-right">{t('common.actions')}</th>
               </tr>
@@ -2851,9 +2990,11 @@ const Students: React.FC = () => {
                         <div className="flex items-center gap-2">
                           <span className={`px-2 py-0.5 rounded-full text-[8px] font-black uppercase tracking-[0.2em] ${
                             student.status === StudentStatus.ACTIVE ? 'bg-green-100 text-green-700' : 
-                            student.status === StudentStatus.OVERDUE ? 'bg-red-100 text-red-700' : 'bg-slate-100 text-slate-500'
+                            student.status === StudentStatus.OVERDUE ? 'bg-red-100 text-red-700' : 
+                            student.status === StudentStatus.WAITLIST ? 'bg-indigo-100 text-indigo-700' : 'bg-slate-100 text-slate-500'
                           }`}>
                             {t(`status.${student.status}`)}
+                            {student.status === StudentStatus.WAITLIST && student.waitlistRank && ` #${student.waitlistRank}`}
                           </span>
                           <div className="flex items-center gap-1">
                             <Shield size={10} className="text-blue-500" />
@@ -2928,9 +3069,11 @@ const Students: React.FC = () => {
                       <span className={`px-3 py-1.5 rounded-full text-[8px] font-black uppercase tracking-wider shadow-sm border ${
                         student.status === StudentStatus.ACTIVE ? 'bg-green-50 text-green-700 border-green-100 dark:bg-green-900/20 dark:border-green-900/30' : 
                         student.status === StudentStatus.OVERDUE ? 'bg-red-50 text-red-700 border-red-100 dark:bg-red-900/20 dark:border-red-900/30' : 
+                        student.status === StudentStatus.WAITLIST ? 'bg-indigo-50 text-indigo-700 border-indigo-100 dark:bg-indigo-900/20 dark:border-indigo-900/30' :
                         'bg-slate-50 text-slate-500 border-slate-100 dark:bg-slate-800 dark:border-slate-700'
                       }`}>
                         {t(`status.${student.status}`)}
+                        {student.status === StudentStatus.WAITLIST && student.waitlistRank && ` #${student.waitlistRank}`}
                       </span>
                       {!student.liabilityWaiverAccepted && <ShieldAlert size={14} className="text-amber-500" />}
                       {(!student.medicalCertificateUrl || (student.medicalCertificateExpiration && new Date(student.medicalCertificateExpiration) < new Date())) && (

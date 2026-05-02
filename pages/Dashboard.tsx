@@ -150,6 +150,70 @@ const Dashboard: React.FC = () => {
 
   return (
     <div className="space-y-8 pb-20 w-full animate-in fade-in duration-700 overflow-x-hidden max-w-[1600px] mx-auto px-4 sm:px-6">
+      {/* Master Dojo Clock Section */}
+      <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
+        <div className="lg:col-span-3">
+          <div className="bg-white dark:bg-slate-900 p-8 rounded-[2.5rem] border border-slate-200 dark:border-slate-800 shadow-sm flex flex-col md:flex-row items-center justify-between gap-8 group overflow-hidden relative">
+            <div className="absolute top-0 left-0 w-full h-full bg-gradient-to-r from-blue-600/5 to-transparent pointer-events-none" />
+            <div className="flex flex-col items-center md:items-start text-center md:text-left relative z-10">
+              <div className="flex items-center gap-3 mb-2">
+                <div className="p-2 bg-blue-600 rounded-lg text-white">
+                  <Clock size={16} />
+                </div>
+                <span className="text-[10px] font-black text-slate-400 uppercase tracking-[0.3em]">{t('dashboard.masterClock') || 'Relógio Mestre do Dojo'}</span>
+              </div>
+              <h2 className="text-6xl sm:text-8xl font-black text-slate-900 dark:text-white tabular-nums tracking-tighter leading-none group-hover:scale-105 transition-transform duration-700">
+                {now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                <span className="text-3xl text-blue-600 ml-2 animate-pulse">{now.toLocaleTimeString([], { second: '2-digit' })}</span>
+              </h2>
+              <p className="text-sm font-black text-slate-500 uppercase tracking-widest mt-4">
+                {now.toLocaleDateString(t('common.dateLocale'), { weekday: 'long', day: '2-digit', month: 'long', year: 'numeric' }).toUpperCase()}
+              </p>
+            </div>
+            
+            <div className="grid grid-cols-2 gap-4 shrink-0 w-full md:w-auto relative z-10">
+              <div className="p-6 bg-slate-50 dark:bg-slate-800 rounded-3xl border border-slate-100 dark:border-slate-700 text-center">
+                <p className="text-[10px] font-black text-blue-600 uppercase tracking-widest mb-2">{t('dashboard.dojoTemp')}</p>
+                <p className="text-2xl font-black dark:text-white">24°C</p>
+              </div>
+              <div className="p-6 bg-slate-50 dark:bg-slate-800 rounded-3xl border border-slate-100 dark:border-slate-700 text-center">
+                <p className="text-[10px] font-black text-emerald-600 uppercase tracking-widest mb-2">{t('dashboard.statusLabel')}</p>
+                <p className="text-2xl font-black dark:text-white uppercase italic">Oss!</p>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div className="flex flex-col gap-4">
+          <button 
+            onClick={() => navigate('/timer')}
+            className="flex-1 bg-red-600 text-white rounded-[2.5rem] p-6 flex flex-col justify-between group overflow-hidden relative shadow-2xl hover:scale-[1.02] active:scale-95 transition-all border-4 border-red-500/50"
+          >
+            <div className="absolute top-0 right-0 w-24 h-24 bg-white/20 rounded-full blur-[30px] -translate-y-1/2 translate-x-1/2" />
+            <div className="relative z-10">
+              <Timer size={32} className="mb-2 group-hover:scale-110 group-hover:rotate-12 transition-transform duration-500" />
+              <h3 className="text-xl font-black uppercase tracking-tighter leading-none">{t('common.timer')}</h3>
+            </div>
+            <div className="relative z-10 flex items-center gap-2 mt-4">
+               <div className="w-1.5 h-1.5 rounded-full bg-white animate-pulse" />
+               <span className="text-[8px] font-black uppercase tracking-widest opacity-80">{t('dashboard.roundSystem')}</span>
+            </div>
+          </button>
+          
+          <button 
+            onClick={() => navigate('/exhibition')}
+            className="flex-1 bg-slate-900 dark:bg-slate-800 text-white rounded-[2.5rem] p-6 flex flex-col justify-between group overflow-hidden relative shadow-xl hover:scale-[1.02] active:scale-95 transition-all border border-white/5"
+          >
+            <div className="absolute top-0 right-0 w-24 h-24 bg-blue-600/20 rounded-full blur-[30px] -translate-y-1/2 translate-x-1/2" />
+            <div className="relative z-10">
+              <Monitor size={32} className="mb-2 group-hover:scale-110 transition-transform duration-500" />
+              <h3 className="text-xl font-black uppercase tracking-tighter leading-none">{t('common.exhibitionMode')}</h3>
+            </div>
+            <p className="text-[8px] font-black uppercase tracking-widest opacity-40 mt-4">{t('dashboard.displayMode')}</p>
+          </button>
+        </div>
+      </div>
+
       {/* Executive Header & Quick Actions */}
       <div className="grid grid-cols-1 xl:grid-cols-12 gap-6 items-stretch">
         {/* Welcome Banner */}
@@ -341,24 +405,14 @@ const Dashboard: React.FC = () => {
 
       {/* Secondary Operational Row */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-        {/* Quick Tools */}
-        <div className="lg:col-span-2 grid grid-cols-2 gap-4">
-           <button onClick={() => navigate('/timer')} className="p-6 bg-rose-600 text-white rounded-[2rem] flex flex-col justify-between group overflow-hidden relative border border-rose-500 shadow-xl hover:-translate-y-1 transition-all">
-             <div className="absolute top-0 right-0 w-32 h-32 bg-white/20 rounded-full blur-[40px] -translate-y-1/2 translate-x-1/2" />
-             <Timer size={32} className="mb-4 group-hover:scale-110 transition-transform" />
-             <div className="relative z-10 text-left">
-               <span className="text-[9px] font-black uppercase tracking-widest opacity-60">{t('dashboard.training')}</span>
-               <h4 className="text-xl font-black uppercase tracking-tighter leading-none">{t('common.timer')}</h4>
-             </div>
-           </button>
-           <button onClick={() => navigate('/exhibition')} className="p-6 bg-slate-900 dark:bg-slate-800 text-white rounded-[2rem] flex flex-col justify-between group overflow-hidden relative shadow-xl hover:-translate-y-1 transition-all">
-             <div className="absolute top-0 right-0 w-32 h-32 bg-blue-600/40 rounded-full blur-[40px] -translate-y-1/2 translate-x-1/2" />
-             <Monitor size={32} className="mb-4 group-hover:scale-110 transition-transform" />
-             <div className="relative z-10 text-left">
-               <span className="text-[9px] font-black uppercase tracking-widest opacity-60">{t('common.display')}</span>
-               <h4 className="text-xl font-black uppercase tracking-tighter leading-none">{t('common.exhibitionMode')}</h4>
-             </div>
-           </button>
+        {/* Quick Tools replaced by Global Search/Shortcuts if needed, for now just cleaning */}
+        <div className="lg:col-span-2 grid grid-cols-1 gap-4">
+           <div className="h-full p-8 bg-white dark:bg-slate-900 rounded-[2.5rem] border border-slate-200 dark:border-slate-800 flex flex-col justify-center relative overflow-hidden group">
+              <div className="absolute top-0 right-0 w-64 h-64 bg-blue-600/5 rounded-full blur-[100px]" />
+              <h4 className="text-sm font-black uppercase tracking-widest text-slate-400 mb-2">{t('dashboard.stats.active')}</h4>
+              <p className="text-4xl font-black dark:text-white uppercase italic tracking-tighter text-blue-600">{activeStudents} {t('dashboard.athletes')}</p>
+              <p className="text-[10px] font-bold text-slate-500 uppercase tracking-widest mt-2">{t('dashboard.stats.registrations')}</p>
+           </div>
         </div>
 
         {/* Birthdays Bento */}
@@ -401,7 +455,7 @@ const Dashboard: React.FC = () => {
               <div className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
               <p className="text-[10px] font-black text-slate-900 dark:text-white uppercase tracking-tighter">{t('dashboard.status.ecosystem')}</p>
             </div>
-            <p className="text-[9px] font-bold text-slate-400 uppercase tracking-widest">{t('dashboard.status.lastSync')} {now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</p>
+            <p className="text-[9px] font-bold text-slate-400 uppercase tracking-widest">{t('dashboard.status.cloudActive')}</p>
           </div>
         </div>
       </div>
@@ -416,25 +470,25 @@ const Dashboard: React.FC = () => {
          <div className="bg-slate-900 rounded-[2.5rem] p-8 border border-white/5 relative overflow-hidden group">
             <div className="absolute top-0 right-0 w-32 h-32 bg-blue-600/10 rounded-full blur-3xl" />
             <h3 className="text-xl font-black text-white uppercase tracking-tighter mb-4 flex items-center gap-3">
-               <Zap size={20} className="text-blue-500" /> Sensei Master Insights
+               <Zap size={20} className="text-blue-500" /> {t('dashboard.masterInsights')}
             </h3>
             <div className="space-y-4">
                <div className="p-4 bg-white/5 rounded-2xl border border-white/5">
-                  <p className="text-[9px] font-black text-blue-400 uppercase tracking-widest mb-1">Pedagogia</p>
-                  <p className="text-xs text-slate-400 leading-relaxed">Sua turma de Terça 19h está com 40% de novos alunos (faixa branca). Foque em fundamentos de guarda fechada para aumentar a retenção inicial.</p>
+                  <p className="text-[9px] font-black text-blue-400 uppercase tracking-widest mb-1">{t('dashboard.pedagogy')}</p>
+                  <p className="text-xs text-slate-400 leading-relaxed">{t('dashboard.insights.pedagogy')}</p>
                </div>
                <div className="p-4 bg-white/5 rounded-2xl border border-white/5">
-                  <p className="text-[9px] font-black text-emerald-400 uppercase tracking-widest mb-1">Negócios</p>
-                  <p className="text-xs text-slate-400 leading-relaxed">Vendas de acessórios (faixas/patches) aumentaram 15%. Considere um kit de graduação exclusivo.</p>
+                  <p className="text-[9px] font-black text-emerald-400 uppercase tracking-widest mb-1">{t('dashboard.business')}</p>
+                  <p className="text-xs text-slate-400 leading-relaxed">{t('dashboard.insights.business')}</p>
                </div>
             </div>
          </div>
 
-         <div className="bg-indigo-600 rounded-[2.5rem] p-8 text-white relative overflow-hidden group">
+          <div className="bg-indigo-600 rounded-[2.5rem] p-8 text-white relative overflow-hidden group">
             <div className="absolute top-0 right-0 w-32 h-32 bg-white/10 rounded-full blur-3xl animate-pulse" />
-            <h3 className="text-xl font-black uppercase tracking-tighter mb-2 italic">Ação Turbo</h3>
-            <p className="text-xs text-indigo-100 opacity-80 mb-6 font-medium">Detectamos {churnRiskCount} alunos com risco de churn. Clique abaixo para enviar uma mensagem automatizada de "Sentimos sua falta".</p>
-            <button onClick={() => navigate('/business')} className="w-full py-4 bg-white text-indigo-600 rounded-xl font-black uppercase text-[10px] tracking-widest shadow-xl hover:scale-105 active:scale-95 transition-all">Protocolo de Retenção</button>
+            <h3 className="text-xl font-black uppercase tracking-tighter mb-2 italic">{t('dashboard.turboAction')}</h3>
+            <p className="text-xs text-indigo-100 opacity-80 mb-6 font-medium">{t('dashboard.retentionProtocolDesc', { count: churnRiskCount })}</p>
+            <button onClick={() => navigate('/business')} className="w-full py-4 bg-white text-indigo-600 rounded-xl font-black uppercase text-[10px] tracking-widest shadow-xl hover:scale-105 active:scale-95 transition-all">{t('dashboard.retentionProtocol')}</button>
          </div>
       </motion.div>
 

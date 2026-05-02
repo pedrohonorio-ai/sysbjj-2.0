@@ -183,6 +183,13 @@ const FightTimer: React.FC = () => {
          audioRef.current?.pause();
          audioRef.current!.currentTime = 0;
        }).catch(() => {});
+       
+       // Visual "FIGHT! OSS!" feedback
+       const feedback = document.createElement('div');
+       feedback.className = 'fixed inset-0 flex items-center justify-center z-[100] pointer-events-none animate-in zoom-in-150 duration-1000';
+       feedback.innerHTML = '<h1 class="text-9xl font-black text-blue-600 uppercase italic drop-shadow-2xl">FIGHT! OSS!</h1>';
+       document.body.appendChild(feedback);
+       setTimeout(() => feedback.remove(), 1000);
     }
 
     if (isAlarming) {
@@ -349,22 +356,22 @@ const FightTimer: React.FC = () => {
               : isActive ? 'bg-slate-900 border-red-600 text-white' : 'bg-slate-800 border-slate-700 text-slate-300'
         }`}>
           <p className={`text-xl sm:text-2xl font-black uppercase tracking-[0.4em] mb-4 relative ${isActive && timeLeft <= 60 && !isResting ? 'opacity-100 text-slate-900' : 'opacity-40'}`}>
-            {isAlarming ? t('timer.endOfRound') : isResting ? t('timer.recovery') : (isActive && timeLeft <= 60 && !isResting) ? 'ÚLTIMO MINUTO' : `${t('timer.round')} ${currentRound} / ${rounds}`}
+            {isAlarming ? t('timer.endOfRound') : isResting ? t('timer.recovery') : (isActive && timeLeft <= 60 && !isResting) ? t('timer.lastMinute') : `${t('timer.round')} ${currentRound} / ${rounds}`}
           </p>
-          <h2 className="text-[7rem] sm:text-[10rem] md:text-[12rem] lg:text-[14rem] font-bold font-mono leading-none tracking-tighter relative select-none">
+          <h2 className="text-[7rem] sm:text-[10rem] md:text-[12rem] lg:text-[15rem] font-black font-mono leading-none tracking-tighter relative select-none tabular-nums drop-shadow-[0_10px_10px_rgba(0,0,0,0.5)]">
             {formatTime(timeLeft)}
           </h2>
-          <div className="mt-8 flex justify-center gap-6 sm:gap-10 relative">
+          <div className="mt-8 flex justify-center gap-6 sm:gap-12 relative">
             <button 
               onClick={toggle} 
-              className={`w-20 h-20 sm:w-24 sm:h-24 md:w-28 md:h-28 rounded-full flex items-center justify-center transition-all shadow-2xl active:scale-90 ${
-                isAlarming ? 'bg-white text-red-600 hover:scale-110 shadow-white/20' : 'bg-red-600 text-white hover:bg-red-500'
+              className={`w-20 h-20 sm:w-28 sm:h-28 md:w-32 md:h-32 rounded-full flex items-center justify-center transition-all shadow-3xl active:scale-90 border-4 ${
+                isAlarming ? 'bg-white text-red-600 hover:scale-110 shadow-white/30 border-red-500' : 'bg-red-600 text-white hover:bg-red-500 border-white/20'
               }`}
             >
-              {isAlarming ? <BellRing size={40} className="animate-wiggle" /> : isActive ? <Pause size={40} fill="currentColor" /> : <Play size={40} className="ml-2" fill="currentColor" />}
+              {isAlarming ? <BellRing size={48} className="animate-wiggle" /> : isActive ? <Pause size={48} fill="currentColor" /> : <Play size={48} className="ml-2" fill="currentColor" />}
             </button>
-            <button onClick={reset} className="w-20 h-20 sm:w-24 sm:h-24 md:w-28 md:h-28 rounded-full bg-white/10 flex items-center justify-center border-2 border-white/20 hover:bg-white/20 transition-all shadow-xl active:scale-90">
-              <RotateCcw size={32} />
+            <button onClick={reset} className="w-20 h-20 sm:w-28 sm:h-28 md:w-32 md:h-32 rounded-full bg-white/10 flex items-center justify-center border-4 border-white/10 hover:bg-white/20 transition-all shadow-2xl active:scale-90">
+              <RotateCcw size={40} />
             </button>
           </div>
         </div>

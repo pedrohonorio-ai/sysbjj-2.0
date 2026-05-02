@@ -222,7 +222,7 @@ const Curriculum: React.FC = () => {
               <div className="flex items-center gap-3">
                 <span className="px-3 py-1 bg-blue-600 rounded-lg text-[9px] font-black uppercase tracking-[0.2em]">{t('curriculum.techFocus')}</span>
                 <span className="text-slate-400 text-[10px] font-bold uppercase tracking-widest">
-                  {new Date().toLocaleDateString(undefined, { month: 'long', year: 'numeric' })}
+                  {new Date().toLocaleDateString(t('common.dateLocale'), { month: 'long', year: 'numeric' })}
                 </span>
               </div>
 

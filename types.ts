@@ -35,6 +35,7 @@ export enum KidsBeltColor {
 }
 
 export enum StudentStatus {
+  WAITLIST = 'Waitlist',
   ACTIVE = 'Active',
   PENDING = 'Pending',
   OVERDUE = 'Overdue',
@@ -339,6 +340,8 @@ export interface Student {
   zipCode?: string;
   bloodType?: string;
   responsiblePerson?: string;
+  responsibleEmail?: string;
+  responsiblePhone?: string;
   responsibleCpf?: string;
   civilStatus?: string;
   occupation?: string;
@@ -350,6 +353,8 @@ export interface Student {
   billingPaused?: boolean;
   completedRuleLessons?: string[];
   isCompetitor?: boolean;
+  isWaitlist?: boolean;
+  waitlistRank?: number;
   technicalNotes?: string;
   customIndicators?: CustomIndicator[];
   medicalCertificateUrl?: string;

@@ -377,16 +377,16 @@ const BeltSystem: React.FC = () => {
                      </div>
                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                         <div className="p-6 bg-slate-50 dark:bg-slate-800 rounded-3xl border border-slate-100 dark:border-slate-700">
-                           <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-2">Tempo Mínimo Permanência</p>
-                           <p className="text-xl font-black dark:text-white uppercase tracking-tighter">{rule?.minTimeMonths ?? 0} Meses</p>
+                           <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-2">{t('beltSystem.minTime')}</p>
+                           <p className="text-xl font-black dark:text-white uppercase tracking-tighter">{rule?.minTimeMonths ?? 0} {t('common.months')}</p>
                         </div>
                         <div className="p-6 bg-slate-50 dark:bg-slate-800 rounded-3xl border border-slate-100 dark:border-slate-700">
-                           <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-2">Idade Mínima</p>
-                           <p className="text-xl font-black dark:text-white uppercase tracking-tighter">{rule?.minAge ?? 0} Anos</p>
+                           <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-2">{t('beltSystem.minAge')}</p>
+                           <p className="text-xl font-black dark:text-white uppercase tracking-tighter">{rule?.minAge ?? 0} {t('common.years')}</p>
                         </div>
                      </div>
                      <div className="p-6 bg-white dark:bg-slate-800 rounded-3xl border border-slate-100 dark:border-slate-700">
-                        <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-4">Requisitos Técnicos Sugeridos</p>
+                        <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-4">{t('beltSystem.suggestedReqs')}</p>
                         <div className="flex flex-wrap gap-2">
                            {((tObj(`beltRequirements.${beltKey}`) as string[]) || []).map((req, i) => (
                              <span key={i} className="px-3 py-1.5 bg-slate-100 dark:bg-slate-700 text-[10px] font-bold text-slate-600 dark:text-slate-300 rounded-xl uppercase">{req}</span>
@@ -406,8 +406,8 @@ const BeltSystem: React.FC = () => {
           <div className="bg-white dark:bg-slate-900 rounded-[3rem] shadow-2xl w-full max-w-2xl flex flex-col animate-in zoom-in-95 duration-300 border border-slate-200 dark:border-slate-800">
             <div className="p-8 border-b border-slate-100 dark:border-slate-800 flex items-center justify-between">
               <div>
-                <h3 className="text-2xl font-black text-slate-900 dark:text-white uppercase tracking-tighter">Gerenciar Indicadores</h3>
-                <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Defina os critérios de avaliação da sua equipe</p>
+                <h3 className="text-2xl font-black text-slate-900 dark:text-white uppercase tracking-tighter">{t('beltSystem.manageCriteria')}</h3>
+                <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">{t('beltSystem.manageCriteriaDesc')}</p>
               </div>
               <button onClick={() => setShowCriteriaManager(false)} className="p-2 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-xl transition-colors"><X/></button>
             </div>
@@ -422,12 +422,12 @@ const BeltSystem: React.FC = () => {
                       onChange={(e) => {
                         const next = [...activeCriteria];
                         next[idx].name = e.target.value;
-                        useProfile().updateProfile({ customCriteria: next });
+                        updateProfile({ customCriteria: next });
                       }}
                     />
                   </div>
                   <div className="flex items-center gap-2">
-                    <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest whitespace-nowrap">Peso</span>
+                    <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest whitespace-nowrap">{t('beltSystem.weight')}</span>
                     <input 
                       type="number" 
                       step="0.05"

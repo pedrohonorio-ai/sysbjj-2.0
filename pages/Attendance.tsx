@@ -220,7 +220,7 @@ const AttendancePage: React.FC = () => {
         <div className="animate-in slide-in-from-left duration-700">
           <div className="flex items-center gap-3 mb-2">
             <div className="w-2 h-8 bg-blue-600 rounded-full" />
-            <span className="text-[10px] font-black uppercase tracking-[0.4em] text-blue-600 italic">Academy Operations</span>
+            <span className="text-[10px] font-black uppercase tracking-[0.4em] text-blue-600 italic">{t('attendance.operations')}</span>
           </div>
           <h1 className="text-4xl md:text-6xl font-black text-slate-900 dark:text-white tracking-tighter uppercase leading-none italic">{t('attendance.title')}</h1>
           <p className="text-slate-500 font-bold italic mt-4 text-sm opacity-60 flex items-center gap-2">
@@ -290,7 +290,7 @@ const AttendancePage: React.FC = () => {
                   onClick={handleConfirmEntireClass}
                   className="w-full p-5 bg-blue-600 text-white rounded-2xl flex items-center justify-between text-[10px] font-black uppercase tracking-widest hover:bg-blue-700 transition-all shadow-xl shadow-blue-600/20"
                 >
-                  <span>Confirmar Todos</span>
+                  <span>{t('attendance.confirmAll')}</span>
                   <CheckCircle size={16} />
                 </button>
               )}
@@ -408,7 +408,7 @@ const AttendancePage: React.FC = () => {
                       isSaved ? 'bg-green-600 text-white' : 'bg-blue-600 text-white shadow-blue-600/30'
                     }`}
                   >
-                    {isSaved ? 'EVOLUÇÃO REGISTRADA!' : 'CONFIRMAR TREINOS'}
+                    {isSaved ? t('attendance.evolutionRegistered') : t('attendance.confirmTraining')}
                   </button>
                 </div>
               </motion.div>
@@ -433,7 +433,7 @@ const AttendancePage: React.FC = () => {
 
                 <div className="mt-12 w-full max-w-md">
                    <div className="flex items-center justify-between text-white/50 text-[10px] font-black uppercase tracking-widest mb-4">
-                      <span>Recent Scans</span>
+                      <span>{t('attendance.recentScans')}</span>
                       <span>Total: {attendedIds.length}</span>
                    </div>
                    <div className="flex gap-2 overflow-x-auto pb-4 scrollbar-hide">
@@ -455,7 +455,7 @@ const AttendancePage: React.FC = () => {
                   onClick={handleSave}
                   className="mt-8 px-12 py-5 bg-blue-600 text-white rounded-2xl font-black text-xs uppercase tracking-widest shadow-2xl hover:bg-blue-700 active:scale-95 transition-all"
                 >
-                  SALVAR SESSÃO DE ESCANEAMENTO
+                  {t('attendance.saveScanningSession')}
                 </button>
               </motion.div>
             )}
@@ -494,19 +494,19 @@ const AttendancePage: React.FC = () => {
                       </div>
                       <div className="flex items-center gap-6">
                          <div className="text-center">
-                            <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest leading-none mb-1">Time</p>
-                            <p className="text-2xl font-black tabular-nums text-slate-900 dark:text-white">{new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</p>
+                            <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest leading-none mb-1">{t('attendance.time')}</p>
+                            <p className="text-2xl font-black tabular-nums text-slate-900 dark:text-white">{new Date().toLocaleTimeString(t('common.dateLocale'), { hour: '2-digit', minute: '2-digit' })}</p>
                          </div>
                          <div className="w-px h-8 bg-slate-200 dark:bg-slate-700" />
                          <div className="text-center">
-                            <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest leading-none mb-1">Checked</p>
+                            <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest leading-none mb-1">{t('attendance.checked')}</p>
                             <p className="text-2xl font-black tabular-nums text-slate-900 dark:text-white">{attendedIds.length}</p>
                          </div>
                       </div>
                    </div>
                    
                    <p className="text-[10px] font-black text-slate-400 uppercase tracking-[0.4em] italic">
-                     SYSBJJ Academy • {new Date().getFullYear()} • BIOMETRIC LOG
+                     SYSBJJ Academy • {new Date().getFullYear()} • {t('attendance.biometricLog')}
                    </p>
                 </div>
               </motion.div>

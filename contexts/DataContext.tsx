@@ -35,15 +35,23 @@ interface FirestoreErrorInfo {
   authInfo: any;
 }
 
-const handleFirestoreError = (error: unknown, operationType: OperationType, path: string | null) => {
+const handleFirestoreError = (error: unknown, operationType: OperationType, path: string | null, setNotifications?: React.Dispatch<React.SetStateAction<any[]>>) => {
   const errInfo: FirestoreErrorInfo = {
     error: error instanceof Error ? error.message : String(error),
-    authInfo: {}, // Simplified for now as we don't have auth fully integrated in this snippet
+    authInfo: {}, 
     operationType,
     path
   };
   console.error('Firestore Error: ', JSON.stringify(errInfo));
-  // We don't throw here to avoid crashing the app, but we log it
+  
+  if (setNotifications) {
+    setNotifications(prev => [{
+      id: `ERR-${Date.now()}`,
+      message: `Erro na Nuvem (${operationType}): Verifique sua conexão.`,
+      type: 'warning',
+      timestamp: Date.now()
+    }, ...prev]);
+  }
 };
 
 interface DataContextType {
@@ -384,7 +392,7 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     // Also persist to Firestore
     if (db) {
       const logRef = doc(collection(db, 'system_logs'), newLog.id);
-      setDoc(logRef, newLog).catch(err => handleFirestoreError(err, OperationType.CREATE, 'system_logs'));
+      setDoc(logRef, newLog).catch(err => handleFirestoreError(err, OperationType.CREATE, 'system_logs', setNotifications));
     }
   }, [logs]);
 

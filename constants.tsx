@@ -20,16 +20,16 @@ import {
 export const MASTER_ADMINS = ['dahfire@gmail.com', 'dashfire@gmail.com', 'pedro.honorio@gm.rio'];
 
 export const NAVIGATION_ITEMS = [
-  { id: 'dashboard', label: 'Painel', icon: <LayoutDashboard size={20} /> },
-  { id: 'students', label: 'Alunos', icon: <Users size={20} /> },
-  { id: 'classes', label: 'Turmas', icon: <Calendar size={20} /> },
-  { id: 'business', label: 'Hub de Negócios', icon: <Store size={20} /> },
-  { id: 'curriculum', label: 'Quadro de Trabalho do Dia (QTD)', icon: <BookOpenCheck size={20} /> },
-  { id: 'attendance', label: 'Chamada', icon: <CalendarCheck size={20} /> },
-  { id: 'promotions', label: 'Graduação', icon: <Trophy size={20} /> },
-  { id: 'ibjjf-rules', label: 'Regras IBJJF', icon: <Shield size={20} /> },
-  { id: 'timer', label: 'Cronômetro', icon: <Timer size={20} /> },
-  { id: 'audit', label: 'Auditoria', icon: <BarChart3 size={20} /> },
+  { id: 'dashboard', label: 'Painel', icon: <LayoutDashboard size={20} className="text-blue-500" /> },
+  { id: 'students', label: 'Alunos', icon: <Users size={20} className="text-indigo-500" /> },
+  { id: 'classes', label: 'Turmas', icon: <Calendar size={20} className="text-emerald-500" /> },
+  { id: 'business', label: 'Hub de Negócios', icon: <Store size={20} className="text-amber-500" /> },
+  { id: 'curriculum', label: 'Quadro de Trabalho', icon: <BookOpenCheck size={20} className="text-purple-500" /> },
+  { id: 'attendance', label: 'Chamada', icon: <CalendarCheck size={20} className="text-rose-500" /> },
+  { id: 'promotions', label: 'Graduação', icon: <Trophy size={20} className="text-yellow-500" /> },
+  { id: 'ibjjf-rules', label: 'Regras IBJJF', icon: <Shield size={20} className="text-slate-500" /> },
+  { id: 'timer', label: 'Cronômetro', icon: <Timer size={20} className="text-red-500" /> },
+  { id: 'audit', label: 'Auditoria', icon: <BarChart3 size={20} className="text-cyan-500" /> },
 ];
 
 export const BELT_COLORS: Record<string, string> = {

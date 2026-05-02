@@ -152,7 +152,7 @@ const BusinessHub: React.FC = () => {
       name: student.name,
       amount: student.monthlyValue,
       date: new Date().toISOString().split('T')[0],
-      method: 'Manual/Dinheiro',
+      method: t('business.manualPayment'),
       status: 'Confirmed'
     });
     updateStudent(student.id, { 
@@ -247,7 +247,7 @@ const BusinessHub: React.FC = () => {
 
   const handleExportOverdue = () => {
     if (unpaidStudents.length === 0) return;
-    const headers = ["Nome", "Valor", "Dia Vencimento", "Telefone"];
+    const headers = [t('common.name'), t('common.value'), t('students.paymentDay'), t('common.phone')];
     const rows = unpaidStudents.map(s => [s.name, s.monthlyValue, s.dueDay, s.phone]);
     const csvContent = [headers.join(","), ...rows.map(e => e.join(","))].join("\n");
     const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
@@ -360,7 +360,7 @@ const BusinessHub: React.FC = () => {
           { id: 'receipts', icon: <FileText size={16} />, label: t('common.receipts'), color: 'text-purple-600', bg: 'bg-purple-600/5', count: receipts.filter(r => r.status === 'Pending').length },
           { id: 'ledger', icon: <ShieldCheck size={16} />, label: t('common.ledger'), color: 'text-indigo-600', bg: 'bg-indigo-600/5' },
           { id: 'analytics', icon: <BarChartIcon size={16} />, label: t('business.analytics'), color: 'text-pink-600', bg: 'bg-pink-600/5' },
-          { id: 'churn', icon: <ShieldAlert size={16} />, label: 'Previsão de Churn', color: 'text-red-600', bg: 'bg-red-600/5', count: churnRiskStudents.filter(s => s.riskLevel === 'High').length },
+          { id: 'churn', icon: <ShieldAlert size={16} />, label: t('business.churnPrediction'), color: 'text-red-600', bg: 'bg-red-600/5', count: churnRiskStudents.filter(s => s.riskLevel === 'High').length },
           { id: 'birthdays', icon: <Cake size={16} />, label: t('reports.birthdaysTab'), color: 'text-orange-600', bg: 'bg-orange-600/5' }
         ].map(tab => (
           <button 
@@ -405,20 +405,20 @@ const BusinessHub: React.FC = () => {
                       <div className="flex items-center justify-between mb-10">
                          <div>
                            <h3 className="text-2xl font-black text-white uppercase tracking-tighter flex items-center gap-2">
-                             <TrendingUp className="text-blue-500" size={24} /> Retention Intelligence
+                             <TrendingUp className="text-blue-500" size={24} /> {t('business.intelligence')}
                            </h3>
-                           <p className="text-[10px] text-slate-500 font-bold uppercase tracking-[0.2em] mt-1">Análise preditiva de Churn e LTV</p>
+                           <p className="text-[10px] text-slate-500 font-bold uppercase tracking-[0.2em] mt-1">{t('business.predictiveAnalysis')}</p>
                          </div>
                          <div className="px-6 py-2.5 bg-blue-500 text-white rounded-2xl text-[10px] font-black uppercase tracking-widest shadow-xl shadow-blue-500/20">
-                            Health Score: 94.2%
+                            {t('business.healthScore')}: 94.2%
                          </div>
                       </div>
 
                       <div className="grid grid-cols-1 md:grid-cols-3 gap-8 mb-10">
                          {[
-                           { label: 'Growth rate', val: '+12.4%', icon: <TrendingUp size={16}/>, color: 'text-green-500', bg: 'bg-green-500/10' },
-                           { label: 'Churn Rate', val: `${churnRate.toFixed(1)}%`, icon: <UserX size={16}/>, color: 'text-red-500', bg: 'bg-red-500/10' },
-                           { label: 'LTV Previsto', val: 'R$ 3.8k', icon: <DollarSign size={16}/>, color: 'text-emerald-500', bg: 'bg-emerald-500/10' }
+                           { label: t('business.growthRate'), val: '+12.4%', icon: <TrendingUp size={16}/>, color: 'text-green-500', bg: 'bg-green-500/10' },
+                           { label: t('business.churnRate'), val: `${churnRate.toFixed(1)}%`, icon: <UserX size={16}/>, color: 'text-red-500', bg: 'bg-red-500/10' },
+                           { label: t('business.ltvPredicted'), val: 'R$ 3.8k', icon: <DollarSign size={16}/>, color: 'text-emerald-500', bg: 'bg-emerald-500/10' }
                          ].map((m, i) => (
                            <div key={i} className="p-6 bg-white/5 rounded-3xl border border-white/5 hover:border-white/10 transition-all group/stat">
                               <div className="flex items-center gap-3 mb-4">
@@ -439,7 +439,7 @@ const BusinessHub: React.FC = () => {
                              className={`flex-1 rounded-t-[10px] cursor-help relative group/bar ${i === 11 ? 'bg-blue-600 shadow-[0_0_20px_rgba(37,99,235,0.4)]' : 'bg-slate-700/40 hover:bg-slate-600'} transition-all`}
                            >
                               <div className="absolute -top-8 left-1/2 -translate-x-1/2 opacity-0 group-hover/bar:opacity-100 transition-opacity whitespace-nowrap bg-white dark:bg-slate-800 px-2 py-1 rounded-lg text-[8px] font-black text-slate-900 dark:text-white border border-slate-200 dark:border-slate-700 shadow-xl z-20">
-                                Mês {i + 1}: R$ {(h * 100).toLocaleString('pt-BR')}
+                                {t('common.month')} {i + 1}: {t('common.currencySymbol')} {(h * 100).toLocaleString('pt-BR')}
                               </div>
                            </motion.div>
                          ))}
@@ -458,13 +458,13 @@ const BusinessHub: React.FC = () => {
                          <Zap size={36} className="text-white fill-white shadow-2xl" />
                        </div>
                        <div className="relative z-10">
-                         <h3 className="text-3xl font-black uppercase tracking-tighter leading-8 mb-4 italic">Power Growth Module</h3>
+                         <h3 className="text-3xl font-black uppercase tracking-tighter leading-8 mb-4 italic">{t('business.powerGrowth')}</h3>
                          <p className="text-sm text-indigo-100 font-medium leading-relaxed opacity-90">
-                           Sua academia está crescendo acima da média internacional. Detectamos oportunidade de expansão: <span className="font-black underline underline-offset-4 decoration-indigo-300">Horários Matinais (7 AM)</span> possuem 92% de demanda represada.
+                           {t('business.powerGrowthDesc')}
                          </p>
                        </div>
                        <button className="relative z-10 w-full mt-10 py-5 bg-white text-indigo-600 rounded-2xl font-black uppercase text-[10px] tracking-widest shadow-2xl shadow-indigo-950/40 hover:scale-[1.03] active:scale-[0.97] transition-all">
-                         Ativar Campanha de Expansão
+                         {t('business.activateCampaign')}
                        </button>
                     </div>
                  </div>
@@ -477,12 +477,12 @@ const BusinessHub: React.FC = () => {
                 <div className="relative z-10 space-y-8">
                   <div className="flex items-center justify-between">
                     <span className="px-4 py-1.5 bg-blue-600/20 text-blue-400 rounded-full text-[10px] font-black uppercase tracking-widest border border-blue-600/30">
-                      Performance do Mês
+                      {t('business.performanceMonth')}
                     </span>
                     <TrendingUp className="text-emerald-400" size={24} />
                   </div>
                   <div>
-                    <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">{t('financial.collected')} ({monthName})</p>
+                    <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">{t('business.collected')} ({monthName})</p>
                     <div className="flex items-end gap-3">
                       <span className="text-6xl font-black tracking-tighter tabular-nums break-words">
                         {t('common.currencySymbol')} {monthPaidTotal.toFixed(2)}
@@ -494,11 +494,11 @@ const BusinessHub: React.FC = () => {
                   </div>
                   <div className="pt-6 border-t border-white/10 flex gap-10">
                     <div>
-                      <p className="text-[8px] font-black text-slate-500 uppercase tracking-widest mb-1">Previsão</p>
+                      <p className="text-[8px] font-black text-slate-500 uppercase tracking-widest mb-1">{t('business.forecast')}</p>
                       <p className="text-xl font-bold tracking-tight">{t('common.currencySymbol')} {(monthPaidTotal + monthUnpaidTotal).toFixed(2)}</p>
                     </div>
                     <div>
-                      <p className="text-[8px] font-black text-slate-500 uppercase tracking-widest mb-1">LTV Médio</p>
+                      <p className="text-[8px] font-black text-slate-500 uppercase tracking-widest mb-1">{t('business.averageLtv')}</p>
                       <p className="text-xl font-bold tracking-tight">R$ 280,00</p>
                     </div>
                   </div>
@@ -515,8 +515,8 @@ const BusinessHub: React.FC = () => {
                   <p className="text-4xl font-black text-red-600 tracking-tighter tabular-nums">{t('common.currencySymbol')} {monthUnpaidTotal.toFixed(2)}</p>
                 </div>
                 <div className="pt-4">
-                  <p className="text-[10px] font-bold text-slate-500 mb-2">{unpaidStudents.length} alunos com pendência</p>
-                  <button onClick={() => setReportTab('monthly')} className="w-full py-3 bg-slate-50 dark:bg-slate-800 text-slate-600 dark:text-slate-300 rounded-xl text-[10px] font-black uppercase tracking-widest hover:bg-slate-100 transition-all">Ver Detalhes</button>
+                  <p className="text-[10px] font-bold text-slate-500 mb-2">{unpaidStudents.length} {t('dashboard.stats.pending')}</p>
+                  <button onClick={() => setReportTab('monthly')} className="w-full py-3 bg-slate-50 dark:bg-slate-800 text-slate-600 dark:text-slate-300 rounded-xl text-[10px] font-black uppercase tracking-widest hover:bg-slate-100 transition-all">{t('dashboard.viewDetails')}</button>
                 </div>
               </div>
 
@@ -542,11 +542,11 @@ const BusinessHub: React.FC = () => {
                   </div>
                   <div className="grid grid-cols-2 gap-4 text-center">
                     <div className="p-3 bg-slate-50 dark:bg-slate-800 rounded-2xl border border-slate-100 dark:border-slate-700">
-                      <p className="text-[8px] font-black text-slate-400 uppercase tracking-widest mb-1">Pagos</p>
+                      <p className="text-[8px] font-black text-slate-400 uppercase tracking-widest mb-1">{t('business.paid')}</p>
                       <p className="text-lg font-black text-emerald-600">{paidStudents.length}</p>
                     </div>
                     <div className="p-3 bg-slate-50 dark:bg-slate-800 rounded-2xl border border-slate-100 dark:border-slate-700">
-                      <p className="text-[8px] font-black text-slate-400 uppercase tracking-widest mb-1">Abertos</p>
+                      <p className="text-[8px] font-black text-slate-400 uppercase tracking-widest mb-1">{t('business.open')}</p>
                       <p className="text-lg font-black text-red-600">{unpaidStudents.length}</p>
                     </div>
                   </div>
@@ -556,16 +556,16 @@ const BusinessHub: React.FC = () => {
               {/* Bento Card: Quick Actions Integration */}
               <div className="lg:col-span-1 bg-gradient-to-br from-indigo-600 to-violet-700 p-8 rounded-[2.5rem] text-white shadow-xl flex flex-col justify-between">
                 <div>
-                  <h3 className="text-lg font-black uppercase tracking-tighter mb-1">Gestão Ágil</h3>
+                  <h3 className="text-lg font-black uppercase tracking-tighter mb-1">{t('business.agileManagement')}</h3>
                   <p className="text-indigo-100/70 text-[10px] uppercase font-bold tracking-widest">{t('business.subtitle')}</p>
                 </div>
                 <div className="space-y-3 mt-8">
                   <button onClick={() => setIsAddingSale(true)} className="w-full flex items-center justify-between p-4 bg-white/10 hover:bg-white/20 rounded-2xl border border-white/20 transition-all group">
-                    <span className="text-[10px] font-black uppercase tracking-widest">Registrar Venda</span>
+                    <span className="text-[10px] font-black uppercase tracking-widest">{t('business.registerSale')}</span>
                     <Plus size={16} className="group-hover:rotate-90 transition-transform" />
                   </button>
                   <button onClick={() => setReportTab('receipts')} className="w-full flex items-center justify-between p-4 bg-white/10 hover:bg-white/20 rounded-2xl border border-white/20 transition-all">
-                    <span className="text-[10px] font-black uppercase tracking-widest">Validar Recibos</span>
+                    <span className="text-[10px] font-black uppercase tracking-widest">{t('business.validateReceipts')}</span>
                     <FileText size={16} />
                   </button>
                 </div>
@@ -580,7 +580,7 @@ const BusinessHub: React.FC = () => {
                       </div>
                       <div>
                         <h3 className="text-2xl font-black dark:text-white uppercase tracking-tighter leading-none">{t('business.catalog')}</h3>
-                        <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mt-1">Controle de Estoque e Planos</p>
+                        <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mt-1">{t('business.inventoryControl')}</p>
                       </div>
                    </div>
                    <div className="flex gap-3">
@@ -599,7 +599,7 @@ const BusinessHub: React.FC = () => {
                       </div>
                       <p className="font-black text-sm dark:text-white uppercase tracking-tight">{p.name}</p>
                       <div className="mt-4 flex items-center justify-between text-[10px] font-bold text-slate-400">
-                        <span>Estoque: 12 un</span>
+                        <span>{t('business.stock')}: 12 un</span>
                         <div className="w-1.5 h-1.5 bg-emerald-500 rounded-full" />
                       </div>
                     </div>
@@ -687,11 +687,11 @@ const BusinessHub: React.FC = () => {
                                    : 'bg-red-100 text-red-700 border border-red-200/50 dark:bg-red-900/30 dark:text-red-400 dark:border-red-800/50'
                                }`}>
                                   <div className={`w-1.5 h-1.5 rounded-full ${isPaid ? 'bg-emerald-500 animate-pulse' : 'bg-red-500'}`} />
-                                  {isPaid ? 'Confirmado' : 'Atrasado'}
+                                  {isPaid ? t('business.paid') : t('business.overdue')}
                                </div>
                                {churnRiskStudents.find((crs: any) => crs.id === s.id && crs.riskLevel === 'High') && (
                                  <div className="mt-1 flex items-center justify-center gap-1 text-[7px] font-black text-red-500 uppercase tracking-tighter">
-                                   <ShieldAlert size={8} /> Churn Risk
+                                   <ShieldAlert size={8} /> {t('business.churnRisk')}
                                  </div>
                                )}
                             </td>

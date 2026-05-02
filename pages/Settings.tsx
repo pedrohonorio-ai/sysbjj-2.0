@@ -72,9 +72,9 @@ const Settings: React.FC = () => {
           geofenceRadius: formData.geofenceRadius || 100
         });
         setIsCapturing(false);
-        alert("Localização capturada com sucesso! Não esqueça de salvar as alterações. OSS!");
+        alert(t('settings.locationCaptured'));
       }, (error) => {
-        alert("Erro ao obter localização: " + error.message);
+        alert(t('settings.locationError') + error.message);
         setIsCapturing(false);
       }, {
         enableHighAccuracy: true,
@@ -82,7 +82,7 @@ const Settings: React.FC = () => {
         maximumAge: 0
       });
     } else {
-      alert("Geolocalização não é suportada por este navegador.");
+      alert(t('settings.locationNotSupported'));
       setIsCapturing(false);
     }
   };
@@ -143,17 +143,17 @@ const Settings: React.FC = () => {
       <div className="bg-white dark:bg-slate-900 rounded-[2rem] sm:rounded-[2.5rem] border border-slate-200 dark:border-slate-800 shadow-sm overflow-hidden transition-all">
         <div className="p-6 sm:p-8 border-b border-slate-100 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-800/50 flex items-center justify-between">
           <h3 className="text-xs sm:text-sm font-black text-slate-400 uppercase tracking-[0.3em] flex items-center gap-3">
-            <Globe size={18} className="text-blue-600" /> Identidade Visual
+            <Globe size={18} className="text-blue-600" /> {t('settings.visualIdentity')}
           </h3>
           <button onClick={handleSave} className="flex items-center gap-2 bg-blue-600 text-white px-4 py-2 rounded-xl font-black uppercase text-[10px] tracking-widest shadow-lg hover:bg-blue-700 transition-all">
-            <Save size={14} /> Salvar
+            <Save size={14} /> {t('settings.save')}
           </button>
         </div>
         <div className="p-6 sm:p-8 space-y-6 sm:space-y-8">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6 sm:gap-8">
             {/* Logo Upload */}
             <div className="space-y-4">
-              <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Logo da Academia</label>
+              <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">{t('settings.academyLogo')}</label>
               <div className="flex items-center gap-6">
                 <div className="w-24 h-24 bg-slate-50 dark:bg-slate-800 rounded-2xl border-2 border-dashed border-slate-200 dark:border-slate-700 flex items-center justify-center overflow-hidden shrink-0">
                   {formData.logoUrl ? (
@@ -164,7 +164,7 @@ const Settings: React.FC = () => {
                 </div>
                 <div className="space-y-2 flex-1">
                   <label className="block w-full text-center px-4 py-2 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 rounded-xl cursor-pointer transition-colors">
-                    <span className="text-[10px] font-black text-slate-500 uppercase tracking-widest">Escolher nos arquivos</span>
+                    <span className="text-[10px] font-black text-slate-500 uppercase tracking-widest">{t('settings.chooseFiles')}</span>
                     <input 
                       type="file" 
                       accept="image/*" 
@@ -186,7 +186,7 @@ const Settings: React.FC = () => {
                     onClick={() => setFormData({ ...formData, logoUrl: '' })}
                     className="w-full text-[9px] font-bold text-red-500 uppercase tracking-tighter"
                   >
-                    Remover Logo
+                    {t('settings.removeLogo')}
                   </button>
                 </div>
               </div>
@@ -194,7 +194,7 @@ const Settings: React.FC = () => {
 
             {/* Background Upload */}
             <div className="space-y-4">
-              <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Fundo do Sistema (Background)</label>
+              <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">{t('settings.systemBackground')}</label>
               <div className="flex items-center gap-6">
                 <div className="w-24 h-24 bg-slate-50 dark:bg-slate-800 rounded-2xl border-2 border-dashed border-slate-200 dark:border-slate-700 flex items-center justify-center overflow-hidden shrink-0">
                   {formData.backgroundImageUrl ? (
@@ -205,7 +205,7 @@ const Settings: React.FC = () => {
                 </div>
                 <div className="space-y-2 flex-1">
                   <label className="block w-full text-center px-4 py-2 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 rounded-xl cursor-pointer transition-colors">
-                    <span className="text-[10px] font-black text-slate-500 uppercase tracking-widest">Carregar Fundo</span>
+                    <span className="text-[10px] font-black text-slate-500 uppercase tracking-widest">{t('settings.loadBackground')}</span>
                     <input 
                       type="file" 
                       accept="image/*" 
@@ -227,7 +227,7 @@ const Settings: React.FC = () => {
                     onClick={() => setFormData({ ...formData, backgroundImageUrl: '' })}
                     className="w-full text-[9px] font-bold text-red-500 uppercase tracking-tighter"
                   >
-                    Remover Fundo
+                    {t('settings.removeBackground')}
                   </button>
                 </div>
               </div>
@@ -440,10 +440,10 @@ const Settings: React.FC = () => {
             </div>
             <div className="flex items-center gap-3">
               <span className="px-4 py-1.5 bg-blue-600/10 border border-blue-600/20 rounded-full text-[9px] font-black text-blue-400 uppercase tracking-[0.2em] flex items-center gap-2">
-                <Database size={12} /> SECURED BY SYSBJJ BLOCKCHAIN
+                <Database size={12} /> {t('settings.blockchainSecured')}
               </span>
               <span className="px-4 py-1.5 bg-white/5 rounded-full text-[9px] font-black text-slate-400">
-                MASTER ACCESS: {authData.email}
+                {t('settings.masterAccess')}: {authData.email}
               </span>
             </div>
           </div>
@@ -460,7 +460,7 @@ const Settings: React.FC = () => {
                 </div>
                 <div className="flex items-end gap-3 flex-wrap">
                   <p className="text-4xl font-black leading-none">{systemStats.activeSessions}</p>
-                  <span className="text-[10px] text-emerald-500 font-bold mb-1">LIVE</span>
+                  <span className="text-[10px] text-emerald-500 font-bold mb-1">{t('settings.live')}</span>
                 </div>
                 {systemStats.activeIdentities.length > 0 && (
                   <div className="mt-4 pt-4 border-t border-white/5 space-y-1">
@@ -486,7 +486,7 @@ const Settings: React.FC = () => {
                 </div>
                 <div className="flex items-end gap-2">
                   <p className="text-4xl font-black leading-none">99.8%</p>
-                  <span className="text-[10px] text-blue-500 font-bold mb-1 italic">STABLE</span>
+                  <span className="text-[10px] text-blue-500 font-bold mb-1 italic">{t('settings.stable')}</span>
                 </div>
               </div>
 
@@ -514,7 +514,7 @@ const Settings: React.FC = () => {
                 </div>
                 <div className="flex items-end gap-2">
                   <p className="text-4xl font-black leading-none">{systemStats.totalAcademies}</p>
-                  <span className="text-[10px] text-slate-600 font-bold mb-1">PREMIUM</span>
+                  <span className="text-[10px] text-slate-600 font-bold mb-1">{t('settings.premium')}</span>
                 </div>
               </div>
             </div>
@@ -537,22 +537,22 @@ const Settings: React.FC = () => {
                    <p className="text-emerald-500/70 opacity-80"><span className="text-slate-500">[SYSTEM]</span> {new Date().toISOString()} | HASH: 0x82f...a10 | BLOCK_SYNC: OK</p>
                    {systemStats.activeIdentities.length > 0 ? (
                      systemStats.activeIdentities.map((id, idx) => (
-                       <p key={idx} className="text-blue-400/70"><span className="text-slate-500">[SESSION]</span> AUTH_USER: {id} | STATE: ACTIVE_IDENTIFIED</p>
+                       <p key={idx} className="text-blue-400/70"><span className="text-slate-500">[SESSION]</span> {t('settings.masterAccess')}: {id} | STATE: ACTIVE_IDENTIFIED</p>
                      ))
                    ) : (
-                     <p className="text-blue-400/70"><span className="text-slate-500">[INTEGRITY]</span> Verification complete. No data drifts detected.</p>
+                     <p className="text-blue-400/70"><span className="text-slate-500">[INTEGRITY]</span> {t('settings.verificationComplete')}</p>
                    )}
-                   <p className="text-amber-500/70 opacity-80"><span className="text-slate-500">[OSS_CORE]</span> Snapshot created. Merkle Tree rooted.</p>
-                   <p className="text-slate-400"><span className="text-slate-500">[LOG]</span> Master admin {authData.email} viewing dashboard.</p>
+                   <p className="text-amber-500/70 opacity-80"><span className="text-slate-500">[OSS_CORE]</span> {t('settings.snapshotCreated')}</p>
+                   <p className="text-slate-400"><span className="text-slate-500">[LOG]</span> {t('settings.adminViewLog', { email: authData.email })}</p>
                    <div className="w-full h-[1px] bg-white/10 my-2" />
                    <div className="flex items-center gap-2 animate-pulse">
                       <div className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
-                      <p className="text-emerald-500/70 italic">Monitoring verified block activity...</p>
+                      <p className="text-emerald-500/70 italic">{t('settings.monitoring')}</p>
                    </div>
                 </div>
                 
                 <button className="w-full py-4 bg-white text-slate-950 rounded-2xl font-black text-[10px] uppercase tracking-widest hover:bg-blue-500 hover:text-white transition-all">
-                  EXPORT VERIFIED PDF AUDIT
+                  {t('settings.verifiedAudit')}
                 </button>
               </div>
 
@@ -570,8 +570,8 @@ const Settings: React.FC = () => {
                   <div className="space-y-4">
                     <div className="space-y-2">
                        <div className="flex items-center justify-between text-[9px] font-black uppercase tracking-widest">
-                         <span className="text-slate-400">Brand Power Index</span>
-                         <span className="text-white">High</span>
+                         <span className="text-slate-400">{t('settings.brandPower')}</span>
+                         <span className="text-white">{t('settings.high')}</span>
                        </div>
                        <div className="h-1.5 bg-white/5 rounded-full overflow-hidden">
                          <div className="h-full bg-blue-600 w-[78%]" />
@@ -579,7 +579,7 @@ const Settings: React.FC = () => {
                     </div>
                     <div className="space-y-2">
                        <div className="flex items-center justify-between text-[9px] font-black uppercase tracking-widest">
-                         <span className="text-slate-400">User Retention Ratio (LTV)</span>
+                         <span className="text-slate-400">{t('settings.retentionLtv')}</span>
                          <span className="text-white">92%</span>
                        </div>
                        <div className="h-1.5 bg-white/5 rounded-full overflow-hidden">
@@ -591,12 +591,12 @@ const Settings: React.FC = () => {
 
                 <div className="grid grid-cols-2 gap-4 mt-8">
                   <div className="p-4 bg-white/5 rounded-2xl border border-white/5 text-center">
-                    <p className="text-[8px] font-black text-slate-500 uppercase tracking-widest mb-1 italic">Network Reach</p>
-                    <p className="text-xl font-black text-white">Global</p>
+                    <p className="text-[8px] font-black text-slate-500 uppercase tracking-widest mb-1 italic">{t('settings.networkReach')}</p>
+                    <p className="text-xl font-black text-white">{t('settings.global')}</p>
                   </div>
                   <div className="p-4 bg-white/5 rounded-2xl border border-white/5 text-center">
-                    <p className="text-[8px] font-black text-slate-500 uppercase tracking-widest mb-1 italic">Tech Rank</p>
-                    <p className="text-xl font-black text-blue-400">Elite</p>
+                    <p className="text-[8px] font-black text-slate-500 uppercase tracking-widest mb-1 italic">{t('settings.techRank')}</p>
+                    <p className="text-xl font-black text-blue-400">{t('settings.elite')}</p>
                   </div>
                 </div>
               </div>
