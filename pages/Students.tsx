@@ -155,8 +155,44 @@ const NewStudentModal = ({ onClose, defaultIsKid }: { onClose: () => void, defau
     occupation: '',
     nationality: 'Brasileiro',
     lgpdConsent: true,
-    classId: ''
+    classId: '',
+    documents: [] as { id: string; name: string; url: string; type: string; size: number; uploadDate: string; }[]
   });
+
+  const handleDocumentUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = e.target.files;
+    if (files) {
+      Array.from(files).forEach(file => {
+        if (file.size > 5 * 1024 * 1024) {
+          setError(t('common.fileTooLarge') || "Arquivo muito grande (máx 5MB)");
+          return;
+        }
+        const reader = new FileReader();
+        reader.onloadend = () => {
+          const newDoc = {
+            id: `DOC-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+            name: file.name,
+            url: reader.result as string,
+            type: file.type,
+            size: file.size,
+            uploadDate: new Date().toISOString()
+          };
+          setFormData(prev => ({
+            ...prev,
+            documents: [...(prev.documents || []), newDoc]
+          }));
+        };
+        reader.readAsDataURL(file);
+      });
+    }
+  };
+
+  const removeDocument = (id: string) => {
+    setFormData(prev => ({
+      ...prev,
+      documents: prev.documents?.filter(doc => doc.id !== id) || []
+    }));
+  };
 
   const [showCamera, setShowCamera] = useState(false);
   const fileInputRef = React.useRef<HTMLInputElement>(null);
@@ -678,6 +714,57 @@ const NewStudentModal = ({ onClose, defaultIsKid }: { onClose: () => void, defau
                     </div>
                   </label>
                 </div>
+
+                <div className="md:col-span-2 space-y-4">
+                  <div className="flex items-center justify-between mb-2">
+                    <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">
+                      {t('common.documentsSection') || 'Documentos & Anexos'}
+                    </label>
+                    <button 
+                      type="button"
+                      onClick={() => document.getElementById('new-student-docs')?.click()}
+                      className="flex items-center gap-2 px-4 py-2 bg-slate-100 dark:bg-slate-800 rounded-xl text-[9px] font-black uppercase tracking-widest text-slate-600 dark:text-slate-400 hover:bg-slate-200 transition-all"
+                    >
+                      <Plus size={14} /> {t('common.addDocument')}
+                    </button>
+                    <input 
+                      id="new-student-docs"
+                      type="file" 
+                      multiple 
+                      className="hidden" 
+                      onChange={handleDocumentUpload}
+                    />
+                  </div>
+                  
+                  <div className="space-y-3">
+                    {formData.documents && formData.documents.length > 0 ? (
+                      formData.documents.map(doc => (
+                        <div key={doc.id} className="flex items-center justify-between p-4 bg-slate-50 dark:bg-slate-800 rounded-2xl border border-slate-100 dark:border-slate-700 group animate-in slide-in-from-left-2 transition-all">
+                          <div className="flex items-center gap-3">
+                            <div className="p-2 bg-white dark:bg-slate-900 rounded-lg text-blue-600 shadow-sm">
+                              <FileText size={16} />
+                            </div>
+                            <div>
+                              <p className="text-[10px] font-black text-slate-900 dark:text-white uppercase truncate max-w-[180px]">{doc.name}</p>
+                              <p className="text-[8px] font-bold text-slate-400 uppercase">{(doc.size / 1024).toFixed(1)} KB</p>
+                            </div>
+                          </div>
+                          <button 
+                            type="button"
+                            onClick={() => removeDocument(doc.id)}
+                            className="p-2 text-slate-300 hover:text-red-500 transition-colors"
+                          >
+                            <Trash2 size={16} />
+                          </button>
+                        </div>
+                      ))
+                    ) : (
+                      <div className="py-8 text-center bg-slate-50 dark:bg-slate-800/50 rounded-2xl border-2 border-dashed border-slate-100 dark:border-slate-700">
+                        <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">{t('common.noDocuments')}</p>
+                      </div>
+                    )}
+                  </div>
+                </div>
               </div>
             )}
 
@@ -788,6 +875,10 @@ const StudentDetailsModal = ({ student, onClose }: { student: Student; onClose: 
   const handlePhotoUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
+      if (file.size > 2 * 1024 * 1024) {
+        alert(t('common.fileTooLarge') || "Arquivo muito grande (máx 2MB)");
+        return;
+      }
       const reader = new FileReader();
       reader.onloadend = async () => {
         const compressed = await compressImage(reader.result as string, 400, 0.7);
@@ -795,6 +886,41 @@ const StudentDetailsModal = ({ student, onClose }: { student: Student; onClose: 
       };
       reader.readAsDataURL(file);
     }
+  };
+
+  const handleDocumentUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = e.target.files;
+    if (files) {
+      Array.from(files).forEach(file => {
+        if (file.size > 5 * 1024 * 1024) {
+          alert(t('common.fileTooLarge') || "Arquivo muito grande (máx 5MB)");
+          return;
+        }
+        const reader = new FileReader();
+        reader.onloadend = () => {
+          const newDoc = {
+            id: `DOC-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+            name: file.name,
+            url: reader.result as string,
+            type: file.type,
+            size: file.size,
+            uploadDate: new Date().toISOString()
+          };
+          setEditFormData(prev => ({
+            ...prev,
+            documents: [...(prev.documents || []), newDoc]
+          }));
+        };
+        reader.readAsDataURL(file);
+      });
+    }
+  };
+
+  const removeDocument = (id: string) => {
+    setEditFormData(prev => ({
+      ...prev,
+      documents: prev.documents?.filter(doc => doc.id !== id) || []
+    }));
   };
 
   const getBeltTimeAnalysis = () => {
@@ -1219,6 +1345,55 @@ const StudentDetailsModal = ({ student, onClose }: { student: Student; onClose: 
                         <span className="text-[10px] font-black uppercase text-emerald-700 dark:text-emerald-400">{t('common.lgpdConsent')}</span>
                       </label>
                     </div>
+
+                    <div className="md:col-span-2 space-y-4 mt-4">
+                      <div className="flex items-center justify-between mb-2">
+                        <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">
+                          {t('common.documentsSection') || 'Documentos & Anexos'}
+                        </label>
+                        <button 
+                          type="button"
+                          onClick={() => document.getElementById('edit-student-docs')?.click()}
+                          className="flex items-center gap-2 px-4 py-2 bg-slate-100 dark:bg-slate-800 rounded-xl text-[9px] font-black uppercase tracking-widest text-slate-600 dark:text-slate-400 hover:bg-slate-200 transition-all"
+                        >
+                          <Plus size={14} /> {t('common.addDocument')}
+                        </button>
+                        <input 
+                          id="edit-student-docs"
+                          type="file" 
+                          multiple 
+                          className="hidden" 
+                          onChange={handleDocumentUpload}
+                        />
+                      </div>
+                      
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                        {editFormData.documents && editFormData.documents.length > 0 ? (
+                          editFormData.documents.map(doc => (
+                            <div key={doc.id} className="flex items-center justify-between p-4 bg-slate-50 dark:bg-slate-800 rounded-2xl border border-slate-100 dark:border-slate-700 group transition-all">
+                              <div className="flex items-center gap-3">
+                                <FileText size={16} className="text-blue-600" />
+                                <div className="max-w-[150px]">
+                                  <p className="text-[9px] font-black text-slate-900 dark:text-white uppercase truncate">{doc.name}</p>
+                                  <p className="text-[8px] font-bold text-slate-400 uppercase">{(doc.size / 1024).toFixed(1)} KB</p>
+                                </div>
+                              </div>
+                              <button 
+                                type="button"
+                                onClick={() => removeDocument(doc.id)}
+                                className="p-2 text-slate-300 hover:text-red-500 transition-colors"
+                              >
+                                <X size={14} />
+                              </button>
+                            </div>
+                          ))
+                        ) : (
+                          <div className="col-span-2 py-8 text-center bg-slate-50 dark:bg-slate-800/50 rounded-2xl border-2 border-dashed border-slate-100 dark:border-slate-700">
+                            <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">{t('common.noDocuments')}</p>
+                          </div>
+                        )}
+                      </div>
+                    </div>
                   </div>
                 )}
 
@@ -1529,6 +1704,44 @@ const StudentDetailsModal = ({ student, onClose }: { student: Student; onClose: 
                   </div>
                 </section>
 
+                {/* Additional Documents Section */}
+                <section className="space-y-4">
+                  <h3 className="text-[9px] sm:text-[10px] font-black text-slate-400 uppercase tracking-widest flex items-center gap-2">
+                    <Download size={14} /> {t('common.documentsSection') || 'Documentos Adicionais'}
+                  </h3>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    {student.documents && student.documents.length > 0 ? (
+                      student.documents.map(doc => (
+                        <div key={doc.id} className="flex items-center justify-between p-5 bg-slate-50 dark:bg-slate-800 rounded-3xl border border-slate-100 dark:border-slate-700 group hover:border-blue-200 transition-all">
+                          <div className="flex items-center gap-3">
+                            <div className="w-10 h-10 bg-white dark:bg-slate-900 rounded-xl flex items-center justify-center text-blue-600 shadow-sm group-hover:scale-110 transition-transform">
+                              <FileText size={20} />
+                            </div>
+                            <div>
+                              <p className="text-[10px] font-black text-slate-900 dark:text-white uppercase max-w-[150px] truncate">{doc.name}</p>
+                              <p className="text-[8px] font-bold text-slate-400 uppercase tracking-widest">
+                                {(doc.size / 1024).toFixed(1)} KB • {new Date(doc.uploadDate).toLocaleDateString()}
+                              </p>
+                            </div>
+                          </div>
+                          <a 
+                            href={doc.url} 
+                            download={doc.name}
+                            className="p-3 bg-white dark:bg-slate-900 rounded-xl text-blue-600 shadow-sm hover:bg-blue-600 hover:text-white transition-all active:scale-95"
+                          >
+                            <Download size={16} />
+                          </a>
+                        </div>
+                      ))
+                    ) : (
+                      <div className="col-span-2 py-10 text-center bg-slate-50 dark:bg-slate-800/50 rounded-3xl border-2 border-dashed border-slate-200 dark:border-slate-700">
+                        <FileWarning size={32} className="mx-auto text-slate-300 mb-3 opacity-50" />
+                        <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">{t('common.noDocuments')}</p>
+                      </div>
+                    )}
+                  </div>
+                </section>
+
                 {/* Federation & Competition Group */}
                 <section className="space-y-4">
                   <h3 className="text-[10px] font-black text-slate-400 uppercase tracking-widest flex items-center gap-2"><Shield size={14} /> {t('students.federationInfo')}</h3>
@@ -1679,22 +1892,22 @@ const StudentDetailsModal = ({ student, onClose }: { student: Student; onClose: 
                     <div className="flex justify-between items-center mb-6">
                        <h3 className="text-xl font-black text-slate-900 dark:text-white uppercase tracking-tighter flex items-center gap-3">
                          <ShieldCheck size={24} className="text-emerald-500"/>
-                         {t('financial.statusTitle') || 'Status de Pagamento'}
+                         {t('financial.statusTitle')}
                        </h3>
                        <span className={`px-4 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest ${student.status === StudentStatus.ACTIVE ? 'bg-emerald-100 text-emerald-600' : 'bg-rose-100 text-rose-600'}`}>
-                         {student.status === StudentStatus.ACTIVE ? 'SISTEMA EM DIA' : 'PENDENTE'}
+                         {student.status === StudentStatus.ACTIVE ? t('financial.statusPaid') : t('financial.statusOverdue')}
                        </span>
                     </div>
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                        <div className="p-4 bg-white dark:bg-slate-900 rounded-2xl border border-slate-100 dark:border-slate-800">
-                          <p className="text-[10px] font-black uppercase text-slate-400 mb-2">{t('financial.lastPayment') || 'Último Pagamento'}</p>
+                          <p className="text-[10px] font-black uppercase text-slate-400 mb-2">{t('financial.lastPayment')}</p>
                           <div className="flex items-center justify-between">
                             <p className="text-lg font-black dark:text-white">{student.lastPaymentDate ? new Date(student.lastPaymentDate).toLocaleDateString() : '--'}</p>
                             <p className="font-black text-emerald-500">{t('common.currencySymbol')} {student.monthlyValue}</p>
                           </div>
                        </div>
                        <div className="p-4 bg-white dark:bg-slate-900 rounded-2xl border border-slate-100 dark:border-slate-800">
-                          <p className="text-[10px] font-black uppercase text-slate-400 mb-2">{t('financial.nextPayment') || 'Próximo Vencimento'}</p>
+                          <p className="text-[10px] font-black uppercase text-slate-400 mb-2">{t('financial.nextPayment')}</p>
                           <div className="flex items-center justify-between">
                             <p className="text-lg font-black dark:text-white">{student.dueDay}/{new Date().getMonth() + 2}/{new Date().getFullYear()}</p>
                             <p className="font-black text-blue-500">{t('common.currencySymbol')} {student.monthlyValue}</p>
@@ -1708,17 +1921,17 @@ const StudentDetailsModal = ({ student, onClose }: { student: Student; onClose: 
                   <div className="flex items-center justify-between mb-8">
                     <h3 className="text-xl font-black uppercase tracking-tighter flex items-center gap-3">
                       <FileText size={24} className="text-blue-400"/>
-                      {t('financial.historyTitle') || 'DRE - Histórico Financeiro'}
+                      {t('financial.historyTitle')}
                     </h3>
                   </div>
                   
                   {(!student.billingPaused) ? (
                     <div className="space-y-3">
                       <div className="grid grid-cols-12 px-6 py-3 text-[9px] font-black uppercase tracking-widest text-slate-500 hidden md:grid">
-                        <div className="col-span-4">Descrição</div>
-                        <div className="col-span-3">Data</div>
-                        <div className="col-span-3 text-right">Valor</div>
-                        <div className="col-span-2 text-right">Status</div>
+                        <div className="col-span-4">{t('financial.description')}</div>
+                        <div className="col-span-3">{t('financial.date')}</div>
+                        <div className="col-span-3 text-right">{t('financial.value')}</div>
+                        <div className="col-span-2 text-right">{t('financial.status')}</div>
                       </div>
                       <div className="space-y-2">
                         <div className="grid grid-cols-1 md:grid-cols-12 gap-4 items-center px-6 py-5 bg-white/5 rounded-2xl border border-white/5 hover:bg-white/10 transition-colors">
@@ -1727,35 +1940,35 @@ const StudentDetailsModal = ({ student, onClose }: { student: Student; onClose: 
                                <Plus size={18}/>
                              </div>
                              <div>
-                               <p className="text-sm font-black uppercase tracking-tight">Mensalidade - Ativa</p>
-                               <p className="text-[8px] font-bold text-slate-500 uppercase tracking-widest">Inscrito no Plano Pro</p>
+                               <p className="text-sm font-black uppercase tracking-tight">{t('financial.activeMonthly')}</p>
+                               <p className="text-[8px] font-bold text-slate-500 uppercase tracking-widest">{t('financial.proPlan')}</p>
                              </div>
                            </div>
                            <div className="md:col-span-3">
-                             <p className="text-[9px] font-black text-blue-400 uppercase tracking-widest md:hidden mb-1">Data</p>
-                             <p className="text-xs font-bold text-slate-400">{student.lastPaymentDate ? new Date(student.lastPaymentDate).toLocaleDateString() : 'Verifique Extrato'}</p>
+                             <p className="text-[9px] font-black text-blue-400 uppercase tracking-widest md:hidden mb-1">{t('financial.date')}</p>
+                             <p className="text-xs font-bold text-slate-400">{student.lastPaymentDate ? new Date(student.lastPaymentDate).toLocaleDateString() : t('financial.checkStatement')}</p>
                            </div>
                            <div className="md:col-span-3 text-right">
-                             <p className="text-[9px] font-black text-blue-400 uppercase tracking-widest md:hidden mb-1">Valor</p>
+                             <p className="text-[9px] font-black text-blue-400 uppercase tracking-widest md:hidden mb-1">{t('financial.value')}</p>
                              <p className="text-sm font-black">{t('common.currencySymbol')} {student.monthlyValue}</p>
                            </div>
                            <div className="md:col-span-2 text-right">
                               <span className="px-3 py-1 bg-emerald-500/20 text-emerald-400 rounded-lg text-[8px] font-black uppercase tracking-widest">
-                                LIQUIDADO
+                                {t('financial.liquidated')}
                               </span>
                            </div>
                         </div>
                       </div>
                       <div className="pt-8 text-center opacity-40">
-                         <p className="text-[9px] font-black uppercase tracking-[0.3em]">Fim do histórico visível</p>
+                         <p className="text-[9px] font-black uppercase tracking-[0.3em]">{t('financial.endOfHistory')}</p>
                       </div>
                     </div>
                   ) : (
                     <div className="space-y-4 text-center py-20 bg-white/5 rounded-[2rem] border-2 border-dashed border-white/10">
                       <Zap size={40} className="mx-auto text-amber-500" />
                       <div>
-                        <p className="text-lg font-black uppercase italic tracking-tighter">Faturamento Pausado</p>
-                        <p className="text-xs font-bold text-slate-500 max-w-xs mx-auto mt-2">Este aluno está com as cobranças suspensas temporariamente pelo administrador.</p>
+                        <p className="text-lg font-black uppercase italic tracking-tighter">{t('financial.billingPaused')}</p>
+                        <p className="text-xs font-bold text-slate-500 max-w-xs mx-auto mt-2">{t('financial.billingPausedDesc')}</p>
                       </div>
                     </div>
                   )}
@@ -1803,7 +2016,7 @@ const StudentDetailsModal = ({ student, onClose }: { student: Student; onClose: 
                        <HeartPulse className="absolute text-blue-500/20 w-48 h-48" />
                        <div className="relative text-center">
                           <p className="text-5xl font-black tabular-nums tracking-tighter">8.4</p>
-                          <p className="text-[10px] font-black text-blue-400 uppercase tracking-widest mt-2">TECHNICAL INDEX</p>
+                          <p className="text-[10px] font-black text-blue-400 uppercase tracking-widest mt-2">{t('audit.technicalIndex')}</p>
                        </div>
                     </div>
                  </div>
@@ -1895,7 +2108,7 @@ const StudentDetailsModal = ({ student, onClose }: { student: Student; onClose: 
                  <div className="p-8 bg-slate-900 rounded-[2.5rem] border border-slate-800 shadow-2xl relative overflow-hidden group">
                     <div className="absolute inset-0 bg-[radial-gradient(circle_at_50%_0%,rgba(59,130,246,0.1),transparent_70%)]" />
                     <h4 className="text-[10px] font-black text-blue-400 uppercase tracking-widest mb-8 flex items-center gap-2 relative z-10">
-                      <Brain size={14} /> Power Grid 
+                      <Brain size={14} /> {t('audit.powerGrid')} 
                     </h4>
                     
                     <div className="space-y-6 relative z-10">
@@ -1940,7 +2153,7 @@ const StudentDetailsModal = ({ student, onClose }: { student: Student; onClose: 
                      </div>
                    </div>
                    <div className="mt-8 p-4 bg-slate-50 dark:bg-slate-900 rounded-2xl border border-slate-100 dark:border-slate-700">
-                      <p className="text-[9px] font-black text-slate-500 uppercase tracking-widest">Consistency Rating</p>
+                      <p className="text-[9px] font-black text-slate-500 uppercase tracking-widest">{t('audit.consistencyRating')}</p>
                       <p className="text-lg font-black text-blue-600 uppercase mt-1 italic">9.2 Elite</p>
                    </div>
                  </div>
@@ -1951,7 +2164,7 @@ const StudentDetailsModal = ({ student, onClose }: { student: Student; onClose: 
                           <Zap size={24} className="text-white" />
                        </div>
                        <div>
-                          <p className="text-[9px] font-black uppercase tracking-[0.2em] opacity-70">AI Prediction</p>
+                          <p className="text-[9px] font-black uppercase tracking-[0.2em] opacity-70">{t('audit.aiPrediction')}</p>
                           <p className="text-sm font-black uppercase tracking-tight">Candidato a Competidor</p>
                        </div>
                     </div>
@@ -2032,9 +2245,9 @@ const StudentDetailsModal = ({ student, onClose }: { student: Student; onClose: 
                       student.securityAuditStatus === 'Compromised' ? 'text-red-900 dark:text-white' :
                       'text-indigo-900 dark:text-white'
                     }`}>
-                      {student.securityAuditStatus === 'Verified' ? 'Blockchain Identity Verified' : 
-                       student.securityAuditStatus === 'Compromised' ? 'Integrity Compromised' : 
-                       'Identity Seal Pending'}
+                      {student.securityAuditStatus === 'Verified' ? t('audit.blockchainVerified') : 
+                       student.securityAuditStatus === 'Compromised' ? t('audit.integrityCompromised') : 
+                       t('audit.identitySealPending')}
                     </h3>
                     <p className="text-sm text-slate-500 font-medium max-w-md mx-auto mt-2">
                        {student.securityAuditStatus === 'Verified' ? 'Este aluno possui histórico imutável verificado e carimbado na blockchain SYSBJJ.' : 
@@ -2052,7 +2265,7 @@ const StudentDetailsModal = ({ student, onClose }: { student: Student; onClose: 
 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                   <div className="p-8 bg-slate-50 dark:bg-slate-800 rounded-[2.5rem] border border-slate-100 dark:border-slate-700">
-                    <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-4 flex items-center gap-2"><Zap size={14}/> Forensic Logs</p>
+                    <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-4 flex items-center gap-2"><Zap size={14}/> {t('audit.forensicLogs')}</p>
                     <div className="space-y-4">
                       {[
                         { action: 'Acesso ao Portal', color: 'bg-emerald-400', date: 'Hoje, 14:20' },
@@ -2080,7 +2293,7 @@ const StudentDetailsModal = ({ student, onClose }: { student: Student; onClose: 
                       <p className="text-[10px] text-slate-500 font-bold uppercase tracking-widest mb-6">Emissão e Assinatura via Trust-Protocol</p>
                     </div>
                     <button className="w-full py-5 bg-indigo-600 text-white rounded-2xl font-black uppercase text-[10px] tracking-widest hover:bg-indigo-700 transition-all flex items-center justify-center gap-3 shadow-2xl shadow-indigo-500/20">
-                      <FileCheck size={18} /> Download Blockchain Certificate
+                      <FileCheck size={18} /> {t('audit.downloadCertificate')}
                     </button>
                   </div>
                 </div>

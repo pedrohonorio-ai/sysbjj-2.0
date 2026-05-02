@@ -375,6 +375,14 @@ export interface Student {
     strategy?: number;
   };
   securityAuditStatus?: 'Verified' | 'Unverified' | 'Compromised';
+  documents?: {
+    id: string;
+    name: string;
+    url: string;
+    type: string;
+    size: number;
+    uploadDate: string;
+  }[];
 }
 
 export interface SystemLog {
