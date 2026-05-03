@@ -118,27 +118,41 @@ const FightTimer: React.FC = () => {
     };
   }, [selectedSound, sounds]);
 
+  const startTimeRef = useRef<number | null>(null);
+  const initialTimeLeftRef = useRef<number>(timeLeft);
+
   useEffect(() => {
     if (isActive && timeLeft > 0) {
+      if (!startTimeRef.current) {
+        startTimeRef.current = Date.now();
+        initialTimeLeftRef.current = timeLeft;
+      }
+
       timerRef.current = setInterval(() => {
-        setTimeLeft((prev) => {
-          const next = prev - 1;
-          if (next === 60 && !isResting && !warningAlarmed) {
-            if (!isMuted && warningAudioRef.current) {
-              warningAudioRef.current.play().catch(() => {});
-            }
-            setWarningAlarmed(true);
+        const elapsed = Math.floor((Date.now() - (startTimeRef.current || 0)) / 1000);
+        const next = Math.max(0, initialTimeLeftRef.current - elapsed);
+        
+        setTimeLeft(next);
+
+        if (next === 60 && !isResting && !warningAlarmed) {
+          if (!isMuted && warningAudioRef.current) {
+            warningAudioRef.current.play().catch(() => {});
           }
-          return next;
-        });
-      }, 1000);
-    } else if (timeLeft <= 0 && isActive) {
-      handlePhaseEnd();
+          setWarningAlarmed(true);
+        }
+
+        if (next <= 0) {
+          handlePhaseEnd();
+          clearInterval(timerRef.current);
+          startTimeRef.current = null;
+        }
+      }, 200); // Frequência maior para atualização suave
     } else {
       if (timerRef.current) clearInterval(timerRef.current);
+      startTimeRef.current = null;
     }
     return () => { if (timerRef.current) clearInterval(timerRef.current); };
-  }, [isActive, timeLeft, isResting, warningAlarmed]);
+  }, [isActive, isResting, warningAlarmed]);
 
   const handlePhaseEnd = () => {
     setIsActive(false);

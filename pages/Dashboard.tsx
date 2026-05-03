@@ -73,7 +73,7 @@ const Dashboard: React.FC = () => {
   const [now, setNow] = useState(new Date());
 
   useEffect(() => {
-    const timer = setInterval(() => setNow(new Date()), 60000);
+    const timer = setInterval(() => setNow(new Date()), 1000);
     return () => clearInterval(timer);
   }, []);
 
@@ -163,8 +163,8 @@ const Dashboard: React.FC = () => {
                 <span className="text-[10px] font-black text-slate-400 uppercase tracking-[0.3em]">{t('dashboard.masterClock') || 'Relógio Mestre do Dojo'}</span>
               </div>
               <h2 className="text-6xl sm:text-8xl font-black text-slate-900 dark:text-white tabular-nums tracking-tighter leading-none group-hover:scale-105 transition-transform duration-700">
-                {now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-                <span className="text-3xl text-blue-600 ml-2 animate-pulse">{now.toLocaleTimeString([], { second: '2-digit' })}</span>
+                {now.toLocaleTimeString(t('common.dateLocale'), { hour: '2-digit', minute: '2-digit' })}
+                <span className="text-3xl sm:text-4xl text-blue-600 ml-2 animate-pulse font-black opacity-80">{now.toLocaleTimeString(t('common.dateLocale'), { second: '2-digit' })}</span>
               </h2>
               <p className="text-sm font-black text-slate-500 uppercase tracking-widest mt-4">
                 {now.toLocaleDateString(t('common.dateLocale'), { weekday: 'long', day: '2-digit', month: 'long', year: 'numeric' }).toUpperCase()}

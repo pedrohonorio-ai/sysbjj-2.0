@@ -44,6 +44,7 @@ import { BELT_COLORS, IBJJF_BELT_RULES } from '../constants';
 import { IBJJF_LESSONS } from '../constants/rulesData';
 import { useTranslation } from '../contexts/LanguageContext';
 import { useData } from '../contexts/DataContext';
+import { useProfile } from '../contexts/ProfileContext';
 import { calculateCBJJCategory, calculateWeightClass } from '../services/cbjj';
 import { compressImage } from '../services/imageUtils';
 
@@ -888,6 +889,7 @@ const NewStudentModal = ({ onClose, defaultIsKid }: { onClose: () => void, defau
 };
 
 const StudentDetailsModal = ({ student, onClose }: { student: Student; onClose: () => void }) => {
+  const { profile } = useProfile();
   const [activeTab, setActiveTab] = useState<'overview' | 'analysis' | 'progress' | 'edit' | 'admin' | 'videos' | 'financial' | 'security' | 'contract'>('overview');
   const [editTab, setEditTab] = useState<'basics' | 'legal' | 'technical' | 'health'>('basics');
   const { t } = useTranslation();
@@ -2540,7 +2542,7 @@ const StudentDetailsModal = ({ student, onClose }: { student: Student; onClose: 
                      </div>
                      <div className="border-t border-slate-300 pt-4 text-center">
                         <p className="text-[10px] font-black uppercase text-slate-400">Pela Academia</p>
-                        <p className="mt-2 font-bold text-xs">{profile.professorName || 'Diretoria Tática'}</p>
+                        <p className="mt-2 font-bold text-xs">{profile.name || 'Diretoria Tática'}</p>
                      </div>
                   </div>
 
@@ -2748,6 +2750,7 @@ const CompetitorSelectorModal = ({ onClose }: { onClose: () => void }) => {
 const Students: React.FC = () => {
   const { t } = useTranslation();
   const { students, schedules } = useData();
+  const { profile } = useProfile();
   const [searchTerm, setSearchTerm] = useState('');
   const [classFilter, setClassFilter] = useState('');
   const [beltFilter, setBeltFilter] = useState('');

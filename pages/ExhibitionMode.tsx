@@ -86,11 +86,11 @@ const ExhibitionMode: React.FC = () => {
         <div className="flex items-center gap-12">
           <div className="text-right flex flex-col items-end gap-1">
             <div className="flex items-baseline gap-2">
-              <p className="text-7xl font-display font-black tracking-tighter tabular-nums leading-none text-white drop-shadow-2xl">
-                {now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+              <p className="text-7xl font-sans font-black tracking-tighter tabular-nums leading-none text-white drop-shadow-2xl">
+                {now.toLocaleTimeString(t('common.dateLocale'), { hour: '2-digit', minute: '2-digit' })}
               </p>
               <span className="text-2xl font-mono font-black text-blue-500 tabular-nums opacity-80 border-b-2 border-blue-500/20 pb-1">
-                {now.toLocaleTimeString([], { second: '2-digit' })}
+                {now.toLocaleTimeString(t('common.dateLocale'), { second: '2-digit' })}
               </span>
             </div>
             <p className="text-xs font-black text-slate-500 uppercase tracking-[0.4em] flex items-center gap-2">

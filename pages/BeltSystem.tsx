@@ -41,7 +41,7 @@ import { BeltColor, KidsBeltColor, Student, Milestone } from '../types';
 const BeltSystem: React.FC = () => {
   const { t, tObj } = useTranslation();
   const { students, updateStudent } = useData();
-  const { profile } = useProfile();
+  const { profile, updateProfile } = useProfile();
   const navigate = useNavigate();
   const location = useLocation();
   const [searchTerm, setSearchTerm] = useState('');
@@ -438,13 +438,13 @@ const BeltSystem: React.FC = () => {
                       onChange={(e) => {
                         const next = [...activeCriteria];
                         next[idx].weight = parseFloat(e.target.value);
-                        useProfile().updateProfile({ customCriteria: next });
+                        updateProfile({ customCriteria: next });
                       }}
                     />
                     <button 
                       onClick={() => {
                         const next = activeCriteria.filter(curr => curr.id !== c.id);
-                        useProfile().updateProfile({ customCriteria: next });
+                        updateProfile({ customCriteria: next });
                       }}
                       className="p-2 text-slate-400 hover:text-red-600 transition-colors opacity-0 group-hover:opacity-100"
                     >
