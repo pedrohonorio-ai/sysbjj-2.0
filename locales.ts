@@ -782,8 +782,18 @@ const en = {
     activeStatus: "Active",
     standbyStatus: "Standby",
     vipCommunity: "VIP Community",
-    followEmpire: "Best free online BJJ system",
-    elitePlace: "Join our community now. Seminars, updates, and global networking.",
+    followEmpire: [
+      "Best BJJ Ecosystem",
+      "Evolve your Jiu-Jitsu daily",
+      "Tactical Intelligence on the Mat",
+      "Master your academy management"
+    ],
+    elitePlace: [
+      "Join our community now. Seminars, updates, and global networking.",
+      "Follow our Instagram for exclusive content and news.",
+      "Connect with professors worldwide. OSS!",
+      "The elite's meeting point for technical and business growth."
+    ],
     masterClock: "Master Dojo Clock",
     dojoTemp: "Dojo Temp.",
     athletes: "Athletes",
@@ -1355,6 +1365,19 @@ const pt = {
     standbyStatus: "Standby",
     baseEvolution: "Evolução Base",
     masteryQ3: "Domínio T3",
+    vipCommunity: "Comunidade VIP",
+    followEmpire: [
+      "O melhor ecossistema de BJJ",
+      "Evolua seu Jiu-Jitsu diariamente",
+      "Inteligência tática no tatame",
+      "Acelere a gestão da sua academia"
+    ],
+    elitePlace: [
+      "Siga nosso Instagram para conteúdos exclusivos e novidades.",
+      "Faça parte da nossa elite. Seminários, dicas técnicas e networking.",
+      "Conecte-se com professores de todo o mundo. OSS!",
+      "O ponto de encontro da elite para evolução técnica e nos negócios."
+    ],
     viewDetails: "Ver Detalhes",
     monthOf: "Mês de",
     training: "Treinamento",
@@ -2406,8 +2429,18 @@ const es = {
     activeStatus: "Activa",
     standbyStatus: "En Espera",
     vipCommunity: "Comunidad VIP",
-    followEmpire: "Mejor sistema de jiu-jitsu gratuito online",
-    elitePlace: "Ven a formar parte de esta comunidad. Seminarios, actualizaciones y networking global.",
+    followEmpire: [
+      "El mejor ecosistema de BJJ",
+      "Evoluciona tu Jiu-Jitsu diariamente",
+      "Inteligencia táctica en el tatami",
+      "Acelera la gestión de tu academia"
+    ],
+    elitePlace: [
+      "Siga nuestro Instagram para contenidos exclusivos y novedades.",
+      "Forme parte de nuestra élite. Seminarios, consejos técnicos y networking.",
+      "Conéctate con profesores de todo el mundo. ¡OSS!",
+      "El punto de encuentro de la élite para la evolución técnica y empresarial."
+    ],
     baseEvolution: "Evolución Base",
     masteryQ3: "Maestría T3",
     viewDetails: "Ver Detalles",

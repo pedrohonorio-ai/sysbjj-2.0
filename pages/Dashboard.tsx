@@ -65,11 +65,8 @@ const BentoBox = ({ children, className = '', title = '', subtitle = '', icon: I
   </div>
 );
 
-const Dashboard: React.FC = () => {
+const MasterDojoClock: React.FC = () => {
   const { t } = useTranslation();
-  const { profile } = useProfile();
-  const { students, payments, schedules, extraRevenue, lessonPlans } = useData();
-  const navigate = useNavigate();
   const [now, setNow] = useState(new Date());
 
   useEffect(() => {
@@ -77,13 +74,57 @@ const Dashboard: React.FC = () => {
     return () => clearInterval(timer);
   }, []);
 
+  return (
+    <div className="flex flex-col items-center md:items-start text-center md:text-left relative z-10">
+      <div className="flex items-center gap-3 mb-2">
+        <div className="p-2 bg-blue-600 rounded-lg text-white">
+          <Clock size={16} />
+        </div>
+        <span className="text-[10px] font-black text-slate-400 uppercase tracking-[0.3em]">{t('dashboard.masterClock')}</span>
+      </div>
+      <h2 className="text-6xl sm:text-8xl font-black text-slate-900 dark:text-white tabular-nums tracking-tighter leading-none group-hover:scale-105 transition-transform duration-700">
+        {now.toLocaleTimeString(t('common.dateLocale'), { hour: '2-digit', minute: '2-digit' })}
+        <span className="text-3xl sm:text-4xl text-blue-600 ml-2 animate-pulse font-black opacity-80">{now.toLocaleTimeString(t('common.dateLocale'), { second: '2-digit' })}</span>
+      </h2>
+      <p className="text-sm font-black text-slate-500 uppercase tracking-widest mt-4">
+        {now.toLocaleDateString(t('common.dateLocale'), { weekday: 'long', day: '2-digit', month: 'long', year: 'numeric' }).toUpperCase()}
+      </p>
+    </div>
+  );
+};
+
+const Dashboard: React.FC = () => {
+  const { t, tObj } = useTranslation();
+  const { profile } = useProfile();
+  const { students, payments, schedules, extraRevenue, lessonPlans } = useData();
+  const navigate = useNavigate();
+  const [now, setNow] = useState(new Date());
+  const [phraseIndex, setPhraseIndex] = useState(0);
+
+  const followEmpirePhrases = useMemo(() => tObj('dashboard.followEmpire') || [], [tObj]);
+  const elitePlacePhrases = useMemo(() => tObj('dashboard.elitePlace') || [], [tObj]);
+
+  useEffect(() => {
+    const phraseTimer = setInterval(() => {
+      setPhraseIndex(prev => (prev + 1) % (followEmpirePhrases.length || 1));
+    }, 5000);
+
+    // Refresh data-related time reference every hour
+    const dataTimer = setInterval(() => setNow(new Date()), 3600000);
+
+    return () => {
+      clearInterval(phraseTimer);
+      clearInterval(dataTimer);
+    };
+  }, [followEmpirePhrases.length]);
+
   const validStudents = students.filter(s => s.status !== StudentStatus.INACTIVE);
   const totalStudents = validStudents.length;
   const activeStudents = students.filter(s => s.status === StudentStatus.ACTIVE).length;
   
   const currentMonth = now.toISOString().substring(0, 7);
   const monthlyRevenue = payments
-    .filter(p => p.status === 'Confirmed' && p.date.startsWith(currentMonth))
+    .filter(p => (p.status === 'Confirmed' || p.status === 'completed') && p.date.startsWith(currentMonth))
     .reduce((sum, p) => sum + p.amount, 0);
 
   const monthlyExtra = extraRevenue
@@ -105,7 +146,7 @@ const Dashboard: React.FC = () => {
   const candidatesCount = useMemo(() => {
     return students.filter(s => {
       if (s.status === StudentStatus.INACTIVE) return false;
-      const promoDate = s.lastPromotionDate ? new Date(s.lastPromotionDate + 'T12:00:00') : new Date(s.birthDate);
+      const promoDate = s.lastPromotionDate ? new Date(s.lastPromotionDate + 'T12:00:00') : new Date(s.birthDate || '2000-01-01');
       const monthsInBelt = Math.max(0, (now.getFullYear() - promoDate.getFullYear()) * 12 + (now.getMonth() - promoDate.getMonth()));
       const rule = (IBJJF_BELT_RULES as any)[s.belt as string];
       const minMonths = rule?.minTimeMonths ?? 0;
@@ -155,21 +196,7 @@ const Dashboard: React.FC = () => {
         <div className="lg:col-span-3">
           <div className="bg-white dark:bg-slate-900 p-8 rounded-[2.5rem] border border-slate-200 dark:border-slate-800 shadow-sm flex flex-col md:flex-row items-center justify-between gap-8 group overflow-hidden relative">
             <div className="absolute top-0 left-0 w-full h-full bg-gradient-to-r from-blue-600/5 to-transparent pointer-events-none" />
-            <div className="flex flex-col items-center md:items-start text-center md:text-left relative z-10">
-              <div className="flex items-center gap-3 mb-2">
-                <div className="p-2 bg-blue-600 rounded-lg text-white">
-                  <Clock size={16} />
-                </div>
-                <span className="text-[10px] font-black text-slate-400 uppercase tracking-[0.3em]">{t('dashboard.masterClock') || 'Relógio Mestre do Dojo'}</span>
-              </div>
-              <h2 className="text-6xl sm:text-8xl font-black text-slate-900 dark:text-white tabular-nums tracking-tighter leading-none group-hover:scale-105 transition-transform duration-700">
-                {now.toLocaleTimeString(t('common.dateLocale'), { hour: '2-digit', minute: '2-digit' })}
-                <span className="text-3xl sm:text-4xl text-blue-600 ml-2 animate-pulse font-black opacity-80">{now.toLocaleTimeString(t('common.dateLocale'), { second: '2-digit' })}</span>
-              </h2>
-              <p className="text-sm font-black text-slate-500 uppercase tracking-widest mt-4">
-                {now.toLocaleDateString(t('common.dateLocale'), { weekday: 'long', day: '2-digit', month: 'long', year: 'numeric' }).toUpperCase()}
-              </p>
-            </div>
+            <MasterDojoClock />
             
             <div className="grid grid-cols-2 gap-4 shrink-0 w-full md:w-auto relative z-10">
               <div className="p-6 bg-slate-50 dark:bg-slate-800 rounded-3xl border border-slate-100 dark:border-slate-700 text-center">
@@ -517,8 +544,12 @@ const Dashboard: React.FC = () => {
                     <div className="w-6 h-6 rounded-full border-2 border-slate-950 bg-blue-600 flex items-center justify-center text-[8px] font-bold text-white">+k</div>
                   </div>
                 </div>
-                <h3 className="text-3xl sm:text-5xl font-black text-white uppercase tracking-tighter leading-[0.9] italic">{t('dashboard.followEmpire')} <span className="text-transparent bg-clip-text bg-gradient-to-r from-pink-500 to-purple-400">SYSBJJ</span></h3>
-                <p className="text-slate-400 text-sm font-medium opacity-80 max-w-lg mx-auto md:mx-0">{t('dashboard.elitePlace')}</p>
+                <h3 className="text-3xl sm:text-5xl font-black text-white uppercase tracking-tighter leading-[0.9] italic transition-all duration-700">
+                  {followEmpirePhrases[phraseIndex] || t('dashboard.followEmpire')} <span className="text-transparent bg-clip-text bg-gradient-to-r from-pink-500 to-purple-400">SYSBJJ</span>
+                </h3>
+                <p className="text-slate-400 text-sm font-medium opacity-80 max-w-lg mx-auto md:mx-0 transition-opacity duration-700">
+                  {elitePlacePhrases[phraseIndex] || t('dashboard.elitePlace')}
+                </p>
               </div>
             </div>
             <div className="px-12 py-6 bg-white text-slate-900 rounded-2xl font-black text-sm uppercase tracking-[0.2em] shadow-2xl flex items-center gap-4 group/btn transition-transform group-hover:scale-105 active:scale-95 shrink-0">
