@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { BrowserRouter, Routes, Route, Link, useLocation, useNavigate, Navigate } from 'react-router-dom';
+import { Routes, Route, Link, useLocation, useNavigate, Navigate } from 'react-router-dom';
 import { Menu, X, Bell, Sun, Moon, Search, Shield, LogOut, Clock, CheckCircle2, Instagram, ChevronRight, ShieldCheck, Lock, ArrowUpRight, CalendarCheck, Timer, Monitor, Activity, Users } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { NAVIGATION_ITEMS, BELT_COLORS, MASTER_ADMINS } from '../constants';
@@ -24,7 +24,7 @@ import { useTheme } from '../contexts/ThemeContext';
 import { useProfile } from '../contexts/ProfileContext';
 import { useData } from '../contexts/DataContext';
 import { db, auth as firebaseAuth } from '../firebase';
-import { signInAnonymously, onAuthStateChanged } from 'firebase/auth';
+import { signInAnonymously } from 'firebase/auth';
 import { doc, setDoc } from 'firebase/firestore';
 
 interface AuthState {
@@ -38,8 +38,13 @@ const Sidebar = ({ isOpen, toggle, onLogout }: { isOpen: boolean, toggle: () => 
   const location = useLocation();
   const { t } = useTranslation();
   const { profile } = useProfile();
-  const auth = JSON.parse(localStorage.getItem('oss_auth') || '{}');
-  const isMasterAdmin = MASTER_ADMINS.includes(auth.email?.toLowerCase());
+  let auth: any = { role: null, email: '' };
+  try {
+    auth = JSON.parse(localStorage.getItem('oss_auth') || '{}');
+  } catch (e) {
+    console.error("Auth parse error", e);
+  }
+  const isMasterAdmin = auth.email && MASTER_ADMINS.includes(auth.email.toLowerCase());
 
   if (location.pathname.startsWith('/portal/')) return null;
 
@@ -186,8 +191,8 @@ const Sidebar = ({ isOpen, toggle, onLogout }: { isOpen: boolean, toggle: () => 
           </div>
           <div className="mt-4 flex flex-col gap-1 px-1">
             <div className="flex items-center justify-between">
-              <p className="text-[8px] font-black text-slate-400 uppercase tracking-widest transition-opacity duration-300">© 2026 ELITE ACADEMY GROUP</p>
-              <a href="https://instagram.com/pedrohonorio" target="_blank" rel="noopener noreferrer" className="text-[8px] font-black text-slate-400 hover:text-blue-500 transition-colors uppercase tracking-widest italic flex items-center gap-1">
+              <p className="text-[8px] font-black text-slate-400 uppercase tracking-widest transition-opacity duration-300">© 2026 SYBJJ BY CT Pedro Honorio</p>
+              <a href="https://instagram.com/sistemabjj" target="_blank" rel="noopener noreferrer" className="text-[8px] font-black text-slate-400 hover:text-blue-500 transition-colors uppercase tracking-widest italic flex items-center gap-1">
                 <Instagram size={8} /> IG
               </a>
             </div>
@@ -202,8 +207,13 @@ const Sidebar = ({ isOpen, toggle, onLogout }: { isOpen: boolean, toggle: () => 
 const BottomNav = ({ onLogout }: { onLogout: () => void }) => {
   const location = useLocation();
   const { t } = useTranslation();
-  const auth = JSON.parse(localStorage.getItem('oss_auth') || '{}');
-  const isMasterAdmin = MASTER_ADMINS.includes(auth.email?.toLowerCase());
+  let auth: any = { role: null, email: '' };
+  try {
+    auth = JSON.parse(localStorage.getItem('oss_auth') || '{}');
+  } catch (e) {
+    console.error("Auth parse error", e);
+  }
+  const isMasterAdmin = auth.email && MASTER_ADMINS.includes(auth.email.toLowerCase());
   
   const bottomItems = [
     { id: 'dashboard', icon: <Monitor size={20} />, label: t('common.dashboard') },
@@ -370,8 +380,13 @@ const App: React.FC = () => {
   }, []);
 
   const [auth, setAuth] = useState<AuthState>(() => {
-    const saved = localStorage.getItem('oss_auth');
-    return saved ? JSON.parse(saved) : { isLoggedIn: false, role: null };
+    try {
+      const saved = localStorage.getItem('oss_auth');
+      return saved ? JSON.parse(saved) : { isLoggedIn: false, role: null };
+    } catch (e) {
+      console.error("Initial auth parse error", e);
+      return { isLoggedIn: false, role: null };
+    }
   });
 
   // Track Online Status
@@ -549,10 +564,10 @@ const App: React.FC = () => {
                    </div>
                    <div className="flex flex-col items-center lg:items-end space-y-1">
                       <div className="flex items-center gap-4">
-                        <p className="text-[10px] font-black text-slate-900 dark:text-white uppercase tracking-widest italic">© 2026 ELITE ACADEMY GROUP</p>
-                        <a href="https://instagram.com/pedrohonorio" target="_blank" rel="noopener noreferrer" className="text-[10px] font-black text-blue-600 hover:text-blue-500 transition-all uppercase tracking-widest italic flex items-center gap-1.5 group/ig">
+                        <p className="text-[10px] font-black text-slate-900 dark:text-white uppercase tracking-widest italic">© 2026 SYBJJ BY CT Pedro Honorio</p>
+                        <a href="https://instagram.com/sistemabjj" target="_blank" rel="noopener noreferrer" className="text-[10px] font-black text-blue-600 hover:text-blue-500 transition-all uppercase tracking-widest italic flex items-center gap-1.5 group/ig">
                           <Instagram size={12} className="group-hover/ig:scale-110 transition-transform" />
-                          <span>INSTAGRAM</span>
+                          <span>@SISTEMABJJ</span>
                         </a>
                       </div>
                       <p className="text-[8px] font-bold text-slate-400 uppercase tracking-widest">Criado e Produzido por PPH e CT PH de JIU-JITSU</p>

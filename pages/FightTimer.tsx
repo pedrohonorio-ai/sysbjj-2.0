@@ -281,7 +281,8 @@ const FightTimer: React.FC = () => {
   };
 
   const circumference = 2 * Math.PI * 180;
-  const progress = mode === TimerMode.STOPWATCH ? 0 : (timeLeft / (isResting ? restTime : roundTime)) * circumference;
+  const currentTotalTime = isResting ? restTime : roundTime;
+  const safeProgress = mode === TimerMode.STOPWATCH ? 0 : (currentTotalTime > 0 ? (timeLeft / currentTotalTime) * circumference : 0);
 
   return (
     <div className="h-full overflow-y-auto pb-32 lg:pb-8 scrollbar-hide px-4 sm:px-8">
@@ -346,12 +347,14 @@ const FightTimer: React.FC = () => {
                     stroke="currentColor"
                     strokeWidth="12"
                     strokeDasharray={circumference}
-                    animate={{ strokeDashoffset: circumference - progress }}
+                    initial={{ strokeDashoffset: circumference }}
+                    animate={{ strokeDashoffset: circumference - safeProgress }}
                     transition={{ duration: 1, ease: "linear" }}
                     strokeLinecap="round"
                   />
                 </svg>
               </div>
+
 
               {/* Background Glows */}
               <div className="absolute inset-0 bg-[radial-gradient(circle_at_50%_10%,rgba(255,255,255,0.1),transparent)] pointer-events-none" />
