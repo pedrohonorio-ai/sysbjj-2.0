@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { BrowserRouter, Routes, Route, Link, useLocation, useNavigate, Navigate } from 'react-router-dom';
-import { Menu, X, Bell, Sun, Moon, Search, Shield, LogOut, Clock, CheckCircle2, Instagram, ChevronRight, ShieldCheck, Lock, ArrowUpRight } from 'lucide-react';
+import { Menu, X, Bell, Sun, Moon, Search, Shield, LogOut, Clock, CheckCircle2, Instagram, ChevronRight, ShieldCheck, Lock, ArrowUpRight, CalendarCheck, Timer, Monitor, Activity, Users } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { NAVIGATION_ITEMS, BELT_COLORS, MASTER_ADMINS } from '../constants';
 import Dashboard from '../pages/Dashboard';
@@ -203,29 +203,33 @@ const BottomNav = ({ onLogout }: { onLogout: () => void }) => {
   const auth = JSON.parse(localStorage.getItem('oss_auth') || '{}');
   const isMasterAdmin = MASTER_ADMINS.includes(auth.email?.toLowerCase());
   
-  const filteredNavItems = NAVIGATION_ITEMS.filter(item => {
-    if (item.id === 'audit') return isMasterAdmin;
-    return true;
-  });
-
-  const items = filteredNavItems.slice(0, 5); // Dashboard, Students, Classes, Business, Curriculum
+  const bottomItems = [
+    { id: 'dashboard', icon: <Monitor size={20} />, label: t('common.dashboard') },
+    { id: 'attendance', icon: <CalendarCheck size={20} />, label: t('common.attendance') },
+    { id: 'timer', icon: <Timer size={20} />, label: t('common.timer') },
+    { id: 'business', icon: <Activity size={20} />, label: t('common.business') },
+    { id: 'students', icon: <Users size={20} />, label: t('common.students') }
+  ];
 
   if (location.pathname.startsWith('/portal/')) return null;
   return (
-    <nav className="fixed bottom-0 left-0 right-0 z-50 bg-white/95 dark:bg-slate-900/95 backdrop-blur-md border-t border-slate-200 dark:border-slate-800 lg:hidden pb-safe">
-      <div className="grid grid-cols-5 h-16">
-        {items.map((item) => {
+    <nav className="fixed bottom-0 left-0 right-0 z-50 px-6 pb-6 lg:hidden pointer-events-none">
+      <div className="max-w-lg mx-auto bg-slate-950/80 backdrop-blur-2xl border border-white/10 rounded-[2.5rem] p-2 flex items-center justify-around shadow-2xl pointer-events-auto ring-1 ring-white/20">
+        {bottomItems.map((item) => {
           const isActive = location.pathname === `/${item.id}` || (location.pathname === '/' && item.id === 'dashboard');
           return (
             <Link
               key={item.id}
               to={`/${item.id}`}
-              className={`flex flex-col items-center justify-center gap-1 h-full transition-all overflow-hidden ${isActive ? 'text-slate-900 dark:text-blue-500 border-t-2 border-slate-900 dark:border-blue-500' : 'text-slate-400 dark:text-slate-500'}`}
+              className={`relative p-4 rounded-full transition-all duration-500 ${isActive ? 'bg-blue-600 text-white scale-110 shadow-lg shadow-blue-600/40' : 'text-slate-400 hover:text-slate-200'}`}
             >
-              <div className={isActive ? 'scale-110 transition-transform' : ''}>{item.icon}</div>
-              <span className={`text-[7px] font-black uppercase tracking-tight truncate w-full px-1 text-center ${isActive ? 'text-slate-900 dark:text-blue-500' : ''}`}>
-                {item.id === 'curriculum' ? t('common.curriculumShort') : t(`common.${item.id}`)}
-              </span>
+              {item.icon}
+              {isActive && (
+                <motion.div
+                  layoutId="bottom-nav-dot"
+                  className="absolute -bottom-1 left-1/2 -translate-x-1/2 w-1 h-1 bg-white rounded-full"
+                />
+              )}
             </Link>
           );
         })}
@@ -479,7 +483,7 @@ const App: React.FC = () => {
           ? 'pl-0' 
           : (sidebarOpen ? 'lg:pl-72' : 'lg:pl-0')}`}>
         {showHeader && <Header toggleSidebar={() => setSidebarOpen(!sidebarOpen)} auth={auth} onLogout={handleLogout} />}
-        <main className={`p-4 sm:p-8 lg:p-12 pt-24 lg:pt-32 flex-1 w-full ${isPortal ? 'max-w-full' : 'max-w-[1920px]'} mx-auto overflow-x-hidden pb-24 lg:pb-12 relative group`}>
+        <main className={`p-4 sm:p-8 lg:p-12 pt-24 lg:pt-32 flex-1 w-full ${isPortal ? 'max-w-full' : 'max-w-[1920px]'} mx-auto overflow-x-hidden pb-32 lg:pb-12 relative group`}>
           {/* Version Tracking for Sync Verification */}
           <div className="fixed bottom-6 right-6 pointer-events-none opacity-0 group-hover:opacity-30 transition-opacity z-[100]">
             <span className="text-[10px] font-mono font-black text-slate-400 bg-white/50 dark:bg-slate-900/50 backdrop-blur-sm px-3 py-1.5 rounded-lg border border-slate-200 dark:border-slate-800 tracking-tighter">SYSBJJ-V2.1.2</span>
@@ -515,6 +519,41 @@ const App: React.FC = () => {
             </Routes>
           </div>
         </main>
+
+        {/* Global Footer Optimization */}
+        {auth.role === 'admin' && !isPortal && (
+          <footer className="hidden md:block py-12 px-12 border-t border-slate-100 dark:border-white/5 bg-white/5 dark:bg-slate-950/20 mb-8 mx-auto w-full max-w-[1920px] rounded-[3rem] transition-all">
+             <div className="flex flex-col lg:flex-row items-center justify-between gap-8">
+                <div className="flex items-center gap-6">
+                   <div className="w-14 h-14 bg-slate-900 dark:bg-white rounded-2xl flex items-center justify-center text-white dark:text-slate-900 shadow-elite">
+                      <ShieldCheck size={28} />
+                   </div>
+                   <div className="space-y-1">
+                      <p className="text-[12px] font-black text-slate-900 dark:text-white uppercase tracking-tighter italic">SYSBJJ INTELLIGENCE SYSTEM 2.0</p>
+                      <div className="flex items-center gap-2">
+                         <span className="px-2 py-0.5 bg-blue-600/10 border border-blue-600/20 rounded text-[7px] font-black text-blue-600 uppercase tracking-widest leading-none">Security_Node_Active</span>
+                         <span className="text-[8px] font-bold text-slate-400 uppercase tracking-widest opacity-60">Hash: SHA-256_Atomatic_Sync_Enabled</span>
+                      </div>
+                   </div>
+                </div>
+
+                <div className="flex flex-wrap justify-center gap-12">
+                   <div className="flex flex-col items-center lg:items-end">
+                      <span className="text-[9px] font-black text-slate-400 uppercase tracking-[0.3em] mb-2">Protocolo de Integridade</span>
+                      <div className="flex items-center gap-2 px-4 py-1.5 bg-emerald-500/5 border border-emerald-500/20 rounded-full">
+                         <div className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
+                         <span className="text-[8px] font-black text-emerald-600 uppercase tracking-widest leading-none">Blindado & Imutável</span>
+                      </div>
+                   </div>
+                   <div className="flex flex-col items-center lg:items-end">
+                      <p className="text-[10px] font-black text-slate-900 dark:text-white uppercase tracking-widest mb-1 italic">© 2026 ELITE ACADEMY GROUP</p>
+                      <p className="text-[8px] font-bold text-slate-400 uppercase tracking-widest opacity-40">Desenvolvido para Máxima Performance Operacional</p>
+                   </div>
+                </div>
+             </div>
+          </footer>
+        )}
+        
         {auth.role === 'admin' && <BottomNav onLogout={handleLogout} />}
       </div>
     </div>

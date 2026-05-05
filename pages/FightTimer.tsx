@@ -280,6 +280,9 @@ const FightTimer: React.FC = () => {
     return 'bg-white dark:bg-slate-900 border-slate-200 dark:border-white/5 text-slate-900 dark:text-white';
   };
 
+  const circumference = 2 * Math.PI * 180;
+  const progress = mode === TimerMode.STOPWATCH ? 0 : (timeLeft / (isResting ? restTime : roundTime)) * circumference;
+
   return (
     <div className="h-full overflow-y-auto pb-32 lg:pb-8 scrollbar-hide px-4 sm:px-8">
       <div className={`max-w-5xl mx-auto space-y-8 animate-in fade-in duration-700`}>
@@ -321,21 +324,48 @@ const FightTimer: React.FC = () => {
           
           {/* Main Display Area */}
           <div className="lg:col-span-8 space-y-8">
-            <div className={`relative p-12 sm:p-24 rounded-[4rem] border-[12px] transition-all duration-1000 text-center group ${getThemeColors()}`}>
+            <div className={`relative p-8 sm:p-12 rounded-[4rem] border-[4px] sm:border-[8px] transition-all duration-1000 text-center group overflow-hidden ${getThemeColors()}`}>
               
+              {/* Circular Progress SVG */}
+              <div className="absolute inset-0 flex items-center justify-center p-8 opacity-20 pointer-events-none">
+                <svg className="w-[120%] h-[120%] -rotate-90 transform opacity-10 sm:opacity-20" viewBox="0 0 400 400">
+                  <circle
+                    cx="200"
+                    cy="200"
+                    r="180"
+                    fill="transparent"
+                    stroke="currentColor"
+                    strokeWidth="12"
+                    className="opacity-10"
+                  />
+                  <motion.circle
+                    cx="200"
+                    cy="200"
+                    r="180"
+                    fill="transparent"
+                    stroke="currentColor"
+                    strokeWidth="12"
+                    strokeDasharray={circumference}
+                    animate={{ strokeDashoffset: circumference - progress }}
+                    transition={{ duration: 1, ease: "linear" }}
+                    strokeLinecap="round"
+                  />
+                </svg>
+              </div>
+
               {/* Background Glows */}
-              <div className="absolute inset-0 bg-[radial-gradient(circle_at_50%_0%,rgba(255,255,255,0.1),transparent)] pointer-events-none" />
+              <div className="absolute inset-0 bg-[radial-gradient(circle_at_50%_10%,rgba(255,255,255,0.1),transparent)] pointer-events-none" />
               
               <div className="relative z-10 space-y-6">
                 <div className="flex items-center justify-center gap-4">
-                  <span className="w-1.5 h-1.5 rounded-full bg-blue-500 animate-pulse" />
+                  <span className={`w-1.5 h-1.5 rounded-full ${isActive ? 'bg-green-500 animate-pulse' : 'bg-slate-500'}`} />
                   <p className="text-sm font-black uppercase tracking-[0.5em] opacity-60">
                     {isAlarming ? 'FIM DE ROUND' : isResting ? 'RECUPERAÇÃO' : mode.toUpperCase()}
                   </p>
-                  <span className="w-1.5 h-1.5 rounded-full bg-blue-500 animate-pulse" />
+                  <span className={`w-1.5 h-1.5 rounded-full ${isActive ? 'bg-green-500 animate-pulse' : 'bg-slate-500'}`} />
                 </div>
 
-                <h2 className={`text-[8rem] sm:text-[12rem] lg:text-[16rem] font-black font-mono leading-none tracking-tighter select-none tabular-nums drop-shadow-2xl transition-all duration-700 ${isActive ? 'scale-105' : 'scale-100 opacity-90'}`}>
+                <h2 className={`text-[6.5rem] sm:text-[10rem] lg:text-[15rem] font-black font-mono leading-none tracking-tighter select-none tabular-nums drop-shadow-2xl transition-all duration-700 ${isActive ? 'scale-105' : 'scale-100 opacity-90'}`}>
                   {formatTime(timeLeft)}
                 </h2>
 

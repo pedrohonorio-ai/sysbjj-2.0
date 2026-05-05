@@ -19,7 +19,7 @@ const StatCard = ({ title, value, icon, color, trend, trendUp, delay = 0, suffix
     initial={{ opacity: 0, y: 30 }}
     animate={{ opacity: 1, y: 0 }}
     transition={{ delay, duration: 0.8, ease: [0.22, 1, 0.36, 1] }}
-    className="bg-white dark:bg-slate-900 p-8 rounded-[2.5rem] border border-slate-200 dark:border-white/5 shadow-sm hover:shadow-elite hover:-translate-y-2 transition-all duration-500 group relative overflow-hidden h-full flex flex-col justify-between"
+    className="bg-white dark:bg-slate-900 p-6 sm:p-8 rounded-[2.5rem] border border-slate-200 dark:border-white/5 shadow-sm hover:shadow-elite hover:-translate-y-2 transition-all duration-500 group relative overflow-hidden h-full flex flex-col justify-between"
   >
     <div className="absolute top-0 right-0 w-32 h-32 bg-blue-600 rounded-full blur-[80px] opacity-[0.03] group-hover:opacity-[0.1] transition-opacity duration-700" />
     <div className="flex items-center justify-between mb-8 relative z-10">
@@ -539,14 +539,14 @@ const Dashboard: React.FC = () => {
 
       {/* Primary Stats Grid */}
       {layoutConfig.showStats && (
-        <div className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-6 gap-6">
-        <StatCard title={t('dashboard.stats.total')} value={totalStudents} icon={<Users />} color="bg-blue-600" trend={t('dashboard.stats.registrations')} trendUp delay={0.1} />
-        <StatCard title={t('dashboard.stats.active')} value={activeStudents} icon={<CheckCircle2 />} color="bg-cyan-600" trend="+12.5%" trendUp delay={0.2} />
-        <StatCard title={t('students.isCompetitor')} value={competitorsCount} icon={<TrophyIcon />} color="bg-yellow-500" trend={t('dashboard.stats.elite')} trendUp delay={0.3} />
-        <StatCard title={t('dashboard.stats.revenue')} value={monthlyRevenue} icon={<TrendingUp />} color="bg-emerald-600" trend="+8.2%" trendUp delay={0.4} suffix={t('common.currencySymbol')} />
-        <StatCard title={t('dashboard.stats.extra')} value={monthlyExtra} icon={<Store />} color="bg-indigo-600" trend={t('dashboard.stats.up')} trendUp delay={0.5} suffix={t('common.currencySymbol')} />
-        <StatCard title={t('dashboard.stats.churnRisk')} value={churnRiskCount} icon={<ShieldAlert />} color="bg-orange-600" trend={churnRiskCount > 0 ? t('dashboard.stats.alert') : t('dashboard.stats.normal')} trendUp={false} delay={0.6} />
-      </div>
+        <div className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-6 gap-4 sm:gap-6 px-4">
+          <StatCard title={t('dashboard.stats.total')} value={totalStudents} icon={<Users />} color="bg-blue-600" trend={t('dashboard.stats.registrations')} trendUp delay={0.1} />
+          <StatCard title={t('dashboard.stats.active')} value={activeStudents} icon={<CheckCircle2 />} color="bg-emerald-600" trend="+12.5%" trendUp delay={0.2} />
+          <StatCard title={t('students.isCompetitor')} value={competitorsCount} icon={<TrophyIcon />} color="bg-amber-500" trend={t('dashboard.stats.elite')} trendUp delay={0.3} />
+          <StatCard title={t('dashboard.stats.revenue')} value={monthlyRevenue} icon={<TrendingUp />} color="bg-blue-600" trend="+8.2%" trendUp delay={0.4} suffix={t('common.currencySymbol')} />
+          <StatCard title={t('dashboard.stats.extra')} value={monthlyExtra} icon={<Store />} color="bg-indigo-600" trend={t('dashboard.stats.up')} trendUp delay={0.5} suffix={t('common.currencySymbol')} />
+          <StatCard title={t('dashboard.stats.churnRisk')} value={churnRiskCount} icon={<ShieldAlert />} color="bg-red-600" trend={churnRiskCount > 0 ? t('dashboard.stats.alert') : t('dashboard.stats.normal')} trendUp={false} delay={0.6} />
+        </div>
       )}
 
       {/* Main Intelligent Bento Section */}
