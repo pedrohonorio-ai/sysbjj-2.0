@@ -184,12 +184,9 @@ const Sidebar = ({ isOpen, toggle, onLogout }: { isOpen: boolean, toggle: () => 
               <Lock size={12} className="text-slate-700 group-hover/status:text-blue-600 transition-colors" />
             </div>
           </div>
-          <div className="mt-4 flex items-center justify-between px-1">
-            <p className="text-[8px] font-black text-slate-400 uppercase tracking-widest transition-opacity duration-300">© 2026 SYSBJJ</p>
-            <div className="flex gap-1.5 focus-within:ring-2 ring-blue-500 rounded-full">
-               <div className="w-1 h-1 rounded-full bg-blue-600 animate-pulse" />
-               <div className="w-1 h-1 rounded-full bg-slate-200 dark:bg-white/10" />
-            </div>
+          <div className="mt-4 flex flex-col gap-1 px-1">
+            <p className="text-[8px] font-black text-slate-400 uppercase tracking-widest transition-opacity duration-300">© 2026 ELITE ACADEMY GROUP</p>
+            <p className="text-[7px] font-bold text-slate-500 uppercase tracking-tighter opacity-60">Criado por PPH & CT PH de JIU-JITSU</p>
           </div>
         </div>
       </aside>
@@ -545,9 +542,10 @@ const App: React.FC = () => {
                          <span className="text-[8px] font-black text-emerald-600 uppercase tracking-widest leading-none">Blindado & Imutável</span>
                       </div>
                    </div>
-                   <div className="flex flex-col items-center lg:items-end">
-                      <p className="text-[10px] font-black text-slate-900 dark:text-white uppercase tracking-widest mb-1 italic">© 2026 ELITE ACADEMY GROUP</p>
-                      <p className="text-[8px] font-bold text-slate-400 uppercase tracking-widest opacity-40">Desenvolvido para Máxima Performance Operacional</p>
+                   <div className="flex flex-col items-center lg:items-end space-y-1">
+                      <p className="text-[10px] font-black text-slate-900 dark:text-white uppercase tracking-widest italic">© 2026 ELITE ACADEMY GROUP</p>
+                      <p className="text-[8px] font-bold text-slate-400 uppercase tracking-widest">Criado e Produzido por PPH e CT PH de JIU-JITSU</p>
+                      <p className="text-[7px] font-medium text-slate-400 uppercase tracking-[0.2em] opacity-40">Desenvolvido para Máxima Performance Operacional</p>
                    </div>
                 </div>
              </div>
