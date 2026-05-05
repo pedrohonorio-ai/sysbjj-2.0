@@ -24,30 +24,30 @@ export const calculateCBJJCategory = (birthDate: string): CBJJCategory => {
 
 export const calculateWeightClass = (weight: number, gender: Gender, category: CBJJCategory): string => {
   // Simplified Adult Male Gi Weight Classes
-  if (category === CBJJCategory.ADULTO || category.startsWith('Master') || category.startsWith('Juvenil')) {
+  if (category === CBJJCategory.ADULTO || category.toString().startsWith('Master') || category.toString().startsWith('Juvenil')) {
     if (gender === Gender.MALE) {
-      if (weight <= 57.5) return 'Galo';
-      if (weight <= 64.0) return 'Pluma';
-      if (weight <= 70.0) return 'Pena';
-      if (weight <= 76.0) return 'Leve';
-      if (weight <= 82.3) return 'Médio';
-      if (weight <= 88.3) return 'Meio-Pesado';
-      if (weight <= 94.3) return 'Pesado';
-      if (weight <= 100.5) return 'Super-Pesado';
-      return 'Pesadíssimo';
+      if (weight <= 57.5) return 'rooster';
+      if (weight <= 64.0) return 'lightFeather';
+      if (weight <= 70.0) return 'feather';
+      if (weight <= 76.0) return 'light';
+      if (weight <= 82.3) return 'middle';
+      if (weight <= 88.3) return 'mediumHeavy';
+      if (weight <= 94.3) return 'heavy';
+      if (weight <= 100.5) return 'superHeavy';
+      return 'ultraHeavy';
     } else {
       // Simplified Adult Female Gi Weight Classes
-      if (weight <= 48.5) return 'Galo';
-      if (weight <= 53.5) return 'Pluma';
-      if (weight <= 58.5) return 'Pena';
-      if (weight <= 64.0) return 'Leve';
-      if (weight <= 69.0) return 'Médio';
-      if (weight <= 74.0) return 'Meio-Pesado';
-      if (weight <= 79.3) return 'Pesado';
-      return 'Super-Pesado';
+      if (weight <= 48.5) return 'rooster';
+      if (weight <= 53.5) return 'lightFeather';
+      if (weight <= 58.5) return 'feather';
+      if (weight <= 64.0) return 'light';
+      if (weight <= 69.0) return 'middle';
+      if (weight <= 74.0) return 'mediumHeavy';
+      if (weight <= 79.3) return 'heavy';
+      return 'superHeavy';
     }
   }
   
   // For kids, it's much more complex, returning a generic placeholder or simplified
-  return 'Peso de Categoria';
+  return 'categoryWeight';
 };

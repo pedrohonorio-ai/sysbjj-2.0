@@ -98,49 +98,59 @@ const Classes: React.FC = () => {
       </div>
 
       {viewMode === 'grid' ? (
-        <div className="bg-white dark:bg-slate-900 rounded-[3rem] border border-slate-200 dark:border-slate-800 shadow-xl overflow-hidden p-2 sm:p-10">
-           <div className="grid grid-cols-8 gap-2 min-w-[800px]">
-              <div className="p-4"></div>
-              {DAYS_OF_WEEK.map(day => (
-                <div key={day} className="p-4 text-center">
-                   <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">{day}</p>
-                </div>
-              ))}
-              
-              {/* Organized by time slots */}
-              {Array.from(new Set(schedules.map(s => s.time))).sort().map(timeSlot => (
-                <React.Fragment key={timeSlot}>
-                  <div className="p-4 flex items-center justify-center border-r border-slate-50 dark:border-slate-800/50">
-                     <p className="text-xs font-black text-slate-800 dark:text-white tabular-nums">{timeSlot}</p>
-                  </div>
-                  {DAYS_OF_WEEK.map(day => {
-                    const classForDay = schedules.find(s => s.time === timeSlot && s.days?.includes(day));
-                    return (
-                      <div key={day} className="p-1">
-                        {classForDay ? (
-                          <div 
-                            onClick={() => startEdit(classForDay)}
-                            className="h-full p-4 bg-blue-50 dark:bg-blue-900/10 border-l-4 border-blue-600 rounded-[1.2rem] hover:scale-[1.02] transition-all cursor-pointer group relative overflow-hidden"
-                          >
-                             <div className="absolute top-0 right-0 p-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                               <Edit2 size={10} className="text-blue-400" />
-                             </div>
-                             <p className="text-[8px] font-black text-blue-600 uppercase tracking-tighter line-clamp-1 mb-1">{classForDay.category}</p>
-                             <p className="text-[10px] font-black text-slate-900 dark:text-white leading-tight uppercase tracking-tight line-clamp-2">{classForDay.title}</p>
-                             <div className="mt-3 flex items-center gap-1.5 text-slate-400">
-                               <User size={8} />
-                               <span className="text-[7px] font-black uppercase tracking-widest truncate">{classForDay.instructor}</span>
-                             </div>
-                          </div>
-                        ) : (
-                          <div className="h-full border border-dashed border-slate-100 dark:border-slate-800/50 rounded-[1.2rem]"></div>
-                        )}
+        <div className="grid grid-cols-1">
+          <div className="bg-white dark:bg-slate-900 rounded-[2rem] sm:rounded-[3rem] border border-slate-200 dark:border-slate-800 shadow-xl p-1 sm:p-10 relative">
+             {/* Hint for mobile users */}
+             <div className="lg:hidden flex items-center justify-center gap-2 mb-4 text-slate-400">
+               <Calendar size={12} className="animate-bounce" />
+               <p className="text-[10px] font-black uppercase tracking-widest">{t('common.swipeToScroll') || 'Deslize para ver mais'}</p>
+             </div>
+             
+             <div className="overflow-x-auto scrollbar-thin scrollbar-thumb-slate-200 dark:scrollbar-thumb-slate-800 pb-4">
+               <div className="grid grid-cols-8 gap-2 min-w-[1000px] sm:min-w-[800px]">
+                  <div className="p-4"></div>
+                  {DAYS_OF_WEEK.map(day => (
+                    <div key={day} className="p-2 sm:p-4 text-center">
+                       <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">{day}</p>
+                    </div>
+                  ))}
+                  
+                  {/* Organized by time slots */}
+                  {Array.from(new Set(schedules.map(s => s.time))).sort().map(timeSlot => (
+                    <React.Fragment key={timeSlot}>
+                      <div className="p-2 sm:p-4 flex items-center justify-center border-r border-slate-50 dark:border-slate-800/50 sticky left-0 bg-white dark:bg-slate-900 z-10">
+                         <p className="text-xs font-black text-slate-800 dark:text-white tabular-nums">{timeSlot}</p>
                       </div>
-                    );
-                  })}
-                </React.Fragment>
-              ))}
-           </div>
+                      {DAYS_OF_WEEK.map(day => {
+                        const classForDay = schedules.find(s => s.time === timeSlot && s.days?.includes(day));
+                        return (
+                          <div key={day} className="p-1">
+                            {classForDay ? (
+                              <div 
+                                onClick={() => startEdit(classForDay)}
+                                className="h-full p-3 sm:p-4 bg-blue-50 dark:bg-blue-900/10 border-l-4 border-blue-600 rounded-[1.2rem] hover:scale-[1.02] transition-all cursor-pointer group relative overflow-hidden min-h-[80px]"
+                              >
+                                 <div className="absolute top-0 right-0 p-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                                   <Edit2 size={10} className="text-blue-400" />
+                                 </div>
+                                 <p className="text-[8px] font-black text-blue-600 uppercase tracking-tighter line-clamp-1 mb-1">{classForDay.category}</p>
+                                 <p className="text-[10px] font-black text-slate-900 dark:text-white leading-tight uppercase tracking-tight line-clamp-2">{classForDay.title}</p>
+                                 <div className="mt-2 flex items-center gap-1.5 text-slate-400">
+                                   <User size={8} />
+                                   <span className="text-[7px] font-black uppercase tracking-widest truncate">{classForDay.instructor}</span>
+                                 </div>
+                              </div>
+                            ) : (
+                              <div className="h-full border border-dashed border-slate-100 dark:border-slate-800/50 rounded-[1.2rem] min-h-[80px]"></div>
+                            )}
+                          </div>
+                        );
+                      })}
+                    </React.Fragment>
+                  ))}
+               </div>
+             </div>
+          </div>
         </div>
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
@@ -189,13 +199,13 @@ const Classes: React.FC = () => {
       )}
 
       {isAdding && (
-        <div className="fixed inset-0 bg-slate-950/80 backdrop-blur-md z-[100] flex items-center justify-center p-4 sm:p-6">
-          <div className="bg-white dark:bg-slate-900 rounded-[2rem] sm:rounded-[3rem] p-6 sm:p-10 max-w-xl w-full space-y-8 animate-in zoom-in-95 duration-300 border border-slate-200 dark:border-slate-800 max-h-[95vh] overflow-y-auto scrollbar-hide">
+        <div className="fixed inset-0 bg-slate-950/80 backdrop-blur-md z-[100] flex items-start justify-center p-4 sm:p-6 overflow-y-auto">
+          <div className="bg-white dark:bg-slate-900 rounded-[2rem] sm:rounded-[3rem] p-6 sm:p-10 max-w-xl w-full space-y-8 animate-in zoom-in-95 duration-300 border border-slate-200 dark:border-slate-800 my-auto">
             <div className="flex justify-between items-center">
               <h2 className="text-2xl font-black text-slate-900 dark:text-white uppercase tracking-tighter">
                 {editingId ? t('classes.editTitle') : t('classes.newTitle')}
               </h2>
-              <button onClick={() => setIsAdding(false)} className="p-2 text-slate-400 hover:text-red-600"><X /></button>
+              <button onClick={() => setIsAdding(false)} className="p-2 text-slate-400 hover:text-red-600 outline-none"><X /></button>
             </div>
 
             <form onSubmit={handleSubmit} className="space-y-6">

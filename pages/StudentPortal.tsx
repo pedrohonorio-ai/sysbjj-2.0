@@ -9,7 +9,7 @@ import {
   RefreshCw, FileText, Upload, ShieldCheck, AlertCircle, ShieldAlert, ChevronRight,
   Map, Star, Users2, Medal, Presentation, ClipboardCheck, GraduationCap, Check,
   CreditCard, Video, ExternalLink, MessageSquare, Cake, TrendingUp, Users,
-  Target
+  Target, Dumbbell, Activity, ClipboardList
 } from 'lucide-react';
 import { Html5QrcodeScanner } from 'html5-qrcode';
 import { useTranslation } from '../contexts/LanguageContext';
@@ -20,6 +20,12 @@ import { BELT_COLORS, IBJJF_BELT_RULES } from '../constants';
 import { IBJJF_LESSONS, RuleLesson, RuleScenario } from '../constants/rulesData';
 import ReactMarkdown from 'react-markdown';
 
+import { 
+  ResponsiveContainer, Radar, RadarChart, PolarGrid, 
+  PolarAngleAxis, PolarRadiusAxis
+} from 'recharts';
+import CryptoJS from 'crypto-js';
+
 const StudentPortal: React.FC = () => {
   const { code } = useParams();
   const navigate = useNavigate();
@@ -27,7 +33,7 @@ const StudentPortal: React.FC = () => {
   const { students, recordAttendance, gallery, payments, addGalleryImage, addReceipt, completeRuleLesson, logs } = useData();
   const { profile } = useProfile();
   const [loading, setLoading] = useState(true);
-  const [activeTab, setActiveTab] = useState<'home' | 'training' | 'knowledge' | 'community' | 'wallet' | 'gallery'>('home');
+  const [activeTab, setActiveTab] = useState<'home' | 'training' | 'knowledge' | 'community' | 'wallet' | 'gallery' | 'homeTraining'>('home');
   const [showScanner, setShowScanner] = useState(false);
   const [showPix, setShowPix] = useState(false);
   const [showReceipt, setShowReceipt] = useState(false);
@@ -41,6 +47,79 @@ const StudentPortal: React.FC = () => {
   const [medicalFile, setMedicalFile] = useState<string | null>(null);
   const [medicalIssueDate, setMedicalIssueDate] = useState(new Date().toISOString().split('T')[0]);
   const { updateStudent } = useData();
+
+  const [workoutCounts, setWorkoutCounts] = useState<Record<string, number>>({});
+
+  const handleRegisterWorkout = (sectionId: string) => {
+    if (!student) return;
+    
+    const count = Object.values(workoutCounts).reduce((a, b) => a + b, 0);
+    if (count === 0) return;
+
+    const newPoints = (student.rewardPoints || 0) + 10;
+    const newHistory = [
+      ...(student.homeWorkoutHistory || []),
+      { date: new Date().toISOString().split('T')[0], type: sectionId, count }
+    ];
+
+    updateStudent(student.id, { 
+      rewardPoints: newPoints,
+      homeWorkoutHistory: newHistory
+    });
+
+    setWorkoutCounts({});
+    alert(t('portal.workoutSaved'));
+  };
+
+  const homeWorkouts = useMemo(() => [
+    {
+      id: 'core',
+      title: t('portal.absSection'),
+      icon: <Activity className="text-amber-500" />,
+      exercises: [
+        { name: 'Abdominal Supra (Crunches)', reps: '3 x 30', desc: 'Foco no abdômen superior.' },
+        { name: 'Abdominal Infra (Leg Raises)', reps: '3 x 20', desc: 'Trabalho de abdômen inferior e core.' },
+        { name: 'Prancha Isométrica (Plank)', reps: '3 x 1 min', desc: 'Estabilidade abdominal e lombar.' },
+        { name: 'Bicicleta (Russian Twist)', reps: '3 x 40', desc: 'Trabalho de oblíquos.' }
+      ]
+    },
+    {
+      id: 'mobility',
+      title: t('portal.mobilitySection'),
+      icon: <RefreshCw className="text-blue-500" />,
+      exercises: [
+        { name: 'Fuga de Quadril (Hip Escape)', reps: '3 x 20/lado', desc: 'Movimento fundamental de defesa e reposição.' },
+        { name: 'Rolamento de Ombro', reps: '10/lado', desc: 'Proteção cervical e agilidade no solo.' },
+        { name: 'Ponte (Bridge)', reps: '3 x 15', desc: 'Kuzushi e potência de quadril.' },
+        { name: 'Yoga BJJ (Cobra/Cachorro)', reps: '10 reps', desc: 'Flexibilidade de cadeia anterior e posterior.' }
+      ]
+    },
+    {
+      id: 'drills',
+      title: t('portal.drillsSection'),
+      icon: <Shield className="text-emerald-500" />,
+      exercises: [
+        { name: 'Triângulo no Ar', reps: '3 x 30', desc: 'Velocidade e coordenação de pernas.' },
+        { name: 'Sprawl Solitário', reps: '3 x 15', desc: 'Defesa de queda e cárdio.' },
+        { name: 'Mão no Chão / Passo de Lado', reps: '3 x 1 min', desc: 'Passagem de guarda e equilíbrio.' },
+        { name: 'Entrada de Queda Sombra', reps: '3 x 10', desc: 'Mecânica de projeção.' }
+      ]
+    }
+  ], [t]);
+
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
+  const handlePhotoChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file && student) {
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        const base64String = reader.result as string;
+        updateStudent(student.id, { photo: base64String });
+      };
+      reader.readAsDataURL(file);
+    }
+  };
 
   const calculateAge = (birthDate: string) => {
     const today = new Date();
@@ -271,6 +350,41 @@ const StudentPortal: React.FC = () => {
     return Math.round(totalXP / students.length);
   }, [students]);
 
+  const blockchainHash = useMemo(() => {
+    if (!student) return '';
+    return CryptoJS.SHA256(student.id + student.belt + student.lastPromotionDate).toString().substring(0, 16).toUpperCase();
+  }, [student]);
+
+  const radarData = useMemo(() => {
+    if (!student) return [];
+    // Simulate tactical data based on student points and attributes
+    // In a real app this would come from pedagogical assessments
+    const base = student.rewardPoints || 0;
+    return [
+      { subject: t('portal.technicalGrade'), A: Math.min(100, 40 + (base % 50)) },
+      { subject: t('portal.tacticalIntelligence'), A: Math.min(100, 30 + (student.rulesKnowledge || 0)) },
+      { subject: t('portal.physicalCondition'), A: Math.min(100, 50 + (student.currentStreak || 0) * 5) },
+      { subject: t('portal.biomechanics'), A: Math.min(100, 45 + (student.attendanceCount % 40)) },
+      { subject: t('portal.defense'), A: Math.min(100, 60 + (student.stripes * 5)) },
+      { subject: t('portal.offense'), A: Math.min(100, 35 + (student.rewardPoints % 60)) },
+    ];
+  }, [student, t]);
+
+  const heatmapData = useMemo(() => {
+    if (!student || !student.attendanceHistory) return [];
+    // Generate last 6 weeks of attendance for heatmap
+    const weeks = [];
+    const today = new Date();
+    for (let i = 0; i < 42; i++) {
+        const d = new Date(today);
+        d.setDate(d.getDate() - i);
+        const dayStr = d.toISOString().split('T')[0];
+        const hasAttended = student.attendanceHistory.some(a => a.date === dayStr);
+        weeks.unshift(hasAttended ? 1 : 0);
+    }
+    return weeks;
+  }, [student]);
+
   const userRankPercentile = useMemo(() => {
     if (!student || students.length === 0) return 100;
     const higherThan = students.filter(s => (s.rewardPoints || 0) < (student.rewardPoints || 0)).length;
@@ -423,50 +537,154 @@ const StudentPortal: React.FC = () => {
             className="space-y-6"
           >
             {/* Professional Profile Header */}
-            <div className="bg-slate-900 rounded-[2.5rem] p-8 text-white relative shadow-2xl overflow-hidden border border-white/5">
-              <div className="absolute top-0 right-0 w-48 h-48 bg-blue-600 rounded-full blur-[80px] opacity-20 -translate-y-1/2 translate-x-1/2" />
+            <div className="bg-slate-900 rounded-[2.5rem] p-8 text-white relative shadow-2xl overflow-hidden border border-white/5 group">
+              <div className="absolute top-0 right-0 w-64 h-64 bg-blue-600 rounded-full blur-[100px] opacity-20 -translate-y-1/2 translate-x-1/2 group-hover:opacity-30 transition-opacity" />
               
-              <div className="flex items-center gap-6 relative z-10">
-                <div className="relative">
-                  <div className="w-20 h-20 rounded-2xl bg-gradient-to-br from-blue-600 to-indigo-700 flex items-center justify-center text-3xl font-black border-4 border-white/20 shadow-xl overflow-hidden">
-                    {student.name[0]}
+              <div className="flex flex-col sm:flex-row items-center sm:items-start gap-6 relative z-10">
+                <div className="relative group/avatar">
+                  <div className="w-24 h-24 sm:w-32 sm:h-32 rounded-3xl bg-gradient-to-br from-slate-800 to-slate-950 p-1 border-2 border-white/10 shadow-2xl overflow-hidden">
+                    <div className="w-full h-full rounded-[1.25rem] bg-gradient-to-br from-blue-600 to-indigo-700 flex items-center justify-center text-4xl sm:text-6xl font-black text-white/90 overflow-hidden relative">
+                      {student.photo ? (
+                        <img src={student.photo} alt={student.name} className="w-full h-full object-cover" />
+                      ) : (
+                        student.name[0]
+                      )}
+                      
+                      <button 
+                        onClick={() => fileInputRef.current?.click()}
+                        className="absolute inset-0 bg-black/60 flex items-center justify-center opacity-0 group-hover/avatar:opacity-100 transition-opacity"
+                      >
+                        <Camera size={24} className="text-white" />
+                      </button>
+                    </div>
                   </div>
-                  <div className="absolute -bottom-2 -right-2 w-8 h-8 bg-black rounded-xl border-2 border-slate-900 flex items-center justify-center">
-                    <Zap size={14} className="text-amber-400 fill-amber-400" />
-                  </div>
+                  <input 
+                    type="file" 
+                    ref={fileInputRef} 
+                    className="hidden" 
+                    accept="image/*" 
+                    onChange={handlePhotoChange} 
+                  />
+                  <motion.div 
+                    animate={{ scale: [1, 1.2, 1] }}
+                    transition={{ repeat: Infinity, duration: 3 }}
+                    className="absolute -bottom-1 -right-1 w-10 h-10 bg-slate-950 rounded-2xl border-2 border-blue-500/50 flex items-center justify-center shadow-lg"
+                  >
+                    <ShieldCheck size={20} className="text-blue-400" />
+                  </motion.div>
                 </div>
-                <div className="flex-1">
-                  <p className="text-[9px] font-black text-blue-400 uppercase tracking-[0.3em] mb-1">{t('common.adult').toUpperCase()} • {student.nickname || 'GUERREIRO'}</p>
-                  <h1 className="text-2xl font-black tracking-tighter uppercase leading-none">{student.name}</h1>
-                  <div className="flex items-center gap-2 mt-3">
-                    <span className={`px-3 py-1 rounded-lg text-[8px] font-black uppercase tracking-widest ${BELT_COLORS[student.belt]}`}>{t(`belts.${student.belt}`)}</span>
-                    <span className="w-1.5 h-1.5 rounded-full bg-slate-600" />
-                    <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">OSS!</span>
+                <div className="flex-1 text-center sm:text-left">
+                  <div className="flex flex-wrap justify-center sm:justify-start items-center gap-2 mb-2">
+                    <span className="px-2 py-0.5 bg-blue-500/10 text-blue-400 text-[7px] font-black uppercase tracking-[0.2em] rounded border border-blue-500/20">{t('common.verifiedMember')}</span>
+                    <span className="px-2 py-0.5 bg-emerald-500/10 text-emerald-400 text-[7px] font-black uppercase tracking-[0.2em] rounded border border-emerald-500/20">{t('common.blockchainIdLabel')}: {blockchainHash}</span>
+                  </div>
+                  <h1 className="text-2xl sm:text-4xl font-black tracking-tighter uppercase leading-none mb-2">{student.name}</h1>
+                  <div className="flex items-center justify-center sm:justify-start gap-3">
+                    <div className={`px-4 py-1.5 rounded-xl text-[9px] font-black uppercase tracking-widest shadow-lg ${BELT_COLORS[student.belt]}`}>
+                      {t(`belts.${student.belt}`)}
+                    </div>
+                    <div className="flex gap-1">
+                      {[...Array(student.stripes)].map((_, i) => (
+                        <div key={i} className="w-1 h-4 bg-white rounded-full opacity-80" />
+                      ))}
+                    </div>
                   </div>
                 </div>
               </div>
 
-              {/* Status & Stripes */}
-              <div className="mt-8 grid grid-cols-2 gap-4 relative z-10">
-                <div className="p-4 bg-white/5 rounded-2xl border border-white/10">
-                  <span className="text-[7px] font-black text-slate-500 uppercase tracking-widest block mb-2">{graduationAnalysis?.isBlackBelt ? 'MAESTRIA' : 'EVOLUÇÃO'}</span>
-                  <div className="flex gap-1.5">
-                    {[...Array(graduationAnalysis?.maxStripes || 4)].map((_, i) => (
-                      <div 
-                        key={i} 
-                        className={`w-4 h-6 rounded-sm transition-all ${i < student.stripes ? (graduationAnalysis?.isBlackBelt ? 'bg-amber-400 shadow-[0_0_10px_rgba(251,191,36,0.6)]' : 'bg-white') : 'bg-white/5'}`} 
-                      />
-                    ))}
-                  </div>
+              {/* Blockchain Badge Section */}
+              <div className="mt-8 pt-6 border-t border-white/10 flex items-center justify-between relative z-10">
+                 <div className="flex items-center gap-3">
+                    <div className="p-2 bg-blue-600/20 rounded-lg border border-blue-500/30">
+                      <Shield size={16} className="text-blue-400" />
+                    </div>
+                    <div>
+                      <p className="text-[10px] font-black text-white uppercase tracking-tight">{t('portal.blockchainTitle')}</p>
+                      <p className="text-[8px] font-medium text-slate-400 uppercase tracking-tighter">{t('portal.blockchainDesc')}</p>
+                    </div>
+                 </div>
+                 <button className="px-4 py-2 bg-white/5 hover:bg-white/10 rounded-xl border border-white/10 text-[8px] font-black text-blue-400 uppercase tracking-widest transition-colors">
+                    {t('portal.viewOnChain')}
+                 </button>
+              </div>
+            </div>
+
+            {/* Tactical Intelligence Radar */}
+            <div className="bg-white dark:bg-slate-900 rounded-[2.5rem] border border-slate-200 dark:border-slate-800 shadow-sm overflow-hidden flex flex-col">
+              <div className="p-8 pb-0 flex items-center justify-between">
+                <div>
+                  <p className="text-[9px] font-black text-slate-400 uppercase tracking-[0.2em] mb-1">{t('portal.trainingRadar')}</p>
+                  <h3 className="text-xl font-black text-slate-900 dark:text-white uppercase tracking-tighter leading-none">{t('portal.tacticalIntelligence')}</h3>
                 </div>
-                <div className="p-4 bg-white/5 rounded-2xl border border-white/10 flex flex-col justify-center">
-                  <span className="text-[7px] font-black text-slate-500 uppercase tracking-widest block mb-1">XP ACUMULADO</span>
-                  <div className="flex items-baseline gap-2">
-                    <p className="text-xl font-black text-amber-500 tabular-nums">{student.rewardPoints || 0}</p>
-                    <span className="text-[8px] font-black text-slate-500 uppercase">{t('portal.percentile', { percent: userRankPercentile })}</span>
-                  </div>
+                <div className="p-3 bg-blue-50 dark:bg-blue-900/20 rounded-2xl">
+                  <TrendingUp size={20} className="text-blue-600" />
                 </div>
               </div>
+              <div className="h-64 w-full mt-4">
+                <ResponsiveContainer width="100%" height="100%">
+                  <RadarChart cx="50%" cy="50%" outerRadius="70%" data={radarData}>
+                    <PolarGrid stroke="#94a3b8" strokeDasharray="3 3" />
+                    <PolarAngleAxis 
+                      dataKey="subject" 
+                      tick={{ fill: '#94a3b8', fontSize: 8, fontWeight: 900 }}
+                    />
+                    <Radar
+                      name="Student"
+                      dataKey="A"
+                      stroke="#2563eb"
+                      fill="#2563eb"
+                      fillOpacity={0.5}
+                    />
+                  </RadarChart>
+                </ResponsiveContainer>
+              </div>
+            </div>
+
+            {/* Consistency Heatmap */}
+            <div className="bg-white dark:bg-slate-900 rounded-[2.5rem] p-8 border border-slate-200 dark:border-slate-800 shadow-sm">
+                <div className="flex items-center justify-between mb-6">
+                    <div>
+                        <p className="text-[9px] font-black text-slate-400 uppercase tracking-[0.2em] mb-1">{t('portal.consistencyHeatmap')}</p>
+                        <h3 className="text-xl font-black text-slate-900 dark:text-white uppercase tracking-tighter leading-none">{t('portal.attendanceTitle')}</h3>
+                    </div>
+                </div>
+                
+                {heatmapData.length > 0 ? (
+                    <div className="grid grid-cols-7 gap-2">
+                        {heatmapData.map((val, i) => (
+                            <motion.div 
+                                key={i}
+                                initial={{ opacity: 0 }}
+                                animate={{ opacity: 1 }}
+                                transition={{ delay: i * 0.01 }}
+                                className={`aspect-square rounded-lg transition-all hover:scale-110 cursor-pointer ${
+                                    val === 1 
+                                    ? 'bg-blue-600 shadow-[0_0_8px_rgba(37,99,235,0.4)]' 
+                                    : 'bg-slate-100 dark:bg-slate-800'
+                                }`}
+                            >
+                               {i === heatmapData.length - 1 && (
+                                   <div className="w-full h-full border-2 border-blue-400 rounded-lg animate-pulse" />
+                               )}
+                            </motion.div>
+                        ))}
+                    </div>
+                ) : (
+                    <div className="py-8 text-center bg-slate-50 dark:bg-slate-800/50 rounded-2xl border border-dashed border-slate-200 dark:border-slate-700">
+                        <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest italic">{t('portal.noDataHeatmap')}</p>
+                    </div>
+                )}
+                
+                <div className="flex items-center justify-between mt-6 pt-6 border-t border-slate-100 dark:border-slate-800">
+                    <div className="flex items-center gap-2">
+                        <div className="w-2 h-2 rounded-full bg-blue-600" />
+                        <span className="text-[8px] font-black text-slate-500 uppercase tracking-widest">{t('portal.trainingCategory')}</span>
+                    </div>
+                    <div className="flex items-center gap-2">
+                        <div className="w-2 h-2 rounded-full bg-slate-200 dark:bg-slate-700" />
+                        <span className="text-[8px] font-black text-slate-500 uppercase tracking-widest">{t('portal.noActivity')}</span>
+                    </div>
+                </div>
             </div>
 
             {/* Quick Stats Grid */}
@@ -590,7 +808,7 @@ const StudentPortal: React.FC = () => {
               <div className="space-y-6">
                 <div className="space-y-3">
                   <div className="flex justify-between items-end">
-                    <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest">Tempo Mínimo na Faixa</p>
+                    <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest">{t('students.timeInBelt')}</p>
                     <p className="text-[10px] font-black dark:text-white leading-none">{graduationAnalysis?.monthsInBelt} / {graduationAnalysis?.minMonths}m</p>
                   </div>
                   <div className="h-2.5 bg-slate-100 dark:bg-slate-800 rounded-full overflow-hidden">
@@ -604,7 +822,7 @@ const StudentPortal: React.FC = () => {
 
                 <div className="space-y-3">
                   <div className="flex justify-between items-end">
-                    <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest">Compromisso (Aulas)</p>
+                    <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest">{t('students.studentReport')}</p>
                     <p className="text-[10px] font-black dark:text-white leading-none">{student.attendanceCount} / {graduationAnalysis?.attendanceThreshold}</p>
                   </div>
                   <div className="h-2.5 bg-slate-100 dark:bg-slate-800 rounded-full overflow-hidden">
@@ -621,7 +839,7 @@ const StudentPortal: React.FC = () => {
               <div className="space-y-4 pt-4 border-t border-slate-100 dark:border-slate-800">
                 <div className="flex items-center gap-2">
                   <Map size={14} className="text-blue-600" />
-                  <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Próximos Passos</p>
+                  <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">{t('common.nextBelts')}</p>
                 </div>
                 <div className="flex items-center gap-3 overflow-x-auto scrollbar-hide py-2">
                   <div className="flex flex-col items-center gap-2 scale-90 opacity-60">
@@ -651,7 +869,7 @@ const StudentPortal: React.FC = () => {
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-2">
                   <ClipboardCheck size={20} className="text-amber-500" />
-                  <h3 className="text-sm font-black text-slate-900 dark:text-white uppercase tracking-tighter leading-none">Requisitos de Exame</h3>
+                  <h3 className="text-sm font-black text-slate-900 dark:text-white uppercase tracking-tighter leading-none">{t('common.examRequirements')}</h3>
                 </div>
                 <span className="text-[9px] font-black text-amber-600 bg-amber-50 dark:bg-amber-900/20 px-3 py-1 rounded-full uppercase">
                   {Object.values(student.examRequirements || {}).filter(v => v).length} / {((tObj(`beltRequirements.${graduationAnalysis?.nextBelt || 'White'}`) as string[]) || []).length}
@@ -729,21 +947,21 @@ const StudentPortal: React.FC = () => {
                   <div className="w-16 h-16 bg-slate-50 dark:bg-slate-800/50 rounded-2xl flex items-center justify-center mx-auto text-slate-300">
                     <Video size={32} />
                   </div>
-                  <p className="text-[9px] text-slate-400 font-black uppercase tracking-widest italic">Nenhuma posição compartilhada ainda.</p>
+                  <p className="text-[9px] text-slate-400 font-black uppercase tracking-widest italic">{t('common.noVideosYet')}</p>
                 </div>
               )}
             </div>
 
             {/* Milestones & Techniques History */}
             <div className="space-y-4 pt-8">
-               <h3 className="text-[10px] font-black uppercase tracking-widest text-slate-400 px-2">Histórico & Conquistas</h3>
+               <h3 className="text-[10px] font-black uppercase tracking-widest text-slate-400 px-2">{t('common.historyConquests')}</h3>
                
                <div className="bg-white dark:bg-slate-900 rounded-[2rem] p-6 border border-slate-200 dark:border-slate-800 space-y-6">
                   {/* Milestones */}
                   <div className="space-y-4">
                     <div className="flex items-center gap-2">
                       <Star size={14} className="text-amber-500" />
-                      <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Eventos & Seminários</p>
+                      <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">{t('common.eventsSeminars')}</p>
                     </div>
                     <div className="flex flex-wrap gap-2">
                       {student.milestones?.map((m) => (
@@ -759,7 +977,7 @@ const StudentPortal: React.FC = () => {
                         </div>
                       ))}
                       {(!student.milestones || student.milestones.length === 0) && (
-                        <p className="text-[9px] text-slate-400 italic">Nenhuma conquista registrada.</p>
+                        <p className="text-[9px] text-slate-400 italic">{t('common.noRecords')}</p>
                       )}
                     </div>
                   </div>
@@ -768,7 +986,7 @@ const StudentPortal: React.FC = () => {
                   <div className="space-y-4 pt-4 border-t border-slate-100 dark:border-slate-800">
                     <div className="flex items-center gap-2">
                       <Zap size={14} className="text-amber-500" />
-                      <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Nível de Técnicas</p>
+                      <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">{t('common.techLevel')}</p>
                     </div>
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                       {student.techniques?.map((tech, idx) => (
@@ -946,18 +1164,92 @@ const StudentPortal: React.FC = () => {
           </motion.div>
         )}
         {activeTab === 'wallet' && (
-          <div className="space-y-6">
-            <div className={`p-8 rounded-[2.5rem] text-white shadow-2xl ${isOverdue ? 'bg-red-900' : 'bg-slate-900'}`}>
-               <p className="text-[10px] font-black uppercase text-white/50 mb-1">{t('financial.monthlyFee')}</p>
-               <h3 className="text-3xl font-black uppercase tracking-tighter">{isOverdue ? t('financial.statusOverdue') : t('financial.statusPaid')}</h3>
-               <div className="mt-8 pt-4 border-t border-white/10 flex justify-between items-center">
-                  <span className="text-xs font-bold opacity-60">{t('financial.monthlyValue')}</span>
-                  <span className="text-lg font-black tabular-nums">{t('common.currencySymbol')} {student.monthlyValue.toFixed(2)}</span>
+          <motion.div 
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="space-y-6"
+          >
+            {/* Professional Financial Card */}
+            <div className={`rounded-[2.5rem] p-10 text-white shadow-2xl relative overflow-hidden border-2 group ${isOverdue ? 'bg-red-950 border-red-500/50' : 'bg-slate-900 border-white/5'}`}>
+               <div className={`absolute top-0 right-0 w-64 h-64 rounded-full blur-[100px] opacity-20 -translate-y-1/2 translate-x-1/2 ${isOverdue ? 'bg-red-500' : 'bg-blue-600'}`} />
+               
+               <div className="relative z-10 flex justify-between items-start mb-12">
+                  <div className="p-4 bg-white/5 rounded-3xl backdrop-blur-md border border-white/10 group-hover:scale-110 transition-transform">
+                    <CreditCard size={32} className={isOverdue ? 'text-red-400' : 'text-blue-400'} />
+                  </div>
+                  <div className="text-right">
+                    <p className="text-[10px] font-black text-white/50 uppercase tracking-[0.2em] mb-1">MENSALIDADE {new Date().toLocaleDateString('pt-BR', { month: 'long' }).toUpperCase()}</p>
+                    <div className={`inline-flex items-center gap-2 px-3 py-1 rounded-full text-[9px] font-black uppercase tracking-widest ${isOverdue ? 'bg-red-500/20 text-red-400 border border-red-500/30' : 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/30'}`}>
+                      <div className={`w-1.5 h-1.5 rounded-full animate-pulse ${isOverdue ? 'bg-red-400' : 'bg-emerald-400'}`} />
+                      {isOverdue ? t('financial.statusOverdue') : t('financial.statusPaid')}
+                    </div>
+                  </div>
+               </div>
+
+               <div className="relative z-10 space-y-2">
+                 <p className="text-[9px] font-black text-white/40 uppercase tracking-[0.3em]">VALOR DO INVESTIMENTO</p>
+                 <div className="flex items-baseline gap-2">
+                   <h3 className="text-5xl font-black tracking-tighter tabular-nums">{t('common.currencySymbol')} {student.monthlyValue.toFixed(2)}</h3>
+                   <span className="text-[10px] font-bold text-white/30 uppercase italic">/ Mês</span>
+                 </div>
+               </div>
+
+               <div className="mt-12 pt-8 border-t border-white/10 relative z-10 grid grid-cols-2 gap-4">
+                  <div className="space-y-1">
+                    <p className="text-[8px] font-black text-white/40 uppercase">PRÓXIMO VENCIMENTO</p>
+                    <p className="text-xs font-black uppercase">{student.dueDay} {new Date().toLocaleDateString('pt-BR', { month: 'short' })}</p>
+                  </div>
+                  <div className="text-right space-y-1">
+                    <p className="text-[8px] font-black text-white/40 uppercase">MÉTODO PREFERENCIAL</p>
+                    <p className="text-xs font-black uppercase">PIX SEGURO</p>
+                  </div>
                </div>
             </div>
-            <button onClick={() => setShowPix(true)} className="w-full py-5 bg-blue-600 text-white rounded-[1.5rem] font-black text-xs uppercase tracking-widest shadow-xl flex items-center justify-center gap-3"><QrCode size={20} /> {t('portal.payPix').toUpperCase()}</button>
-            <button onClick={() => setShowReceipt(true)} className="w-full py-5 bg-slate-800 text-white rounded-[1.5rem] font-black text-xs uppercase tracking-widest shadow-xl flex items-center justify-center gap-3 border border-white/10"><Download size={20} /> {t('portal.uploadReceipt').toUpperCase()}</button>
-          </div>
+
+            <div className="grid grid-cols-1 gap-4">
+              <button 
+                onClick={() => setShowPix(true)} 
+                className="w-full py-6 bg-blue-600 text-white rounded-[2rem] font-black text-xs uppercase tracking-widest shadow-2xl shadow-blue-600/20 flex items-center justify-center gap-4 active:scale-95 hover:bg-blue-700 transition-all group"
+              >
+                <QrCode size={24} className="group-hover:rotate-12 transition-transform" /> {t('portal.payPix').toUpperCase()}
+              </button>
+              
+              <button 
+                onClick={() => setShowReceipt(true)} 
+                className="w-full py-6 bg-white dark:bg-slate-900 text-slate-900 dark:text-white rounded-[2rem] font-black text-xs uppercase tracking-widest shadow-lg flex items-center justify-center gap-4 border border-slate-200 dark:border-slate-800 active:scale-95 hover:bg-slate-50 transition-all"
+              >
+                <Upload size={24} className="text-slate-400" /> {t('portal.uploadReceipt').toUpperCase()}
+              </button>
+            </div>
+
+            {/* Financial History Section */}
+            <div className="bg-white dark:bg-slate-900 rounded-[2.5rem] p-8 border border-slate-200 dark:border-slate-800 shadow-sm space-y-6">
+                <div className="flex items-center gap-3">
+                  <div className="p-2 bg-slate-100 dark:bg-slate-800 rounded-xl text-slate-500">
+                    <FileText size={18} />
+                  </div>
+                  <h4 className="text-[10px] font-black text-slate-500 uppercase tracking-widest">Histórico de Quitação</h4>
+                </div>
+                
+                <div className="space-y-3">
+                   {payments.filter(p => p.name === student.name).slice(0, 5).map((pay, i) => (
+                     <div key={i} className="flex items-center justify-between p-4 bg-slate-50 dark:bg-slate-800/50 rounded-2xl border border-slate-100 dark:border-slate-700/50">
+                        <div className="flex items-center gap-3">
+                           <div className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
+                           <div>
+                              <p className="text-[10px] font-black dark:text-white uppercase leading-none">{pay.date}</p>
+                              <p className="text-[8px] font-medium text-slate-500 uppercase mt-1 italic">Processado via Ledger</p>
+                           </div>
+                        </div>
+                        <span className="text-xs font-black text-slate-900 dark:text-white tabular-nums">{t('common.currencySymbol')} {pay.amount.toFixed(2)}</span>
+                     </div>
+                   ))}
+                   {payments.filter(p => p.name === student.name).length === 0 && (
+                     <p className="text-[9px] text-slate-400 text-center italic py-4">{t('financial.noRecentFlow')}</p>
+                   )}
+                </div>
+            </div>
+          </motion.div>
         )}
 
         {activeTab === 'knowledge' && (
@@ -1207,6 +1499,76 @@ const StudentPortal: React.FC = () => {
             </AnimatePresence>
           </div>
         )}
+        {activeTab === 'homeTraining' && (
+          <motion.div 
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="space-y-6"
+          >
+            <div className="bg-slate-900 rounded-[2.5rem] p-8 text-white relative shadow-2xl overflow-hidden border border-white/5">
+              <div className="absolute top-0 right-0 w-64 h-64 bg-amber-600 rounded-full blur-[100px] opacity-20 -translate-y-1/2 translate-x-1/2" />
+              <div className="relative z-10">
+                <div className="p-3 bg-amber-500/10 rounded-2xl border border-amber-500/20 w-fit mb-4">
+                  <Dumbbell size={24} className="text-amber-500" />
+                </div>
+                <h3 className="text-2xl font-black uppercase tracking-tighter mb-2">{t('portal.homeTrainingTitle')}</h3>
+                <p className="text-[10px] font-medium text-slate-400 uppercase tracking-widest leading-relaxed max-w-sm">
+                  {t('portal.homeTrainingDesc')}
+                </p>
+              </div>
+            </div>
+
+            {homeWorkouts.map((section) => (
+              <div key={section.id} className="bg-white dark:bg-slate-900 rounded-[2.5rem] p-8 border border-slate-200 dark:border-slate-800 shadow-sm">
+                <div className="flex items-center gap-3 mb-6">
+                  <div className="p-2 bg-slate-50 dark:bg-slate-800 rounded-xl">
+                    {section.icon}
+                  </div>
+                  <h4 className="text-[10px] font-black text-slate-500 uppercase tracking-widest">{section.title}</h4>
+                </div>
+
+                <div className="space-y-4">
+                  {section.exercises.map((ex, i) => {
+                    const exerciseId = `${section.id}-${i}`;
+                    return (
+                      <div key={i} className="group p-4 bg-slate-50 dark:bg-slate-800/50 rounded-2xl border border-slate-100 dark:border-slate-700/50 hover:border-blue-500/30 transition-all">
+                        <div className="flex justify-between items-center mb-1">
+                          <div className="flex-1">
+                            <p className="text-xs font-black text-slate-900 dark:text-white uppercase">{ex.name}</p>
+                            <p className="text-[9px] font-medium text-slate-400 uppercase tracking-tight italic">{ex.desc}</p>
+                          </div>
+                          <div className="flex items-center gap-2">
+                             <span className="text-[9px] font-black text-slate-400 uppercase">{t('portal.repsPlaceholder')}</span>
+                             <input 
+                                type="number" 
+                                value={workoutCounts[exerciseId] || ''}
+                                onChange={(e) => setWorkoutCounts(prev => ({ ...prev, [exerciseId]: parseInt(e.target.value) || 0 }))}
+                                className="w-12 h-8 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-lg text-center text-xs font-black text-blue-600 focus:outline-none focus:ring-2 focus:ring-blue-500/20"
+                                placeholder="0"
+                             />
+                          </div>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+
+                <motion.button
+                  whileTap={{ scale: 0.95 }}
+                  onClick={() => handleRegisterWorkout(section.id)}
+                  className="w-full mt-6 py-3 bg-slate-900 dark:bg-white text-white dark:text-slate-900 rounded-xl font-black text-[10px] uppercase tracking-widest flex items-center justify-center gap-2 shadow-lg"
+                >
+                  <CheckCircle2 size={16} />
+                  {t('portal.registerWorkout')}
+                </motion.button>
+              </div>
+            ))}
+            
+            <div className="p-6 bg-blue-600/5 rounded-[2rem] border border-blue-600/10 text-center">
+                <p className="text-[9px] font-black text-blue-600 uppercase tracking-widest italic">"A constância é a mãe da maestria." - SENSEI</p>
+            </div>
+          </motion.div>
+        )}
         {activeTab === 'gallery' && (
           <div className="space-y-6">
             <div className="flex items-center justify-between">
@@ -1418,16 +1780,17 @@ const StudentPortal: React.FC = () => {
         </div>
       )}
 
-      <nav className="fixed bottom-0 left-0 right-0 bg-white/80 dark:bg-slate-900/80 backdrop-blur-lg border-t border-slate-200 dark:border-slate-800 px-2 py-4 flex items-center justify-around z-50">
-        <button onClick={() => setActiveTab('home')} className={`flex flex-col items-center gap-1 ${activeTab === 'home' ? 'text-blue-600' : 'text-slate-400'}`}><Zap size={22} /><span className="text-[7px] font-black uppercase whitespace-nowrap">{t('portal.navHome')}</span></button>
-        <button onClick={() => setActiveTab('training')} className={`flex flex-col items-center gap-1 ${activeTab === 'training' ? 'text-blue-600' : 'text-slate-400'}`}><Play size={22} /><span className="text-[7px] font-black uppercase whitespace-nowrap">{t('portal.navTraining')}</span></button>
-        <button onClick={() => setActiveTab('knowledge')} className={`flex flex-col items-center gap-1 ${activeTab === 'knowledge' ? 'text-blue-600' : 'text-slate-400'}`}><BookOpen size={22} /><span className="text-[7px] font-black uppercase whitespace-nowrap">{t('portal.navKnowledge')}</span></button>
-        <button onClick={() => setActiveTab('community')} className={`flex flex-col items-center gap-1 ${activeTab === 'community' ? 'text-blue-600' : 'text-slate-400'}`}><Users size={22} /><span className="text-[7px] font-black uppercase whitespace-nowrap">{t('portal.navCommunity')}</span></button>
-        <button onClick={() => setActiveTab('wallet')} className={`flex flex-col items-center gap-1 ${activeTab === 'wallet' ? 'text-blue-600' : 'text-slate-400'}`}><CreditCard size={22} /><span className="text-[7px] font-black uppercase whitespace-nowrap">{t('portal.navWallet')}</span></button>
-        <button onClick={() => setActiveTab('gallery')} className={`flex flex-col items-center gap-1 ${activeTab === 'gallery' ? 'text-blue-600' : 'text-slate-400'}`}><ImageIcon size={22} /><span className="text-[7px] font-black uppercase whitespace-nowrap">{t('portal.navGallery')}</span></button>
+      <nav className="fixed bottom-0 left-0 right-0 bg-white/80 dark:bg-slate-900/80 backdrop-blur-lg border-t border-slate-200 dark:border-slate-800 px-4 py-4 flex items-center justify-start sm:justify-around gap-6 sm:gap-0 z-50 overflow-x-auto no-scrollbar scroll-smooth">
+        <button onClick={() => setActiveTab('home')} className={`flex flex-col items-center gap-1 shrink-0 ${activeTab === 'home' ? 'text-blue-600' : 'text-slate-400'}`}><Zap size={22} /><span className="text-[7px] font-black uppercase whitespace-nowrap">{t('portal.navHome')}</span></button>
+        <button onClick={() => setActiveTab('training')} className={`flex flex-col items-center gap-1 shrink-0 ${activeTab === 'training' ? 'text-blue-600' : 'text-slate-400'}`}><Play size={22} /><span className="text-[7px] font-black uppercase whitespace-nowrap">{t('portal.navTraining')}</span></button>
+        <button onClick={() => setActiveTab('homeTraining')} className={`flex flex-col items-center gap-1 shrink-0 ${activeTab === 'homeTraining' ? 'text-blue-600' : 'text-slate-400'}`}><Dumbbell size={22} /><span className="text-[7px] font-black uppercase whitespace-nowrap">{t('portal.navHomeTraining')}</span></button>
+        <button onClick={() => setActiveTab('knowledge')} className={`flex flex-col items-center gap-1 shrink-0 ${activeTab === 'knowledge' ? 'text-blue-600' : 'text-slate-400'}`}><BookOpen size={22} /><span className="text-[7px] font-black uppercase whitespace-nowrap">{t('portal.navKnowledge')}</span></button>
+        <button onClick={() => setActiveTab('community')} className={`flex flex-col items-center gap-1 shrink-0 ${activeTab === 'community' ? 'text-blue-600' : 'text-slate-400'}`}><Users size={22} /><span className="text-[7px] font-black uppercase whitespace-nowrap">{t('portal.navCommunity')}</span></button>
+        <button onClick={() => setActiveTab('wallet')} className={`flex flex-col items-center gap-1 shrink-0 ${activeTab === 'wallet' ? 'text-blue-600' : 'text-slate-400'}`}><CreditCard size={22} /><span className="text-[7px] font-black uppercase whitespace-nowrap">{t('portal.navWallet')}</span></button>
+        <button onClick={() => setActiveTab('gallery')} className={`flex flex-col items-center gap-1 shrink-0 ${activeTab === 'gallery' ? 'text-blue-600' : 'text-slate-400'}`}><ImageIcon size={22} /><span className="text-[7px] font-black uppercase whitespace-nowrap">{t('portal.navGallery')}</span></button>
       </nav>
 
-      <style>{` @keyframes scan { 0% { transform: translateY(-150px); } 100% { transform: translateY(150px); } } `}</style>
+      <style>{` .no-scrollbar::-webkit-scrollbar { display: none; } .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; } @keyframes scan { 0% { transform: translateY(-150px); } 100% { transform: translateY(150px); } } `}</style>
     </div>
   );
 };

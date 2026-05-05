@@ -402,27 +402,49 @@ const SystemAudit: React.FC = () => {
             className="space-y-8"
           >
             {/* Blockchain Verification Banner */}
-            <div className="bg-slate-900 rounded-[2.5rem] p-8 border border-slate-800 shadow-2xl relative overflow-hidden group">
-              <div className="absolute top-0 right-0 w-96 h-96 bg-blue-600/10 rounded-full blur-[100px] -translate-y-1/2 translate-x-1/2 group-hover:bg-blue-600/20 transition-all duration-1000" />
-              <div className="relative flex flex-col md:flex-row items-center justify-between gap-8">
-                <div className="flex items-center gap-6 text-center md:text-left">
-                  <div className={`w-20 h-20 rounded-[2rem] flex items-center justify-center ${verifyingChain ? 'animate-spin' : ''} ${chainResult ? (chainResult.success ? 'bg-green-500/20 text-green-500' : 'bg-red-500/20 text-red-500') : 'bg-blue-600/20 text-blue-500'}`}>
-                    <ShieldCheck size={40} />
+            <div className="bg-slate-900 rounded-[2.5rem] p-10 border border-slate-800 shadow-2xl relative overflow-hidden group">
+              <div className="absolute top-0 right-0 w-full h-full bg-[radial-gradient(circle_at_70%_20%,rgba(59,130,246,0.1),transparent)] pointer-events-none" />
+              <div className="relative flex flex-col xl:flex-row items-center justify-between gap-12">
+                <div className="flex flex-col md:flex-row items-center gap-8 text-center md:text-left">
+                  <div className="relative">
+                    <div className={`w-24 h-24 rounded-[2rem] flex items-center justify-center relative z-10 ${verifyingChain ? 'animate-pulse' : ''} ${chainResult ? (chainResult.success ? 'bg-green-500/20 text-green-500' : 'bg-red-500/20 text-red-500') : 'bg-blue-600/20 text-blue-500 border border-blue-500/30'}`}>
+                      {verifyingChain ? <RefreshCw className="animate-spin" size={44} /> : <ShieldCheck size={44} />}
+                    </div>
+                    {/* Animated Orbitals for "Blockchain" feel */}
+                    <div className="absolute inset-x-0 inset-y-0 -m-4 border border-blue-500/10 rounded-[2.5rem] animate-[spin_10s_linear_infinite] pointer-events-none" />
+                    <div className="absolute inset-x-0 inset-y-0 -m-8 border border-white/5 rounded-[3rem] animate-[spin_15s_linear_infinite_reverse] pointer-events-none" />
                   </div>
                   <div>
-                    <h2 className="text-2xl font-black text-white uppercase tracking-tighter">Validação de Consenso Blockchain</h2>
-                    <p className="text-slate-400 text-xs font-bold uppercase tracking-widest mt-1">
-                      {verifyingChain ? 'Processando algoritmos de criptografia SHA-256...' : (chainResult ? chainResult.message : 'Sincronização master pendente de verificação.')}
+                    <h2 className="text-3xl font-black text-white uppercase tracking-tighter leading-none mb-3 italic">Validação de Consenso Blockchain</h2>
+                    <div className="flex flex-wrap justify-center md:justify-start gap-2 mb-3">
+                       <span className="px-3 py-1 bg-blue-600/10 border border-blue-600/20 rounded-full text-[8px] font-black text-blue-400 uppercase tracking-widest">Protocolo SHA-256</span>
+                       <span className="px-3 py-1 bg-white/5 border border-white/10 rounded-full text-[8px] font-black text-slate-400 uppercase tracking-widest">Imutabilidade Ativa</span>
+                    </div>
+                    <p className="text-slate-400 text-[10px] font-bold uppercase tracking-widest max-w-xl leading-relaxed">
+                      {verifyingChain ? 'Executando algoritmos recursivos de verificação de hash...' : (chainResult ? chainResult.message : 'Sincronização master blindada pendente de auditoria de bloco.')}
                     </p>
                   </div>
                 </div>
-                <button 
-                  onClick={performChainVerification}
-                  disabled={verifyingChain}
-                  className="px-10 py-5 bg-blue-600 hover:bg-blue-500 text-white rounded-3xl font-black uppercase text-[11px] tracking-[0.2em] shadow-xl shadow-blue-600/20 transition-all active:scale-95 disabled:opacity-50"
-                >
-                  {verifyingChain ? 'Verificando...' : 'Autenticar Corrente'}
-                </button>
+
+                <div className="flex flex-col sm:flex-row items-center gap-4">
+                  <div className="hidden lg:flex items-center gap-1">
+                    {[...Array(6)].map((_, i) => (
+                      <div key={i} className={`w-2 h-8 rounded-full ${chainResult?.success ? 'bg-green-500/40' : (verifyingChain ? 'bg-blue-500/40 animate-pulse' : 'bg-slate-800')} transition-all delay-[${i*100}ms]`} />
+                    ))}
+                  </div>
+                  <button 
+                    onClick={performChainVerification}
+                    disabled={verifyingChain}
+                    className="px-12 py-6 bg-blue-600 hover:bg-blue-500 text-white rounded-[2rem] font-black uppercase text-[11px] tracking-[0.25em] shadow-[0_20px_50px_rgba(37,99,235,0.3)] transition-all active:scale-95 disabled:opacity-50 flex items-center gap-3 group"
+                  >
+                    {verifyingChain ? 'Sincronizando...' : (
+                      <>
+                        <Zap size={18} className="group-hover:text-yellow-400 transition-colors" />
+                        Autenticar Corrente
+                      </>
+                    )}
+                  </button>
+                </div>
               </div>
             </div>
 

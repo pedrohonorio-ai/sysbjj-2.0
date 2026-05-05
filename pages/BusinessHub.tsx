@@ -114,7 +114,19 @@ const BusinessHub: React.FC = () => {
   });
 
   const [productForm, setProductForm] = useState({ name: '', price: 0, category: ExtraRevenueCategory.PRODUCT, stock: 0 });
-  const [planForm, setPlanForm] = useState({ name: '', price: 0, description: '' });
+  const [planForm, setPlanForm] = useState({ name: '', price: 0, description: '', benefits: [] as string[] });
+  const [newBenefit, setNewBenefit] = useState('');
+
+  const handleAddBenefit = () => {
+    if (newBenefit.trim()) {
+      setPlanForm({ ...planForm, benefits: [...planForm.benefits, newBenefit.trim()] });
+      setNewBenefit('');
+    }
+  };
+
+  const removeBenefit = (index: number) => {
+    setPlanForm({ ...planForm, benefits: planForm.benefits.filter((_, i) => i !== index) });
+  };
 
   const churnRiskStudents = useMemo(() => {
     return students.filter(s => {
@@ -171,16 +183,24 @@ const BusinessHub: React.FC = () => {
     const isValid = verifyLedgerIntegrity();
     setIntegrityStatus({
       valid: isValid,
-      message: isValid ? 'Integridade da Blockchain confirmada! Todos os dados estão seguros.' : 'Atenção: Falha na integridade dos dados detectada!'
+      message: isValid ? t('business.integrityConfirmed') : t('business.integrityFailed')
     });
     setTimeout(() => setIntegrityStatus(null), 5000);
   };
 
   const handleExportFinancialCSV = () => {
-    const headers = ['Tipo', 'ID', 'Nome/Descrição', 'Valor', 'Data', 'Método', 'Status'];
+    const headers = [
+      t('business.financialReportHeaders.type'),
+      t('business.financialReportHeaders.id'),
+      t('business.financialReportHeaders.description'),
+      t('business.financialReportHeaders.amount'),
+      t('business.financialReportHeaders.date'),
+      t('business.financialReportHeaders.method'),
+      t('business.financialReportHeaders.status')
+    ];
     const rows = [
-      ...payments.map(p => ['Mensalidade', p.id, p.name, p.amount, p.date, p.method, p.status]),
-      ...extraRevenue.map(e => ['Venda/Extra', e.id, e.description, e.amount, e.date, e.paymentMethod, e.paid ? 'Confirmado' : 'Pendente'])
+      ...payments.map(p => [t('business.financialReportHeaders.membership'), p.id, p.name, p.amount, p.date, p.method, p.status]),
+      ...extraRevenue.map(e => [t('business.financialReportHeaders.sale'), e.id, e.description, e.amount, e.date, e.paymentMethod, e.paid ? t('common.approved') : t('common.pending')])
     ];
 
     const csvContent = [
@@ -649,6 +669,7 @@ const BusinessHub: React.FC = () => {
                     <thead>
                       <tr className="bg-slate-50 dark:bg-slate-900/80 border-b border-slate-200 dark:border-slate-800">
                         <th className="px-10 py-6 text-[10px] font-black text-slate-400 uppercase tracking-[0.1em]">{t('common.name')}</th>
+                        <th className="px-10 py-6 text-[10px] font-black text-slate-400 uppercase tracking-[0.1em]">{t('business.plans')}</th>
                         <th className="px-10 py-6 text-[10px] font-black text-slate-400 uppercase tracking-[0.1em]">{t('common.value')}</th>
                         <th className="px-10 py-6 text-[10px] font-black text-slate-400 uppercase tracking-[0.1em]">{t('common.date')}</th>
                         <th className="px-10 py-6 text-[10px] font-black text-slate-400 uppercase tracking-[0.1em] text-center">Status</th>
@@ -658,6 +679,7 @@ const BusinessHub: React.FC = () => {
                     <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
                       {allStudents.filter(s => s.name.toLowerCase().includes(searchTerm.toLowerCase())).map(s => {
                         const isPaid = s.lastPaymentDate?.startsWith(currentMonth);
+                        const currentPlan = plans.find(p => p.id === s.planId);
                         return (
                           <motion.tr 
                             key={s.id} 
@@ -668,6 +690,26 @@ const BusinessHub: React.FC = () => {
                             <td className="px-10 py-7">
                               <p className="font-black text-slate-900 dark:text-white uppercase text-sm group-hover:text-emerald-600 transition-colors duration-300">{s.name}</p>
                               <p className="text-[9px] font-bold text-slate-400 uppercase tracking-widest mt-1">ID: {s.id.split('-')[1]}</p>
+                            </td>
+                            <td className="px-10 py-7">
+                               <select 
+                                 value={s.planId || ""} 
+                                 onChange={(e) => {
+                                   const newPlanId = e.target.value;
+                                   const plan = plans.find(p => p.id === newPlanId);
+                                   if (plan) {
+                                     updateStudent(s.id, { planId: newPlanId, monthlyValue: plan.price });
+                                   } else {
+                                     updateStudent(s.id, { planId: "" });
+                                   }
+                                 }}
+                                 className="bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl px-3 py-1.5 text-[9px] font-black uppercase tracking-widest text-slate-600 dark:text-slate-200 outline-none focus:ring-2 focus:ring-indigo-500 transition-all"
+                               >
+                                  <option value="">{t('common.none').toUpperCase()}</option>
+                                  {plans.map(p => (
+                                    <option key={p.id} value={p.id}>{p.name}</option>
+                                  ))}
+                               </select>
                             </td>
                             <td className="px-10 py-7">
                               <span className={`text-base font-black tabular-nums font-mono ${isPaid ? 'text-emerald-600 dark:text-emerald-400' : 'text-red-500'}`}>
@@ -780,7 +822,7 @@ const BusinessHub: React.FC = () => {
                 ))}
                 {filteredSales.length === 0 && (
                   <div className="col-span-full py-20 text-center text-slate-400 italic font-bold uppercase tracking-widest text-sm border-2 border-dashed border-slate-100 dark:border-slate-800 rounded-[3rem]">
-                    Nenhuma venda encontrada.
+                    {t('business.noRecords')}
                   </div>
                 )}
               </div>
@@ -842,17 +884,29 @@ const BusinessHub: React.FC = () => {
 
             <div className="space-y-4">
               {plans.map(plan => (
-                <div key={plan.id} className="flex items-center justify-between p-6 bg-slate-50 dark:bg-slate-800/50 rounded-3xl border border-slate-100 dark:border-slate-700 group hover:border-indigo-500/30 transition-all">
-                  <div className="flex items-center gap-4">
-                    <div className="w-12 h-12 bg-white dark:bg-slate-800 rounded-2xl flex items-center justify-center text-slate-400 group-hover:text-indigo-500 transition-colors">
-                      <Zap size={20} />
+                <div key={plan.id} className="p-6 bg-slate-50 dark:bg-slate-800/50 rounded-[2.5rem] border border-slate-100 dark:border-slate-700 group hover:border-indigo-500/30 transition-all">
+                  <div className="flex items-center justify-between mb-4">
+                    <div className="flex items-center gap-4">
+                      <div className="w-12 h-12 bg-white dark:bg-slate-800 rounded-2xl flex items-center justify-center text-slate-400 group-hover:text-indigo-500 transition-colors">
+                        <Zap size={20} />
+                      </div>
+                      <div>
+                        <p className="font-black text-slate-900 dark:text-white uppercase tracking-tight">{plan.name}</p>
+                        <p className="text-[10px] font-black text-indigo-600 uppercase tracking-widest leading-none mt-1">{t('common.currencySymbol')} {plan.price.toFixed(2)}</p>
+                      </div>
                     </div>
-                    <div>
-                      <p className="font-black text-slate-900 dark:text-white uppercase tracking-tight">{plan.name}</p>
-                      <p className="text-[10px] font-black text-indigo-600 uppercase tracking-widest leading-none mt-1">{t('common.currencySymbol')} {plan.price.toFixed(2)}</p>
-                    </div>
+                    <button onClick={() => deletePlan(plan.id)} className="p-3 text-slate-300 hover:text-red-500 transition-colors hover:scale-110 outline-none"><Trash2 size={18} /></button>
                   </div>
-                  <button onClick={() => deletePlan(plan.id)} className="p-3 text-slate-300 hover:text-red-500 transition-colors hover:scale-110 outline-none"><Trash2 size={18} /></button>
+                  
+                  {plan.benefits && plan.benefits.length > 0 && (
+                    <div className="flex flex-wrap gap-2 mt-4">
+                      {plan.benefits.map((benefit, idx) => (
+                        <span key={idx} className="px-3 py-1.5 bg-indigo-50 dark:bg-indigo-900/20 text-indigo-600 text-[9px] font-black uppercase tracking-widest rounded-lg border border-indigo-100 dark:border-indigo-800/50 flex items-center gap-1.5">
+                          <CheckCircle size={10} /> {benefit}
+                        </span>
+                      ))}
+                    </div>
+                  )}
                 </div>
               ))}
               {plans.length === 0 && <p className="text-center py-10 text-slate-400 italic text-sm">{t('business.noPlans')}</p>}
@@ -870,7 +924,7 @@ const BusinessHub: React.FC = () => {
                       <div className="w-10 h-10 bg-blue-100 dark:bg-blue-900/20 text-blue-600 rounded-xl flex items-center justify-center">
                         <TrendingUp size={20} />
                       </div>
-                      Fluxo de Receita
+                      {t('business.revenueStream')}
                     </h3>
                   </div>
                   <ResponsiveContainer width="100%" height={320}>
@@ -906,7 +960,7 @@ const BusinessHub: React.FC = () => {
                       <div className="w-10 h-10 bg-indigo-100 dark:bg-indigo-900/20 text-indigo-600 rounded-xl flex items-center justify-center">
                         <PieChartIcon size={20} />
                       </div>
-                      Perfil Técnico
+                      {t('business.technicalProfile')}
                     </h3>
                   </div>
                   <ResponsiveContainer width="100%" height={320}>
@@ -946,8 +1000,8 @@ const BusinessHub: React.FC = () => {
                   <div className="lg:col-span-2 space-y-6">
                      <div className="flex items-center justify-between bg-white dark:bg-slate-900 p-8 rounded-[2.5rem] border border-slate-200 dark:border-slate-800 shadow-sm">
                         <div>
-                           <h3 className="text-xl font-black text-slate-900 dark:text-white uppercase tracking-tighter">Análise Preditiva de Churn</h3>
-                           <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mt-1">Identificação precoce de alunos em risco de desistência</p>
+                           <h3 className="text-xl font-black text-slate-900 dark:text-white uppercase tracking-tighter">{t('business.churnAnalysisTitle')}</h3>
+                           <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mt-1">{t('business.churnAnalysisDesc')}</p>
                         </div>
                         <div className="w-16 h-16 bg-red-100 dark:bg-red-900/20 rounded-2xl flex items-center justify-center text-red-600">
                            <ShieldAlert size={32} />
@@ -974,7 +1028,7 @@ const BusinessHub: React.FC = () => {
                                     <td className="px-8 py-6">
                                        <div className="flex items-center gap-2">
                                           <Clock size={12} className="text-slate-400" />
-                                          <span className="text-xs font-black text-slate-600 dark:text-slate-300 tabular-nums">{s.daysAbsent} DIAS</span>
+                                          <span className="text-xs font-black text-slate-600 dark:text-slate-300 tabular-nums">{s.daysAbsent} {t('common.days').toUpperCase()}</span>
                                        </div>
                                     </td>
                                     <td className="px-8 py-6 text-center">
@@ -983,17 +1037,17 @@ const BusinessHub: React.FC = () => {
                                           s.riskLevel === 'Medium' ? 'bg-amber-500 text-white shadow-lg shadow-amber-500/20' :
                                           'bg-blue-500 text-white shadow-lg shadow-blue-500/20'
                                        }`}>
-                                          {s.riskLevel === 'High' ? 'Crítico' : s.riskLevel === 'Medium' ? 'Alerta' : 'Monitoramento'}
+                                          {s.riskLevel === 'High' ? t('business.riskCritical') : s.riskLevel === 'Medium' ? t('business.riskAlert') : t('business.riskMonitoring')}
                                        </span>
                                     </td>
                                     <td className="px-8 py-6 text-right">
-                                       <button className="px-4 py-2 bg-slate-900 dark:bg-white text-white dark:text-slate-900 rounded-xl text-[9px] font-black uppercase tracking-widest hover:scale-105 active:scale-95 transition-all">Notificar</button>
+                                       <button className="px-4 py-2 bg-slate-900 dark:bg-white text-white dark:text-slate-900 rounded-xl text-[9px] font-black uppercase tracking-widest hover:scale-105 active:scale-95 transition-all">{t('business.notifyBtn')}</button>
                                     </td>
                                  </tr>
                               ))}
                               {churnRiskStudents.length === 0 && (
                                  <tr>
-                                    <td colSpan={4} className="py-20 text-center text-slate-400 italic text-xs uppercase font-black tracking-widest">Nenhum aluno em risco detectado. Oss!</td>
+                                    <td colSpan={4} className="py-20 text-center text-slate-400 italic text-xs uppercase font-black tracking-widest">{t('business.noRecords')} Oss!</td>
                                  </tr>
                               )}
                            </tbody>
@@ -1005,17 +1059,17 @@ const BusinessHub: React.FC = () => {
                      <div className="p-8 bg-slate-900 rounded-[2.5rem] text-white border border-slate-800 shadow-2xl relative overflow-hidden">
                         <div className="absolute top-0 right-0 w-24 h-24 bg-blue-600 rounded-full blur-[60px] opacity-20" />
                         <h4 className="text-[10px] font-black text-blue-400 uppercase tracking-widest mb-6 flex items-center gap-2">
-                           <Zap size={14} /> Insights da AI
+                           <Zap size={14} /> {t('business.aiInsights')}
                         </h4>
                         <div className="space-y-6">
                            <div className="p-4 bg-white/5 rounded-2xl border border-white/5">
-                              <p className="text-[10px] font-black text-blue-400 uppercase tracking-widest mb-2">Padrão Detectado</p>
+                              <p className="text-[10px] font-black text-blue-400 uppercase tracking-widest mb-2">{t('business.patternDetected')}</p>
                               <p className="text-xs font-medium leading-relaxed italic text-slate-400">
                                  "Alunos da faixa branca que faltam por mais de 10 dias consecutivos após o primeiro mês têm 85% de chance de churn. Recomendamos uma ligação de boas-vindas reforçada."
                               </p>
                            </div>
                            <div className="p-4 bg-white/5 rounded-2xl border border-white/5">
-                              <p className="text-[10px] font-black text-emerald-400 uppercase tracking-widest mb-2">Dica de Retenção</p>
+                              <p className="text-[10px] font-black text-emerald-400 uppercase tracking-widest mb-2">{t('business.retentionTip')}</p>
                               <p className="text-xs font-medium leading-relaxed italic text-slate-400">
                                  "Crie um evento 'Family Day' para o próximo sábado. Dados indicam que o engajamento familiar reduz o churn em 30%."
                               </p>
@@ -1024,9 +1078,9 @@ const BusinessHub: React.FC = () => {
                      </div>
                      
                      <div className="p-8 bg-blue-600 rounded-[2.5rem] text-white shadow-2xl">
-                        <h4 className="text-xl font-black uppercase tracking-tighter mb-2 italic">Ação Imediata</h4>
-                        <p className="text-[10px] text-blue-100 font-bold uppercase tracking-widest mb-6">Reduzir Churn em 5% neste mês</p>
-                        <button className="w-full py-4 bg-white text-blue-600 rounded-2xl font-black uppercase text-[10px] tracking-widest shadow-xl hover:scale-[1.02] transition-all">Distribuir Vouchers de Retorno</button>
+                        <h4 className="text-xl font-black uppercase tracking-tighter mb-2 italic">{t('business.immediateAction')}</h4>
+                        <p className="text-[10px] text-blue-100 font-bold uppercase tracking-widest mb-6">{t('business.reduceChurnGoal')}</p>
+                        <button className="w-full py-4 bg-white text-blue-600 rounded-2xl font-black uppercase text-[10px] tracking-widest shadow-xl hover:scale-[1.02] transition-all">{t('business.distributeVouchers')}</button>
                      </div>
                   </div>
                </div>
@@ -1169,7 +1223,7 @@ const BusinessHub: React.FC = () => {
                 <div className="w-24 h-24 bg-slate-50 dark:bg-slate-800 rounded-[2.5rem] flex items-center justify-center mx-auto mb-8 text-slate-300">
                   <FileText size={48} />
                 </div>
-                <h4 className="text-xl font-black text-slate-400 uppercase tracking-tighter mb-2">Sem Pendências</h4>
+                <h4 className="text-xl font-black text-slate-400 uppercase tracking-tighter mb-2">{t('business.noRecords')}</h4>
                 <p className="text-slate-400 italic font-bold uppercase tracking-widest text-xs">
                   {t('financial.noRecords')}
                 </p>
@@ -1180,69 +1234,97 @@ const BusinessHub: React.FC = () => {
       )}
 
       {reportTab === 'ledger' && (
-        <div className="space-y-12 pb-10">
-          <div className="flex flex-col md:flex-row items-center justify-between gap-6 bg-white dark:bg-slate-900 p-8 rounded-[3rem] border border-slate-200 dark:border-slate-800 shadow-sm relative overflow-hidden">
-             <div className="absolute top-0 right-0 w-32 h-32 bg-indigo-600/10 rounded-full blur-3xl" />
-             <div className="flex items-center gap-6 relative z-10">
-                <div className="w-16 h-16 bg-indigo-600 text-white rounded-[1.5rem] flex items-center justify-center shadow-xl shadow-indigo-600/20">
-                   <Lock size={32} />
+        <div className="space-y-12 pb-10 max-w-5xl mx-auto">
+          <div className="flex flex-col md:flex-row items-center justify-between gap-8 bg-slate-900 p-12 rounded-[4rem] border border-slate-800 shadow-3xl relative overflow-hidden group">
+             <div className="absolute top-0 right-0 w-80 h-80 bg-blue-600/10 rounded-full blur-[100px] animate-pulse" />
+             <div className="flex flex-col md:flex-row items-center gap-8 relative z-10 text-center md:text-left">
+                <div className="relative">
+                  <div className="w-24 h-24 bg-blue-600 text-white rounded-[2rem] flex items-center justify-center shadow-[0_0_40px_rgba(37,99,235,0.4)] rotate-3 group-hover:rotate-6 transition-transform">
+                     <Lock size={40} />
+                  </div>
+                  <div className="absolute -bottom-2 -right-2 w-10 h-10 bg-emerald-500 rounded-2xl flex items-center justify-center text-white border-4 border-slate-900 shadow-xl">
+                    <ShieldCheck size={18} />
+                  </div>
                 </div>
                 <div>
-                    <h3 className="text-2xl font-black dark:text-white uppercase tracking-tighter leading-none mb-1">{t('common.ledger')}</h3>
-                    <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Protocolo de Integridade SHA-256</p>
+                    <h3 className="text-3xl font-black text-white uppercase tracking-tighter leading-none mb-3 italic">{t('common.ledger')} PRO</h3>
+                    <div className="flex flex-wrap justify-center md:justify-start gap-2">
+                       <span className="px-3 py-1 bg-white/5 border border-white/10 rounded-full text-[8px] font-black text-blue-400 uppercase tracking-widest">Sincronização Atômica</span>
+                       <span className="px-3 py-1 bg-white/5 border border-white/10 rounded-full text-[8px] font-black text-slate-400 uppercase tracking-widest">Ponta-a-Ponta</span>
+                    </div>
                 </div>
              </div>
              <button 
                 onClick={handleVerifyIntegrity}
-                className="w-full md:w-auto px-10 py-4 bg-slate-900 dark:bg-white dark:text-slate-900 text-white rounded-2xl font-black uppercase text-[10px] tracking-widest shadow-2xl flex items-center justify-center gap-3 active:scale-95 transition-all group"
+                className="w-full md:w-auto px-12 py-6 bg-white text-slate-900 rounded-[2rem] font-black uppercase text-[11px] tracking-[0.25em] shadow-2xl hover:scale-105 active:scale-95 transition-all flex items-center justify-center gap-3 group"
              >
-                <ShieldCheck size={18} className="group-hover:scale-110 transition-transform" /> {t('common.integrityCheck')}
+                <Zap size={18} className="text-blue-600 group-hover:scale-125 transition-transform" /> {t('common.integrityCheck')}
              </button>
           </div>
 
           {integrityStatus && (
             <motion.div 
-               initial={{ opacity: 0, y: -20 }}
-               animate={{ opacity: 1, y: 0 }}
-               className={`p-6 rounded-[2rem] flex items-center gap-4 border-2 ${integrityStatus.valid ? 'bg-emerald-50 border-emerald-100 text-emerald-800' : 'bg-red-50 border-red-100 text-red-800'}`}
+               initial={{ opacity: 0, scale: 0.95 }}
+               animate={{ opacity: 1, scale: 1 }}
+               className={`p-10 rounded-[3rem] flex flex-col md:flex-row items-center gap-8 border-2 shadow-2xl ${integrityStatus.valid ? 'bg-emerald-950/20 border-emerald-500/30 text-emerald-400' : 'bg-red-950/20 border-red-500/30 text-red-400'}`}
             >
-              <div className={`w-10 h-10 rounded-full flex items-center justify-center ${integrityStatus.valid ? 'bg-emerald-500 text-white' : 'bg-red-500 text-white'}`}>
-                {integrityStatus.valid ? <CheckCircle2 size={24} /> : <XCircle size={24} />}
+              <div className={`w-20 h-20 rounded-[2rem] flex items-center justify-center shrink-0 ${integrityStatus.valid ? 'bg-emerald-500 text-white' : 'bg-red-500 text-white shadow-[0_0_30px_rgba(239,68,68,0.4)] animate-bounce'}`}>
+                {integrityStatus.valid ? <CheckCircle2 size={40} /> : <XCircle size={40} />}
               </div>
               <div>
-                <p className="text-xs font-black uppercase tracking-widest">Verificação Completa</p>
-                <p className="text-[10px] font-bold opacity-70">{integrityStatus.message}</p>
+                <p className="text-2xl font-black uppercase tracking-tighter mb-1 italic">{integrityStatus.valid ? 'Sistema de Integridade Verificado' : 'Alerta de Inconsistência de Dados'}</p>
+                <p className="text-sm font-medium opacity-70 leading-relaxed uppercase tracking-widest">{integrityStatus.message}</p>
               </div>
             </motion.div>
           )}
 
-          <div className="space-y-6">
+          <div className="space-y-12">
             {ledger.map((block, idx) => (
-              <div key={block.id} className="bg-white dark:bg-slate-900 p-10 rounded-[3.5rem] border border-slate-100 dark:border-slate-800 space-y-6 relative group overflow-hidden shadow-sm hover:shadow-xl transition-all">
-                <div className="absolute top-0 right-0 p-8 text-slate-100 dark:text-slate-800 group-hover:text-indigo-600/5 transition-colors">
-                  <ShieldCheck size={120} />
-                </div>
-                <div className="flex justify-between items-center relative z-10">
-                  <div className="flex items-center gap-4">
-                    <span className="px-5 py-1.5 bg-slate-900 text-white rounded-full text-[10px] font-black uppercase tracking-widest">Block #{ledger.length - 1 - idx}</span>
-                    <span className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em]">{new Date(block.timestamp).toLocaleString()}</span>
-                  </div>
-                  <div className="w-2 h-2 rounded-full bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,1)]" />
-                </div>
+              <div key={block.id} className="relative group">
+                {/* Visual Chain Connector */}
+                {idx < ledger.length - 1 && (
+                  <div className="absolute left-[39px] top-full h-12 w-0.5 bg-gradient-to-b from-blue-600 to-transparent opacity-20" />
+                )}
                 
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-8 relative z-10">
-                  <div className="md:col-span-1 border-r border-slate-100 dark:border-slate-800 pr-8">
-                    <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-3">Evento Registrado</p>
-                    <p className="text-lg font-black dark:text-white uppercase tracking-tight leading-tight">{block.description}</p>
+                <div className="bg-white dark:bg-slate-900 p-12 rounded-[4rem] border border-slate-200 dark:border-white/5 space-y-10 relative group overflow-hidden shadow-sm hover:shadow-elite transition-all duration-700">
+                  <div className="absolute top-0 right-0 p-12 text-blue-600/5 group-hover:text-blue-600/10 transition-colors pointer-events-none">
+                    <Layers size={180} className="rotate-12" />
                   </div>
-                  <div className="md:col-span-2 space-y-4">
-                    <div>
-                      <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-2">Hash da Transação</p>
-                      <p className="text-[10px] font-mono break-all text-indigo-600 bg-indigo-50 dark:bg-indigo-950/40 p-4 rounded-2xl border border-indigo-100 dark:border-indigo-900/50">{block.hash}</p>
+                  
+                  <div className="flex flex-col md:flex-row justify-between items-center gap-6 relative z-10">
+                    <div className="flex items-center gap-6">
+                      <div className="w-20 h-20 bg-slate-900 text-white rounded-[2rem] flex items-center justify-center font-black text-lg shadow-2xl relative overflow-hidden">
+                        <div className="absolute inset-0 bg-blue-600 opacity-20 group-hover:opacity-40 transition-opacity" />
+                        <span className="relative z-10">#{ledger.length - 1 - idx}</span>
+                      </div>
+                      <div>
+                        <p className="text-[10px] font-black text-blue-600 uppercase tracking-[0.3em] mb-1">timestamp_utc</p>
+                        <p className="text-2xl font-black dark:text-white tabular-nums tracking-tighter">{new Date(block.timestamp).toLocaleString().toUpperCase()}</p>
+                      </div>
                     </div>
-                    <div>
-                      <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-2">Hash Anterior (Chain)</p>
-                      <p className="text-[10px] font-mono break-all text-slate-400 bg-slate-50 dark:bg-slate-950 p-4 rounded-2xl border border-slate-100 dark:border-slate-800">{block.previousHash}</p>
+                    <div className="flex items-center gap-2 px-4 py-2 bg-emerald-500/10 border border-emerald-500/20 rounded-full">
+                       <div className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
+                       <span className="text-[10px] font-black text-emerald-600 uppercase tracking-widest leading-none">Bloco Verificado</span>
+                    </div>
+                  </div>
+                  
+                  <div className="grid grid-cols-1 lg:grid-cols-12 gap-10 relative z-10">
+                    <div className="lg:col-span-4 space-y-2">
+                      <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest opacity-60">Operação Executada</p>
+                      <p className="text-2xl font-black dark:text-white uppercase tracking-tighter leading-[0.9] italic">{block.description}</p>
+                    </div>
+                    <div className="lg:col-span-8 flex flex-col gap-6">
+                      <div className="space-y-3">
+                        <div className="flex items-center justify-between">
+                           <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Transaction_Hash_Signature</p>
+                           <Copy size={12} className="text-slate-300 cursor-pointer hover:text-blue-600 transition-colors" />
+                        </div>
+                        <p className="text-[11px] font-mono break-all text-blue-600 bg-blue-50 dark:bg-blue-600/5 p-6 rounded-[2rem] border border-blue-500/10 leading-relaxed shadow-inner">{block.hash}</p>
+                      </div>
+                      <div className="space-y-3">
+                        <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Recursive_Chain_Reference</p>
+                        <p className="text-[11px] font-mono break-all text-slate-400 bg-slate-50 dark:bg-slate-800/50 p-6 rounded-[2rem] border border-slate-100 dark:border-white/5 opacity-60 leading-relaxed">{block.previousHash}</p>
+                      </div>
                     </div>
                   </div>
                 </div>
@@ -1341,12 +1423,17 @@ const BusinessHub: React.FC = () => {
 
       {isAddingPlan && (
         <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-md z-[120] flex items-center justify-center p-4">
-          <div className="bg-white dark:bg-slate-900 rounded-[2.5rem] p-10 max-w-xl w-full border border-slate-200 dark:border-slate-800 animate-in zoom-in-95 shadow-2xl">
+          <div className="bg-white dark:bg-slate-900 rounded-[2.5rem] p-10 max-w-xl w-full border border-slate-200 dark:border-slate-800 animate-in zoom-in-95 shadow-2xl max-h-[90vh] overflow-y-auto">
              <div className="flex items-center justify-between mb-8">
                 <h3 className="text-2xl font-black dark:text-white uppercase tracking-tighter">{t('business.addPlan')}</h3>
                 <button onClick={() => setIsAddingPlan(false)} className="text-slate-400 hover:text-red-500"><X/></button>
              </div>
-             <form onSubmit={(e) => { e.preventDefault(); addPlan(planForm); setIsAddingPlan(false); setPlanForm({ name: '', price: 0, description: '' }); }} className="space-y-6">
+             <form onSubmit={(e) => { 
+               e.preventDefault(); 
+               addPlan({ ...planForm }); 
+               setIsAddingPlan(false); 
+               setPlanForm({ name: '', price: 0, description: '', benefits: [] }); 
+             }} className="space-y-6">
                 <div className="space-y-2">
                    <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest">{t('common.name')}</label>
                    <input required type="text" value={planForm.name} onChange={e => setPlanForm({...planForm, name: e.target.value})} className="w-full px-5 py-4 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-2xl dark:text-white font-bold" />
@@ -1354,6 +1441,30 @@ const BusinessHub: React.FC = () => {
                 <div className="space-y-2">
                    <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest">{t('common.value')}</label>
                    <input required type="number" step="0.01" value={planForm.price} onChange={e => setPlanForm({...planForm, price: parseFloat(e.target.value)})} className="w-full px-5 py-4 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-2xl dark:text-white font-bold" />
+                </div>
+                <div className="space-y-2">
+                   <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest">{t('dashboard.planBenefits')}</label>
+                   <div className="flex gap-2">
+                      <input 
+                        type="text" 
+                        value={newBenefit} 
+                        onChange={e => setNewBenefit(e.target.value)}
+                        onKeyPress={e => e.key === 'Enter' && (e.preventDefault(), handleAddBenefit())}
+                        placeholder="Ex: Aulas Ilimitadas"
+                        className="flex-1 px-5 py-4 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-2xl dark:text-white font-bold text-xs" 
+                      />
+                      <button type="button" onClick={handleAddBenefit} className="p-4 bg-slate-900 dark:bg-white text-white dark:text-slate-900 rounded-2xl">
+                         <Plus size={20} />
+                      </button>
+                   </div>
+                   <div className="flex flex-wrap gap-2 mt-4">
+                      {planForm.benefits.map((benefit, idx) => (
+                        <div key={idx} className="flex items-center gap-2 bg-indigo-50 dark:bg-indigo-900/20 text-indigo-600 px-3 py-1.5 rounded-xl border border-indigo-100 dark:border-indigo-800/50 text-[10px] font-black uppercase">
+                           {benefit}
+                           <button type="button" onClick={() => removeBenefit(idx)} className="text-red-500"><X size={12}/></button>
+                        </div>
+                      ))}
+                   </div>
                 </div>
                 <button type="submit" className="w-full py-5 bg-amber-500 text-white rounded-2xl font-black uppercase text-xs tracking-widest shadow-xl">{t('common.save')}</button>
              </form>

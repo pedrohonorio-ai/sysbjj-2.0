@@ -129,7 +129,7 @@ const NewStudentModal = ({ onClose, defaultIsKid }: { onClose: () => void, defau
     height: defaultIsKid ? 1.40 : 1.75,
     federationId: '',
     category: CBJJCategory.ADULTO,
-    weightClass: 'Pena',
+    weightClass: 'rooster',
     lastPromotionDate: new Date().toISOString().split('T')[0],
     isInstructor: false,
     isKid: defaultIsKid,
@@ -154,7 +154,7 @@ const NewStudentModal = ({ onClose, defaultIsKid }: { onClose: () => void, defau
     responsibleCpf: '',
     civilStatus: '',
     occupation: '',
-    nationality: 'Brasileiro',
+    nationality: t('common.brazilian'),
     lgpdConsent: true,
     classId: '',
     responsibleEmail: '',
@@ -1087,10 +1087,10 @@ const StudentDetailsModal = ({ student, onClose }: { student: Student; onClose: 
 
         <div className="flex px-4 sm:px-10 bg-slate-50 dark:bg-slate-800/50 border-b border-slate-200 dark:border-slate-800 overflow-x-auto scrollbar-hide shrink-0">
           <button onClick={() => setActiveTab('overview')} className={`px-4 sm:px-8 py-4 sm:py-6 text-[8px] sm:text-[10px] font-black uppercase tracking-[0.2em] border-b-4 transition-all whitespace-nowrap ${activeTab === 'overview' ? 'border-blue-600 text-blue-600' : 'border-transparent text-slate-400'}`}>{t('students.overviewTab')}</button>
-          <button onClick={() => setActiveTab('analysis')} className={`px-4 sm:px-8 py-4 sm:py-6 text-[8px] sm:text-[10px] font-black uppercase tracking-[0.2em] border-b-4 transition-all whitespace-nowrap ${activeTab === 'analysis' ? 'border-blue-600 text-blue-600' : 'border-transparent text-slate-400'}`}>Análise Técnica</button>
-          <button onClick={() => setActiveTab('progress')} className={`px-4 sm:px-8 py-4 sm:py-6 text-[8px] sm:text-[10px] font-black uppercase tracking-[0.2em] border-b-4 transition-all whitespace-nowrap ${activeTab === 'progress' ? 'border-amber-600 text-amber-600' : 'border-transparent text-slate-400'}`}>Evolução</button>
+          <button onClick={() => setActiveTab('analysis')} className={`px-4 sm:px-8 py-4 sm:py-6 text-[8px] sm:text-[10px] font-black uppercase tracking-[0.2em] border-b-4 transition-all whitespace-nowrap ${activeTab === 'analysis' ? 'border-blue-600 text-blue-600' : 'border-transparent text-slate-400'}`}>{t('common.techAnalysisTab')}</button>
+          <button onClick={() => setActiveTab('progress')} className={`px-4 sm:px-8 py-4 sm:py-6 text-[8px] sm:text-[10px] font-black uppercase tracking-[0.2em] border-b-4 transition-all whitespace-nowrap ${activeTab === 'progress' ? 'border-amber-600 text-amber-600' : 'border-transparent text-slate-400'}`}>{t('common.evolutionTab')}</button>
           <button onClick={() => setActiveTab('edit')} className={`px-4 sm:px-8 py-4 sm:py-6 text-[8px] sm:text-[10px] font-black uppercase tracking-[0.2em] border-b-4 transition-all whitespace-nowrap ${activeTab === 'edit' ? 'border-blue-600 text-blue-600' : 'border-transparent text-slate-400'}`}>{t('common.edit').toUpperCase()}</button>
-          <button onClick={() => setActiveTab('security')} className={`px-4 sm:px-8 py-4 sm:py-6 text-[8px] sm:text-[10px] font-black uppercase tracking-[0.2em] border-b-4 transition-all whitespace-nowrap ${activeTab === 'security' ? 'border-indigo-600 text-indigo-600' : 'border-transparent text-slate-400'}`}>Selo de Integridade</button>
+          <button onClick={() => setActiveTab('security')} className={`px-4 sm:px-8 py-4 sm:py-6 text-[8px] sm:text-[10px] font-black uppercase tracking-[0.2em] border-b-4 transition-all whitespace-nowrap ${activeTab === 'security' ? 'border-indigo-600 text-indigo-600' : 'border-transparent text-slate-400'}`}>{t('common.integrityBadgeTab')}</button>
           <button onClick={() => setActiveTab('financial')} className={`px-4 sm:px-8 py-4 sm:py-6 text-[8px] sm:text-[10px] font-black uppercase tracking-[0.2em] border-b-4 transition-all whitespace-nowrap ${activeTab === 'financial' ? 'border-blue-600 text-blue-600' : 'border-transparent text-slate-400'}`}>{t('students.financialTab')}</button>
           <button onClick={() => setActiveTab('videos')} className={`px-4 sm:px-8 py-4 sm:py-6 text-[8px] sm:text-[10px] font-black uppercase tracking-[0.2em] border-b-4 transition-all whitespace-nowrap ${activeTab === 'videos' ? 'border-blue-600 text-blue-600' : 'border-transparent text-slate-400'}`}>{t('common.videos')}</button>
           <button onClick={() => setActiveTab('contract')} className={`px-4 sm:px-8 py-4 sm:py-6 text-[8px] sm:text-[10px] font-black uppercase tracking-[0.2em] border-b-4 transition-all whitespace-nowrap ${activeTab === 'contract' ? 'border-blue-600 text-blue-600' : 'border-transparent text-slate-400'}`}>{t('common.contract')}</button>
@@ -1131,14 +1131,14 @@ const StudentDetailsModal = ({ student, onClose }: { student: Student; onClose: 
                           onClick={() => setShowCamera(true)}
                           className="px-4 py-2 bg-blue-600 text-white rounded-xl font-black uppercase text-[9px] tracking-widest shadow-lg shadow-blue-500/20 flex items-center gap-2"
                         >
-                          <Camera size={14} /> Usar Câmera
+                          <Camera size={14} /> {t('common.useCamera')}
                         </button>
                         <button 
                           type="button"
                           onClick={() => fileInputRef.current?.click()}
                           className="px-4 py-2 bg-white dark:bg-slate-900 text-slate-600 dark:text-slate-400 border border-slate-200 dark:border-slate-700 rounded-xl font-black uppercase text-[9px] tracking-widest flex items-center gap-2 shadow-sm"
                         >
-                          <Plus size={14} /> Galeria
+                          <Plus size={14} /> {t('common.gallery')}
                         </button>
                       </div>
                       <input type="file" ref={fileInputRef} className="hidden" accept="image/*" onChange={handlePhotoUpload} />
@@ -1201,11 +1201,11 @@ const StudentDetailsModal = ({ student, onClose }: { student: Student; onClose: 
                         onChange={e => setEditFormData({...editFormData, civilStatus: e.target.value})}
                       >
                         <option value="">{t('common.select')}</option>
-                        <option value="Solteiro(a)">Solteiro(a)</option>
-                        <option value="Casado(a)">Casado(a)</option>
-                        <option value="Divorciado(a)">Divorciado(a)</option>
-                        <option value="Viúvo(a)">Viúvo(a)</option>
-                        <option value="União Estável">União Estável</option>
+                        <option value="single">{t('common.single')}</option>
+                        <option value="married">{t('common.married')}</option>
+                        <option value="divorced">{t('common.divorced')}</option>
+                        <option value="widowed">{t('common.widowed')}</option>
+                        <option value="stableUnion">{t('common.stableUnion')}</option>
                       </select>
                     </div>
 
@@ -1236,7 +1236,7 @@ const StudentDetailsModal = ({ student, onClose }: { student: Student; onClose: 
                         className="w-full px-5 py-3.5 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-2xl outline-none focus:ring-2 focus:ring-blue-600 dark:text-white font-bold" 
                         value={editFormData.address || ''}
                         onChange={e => setEditFormData({...editFormData, address: e.target.value})}
-                        placeholder="Rua, Número, Bairro, Cidade - UF"
+                        placeholder={t('common.addressPlaceholder')}
                       />
                     </div>
 
@@ -1277,14 +1277,14 @@ const StudentDetailsModal = ({ student, onClose }: { student: Student; onClose: 
                     </div>
 
                     <div className="space-y-2">
-                      <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Lista de Espera</label>
+                      <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">{t('common.waitlist')}</label>
                       <select 
                         className="w-full px-5 py-3.5 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-2xl outline-none focus:ring-2 focus:ring-blue-600 dark:text-white appearance-none font-bold"
                         value={editFormData.status === StudentStatus.WAITLIST ? 'Yes' : 'No'}
                         onChange={e => setEditFormData({...editFormData, status: e.target.value === 'Yes' ? StudentStatus.WAITLIST : StudentStatus.ACTIVE})}
                       >
-                        <option value="No">Não</option>
-                        <option value="Yes">Sim</option>
+                        <option value="No">{t('common.no')}</option>
+                        <option value="Yes">{t('common.yes')}</option>
                       </select>
                     </div>
 
@@ -1311,7 +1311,7 @@ const StudentDetailsModal = ({ student, onClose }: { student: Student; onClose: 
                 {editTab === 'legal' && (
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                     <div className="space-y-2">
-                      <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">CPF</label>
+                      <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">{t('common.cpf')}</label>
                       <input 
                         type="text" 
                         className="w-full px-5 py-3.5 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-2xl outline-none focus:ring-2 focus:ring-blue-600 dark:text-white font-bold" 
@@ -1320,7 +1320,7 @@ const StudentDetailsModal = ({ student, onClose }: { student: Student; onClose: 
                       />
                     </div>
                     <div className="space-y-2">
-                      <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">RG</label>
+                      <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">{t('common.rg')}</label>
                       <input 
                         type="text" 
                         className="w-full px-5 py-3.5 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-2xl outline-none focus:ring-2 focus:ring-blue-600 dark:text-white font-bold" 
@@ -1329,7 +1329,7 @@ const StudentDetailsModal = ({ student, onClose }: { student: Student; onClose: 
                       />
                     </div>
                     <div className="space-y-2">
-                      <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Órgão Emissor</label>
+                      <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">{t('common.rgIssuer')}</label>
                       <input 
                         type="text" 
                         className="w-full px-5 py-3.5 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-2xl outline-none focus:ring-2 focus:ring-blue-600 dark:text-white font-bold" 
@@ -1338,7 +1338,7 @@ const StudentDetailsModal = ({ student, onClose }: { student: Student; onClose: 
                       />
                     </div>
                     <div className="space-y-2">
-                      <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">CEP</label>
+                      <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">{t('common.zipCode')}</label>
                       <input 
                         type="text" 
                         className="w-full px-5 py-3.5 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-2xl outline-none focus:ring-2 focus:ring-blue-600 dark:text-white font-bold" 
@@ -1385,7 +1385,7 @@ const StudentDetailsModal = ({ student, onClose }: { student: Student; onClose: 
                           />
                         </div>
                         <div className="space-y-2">
-                          <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">CPF Responsável</label>
+                          <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">{t('common.responsibleCpf')}</label>
                           <input 
                             type="text" 
                             className="w-full px-5 py-3.5 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-2xl outline-none focus:ring-2 focus:ring-blue-600 dark:text-white font-bold" 

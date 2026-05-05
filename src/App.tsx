@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { BrowserRouter, Routes, Route, Link, useLocation, useNavigate, Navigate } from 'react-router-dom';
-import { Menu, X, Bell, Sun, Moon, Search, Shield, LogOut, Clock, CheckCircle2, Instagram, ChevronRight } from 'lucide-react';
+import { Menu, X, Bell, Sun, Moon, Search, Shield, LogOut, Clock, CheckCircle2, Instagram, ChevronRight, ShieldCheck, Lock, ArrowUpRight } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { NAVIGATION_ITEMS, BELT_COLORS, MASTER_ADMINS } from '../constants';
 import Dashboard from '../pages/Dashboard';
@@ -9,6 +9,7 @@ import Classes from '../pages/Classes';
 import IBJJFRules from '../pages/IBJJFRules';
 import BusinessHub from '../pages/BusinessHub';
 import AttendancePage from '../pages/Attendance';
+import AttendanceHistory from '../pages/AttendanceHistory';
 import BeltSystem from '../pages/BeltSystem';
 import FightTimer from '../pages/FightTimer';
 import Settings from '../pages/Settings';
@@ -56,17 +57,17 @@ const Sidebar = ({ isOpen, toggle, onLogout }: { isOpen: boolean, toggle: () => 
       <Link
         key={item.id}
         to={`/${item.id}`}
-        className={`flex items-center gap-4 px-4 py-3.5 rounded-xl transition-all duration-300 group relative overflow-hidden ${isActive ? 'bg-blue-600 text-white shadow-xl shadow-blue-500/30 ring-1 ring-white/10' : 'text-slate-500 dark:text-slate-500 hover:bg-slate-50 dark:hover:bg-slate-800/50 hover:text-slate-900 dark:hover:text-white'}`}
+        className={`flex items-center gap-4 px-4 py-3 rounded-xl transition-all duration-300 group relative overflow-hidden ${isActive ? 'bg-slate-900 dark:bg-white text-white dark:text-slate-900 shadow-2xl' : 'text-slate-500 hover:bg-slate-50 dark:hover:bg-white/5 hover:text-slate-900 dark:hover:text-white'}`}
         onClick={() => { if(window.innerWidth < 1024) toggle(); }}
       >
-        <div className={`shrink-0 transition-all duration-500 ${isActive ? 'scale-110 rotate-0' : 'group-hover:scale-110 group-hover:-rotate-3'}`}>{item.icon}</div>
-        <span className={`font-black tracking-wider uppercase text-[10px] truncate transition-all duration-700 flex-1 min-w-0 ${isOpen ? 'opacity-100 translate-x-0' : 'opacity-0 -translate-x-4'}`}>
+        <div className={`shrink-0 transition-all duration-500 ${isActive ? 'scale-110' : 'group-hover:scale-110 group-hover:-rotate-3 opacity-70'}`}>{item.icon}</div>
+        <span className={`font-black tracking-[0.15em] uppercase text-[9px] truncate transition-all duration-700 flex-1 min-w-0 ${isOpen ? 'opacity-100 translate-x-0' : 'opacity-0 -translate-x-4'}`}>
           {t(`common.${item.id}`)}
         </span>
         {isActive && (
           <motion.div 
             layoutId="active-indicator"
-            className="absolute left-0 w-1 h-6 bg-white rounded-full ml-1"
+            className="absolute left-0 w-1 h-5 bg-blue-500 dark:bg-blue-600 rounded-full ml-0.5"
             transition={{ type: "spring", stiffness: 300, damping: 30 }}
           />
         )}
@@ -165,10 +166,31 @@ const Sidebar = ({ isOpen, toggle, onLogout }: { isOpen: boolean, toggle: () => 
           </button>
         </div>
         
-        <div className={`mt-auto px-6 py-4 border-t border-slate-100 dark:border-slate-800/50 transition-all duration-500 overflow-hidden ${isOpen ? 'opacity-100' : 'opacity-0'}`}>
-          <p className="text-[7px] font-black text-slate-300 dark:text-slate-600 uppercase tracking-[0.2em] whitespace-nowrap">
-            SYSBJJ v2.1.2 • ELITE EDITION
-          </p>
+        <div className={`mt-auto p-6 border-t border-slate-100 dark:border-white/5 transition-all duration-500 overflow-hidden ${isOpen ? 'opacity-100' : 'opacity-0'}`}>
+          <div className="p-4 bg-slate-950 rounded-[1.5rem] relative overflow-hidden group/status shadow-2xl">
+            <div className="absolute inset-0 bg-blue-600/10 opacity-0 group-hover/status:opacity-100 transition-opacity" />
+            <div className="flex items-center gap-3 relative z-10">
+              <div className="flex h-2.5 w-2.5 relative">
+                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+                <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-emerald-500"></span>
+              </div>
+              <p className="text-[10px] font-black text-white uppercase tracking-tighter italic">Integridade Blindada</p>
+            </div>
+            <div className="mt-3 flex items-center justify-between relative z-10">
+              <div className="flex items-center gap-1.5 px-2 py-0.5 bg-white/5 rounded-full border border-white/10">
+                <ShieldCheck size={10} className="text-blue-500" />
+                <span className="text-[7px] font-black text-slate-400 uppercase tracking-widest whitespace-nowrap">Antigravity 2.0</span>
+              </div>
+              <Lock size={12} className="text-slate-700 group-hover/status:text-blue-600 transition-colors" />
+            </div>
+          </div>
+          <div className="mt-4 flex items-center justify-between px-1">
+            <p className="text-[8px] font-black text-slate-400 uppercase tracking-widest transition-opacity duration-300">© 2026 SYSBJJ</p>
+            <div className="flex gap-1.5 focus-within:ring-2 ring-blue-500 rounded-full">
+               <div className="w-1 h-1 rounded-full bg-blue-600 animate-pulse" />
+               <div className="w-1 h-1 rounded-full bg-slate-200 dark:bg-white/10" />
+            </div>
+          </div>
         </div>
       </aside>
     </>
@@ -275,31 +297,39 @@ const Header = ({ toggleSidebar, auth, onLogout }: { toggleSidebar: () => void, 
   );
   
   return (
-    <header className="h-16 sm:h-20 bg-white/70 dark:bg-slate-950/70 backdrop-blur-xl border-b border-slate-200 dark:border-slate-800/50 flex items-center justify-between px-4 sm:px-12 sticky top-0 z-40 w-full transition-all duration-300">
-      <div className="flex items-center gap-4 flex-1">
-        <button onClick={toggleSidebar} className="p-2.5 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-slate-500 dark:text-slate-400 rounded-xl active:scale-95 transition-all">
+    <header className="h-16 sm:h-24 bg-white/40 dark:bg-slate-950/40 backdrop-blur-3xl border-b border-slate-200 dark:border-white/5 flex items-center justify-between px-4 sm:px-12 sticky top-0 z-40 w-full transition-all duration-300">
+      <div className="flex items-center gap-6 flex-1">
+        <button onClick={toggleSidebar} className="p-3 bg-white dark:bg-white/5 border border-slate-200 dark:border-white/10 text-slate-500 dark:text-slate-400 rounded-2xl active:scale-95 transition-all shadow-sm hover:shadow-md">
           <Menu size={20} />
         </button>
+        
+        <div className="hidden xl:flex flex-col">
+          <h2 className="text-xs font-black text-slate-900 dark:text-white uppercase tracking-[0.2em]">{profile.academyName}</h2>
+          <div className="flex items-center gap-2 mt-1">
+            <span className="w-1.5 h-1.5 rounded-full bg-green-500 animate-pulse" />
+            <span className="text-[8px] font-black text-slate-400 uppercase tracking-widest">Sincronização Master Ativa</span>
+          </div>
+        </div>
       </div>
 
       <div className="flex items-center gap-3 sm:gap-6">
-        <div className="hidden lg:flex items-center gap-2 px-5 py-2.5 bg-slate-50/50 dark:bg-slate-900/50 border border-slate-200 dark:border-slate-800 rounded-2xl group focus-within:ring-4 focus-within:ring-blue-500/5 focus-within:border-blue-500/50 transition-all">
+        <div className="hidden lg:flex items-center gap-3 px-6 py-3 bg-white dark:bg-white/5 border border-slate-200 dark:border-white/10 rounded-2xl group focus-within:ring-2 focus-within:ring-blue-500/20 transition-all">
           <Search size={14} className="text-slate-400 group-focus-within:text-blue-500 transition-colors" />
           <input 
             type="text" 
             placeholder={t('common.search')} 
-            className="bg-transparent border-none outline-none text-[10px] font-black uppercase tracking-[0.2em] w-32 xl:w-48 text-slate-900 dark:text-white placeholder:text-slate-400 focus:ring-0"
+            className="bg-transparent border-none outline-none text-[9px] font-black uppercase tracking-[0.25em] w-32 xl:w-64 text-slate-900 dark:text-white placeholder:text-slate-400 focus:ring-0"
           />
         </div>
 
-        <button className="relative p-2.5 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl text-slate-500 hover:text-blue-600 transition-all group active:scale-95">
+        <button className="relative p-3 bg-white dark:bg-white/5 border border-slate-200 dark:border-white/10 rounded-2xl text-slate-500 hover:text-blue-600 transition-all shadow-sm active:scale-95">
           <Bell size={18} />
-          <span className="absolute top-2 right-2 w-2 h-2 bg-red-500 rounded-full border-2 border-white dark:border-slate-900 shadow-sm shadow-red-500/50" />
+          <span className="absolute top-3 right-3 w-2 h-2 bg-blue-600 rounded-full border-2 border-white dark:border-slate-900" />
         </button>
         
         <button 
           onClick={handleThemeToggle}
-          className="p-2.5 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl text-slate-500 hover:text-blue-600 transition-all active:scale-95"
+          className="p-3 bg-white dark:bg-white/5 border border-slate-200 dark:border-white/10 rounded-2xl text-slate-500 hover:text-blue-600 transition-all shadow-sm active:scale-95"
         >
           {resolvedTheme === 'dark' ? <Sun size={18} /> : <Moon size={18} />}
         </button>
@@ -466,6 +496,7 @@ const App: React.FC = () => {
                   <Route path="/business" element={<BusinessHub />} />
                   <Route path="/curriculum" element={<Curriculum />} />
                   <Route path="/attendance" element={<AttendancePage />} />
+                  <Route path="/history" element={<AttendanceHistory />} />
                   <Route path="/promotions" element={<BeltSystem />} />
                   <Route path="/language" element={<LanguageSelection />} />
                   <Route path="/timer" element={<FightTimer />} />

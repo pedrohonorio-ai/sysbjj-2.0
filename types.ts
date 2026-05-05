@@ -266,6 +266,7 @@ export interface Plan {
   name: string;
   price: number;
   description: string;
+  benefits?: string[];
 }
 
 export interface AttendanceRecord {
@@ -331,6 +332,9 @@ export interface Student {
   pros?: string;
   cons?: string;
   photoUrl?: string;
+  photo?: string;
+  planId?: string;
+  homeWorkoutHistory?: { date: string, type: string, count: number }[];
   emergencyContact?: string;
   emergencyPhone?: string;
   medicalConditions?: string;

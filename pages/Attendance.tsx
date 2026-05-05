@@ -95,7 +95,7 @@ const AttendancePage: React.FC = () => {
     }
 
     if (!profile.latitude || !profile.longitude) {
-      alert(t('settings.locationSection') + ": " + "Coordinates not configured in Settings.");
+      alert(t('settings.locationSection') + ": " + t('settings.coordinatesNotConfigured'));
       return;
     }
 
@@ -135,15 +135,15 @@ const AttendancePage: React.FC = () => {
     const selectedClass = schedules.find(s => s.id === selectedClassId);
     
     doc.setFontSize(20);
-    doc.text(`SYSBJJ 2.0 - Chamada Diária`, 14, 22);
+    doc.text(`SYSBJJ 2.0 - ${t('attendance.dailyCall')}`, 14, 22);
     doc.setFontSize(12);
-    doc.text(`Data: ${today}`, 14, 32);
-    doc.text(`Turma: ${selectedClass ? selectedClass.title : 'Todas'}`, 14, 40);
+    doc.text(`${t('common.date')}: ${today}`, 14, 32);
+    doc.text(`${t('common.classes')}: ${selectedClass ? selectedClass.title : t('common.all')}`, 14, 40);
 
     const data = filtered.map(s => [
       s.name,
       t(`belts.${s.belt}`),
-      attendedIds.includes(s.id) ? 'PRESENTE' : 'AUSENTE'
+      attendedIds.includes(s.id) ? t('attendance.present') : t('attendance.absent')
     ]);
 
     autoTable(doc, {

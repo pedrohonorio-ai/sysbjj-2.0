@@ -6,7 +6,7 @@ import {
   Users, TrendingUp, AlertCircle, Calendar, CreditCard,
   Timer, UserPlus, CheckCircle2, Trophy as TrophyIcon, Plus,
   ArrowUpRight, ArrowDownRight, BarChart3, ArrowRight, Baby,
-  Edit2, X, Trash2, Clock, BookOpen, QrCode, Scan, Zap, Cake, Store, Activity, History, Shield, Instagram, ChevronRight, Monitor, RefreshCw, Settings, ShieldAlert
+  Edit2, X, Trash2, Clock, BookOpen, QrCode, Scan, Zap, Cake, Store, Activity, History, Shield, Instagram, ChevronRight, Monitor, RefreshCw, Settings, ShieldAlert, ShieldCheck
 } from 'lucide-react';
 import { useTranslation } from '../contexts/LanguageContext';
 import { useProfile } from '../contexts/ProfileContext';
@@ -16,46 +16,47 @@ import { MASTER_ADMINS, IBJJF_BELT_RULES } from '../constants';
 
 const StatCard = ({ title, value, icon, color, trend, trendUp, delay = 0, suffix = '' }: any) => (
   <motion.div 
-    initial={{ opacity: 0, y: 20 }}
+    initial={{ opacity: 0, y: 30 }}
     animate={{ opacity: 1, y: 0 }}
-    transition={{ delay, duration: 0.5, ease: [0.2, 0.8, 0.2, 1] }}
-    className="bg-white dark:bg-slate-900 p-5 rounded-[2rem] border border-slate-200 dark:border-slate-800/50 shadow-sm hover:shadow-2xl hover:-translate-y-1 transition-all duration-500 group relative overflow-hidden h-full flex flex-col justify-between"
+    transition={{ delay, duration: 0.8, ease: [0.22, 1, 0.36, 1] }}
+    className="bg-white dark:bg-slate-900 p-8 rounded-[2.5rem] border border-slate-200 dark:border-white/5 shadow-sm hover:shadow-elite hover:-translate-y-2 transition-all duration-500 group relative overflow-hidden h-full flex flex-col justify-between"
   >
-    <div className="absolute top-0 right-0 w-24 h-24 bg-blue-600 rounded-full blur-[60px] opacity-[0.03] group-hover:opacity-[0.06] transition-opacity" />
-    <div className="flex items-center justify-between mb-4 relative z-10">
-      <div className={`p-2.5 rounded-[1rem] ${color} bg-opacity-10 text-slate-900 dark:text-white group-hover:scale-110 transition-transform duration-500`}>
-        {React.cloneElement(icon, { className: color.replace('bg-', 'text-'), size: 18 })}
+    <div className="absolute top-0 right-0 w-32 h-32 bg-blue-600 rounded-full blur-[80px] opacity-[0.03] group-hover:opacity-[0.1] transition-opacity duration-700" />
+    <div className="flex items-center justify-between mb-8 relative z-10">
+      <div className={`p-4 rounded-2xl ${color} bg-opacity-10 text-slate-900 dark:text-white group-hover:scale-110 group-hover:rotate-6 transition-all duration-500`}>
+        {React.cloneElement(icon, { className: color.replace('bg-', 'text-'), size: 24 })}
       </div>
-      <div className={`flex items-center gap-1 text-[8px] font-black px-2 py-0.5 rounded-full uppercase tracking-widest ${trendUp ? 'bg-green-500/10 text-green-600 dark:text-green-400' : 'bg-red-500/10 text-red-600 dark:text-red-400'}`}>
+      <div className={`flex items-center gap-1.5 text-[9px] font-black px-3 py-1 rounded-full uppercase tracking-widest ${trendUp ? 'bg-green-500/10 text-green-600' : 'bg-red-500/10 text-red-600'}`}>
+        {trendUp ? <ArrowUpRight size={10} /> : <ArrowDownRight size={10} />}
         {trend}
       </div>
     </div>
     <div className="relative z-10">
-      <h3 className="text-slate-400 dark:text-slate-500 text-[8px] font-black uppercase tracking-[0.2em] mb-1 leading-none">{title}</h3>
-      <p className="text-xl sm:text-2xl font-black text-slate-900 dark:text-white leading-none tracking-tighter truncate">
-        {value}<span className="text-sm ml-1 opacity-40">{suffix}</span>
+      <h3 className="text-slate-400 dark:text-slate-500 text-[10px] font-black uppercase tracking-[0.25em] mb-2 leading-none">{title}</h3>
+      <p className="text-3xl sm:text-4xl font-black text-slate-900 dark:text-white leading-none tracking-tighter truncate">
+        {value}<span className="text-lg ml-1 opacity-30 italic">{suffix}</span>
       </p>
     </div>
   </motion.div>
 );
 
 const BentoBox = ({ children, className = '', title = '', subtitle = '', icon: Icon, action, actionIcon: ActionIcon, actionText }: any) => (
-  <div className={`bg-white dark:bg-slate-900 rounded-[2.5rem] border border-slate-200 dark:border-slate-800 shadow-sm overflow-hidden relative group transition-all hover:shadow-2xl hover:border-slate-300 dark:hover:border-slate-700 ${className}`}>
-    <div className="absolute top-0 right-0 w-64 h-64 bg-blue-600 rounded-full blur-[100px] opacity-[0.02]" />
-    <div className="p-6 sm:p-8 relative z-10 flex flex-col h-full">
+  <div className={`bg-white dark:bg-slate-900 rounded-[3rem] border border-slate-200 dark:border-white/5 shadow-sm overflow-hidden relative group transition-all duration-700 hover:shadow-elite hover:border-blue-500/10 ${className}`}>
+    <div className="absolute top-0 right-0 w-80 h-80 bg-blue-600 rounded-full blur-[100px] opacity-[0.03] group-hover:opacity-[0.08] transition-opacity duration-1000" />
+    <div className="p-8 sm:p-10 relative z-10 flex flex-col h-full">
       {(title || action) && (
-        <div className="flex items-center justify-between mb-6">
-          <div className="space-y-1">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-6 mb-10">
+          <div className="space-y-1.5">
             {title && (
-              <h3 className="text-lg font-black text-slate-900 dark:text-white uppercase tracking-tighter flex items-center gap-2">
-                {Icon && <Icon size={20} className="text-blue-600" />} {title}
+              <h3 className="text-2xl font-black text-slate-900 dark:text-white uppercase tracking-tighter flex items-center gap-3 italic">
+                {Icon && <Icon size={24} className="text-blue-600" />} {title}
               </h3>
             )}
-            {subtitle && <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest leading-none">{subtitle}</p>}
+            {subtitle && <p className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] leading-none opacity-60 ml-9">{subtitle}</p>}
           </div>
           {action && (
-            <button onClick={action} className="flex items-center gap-2 text-[9px] font-black text-blue-600 uppercase tracking-widest bg-blue-50 dark:bg-blue-900/20 px-4 py-2 rounded-xl hover:bg-blue-600 hover:text-white transition-all">
-              {actionText} {ActionIcon && <ActionIcon size={12} />}
+            <button onClick={action} className="flex items-center gap-3 text-[10px] font-black text-white dark:text-slate-900 uppercase tracking-widest bg-slate-900 dark:bg-white px-6 py-3 rounded-2xl hover:scale-105 active:scale-95 transition-all shadow-xl group/btn">
+              {actionText} {ActionIcon && <ActionIcon size={14} className="group-hover/btn:translate-x-1 transition-transform" />}
             </button>
           )}
         </div>
@@ -76,19 +77,90 @@ const MasterDojoClock: React.FC = () => {
 
   return (
     <div className="flex flex-col items-center md:items-start text-center md:text-left relative z-10">
-      <div className="flex items-center gap-3 mb-2">
-        <div className="p-2 bg-blue-600 rounded-lg text-white">
-          <Clock size={16} />
+      <div className="flex flex-wrap items-center justify-center md:justify-start gap-3 mb-4">
+        <div className="flex items-center gap-2 px-4 py-1.5 bg-blue-600 rounded-full text-white shadow-lg shadow-blue-600/20">
+          <Clock size={14} className="animate-pulse" />
+          <span className="text-[9px] font-black uppercase tracking-widest">{t('dashboard.masterClock')}</span>
         </div>
-        <span className="text-[10px] font-black text-slate-400 uppercase tracking-[0.3em]">{t('dashboard.masterClock')}</span>
+        <div className="flex items-center gap-2 px-4 py-1.5 bg-slate-900 dark:bg-white text-white dark:text-slate-900 rounded-full shadow-lg border border-white/10 dark:border-slate-900/10 transition-all hover:scale-105 active:scale-95 cursor-pointer group">
+          <ShieldCheck size={14} className="text-blue-500" />
+          <span className="text-[9px] font-black uppercase tracking-widest">Integridade Blindada Blockchain</span>
+          <ArrowUpRight size={12} className="opacity-0 group-hover:opacity-100 transition-opacity ml-1" />
+        </div>
       </div>
-      <h2 className="text-6xl sm:text-8xl font-black text-slate-900 dark:text-white tabular-nums tracking-tighter leading-none group-hover:scale-105 transition-transform duration-700">
+      <h2 className="text-6xl sm:text-9xl font-black text-slate-900 dark:text-white tabular-nums tracking-tighter leading-none group-hover:scale-[1.02] transition-transform duration-700">
         {now.toLocaleTimeString(t('common.dateLocale'), { hour: '2-digit', minute: '2-digit' })}
         <span className="text-3xl sm:text-4xl text-blue-600 ml-2 animate-pulse font-black opacity-80">{now.toLocaleTimeString(t('common.dateLocale'), { second: '2-digit' })}</span>
       </h2>
       <p className="text-sm font-black text-slate-500 uppercase tracking-widest mt-4">
         {now.toLocaleDateString(t('common.dateLocale'), { weekday: 'long', day: '2-digit', month: 'long', year: 'numeric' }).toUpperCase()}
       </p>
+    </div>
+  );
+};
+
+const GlobalSearch: React.FC<{ 
+  onSearch: (term: string) => void, 
+  results: any[],
+  onSelect: (item: any) => void 
+}> = ({ onSearch, results, onSelect }) => {
+  const { t } = useTranslation();
+  const [query, setQuery] = useState('');
+  const [isOpen, setIsOpen] = useState(false);
+
+  return (
+    <div className="relative w-full max-w-2xl mx-auto mb-8 z-30">
+      <div className="relative group">
+        <div className="absolute inset-y-0 left-5 flex items-center pointer-events-none">
+          <Scan size={20} className="text-slate-400 group-focus-within:text-blue-600 transition-colors" />
+        </div>
+        <input 
+          type="text" 
+          value={query}
+          onChange={(e) => {
+            setQuery(e.target.value);
+            onSearch(e.target.value);
+            setIsOpen(e.target.value.length > 0);
+          }}
+          onFocus={() => setIsOpen(query.length > 0)}
+          placeholder={t('dashboard.searchPlaceholder')}
+          className="w-full pl-14 pr-6 py-5 bg-white dark:bg-slate-900 border-2 border-slate-200 dark:border-slate-800 rounded-[2rem] text-sm font-bold focus:outline-none focus:border-blue-600 focus:ring-4 focus:ring-blue-600/10 transition-all shadow-xl dark:text-white"
+        />
+        <div className="absolute inset-y-0 right-5 flex items-center">
+           <span className="px-2 py-1 bg-slate-100 dark:bg-slate-800 rounded-lg text-[9px] font-black text-slate-400 border border-slate-200 dark:border-slate-700">⌘ K</span>
+        </div>
+      </div>
+
+      {isOpen && results.length > 0 && (
+        <motion.div 
+          initial={{ opacity: 0, y: 10 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="absolute top-full left-0 right-0 mt-4 bg-white dark:bg-slate-900 border-2 border-slate-200 dark:border-slate-800 rounded-[2.5rem] shadow-3xl max-h-[400px] overflow-y-auto scrollbar-hide z-50 p-4 space-y-2"
+        >
+          {results.map((item, i) => (
+            <button 
+              key={i}
+              onClick={() => {
+                onSelect(item);
+                setQuery('');
+                setIsOpen(false);
+              }}
+              className="w-full p-4 flex items-center justify-between rounded-2xl hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors group text-left"
+            >
+              <div className="flex items-center gap-4">
+                <div className={`w-10 h-10 rounded-xl flex items-center justify-center ${item.type === 'student' ? 'bg-blue-100 text-blue-600' : 'bg-emerald-100 text-emerald-600'}`}>
+                  {item.type === 'student' ? <Users size={18} /> : <Zap size={18} />}
+                </div>
+                <div>
+                  <p className="text-xs font-black dark:text-white uppercase leading-none mb-1">{item.name}</p>
+                  <p className="text-[9px] font-bold text-slate-400 uppercase tracking-widest">{item.subtitle}</p>
+                </div>
+              </div>
+              <ArrowRight size={14} className="text-slate-300 group-hover:text-blue-600 transition-colors" />
+            </button>
+          ))}
+        </motion.div>
+      )}
     </div>
   );
 };
@@ -100,9 +172,70 @@ const Dashboard: React.FC = () => {
   const navigate = useNavigate();
   const [now, setNow] = useState(new Date());
   const [phraseIndex, setPhraseIndex] = useState(0);
+  const [searchResults, setSearchResults] = useState<any[]>([]);
+  const [showConfig, setShowConfig] = useState(false);
+  const [layoutConfig, setLayoutConfig] = useState(() => {
+    const saved = localStorage.getItem('oss_dashboard_layout');
+    return saved ? JSON.parse(saved) : {
+      showStats: true,
+      showSearch: true,
+      showSchedules: true,
+      showPerformance: true,
+      showLeaderboard: true,
+      showBirthdays: true,
+      showAnalytics: true
+    };
+  });
+
+  useEffect(() => {
+    localStorage.setItem('oss_dashboard_layout', JSON.stringify(layoutConfig));
+  }, [layoutConfig]);
 
   const followEmpirePhrases = useMemo(() => tObj('dashboard.followEmpire') || [], [tObj]);
   const elitePlacePhrases = useMemo(() => tObj('dashboard.elitePlace') || [], [tObj]);
+
+  const handleSearch = (term: string) => {
+    if (term.length < 2) {
+      setSearchResults([]);
+      return;
+    }
+
+    const termLower = term.toLowerCase();
+    const matches: any[] = [];
+
+    // Search Students
+    students.forEach(s => {
+      if (s.name.toLowerCase().includes(termLower) || (s.nickname && s.nickname.toLowerCase().includes(termLower))) {
+        matches.push({
+          type: 'student',
+          id: s.id,
+          name: s.name,
+          subtitle: `${t(`belts.${s.belt}`)} • ${s.status}`,
+          nav: `/students`
+        });
+      }
+    });
+
+    // Search Plans
+    lessonPlans.forEach(p => {
+      if (p.title.toLowerCase().includes(termLower)) {
+        matches.push({
+          type: 'plan',
+          id: p.id,
+          name: p.title,
+          subtitle: `${p.date}`,
+          nav: `/curriculum`
+        });
+      }
+    });
+
+    setSearchResults(matches.slice(0, 8));
+  };
+
+  const birthdaysToday = useMemo(() => {
+    const todayStr = now.toISOString().substring(5, 10); // MM-DD
+    return students.filter(s => s.birthDate && s.birthDate.substring(5, 10) === todayStr);
+  }, [students, now]);
 
   useEffect(() => {
     const phraseTimer = setInterval(() => {
@@ -191,8 +324,88 @@ const Dashboard: React.FC = () => {
 
   return (
     <div className="space-y-8 pb-20 w-full animate-in fade-in duration-700 overflow-x-hidden max-w-[1600px] mx-auto px-4 sm:px-6">
+      {/* Global Tactical Search */}
+      <div className="flex flex-col md:flex-row gap-4 items-center">
+        <div className="flex-1">
+          <GlobalSearch 
+            onSearch={handleSearch} 
+            results={searchResults} 
+            onSelect={(item) => navigate(item.nav)} 
+          />
+        </div>
+        <button 
+          onClick={() => setShowConfig(!showConfig)}
+          className={`h-16 px-6 rounded-[2rem] border-2 transition-all flex items-center justify-center gap-3 ${showConfig ? 'bg-blue-600 text-white border-blue-600 shadow-xl' : 'bg-white dark:bg-slate-900 text-slate-600 dark:text-slate-400 border-slate-200 dark:border-slate-800 shadow-sm'}`}
+        >
+          <Settings size={20} className={showConfig ? 'animate-spin-slow' : ''} />
+          <span className="text-[10px] font-black uppercase tracking-widest hidden sm:block">
+            {showConfig ? t('common.close') : t('common.customize')}
+          </span>
+        </button>
+      </div>
+
+      {showConfig && (
+        <motion.div 
+          initial={{ opacity: 0, y: -20 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="p-8 bg-white dark:bg-slate-900 rounded-[2.5rem] border-2 border-blue-600/20 shadow-2xl space-y-6"
+        >
+          <div className="flex items-center justify-between mb-2">
+            <h3 className="text-xl font-black dark:text-white uppercase tracking-tighter flex items-center gap-3">
+              <Monitor size={20} className="text-blue-600" /> {t('dashboard.customizeLayout')}
+            </h3>
+          </div>
+          <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-7 gap-3">
+            {Object.entries(layoutConfig).map(([key, value]) => (
+              <button 
+                key={key}
+                onClick={() => setLayoutConfig((prev: any) => ({ ...prev, [key]: !prev[key] }))}
+                className={`flex flex-col items-center justify-center gap-3 p-4 rounded-2xl border-2 transition-all ${value ? 'border-blue-600 bg-blue-600/5 text-blue-600' : 'border-slate-100 dark:border-slate-800 text-slate-400'}`}
+              >
+                <div className={`w-5 h-5 rounded-md border-2 flex items-center justify-center ${value ? 'bg-blue-600 border-blue-600' : 'border-slate-300'}`}>
+                  {value && <CheckCircle2 size={12} className="text-white" />}
+                </div>
+                <span className="text-[8px] font-black uppercase tracking-widest text-center">{t(`dashboard.sections.${key.replace('show', '').toLowerCase()}`)}</span>
+              </button>
+            ))}
+          </div>
+        </motion.div>
+      )}
+
+      {/* Birthday Banner Ritual */}
+      {layoutConfig.showBirthdays && birthdaysToday.length > 0 && (
+        <motion.div 
+          initial={{ opacity: 0, y: -20 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="bg-gradient-to-r from-blue-600 to-indigo-700 p-6 rounded-[2.5rem] shadow-2xl relative overflow-hidden group"
+        >
+          <div className="absolute top-0 right-0 w-64 h-64 bg-white/10 rounded-full blur-[80px] -translate-y-1/2 translate-x-1/2 group-hover:scale-110 transition-transform duration-1000" />
+          <div className="relative z-10 flex flex-col md:flex-row items-center justify-between gap-6">
+            <div className="flex items-center gap-6">
+              <div className="w-16 h-16 bg-white/20 backdrop-blur-md rounded-2xl flex items-center justify-center text-white rotate-6 group-hover:rotate-0 transition-transform">
+                <Cake size={32} />
+              </div>
+              <div className="text-white">
+                <h4 className="text-xl font-black uppercase tracking-tighter leading-none mb-1">{t('dashboard.birthdaysToday')}</h4>
+                <div className="flex flex-wrap gap-2 mt-2">
+                  {birthdaysToday.map((s, i) => (
+                    <span key={i} className="px-3 py-1 bg-white/10 rounded-lg text-[10px] font-black uppercase tracking-widest border border-white/10">
+                      {s.nickname || s.name.split(' ')[0]}
+                    </span>
+                  ))}
+                </div>
+              </div>
+            </div>
+            <button className="px-8 py-4 bg-white text-blue-600 rounded-xl font-black text-[10px] uppercase tracking-widest shadow-xl hover:scale-105 active:scale-95 transition-all">
+              {t('dashboard.congratulate')}
+            </button>
+          </div>
+        </motion.div>
+      )}
+
       {/* Master Dojo Clock Section */}
-      <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
+      {layoutConfig.showSchedules && (
+        <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
         <div className="lg:col-span-3">
           <div className="bg-white dark:bg-slate-900 p-8 rounded-[2.5rem] border border-slate-200 dark:border-slate-800 shadow-sm flex flex-col md:flex-row items-center justify-between gap-8 group overflow-hidden relative">
             <div className="absolute top-0 left-0 w-full h-full bg-gradient-to-r from-blue-600/5 to-transparent pointer-events-none" />
@@ -240,9 +453,11 @@ const Dashboard: React.FC = () => {
           </button>
         </div>
       </div>
+      )}
 
       {/* Executive Header & Quick Actions */}
-      <div className="grid grid-cols-1 xl:grid-cols-12 gap-6 items-stretch">
+      {layoutConfig.showPerformance && (
+        <div className="grid grid-cols-1 xl:grid-cols-12 gap-6 items-stretch">
         {/* Welcome Banner */}
         <motion.div 
           initial={{ opacity: 0, x: -20 }}
@@ -304,11 +519,11 @@ const Dashboard: React.FC = () => {
               <div className="flex gap-2">
                 <div className="flex-1 bg-slate-50 dark:bg-slate-800 p-3 rounded-xl border border-slate-100 dark:border-slate-700 text-center">
                   <p className="text-[8px] font-black text-slate-400 uppercase tracking-widest mb-1">{t('common.attendance')}</p>
-                  <p className="text-sm font-black dark:text-white">{t('dashboard.activeStatus')}</p>
+                  <p className="text-sm font-black dark:text-white uppercase tracking-tighter">{t('dashboard.activeStatus')}</p>
                 </div>
                 <div className="flex-1 bg-slate-50 dark:bg-slate-800 p-3 rounded-xl border border-slate-100 dark:border-slate-700 text-center">
                   <p className="text-[8px] font-black text-slate-400 uppercase tracking-widest mb-1">{t('common.timer')}</p>
-                  <p className="text-sm font-black dark:text-white">{t('dashboard.standbyStatus')}</p>
+                  <p className="text-sm font-black dark:text-white uppercase tracking-tighter">{t('dashboard.standbyStatus')}</p>
                 </div>
               </div>
             </div>
@@ -320,19 +535,23 @@ const Dashboard: React.FC = () => {
           )}
         </BentoBox>
       </div>
+      )}
 
       {/* Primary Stats Grid */}
-      <div className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-6 gap-6">
-        <StatCard title={t('dashboard.stats.total')} value={totalStudents} icon={<Users />} color="bg-blue-600" trend={`${t('dashboard.stats.registrations')}`} trendUp delay={0.1} />
+      {layoutConfig.showStats && (
+        <div className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-6 gap-6">
+        <StatCard title={t('dashboard.stats.total')} value={totalStudents} icon={<Users />} color="bg-blue-600" trend={t('dashboard.stats.registrations')} trendUp delay={0.1} />
         <StatCard title={t('dashboard.stats.active')} value={activeStudents} icon={<CheckCircle2 />} color="bg-cyan-600" trend="+12.5%" trendUp delay={0.2} />
-        <StatCard title={t('students.isCompetitor')} value={competitorsCount} icon={<TrophyIcon />} color="bg-yellow-500" trend="Elite" trendUp delay={0.3} />
+        <StatCard title={t('students.isCompetitor')} value={competitorsCount} icon={<TrophyIcon />} color="bg-yellow-500" trend={t('dashboard.stats.elite')} trendUp delay={0.3} />
         <StatCard title={t('dashboard.stats.revenue')} value={monthlyRevenue} icon={<TrendingUp />} color="bg-emerald-600" trend="+8.2%" trendUp delay={0.4} suffix={t('common.currencySymbol')} />
-        <StatCard title={t('dashboard.stats.extra')} value={monthlyExtra} icon={<Store />} color="bg-indigo-600" trend="Up" trendUp delay={0.5} suffix={t('common.currencySymbol')} />
-        <StatCard title="Risco Churn" value={churnRiskCount} icon={<ShieldAlert />} color="bg-orange-600" trend={churnRiskCount > 0 ? "ALERTA" : "NORMAL"} trendUp={false} delay={0.6} />
+        <StatCard title={t('dashboard.stats.extra')} value={monthlyExtra} icon={<Store />} color="bg-indigo-600" trend={t('dashboard.stats.up')} trendUp delay={0.5} suffix={t('common.currencySymbol')} />
+        <StatCard title={t('dashboard.stats.churnRisk')} value={churnRiskCount} icon={<ShieldAlert />} color="bg-orange-600" trend={churnRiskCount > 0 ? t('dashboard.stats.alert') : t('dashboard.stats.normal')} trendUp={false} delay={0.6} />
       </div>
+      )}
 
       {/* Main Intelligent Bento Section */}
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-stretch">
+      {layoutConfig.showPerformance && (
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-stretch">
         {/* QTD & Pedagogy Intelligence */}
         <BentoBox 
           className="lg:col-span-8" 
@@ -429,9 +648,11 @@ const Dashboard: React.FC = () => {
           </div>
         </BentoBox>
       </div>
+      )}
 
       {/* Secondary Operational Row */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+      {layoutConfig.showAnalytics && (
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
         {/* Quick Tools replaced by Global Search/Shortcuts if needed, for now just cleaning */}
         <div className="lg:col-span-2 grid grid-cols-1 gap-4">
            <div className="h-full p-8 bg-white dark:bg-slate-900 rounded-[2.5rem] border border-slate-200 dark:border-slate-800 flex flex-col justify-center relative overflow-hidden group">
@@ -486,9 +707,12 @@ const Dashboard: React.FC = () => {
           </div>
         </div>
       </div>
+      )}
 
       {/* Instagram Premium Impact Card */}
-      <motion.div 
+      {layoutConfig.showLeaderboard && (
+        <>
+          <motion.div 
         initial={{ opacity: 0, y: 30 }}
         whileInView={{ opacity: 1, y: 0 }}
         viewport={{ once: true }}
@@ -500,7 +724,7 @@ const Dashboard: React.FC = () => {
                <Zap size={20} className="text-blue-500" /> {t('dashboard.masterInsights')}
             </h3>
             <div className="space-y-4">
-               <div className="p-4 bg-white/5 rounded-2xl border border-white/5">
+              <div className="p-4 bg-white/5 rounded-2xl border border-white/5">
                   <p className="text-[9px] font-black text-blue-400 uppercase tracking-widest mb-1">{t('dashboard.pedagogy')}</p>
                   <p className="text-xs text-slate-400 leading-relaxed">{t('dashboard.insights.pedagogy')}</p>
                </div>
@@ -558,6 +782,8 @@ const Dashboard: React.FC = () => {
           </div>
         </div>
       </motion.div>
+        </>
+      )}
     </div>
   );
 };

@@ -642,8 +642,10 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     return true;
   }, [ledger]);
 
-  const recordAttendance = (studentIds: string[], lessonPlanId?: string, classId?: string) => {
+  const recordAttendance = async (studentIds: string[], lessonPlanId?: string, classId?: string) => {
     const today = new Date().toISOString().split('T')[0];
+    
+    // Update local state first for responsiveness
     setStudents(prev => prev.map(s => studentIds.includes(s.id) ? { 
       ...s, 
       attendanceCount: (s.attendanceCount || 0) + 1,
@@ -653,6 +655,27 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         { date: today, lessonPlanId, classId }
       ]
     } : s));
+
+    // Persist to Cloud
+    if (db) {
+      const batch = writeBatch(db);
+      for (const id of studentIds) {
+        const student = students.find(s => s.id === id);
+        if (student) {
+          const studentRef = doc(db, 'students', id);
+          batch.update(studentRef, {
+            attendanceCount: (student.attendanceCount || 0) + 1,
+            currentStreak: (student.currentStreak || 0) + 1,
+            attendanceHistory: [
+              ...(student.attendanceHistory || []),
+              { date: today, lessonPlanId, classId }
+            ]
+          });
+        }
+      }
+      await batch.commit().catch(err => handleFirestoreError(err, OperationType.UPDATE, 'students-bulk'));
+    }
+
     logAction('Chamada Realizada', `${studentIds.length} alunos marcaram presença`, 'User');
   };
 

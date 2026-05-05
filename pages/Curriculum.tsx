@@ -129,7 +129,7 @@ const Curriculum: React.FC = () => {
   const handleDuplicatePlan = (plan: LessonPlan) => {
     const duplicatedPlan: Omit<LessonPlan, 'id'> = {
       ...plan,
-      title: `${plan.title} (Cópia)`,
+      title: `${plan.title} (${t('common.copy') || 'Cópia'})`,
       date: new Date().toISOString().split('T')[0]
     };
     addLessonPlan(duplicatedPlan);
@@ -229,33 +229,33 @@ const Curriculum: React.FC = () => {
               {!isEditingFocus ? (
                 <div className="space-y-4">
                   <h2 className="text-2xl md:text-3xl lg:text-4xl font-black uppercase tracking-tighter leading-tight max-w-2xl">
-                    {profile.technicalFocus || 'Defina o Foco Técnico da Academia'}
+                    {profile.technicalFocus || t('curriculum.techFocusPlaceholder')}
                   </h2>
                   <p className="text-slate-400 text-sm md:text-base max-w-2xl leading-relaxed italic">
-                    {profile.technicalFocusDescription || 'Clique em editar para descrever os objetivos técnicos desta semana/mês para todos os alunos.'}
+                    {profile.technicalFocusDescription || t('curriculum.techFocusDescPlaceholder')}
                   </p>
                 </div>
               ) : (
                 <div className="space-y-6 max-w-2xl animate-in fade-in slide-in-from-left-4">
-                  <div className="space-y-3">
-                    <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest">{t('common.title')}</label>
-                    <input 
-                      type="text"
-                      className="w-full bg-white/5 border border-white/10 rounded-xl px-5 py-3 text-white font-black uppercase tracking-tight focus:ring-2 focus:ring-blue-600 outline-none"
-                      value={focusData.title}
-                      onChange={e => setFocusData({...focusData, title: e.target.value})}
-                      placeholder="Ex: Domínio de Meia Guarda"
-                    />
-                  </div>
-                  <div className="space-y-3">
-                    <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest">{t('common.description')}</label>
-                    <textarea 
-                      className="w-full bg-white/5 border border-white/10 rounded-xl px-5 py-3 text-white font-medium text-sm focus:ring-2 focus:ring-blue-600 outline-none h-24 resize-none"
-                      value={focusData.description}
-                      onChange={e => setFocusData({...focusData, description: e.target.value})}
-                      placeholder="Descreva os objetivos técnicos..."
-                    />
-                  </div>
+                      <div className="space-y-3">
+                        <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest">{t('common.title')}</label>
+                        <input 
+                          type="text"
+                          className="w-full bg-white/5 border border-white/10 rounded-xl px-5 py-3 text-white font-black uppercase tracking-tight focus:ring-2 focus:ring-blue-600 outline-none"
+                          value={focusData.title}
+                          onChange={e => setFocusData({...focusData, title: e.target.value})}
+                          placeholder={t('curriculum.titlePlaceholder')}
+                        />
+                      </div>
+                      <div className="space-y-3">
+                        <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest">{t('common.description')}</label>
+                        <textarea 
+                          className="w-full bg-white/5 border border-white/10 rounded-xl px-5 py-3 text-white font-medium text-sm focus:ring-2 focus:ring-blue-600 outline-none h-24 resize-none"
+                          value={focusData.description}
+                          onChange={e => setFocusData({...focusData, description: e.target.value})}
+                          placeholder={t('curriculum.descPlaceholder')}
+                        />
+                      </div>
                 </div>
               )}
             </div>
@@ -323,7 +323,7 @@ const Curriculum: React.FC = () => {
               <div className="w-16 h-16 bg-white/20 rounded-2xl flex items-center justify-center group-hover:rotate-12 transition-transform">
                 <Plus size={32} />
               </div>
-              <span className="font-black uppercase tracking-widest text-xs">Novo Quadro de Trabalho (QTD)</span>
+              <span className="font-black uppercase tracking-widest text-xs">{t('curriculum.newQtdBtn')}</span>
             </button>
 
             <div className="space-y-4">
@@ -345,11 +345,11 @@ const Curriculum: React.FC = () => {
                       <p className="font-black dark:text-white uppercase tracking-tight truncate text-sm">{plan.title}</p>
                       <div className="flex items-center gap-3 mt-2">
                         <span className="text-[8px] font-black bg-slate-100 dark:bg-slate-800 text-slate-500 px-2 py-0.5 rounded uppercase tracking-widest">
-                          {plan.techniques.length} Técnicas
+                          {plan.techniques.length} {t('curriculum.techniques')}
                         </span>
                         {plan.ruleFocus && (
                            <span className="text-[8px] font-black bg-blue-50 dark:bg-blue-900/20 text-blue-600 px-2 py-0.5 rounded uppercase tracking-widest">
-                             + Regras
+                             + {t('ibjjfRules.title')}
                            </span>
                         )}
                       </div>
@@ -357,7 +357,7 @@ const Curriculum: React.FC = () => {
                     <div className="flex items-center gap-1">
                       <button 
                         onClick={(e) => { e.stopPropagation(); handleDuplicatePlan(plan); }}
-                        title="Duplicar Plano"
+                        title={t('curriculum.duplicatePlan') || 'Duplicar'}
                         className="p-2 text-slate-300 hover:text-blue-500 hover:bg-blue-50 dark:hover:bg-blue-900/20 rounded-lg transition-all"
                       >
                         <Icons.Copy size={14} />
@@ -396,7 +396,7 @@ const Curriculum: React.FC = () => {
                          {editingPlanId ? <Edit3 size={24} /> : <Plus size={24} />}
                        </div>
                        <h2 className="text-2xl font-black dark:text-white uppercase tracking-tighter">
-                         {editingPlanId ? 'Editar Quadro de Trabalho' : 'Novo Quadro de Trabalho (QTD)'}
+                         {editingPlanId ? t('curriculum.editQtd') : t('curriculum.newQtd')}
                        </h2>
                     </div>
                     <button onClick={() => { setIsPlanning(false); setEditingPlanId(null); }} className="p-3 text-slate-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-900/10 rounded-xl transition-all">
@@ -410,7 +410,7 @@ const Curriculum: React.FC = () => {
                         <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">{t('curriculum.lessonTitle')}</label>
                         <input 
                           type="text" 
-                          placeholder="Ex: Fundamentos de Passagem de Guarda"
+                          placeholder={t('curriculum.qtdTitlePlaceholder')}
                           className="w-full px-6 py-4 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-2xl outline-none focus:ring-2 focus:ring-blue-600 dark:text-white font-bold transition-all"
                           value={currentPlan.title}
                           onChange={e => setCurrentPlan({...currentPlan, title: e.target.value})}
@@ -421,7 +421,7 @@ const Curriculum: React.FC = () => {
                         <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">{t('ibjjfRules.ruleFocus')}</label>
                         <input 
                           type="text" 
-                          placeholder="Ex: Posição de 4 apoios e pontuação"
+                          placeholder={t('curriculum.rulesFocusPlaceholder')}
                           className="w-full px-6 py-4 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-2xl outline-none focus:ring-2 focus:ring-blue-600 dark:text-white font-bold transition-all"
                           value={currentPlan.ruleFocus || ''}
                           onChange={e => setCurrentPlan({...currentPlan, ruleFocus: e.target.value})}
@@ -430,12 +430,12 @@ const Curriculum: React.FC = () => {
 
                       <div className="space-y-2">
                         <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1 flex items-center gap-2">
-                          <Dumbbell size={12} className="text-blue-500" /> Aquecimento
+                          <Dumbbell size={12} className="text-blue-500" /> {t('curriculum.warmupLabel')}
                         </label>
                         <textarea 
                           rows={2}
                           className="w-full px-6 py-4 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-2xl outline-none focus:ring-2 focus:ring-blue-600 dark:text-white font-bold resize-none transition-all"
-                          placeholder="Descreva o aquecimento (ex: Drills, Abdominais...)"
+                          placeholder={t('curriculum.warmupPlaceholder')}
                           value={currentPlan.warmup || ''}
                           onChange={e => setCurrentPlan({...currentPlan, warmup: e.target.value})}
                         />
@@ -457,12 +457,12 @@ const Curriculum: React.FC = () => {
 
                       <div className="space-y-2">
                         <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1 flex items-center gap-2">
-                          <Sword size={12} className="text-blue-500" /> Especial / Específico
+                          <Sword size={12} className="text-blue-500" /> {t('curriculum.specificLabel')}
                         </label>
                         <textarea 
                           rows={2}
                           className="w-full px-6 py-4 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-2xl outline-none focus:ring-2 focus:ring-blue-600 dark:text-white font-bold resize-none transition-all"
-                          placeholder="Drills específicos de situação..."
+                          placeholder={t('curriculum.specificPlaceholder')}
                           value={currentPlan.specificTraining || ''}
                           onChange={e => setCurrentPlan({...currentPlan, specificTraining: e.target.value})}
                         />
@@ -470,12 +470,12 @@ const Curriculum: React.FC = () => {
 
                       <div className="space-y-2">
                         <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1 flex items-center gap-2">
-                          <Users size={12} className="text-blue-500" /> Rola / Sparring
+                          <Users size={12} className="text-blue-500" /> {t('curriculum.sparringLabel')}
                         </label>
                         <textarea 
                           rows={2}
                           className="w-full px-6 py-4 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-2xl outline-none focus:ring-2 focus:ring-blue-600 dark:text-white font-bold resize-none transition-all"
-                          placeholder="Configuração dos rolas (ex: 5x5 min)..."
+                          placeholder={t('curriculum.sparringPlaceholder')}
                           value={currentPlan.sparring || ''}
                           onChange={e => setCurrentPlan({...currentPlan, sparring: e.target.value})}
                         />
@@ -486,7 +486,7 @@ const Curriculum: React.FC = () => {
                   <div className="space-y-6">
                     <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1 flex justify-between items-center bg-slate-50 dark:bg-slate-800/50 p-4 rounded-xl border border-slate-100 dark:border-slate-800">
                        <span className="flex items-center gap-2"><Layout size={14} className="text-blue-600" /> {t('curriculum.timeline')}</span>
-                       <span className="text-[9px] opacity-60">ADICIONE DA BIBLIOTECA ABAIXO</span>
+                       <span className="text-[9px] opacity-60">{t('curriculum.timelineHelp')}</span>
                     </label>
                     
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -542,7 +542,8 @@ const Curriculum: React.FC = () => {
                          <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={14} />
                          <input 
                            type="text"
-                           placeholder="Filtrar técnica..."
+                           placeholder={t('curriculum.qtdFilterTechnique')}
+                           onChange={(e) => setSearchTerm(e.target.value)}
                            className="w-full pl-9 pr-4 py-2 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-[10px] outline-none font-bold"
                          />
                        </div>
@@ -569,7 +570,7 @@ const Curriculum: React.FC = () => {
                         onClick={() => setActiveTab('library')}
                         className="p-4 bg-slate-50 dark:bg-slate-900/50 border border-dashed border-slate-200 dark:border-slate-800 rounded-2xl flex items-center justify-center text-blue-600 hover:bg-blue-50 transition-all cursor-pointer group"
                       >
-                         <p className="text-[9px] font-black uppercase tracking-widest group-hover:scale-110 transition-transform">Ver Biblioteca Completa</p>
+                         <p className="text-[9px] font-black uppercase tracking-widest group-hover:scale-110 transition-transform">{t('curriculum.viewFullLibrary')}</p>
                       </div>
                     </div>
                   </div>
@@ -586,7 +587,7 @@ const Curriculum: React.FC = () => {
                         disabled={!currentPlan.title}
                         className={`flex-[2] py-5 rounded-2xl font-black uppercase text-xs tracking-[0.2em] shadow-2xl flex items-center justify-center gap-3 transition-all ${currentPlan.title ? 'bg-slate-900 dark:bg-white text-white dark:text-slate-900 active:scale-95 shadow-blue-500/20' : 'bg-slate-100 text-slate-400 cursor-not-allowed'}`}
                       >
-                        <Save size={20} /> {editingPlanId ? 'ATUALIZAR QTD' : 'SALVAR QUADRO DO DIA (OSS)'}
+                        <Save size={20} /> {editingPlanId ? t('curriculum.updateTech').toUpperCase() : t('curriculum.validateTech').toUpperCase()}
                       </button>
                   </div>
                 </motion.div>
@@ -600,10 +601,10 @@ const Curriculum: React.FC = () => {
                    <div className="w-24 h-24 bg-slate-50 dark:bg-slate-800 rounded-[2.5rem] flex items-center justify-center text-slate-300 mb-8 shadow-inner">
                       <Layout size={48} />
                    </div>
-                   <h2 className="text-2xl font-black dark:text-white uppercase tracking-tighter">Gestão do Quadro do Dia (QTD)</h2>
-                   <p className="text-slate-500 mt-4 max-w-xs leading-relaxed italic text-sm">
-                     Selecione um plano à esquerda para visualizar e editar, ou clique no botão azul para criar um novo planejamento técnico para sua academia.
-                   </p>
+                    <h2 className="text-2xl font-black dark:text-white uppercase tracking-tighter">{t('curriculum.qtdManagement')}</h2>
+                    <p className="text-slate-500 mt-4 max-w-xs leading-relaxed italic text-sm">
+                      {t('curriculum.qtdIntroDesc')}
+                    </p>
                    <div className="mt-10 flex gap-4">
                      <div className="flex items-center gap-2 px-4 py-2 bg-blue-600/10 rounded-full border border-blue-600/20 text-[9px] font-black text-blue-600 uppercase tracking-widest">
                        <CheckCircle2 size={12} /> Digital Sensei Ready
@@ -654,7 +655,7 @@ const Curriculum: React.FC = () => {
                    </div>
                    <div className="absolute bottom-5 left-5 z-20">
                     <span className="px-3 py-1 bg-white dark:bg-slate-900 backdrop-blur-md rounded-full text-[9px] font-black uppercase tracking-widest dark:text-white border border-white/20">
-                      {tech.beltLevel} Level
+                      {tech.beltLevel} {t('beltSystem.level') || 'Level'}
                     </span>
                    </div>
                 </div>
@@ -704,7 +705,7 @@ const Curriculum: React.FC = () => {
                 </button>
               </div>
 
-              <div className="aspect-video bg-slate-900 rounded-[2.5rem] flex items-center justify-center relative overflow-hidden group shadow-2xl border-4 border-slate-50 dark:border-slate-800">
+                  <div className="aspect-video bg-slate-900 rounded-[2.5rem] flex items-center justify-center relative overflow-hidden group shadow-2xl border-4 border-slate-50 dark:border-slate-800">
                 {selectedTech.videoUrl ? (
                   <iframe
                     src={getEmbedUrl(selectedTech.videoUrl) || ''}
@@ -719,7 +720,7 @@ const Curriculum: React.FC = () => {
                        <PlayCircle size={48} className="relative z-10" />
                        <div className="absolute inset-0 bg-blue-600/5 animate-pulse" />
                     </div>
-                    <p className="text-[10px] font-black text-slate-500 uppercase tracking-[0.3em]">Treinamento Presencial Exigido</p>
+                    <p className="text-[10px] font-black text-slate-500 uppercase tracking-[0.3em]">{t('curriculum.trainingPresencialRequired')}</p>
                   </div>
                 )}
               </div>
@@ -727,7 +728,7 @@ const Curriculum: React.FC = () => {
               <div className="space-y-8">
                 <div className="prose dark:prose-invert max-w-none">
                    <h4 className="text-[10px] font-black text-blue-600 uppercase tracking-widest mb-4 flex items-center gap-2">
-                     <MessageSquare size={14} /> Detalhamento Técnico
+                     <MessageSquare size={14} /> {t('curriculum.techDetailsLabel')}
                    </h4>
                    <p className="text-base text-slate-600 dark:text-slate-400 leading-relaxed p-8 bg-slate-50 dark:bg-slate-800/50 rounded-[2rem] border border-slate-100 dark:border-slate-700 italic font-medium">
                      {selectedTech.description}
@@ -741,8 +742,8 @@ const Curriculum: React.FC = () => {
                     <Trophy size={24} />
                   </div>
                   <div>
-                    <p className="text-[9px] font-black text-blue-600 uppercase mb-1">Nível Sugerido</p>
-                    <p className="text-sm font-black dark:text-white uppercase tracking-tight">{selectedTech.beltLevel} Level</p>
+                    <p className="text-[9px] font-black text-blue-600 uppercase mb-1">{t('curriculum.beltLevelLabel')}</p>
+                    <p className="text-sm font-black dark:text-white uppercase tracking-tight">{selectedTech.beltLevel} {t('beltSystem.level') || 'Level'}</p>
                   </div>
                 </div>
                 <div className="p-6 bg-purple-50 dark:bg-purple-900/10 rounded-[1.75rem] border border-purple-100 dark:border-purple-900/30 flex items-center gap-5">
@@ -778,7 +779,7 @@ const Curriculum: React.FC = () => {
             <div className="p-10 space-y-8">
               <div className="flex items-center justify-between border-b border-slate-100 dark:border-slate-800 pb-6">
                 <h3 className="text-2xl font-black dark:text-white uppercase tracking-tight">
-                  {editingTech ? 'Refinar Técnica' : 'Cadastrar Técnica'}
+                  {editingTech ? t('curriculum.refineTech') : t('curriculum.registerTech')}
                 </h3>
                 <button 
                   onClick={() => { setIsAddingTech(false); setEditingTech(null); }} 
@@ -790,19 +791,19 @@ const Curriculum: React.FC = () => {
 
               <div className="space-y-6">
                 <div className="space-y-2">
-                  <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Nome da Técnica</label>
+                  <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">{t('curriculum.techNameLabel')}</label>
                   <input 
                     type="text"
                     className="w-full px-6 py-4 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-2xl outline-none focus:ring-2 focus:ring-blue-600 dark:text-white font-bold"
                     value={editingTech ? editingTech.name : newTech.name}
                     onChange={e => editingTech ? setEditingTech({...editingTech, name: e.target.value}) : setNewTech({...newTech, name: e.target.value})}
-                    placeholder="Ex: Armlock da Guarda"
+                    placeholder={t('curriculum.techNamePlaceholder')}
                   />
                 </div>
 
                 <div className="grid grid-cols-2 gap-4">
                   <div className="space-y-2">
-                    <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Categoria</label>
+                    <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">{t('curriculum.categoryLabel')}</label>
                     <select 
                       className="w-full px-6 py-4 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-2xl outline-none focus:ring-2 focus:ring-blue-600 dark:text-white font-bold appearance-none"
                       value={editingTech ? editingTech.category : newTech.category}
@@ -812,7 +813,7 @@ const Curriculum: React.FC = () => {
                     </select>
                   </div>
                   <div className="space-y-2">
-                    <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Nível de Faixa</label>
+                    <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">{t('curriculum.beltLevelLabel')}</label>
                     <select 
                       className="w-full px-6 py-4 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-2xl outline-none focus:ring-2 focus:ring-blue-600 dark:text-white font-bold appearance-none"
                       value={editingTech ? editingTech.beltLevel : newTech.beltLevel}
@@ -824,25 +825,25 @@ const Curriculum: React.FC = () => {
                 </div>
 
                 <div className="space-y-2">
-                  <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Link do Vídeo (YouTube Embed)</label>
+                  <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">{t('curriculum.videoLinkLabel')}</label>
                   <input 
                     type="text"
-                    placeholder="Ex: https://www.youtube.com/embed/..."
+                    placeholder={t('curriculum.videoLinkHelp')}
                     className="w-full px-6 py-4 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-2xl outline-none focus:ring-2 focus:ring-blue-600 dark:text-white font-bold"
                     value={editingTech ? editingTech.videoUrl : newTech.videoUrl}
                     onChange={e => editingTech ? setEditingTech({...editingTech, videoUrl: e.target.value}) : setNewTech({...newTech, videoUrl: e.target.value})}
                   />
-                  <p className="text-[9px] text-slate-400 italic ml-1">Link de 'incorporação' ou URL padrão do YouTube.</p>
+                  <p className="text-[9px] text-slate-400 italic ml-1">{t('curriculum.videoLinkHelp')}</p>
                 </div>
 
                 <div className="space-y-2">
-                  <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Descrição</label>
+                  <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">{t('curriculum.descLabel')}</label>
                   <textarea 
                     rows={4}
                     className="w-full px-6 py-4 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-2xl outline-none focus:ring-2 focus:ring-blue-600 dark:text-white font-bold resize-none"
                     value={editingTech ? editingTech.description : newTech.description}
                     onChange={e => editingTech ? setEditingTech({...editingTech, description: e.target.value}) : setNewTech({...newTech, description: e.target.value})}
-                    placeholder="Descreva os detalhes da técnica..."
+                    placeholder={t('curriculum.techDescPlaceholder')}
                   />
                 </div>
               </div>
@@ -850,10 +851,10 @@ const Curriculum: React.FC = () => {
               <div className="flex gap-4 pt-6">
                 {editingTech && (
                   <button 
-                    onClick={() => { if(window.confirm('Excluir técnica?')) { deleteTechnique(editingTech.id); setEditingTech(null); } }}
+                    onClick={() => { if(window.confirm(t('common.confirmDelete') || 'Excluir técnica?')) { deleteTechnique(editingTech.id); setEditingTech(null); } }}
                     className="flex-1 py-5 bg-red-500/10 text-red-600 rounded-2xl font-black text-xs uppercase tracking-widest hover:bg-red-500/20 transition-all"
                   >
-                    Excluir
+                    {t('common.delete')}
                   </button>
                 )}
                 <button 
@@ -869,7 +870,7 @@ const Curriculum: React.FC = () => {
                   }}
                   className="flex-[2] py-5 bg-blue-600 text-white rounded-2xl font-black text-xs uppercase tracking-widest shadow-2xl shadow-blue-500/30 hover:scale-[1.02] active:scale-95 transition-all"
                 >
-                  {editingTech ? 'Atualizar Técnica' : 'Validar Técnica (OSS)'}
+                  {editingTech ? t('curriculum.updateTech') : t('curriculum.validateTech')}
                 </button>
               </div>
             </div>

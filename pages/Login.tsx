@@ -40,7 +40,7 @@ const Login: React.FC<LoginProps> = ({ onLogin }) => {
     const savedPin = localStorage.getItem('sysbjj_admin_pin');
 
     if (!MASTER_ADMINS.includes(email.toLowerCase())) {
-      setError('Acesso negado: Email não autorizado.');
+      setError(t('login.unauthorizedEmail') || 'Acesso negado: Email não autorizado.');
       return;
     }
 
@@ -89,7 +89,7 @@ const Login: React.FC<LoginProps> = ({ onLogin }) => {
     if (!savedPin) return;
 
     if (!MASTER_ADMINS.includes(email.toLowerCase())) {
-      setError('Biometria requer email autorizado.');
+      setError(t('login.biometryRequiredAuth') || 'Biometria requer email autorizado.');
       return;
     }
 
