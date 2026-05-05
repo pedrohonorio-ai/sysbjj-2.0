@@ -2,28 +2,28 @@ import React, { useState, useEffect } from 'react';
 import { Routes, Route, Link, useLocation, useNavigate, Navigate } from 'react-router-dom';
 import { Menu, X, Bell, Sun, Moon, Search, Shield, LogOut, Clock, CheckCircle2, Instagram, ChevronRight, ShieldCheck, Lock, ArrowUpRight, CalendarCheck, Timer, Monitor, Activity, Users } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
-import { NAVIGATION_ITEMS, BELT_COLORS, MASTER_ADMINS } from '../constants';
-import Dashboard from '../pages/Dashboard';
-import Students from '../pages/Students';
-import Classes from '../pages/Classes';
-import IBJJFRules from '../pages/IBJJFRules';
-import BusinessHub from '../pages/BusinessHub';
-import AttendancePage from '../pages/Attendance';
-import AttendanceHistory from '../pages/AttendanceHistory';
-import BeltSystem from '../pages/BeltSystem';
-import FightTimer from '../pages/FightTimer';
-import Settings from '../pages/Settings';
-import StudentPortal from '../pages/StudentPortal';
-import Curriculum from '../pages/Curriculum';
-import ExhibitionMode from '../pages/ExhibitionMode';
-import SystemAudit from '../pages/SystemAudit';
-import LanguageSelection from '../pages/LanguageSelection';
-import Login from '../pages/Login';
-import { useTranslation } from '../contexts/LanguageContext';
-import { useTheme } from '../contexts/ThemeContext';
-import { useProfile } from '../contexts/ProfileContext';
-import { useData } from '../contexts/DataContext';
-import { db, auth as firebaseAuth } from '../firebase';
+import { NAVIGATION_ITEMS, BELT_COLORS, MASTER_ADMINS } from './constants';
+import Dashboard from './pages/Dashboard';
+import Students from './pages/Students';
+import Classes from './pages/Classes';
+import IBJJFRules from './pages/IBJJFRules';
+import BusinessHub from './pages/BusinessHub';
+import AttendancePage from './pages/Attendance';
+import AttendanceHistory from './pages/AttendanceHistory';
+import BeltSystem from './pages/BeltSystem';
+import FightTimer from './pages/FightTimer';
+import Settings from './pages/Settings';
+import StudentPortal from './pages/StudentPortal';
+import Curriculum from './pages/Curriculum';
+import ExhibitionMode from './pages/ExhibitionMode';
+import SystemAudit from './pages/SystemAudit';
+import LanguageSelection from './pages/LanguageSelection';
+import Login from './pages/Login';
+import { useTranslation } from './contexts/LanguageContext';
+import { useTheme } from './contexts/ThemeContext';
+import { useProfile } from './contexts/ProfileContext';
+import { useData } from './contexts/DataContext';
+import { db, auth as firebaseAuth } from './firebase';
 import { signInAnonymously } from 'firebase/auth';
 import { doc, setDoc } from 'firebase/firestore';
 
@@ -104,7 +104,7 @@ const Sidebar = ({ isOpen, toggle, onLogout }: { isOpen: boolean, toggle: () => 
             ) : (
               <div className="w-12 h-12 bg-slate-950 dark:bg-blue-600 rounded-2xl flex items-center justify-center font-black text-2xl text-white shadow-2xl shadow-blue-500/20 shrink-0 group">
                 <span className="group-hover:scale-110 transition-transform duration-500">
-                  {profile.academyName[0] || 'S'}
+                  {profile.academyName?.[0] || 'S'}
                 </span>
               </div>
             )}
@@ -193,10 +193,10 @@ const Sidebar = ({ isOpen, toggle, onLogout }: { isOpen: boolean, toggle: () => 
             <div className="flex items-center justify-between">
               <p className="text-[8px] font-black text-slate-400 uppercase tracking-widest transition-opacity duration-300">© 2026 SYBJJ BY CT Pedro Honorio</p>
               <a href="https://instagram.com/sistemabjj" target="_blank" rel="noopener noreferrer" className="text-[8px] font-black text-slate-400 hover:text-blue-500 transition-colors uppercase tracking-widest italic flex items-center gap-1">
-                <Instagram size={8} /> IG
+                <Instagram size={8} /> @SISTEMABJJ
               </a>
             </div>
-            <p className="text-[7px] font-bold text-slate-500 uppercase tracking-tighter opacity-60">Criado por PPH & CT PH de JIU-JITSU</p>
+            <p className="text-[7px] font-bold text-slate-500 uppercase tracking-tighter opacity-60">Criado e Produzido por PPH e CT PH de JIU-JITSU</p>
           </div>
         </div>
       </aside>
@@ -278,7 +278,7 @@ const Header = ({ toggleSidebar, auth, onLogout }: { toggleSidebar: () => void, 
           </div>
         ) : (
           <div className="w-10 h-10 bg-blue-600 rounded-xl flex items-center justify-center font-black text-white">
-            {profile.academyName[0] || 'S'}
+            {profile.academyName?.[0] || 'S'}
           </div>
         )}
         <div>
@@ -549,7 +549,7 @@ const App: React.FC = () => {
                       <p className="text-[12px] font-black text-slate-900 dark:text-white uppercase tracking-tighter italic">SYSBJJ INTELLIGENCE SYSTEM 2.0</p>
                       <div className="flex items-center gap-2">
                          <span className="px-2 py-0.5 bg-blue-600/10 border border-blue-600/20 rounded text-[7px] font-black text-blue-600 uppercase tracking-widest leading-none">Security_Node_Active</span>
-                         <span className="text-[8px] font-bold text-slate-400 uppercase tracking-widest opacity-60">Hash: SHA-256_Atomatic_Sync_Enabled</span>
+                         <span className="text-[8px] font-bold text-slate-400 uppercase tracking-widest opacity-60">Hash: SHA-256_Automatic_Sync_Enabled</span>
                       </div>
                    </div>
                 </div>

@@ -30,7 +30,11 @@ export default defineConfig(({ mode }) => {
       },
       plugins: [react(), tailwindcss()],
       build: {
-        target: 'esnext'
+        outDir: 'dist',
+        emptyOutDir: true,
+        target: 'es2020',
+        sourcemap: false,
+        minify: 'esbuild',
       },
       define: {
         'process.env.GEMINI_API_KEY': JSON.stringify(geminiKey),
