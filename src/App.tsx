@@ -185,7 +185,12 @@ const Sidebar = ({ isOpen, toggle, onLogout }: { isOpen: boolean, toggle: () => 
             </div>
           </div>
           <div className="mt-4 flex flex-col gap-1 px-1">
-            <p className="text-[8px] font-black text-slate-400 uppercase tracking-widest transition-opacity duration-300">© 2026 ELITE ACADEMY GROUP</p>
+            <div className="flex items-center justify-between">
+              <p className="text-[8px] font-black text-slate-400 uppercase tracking-widest transition-opacity duration-300">© 2026 ELITE ACADEMY GROUP</p>
+              <a href="https://instagram.com/pedrohonorio" target="_blank" rel="noopener noreferrer" className="text-[8px] font-black text-slate-400 hover:text-blue-500 transition-colors uppercase tracking-widest italic flex items-center gap-1">
+                <Instagram size={8} /> IG
+              </a>
+            </div>
             <p className="text-[7px] font-bold text-slate-500 uppercase tracking-tighter opacity-60">Criado por PPH & CT PH de JIU-JITSU</p>
           </div>
         </div>
@@ -543,9 +548,14 @@ const App: React.FC = () => {
                       </div>
                    </div>
                    <div className="flex flex-col items-center lg:items-end space-y-1">
-                      <p className="text-[10px] font-black text-slate-900 dark:text-white uppercase tracking-widest italic">© 2026 ELITE ACADEMY GROUP</p>
+                      <div className="flex items-center gap-4">
+                        <p className="text-[10px] font-black text-slate-900 dark:text-white uppercase tracking-widest italic">© 2026 ELITE ACADEMY GROUP</p>
+                        <a href="https://instagram.com/pedrohonorio" target="_blank" rel="noopener noreferrer" className="text-[10px] font-black text-blue-600 hover:text-blue-500 transition-all uppercase tracking-widest italic flex items-center gap-1.5 group/ig">
+                          <Instagram size={12} className="group-hover/ig:scale-110 transition-transform" />
+                          <span>INSTAGRAM</span>
+                        </a>
+                      </div>
                       <p className="text-[8px] font-bold text-slate-400 uppercase tracking-widest">Criado e Produzido por PPH e CT PH de JIU-JITSU</p>
-                      <p className="text-[7px] font-medium text-slate-400 uppercase tracking-[0.2em] opacity-40">Desenvolvido para Máxima Performance Operacional</p>
                    </div>
                 </div>
              </div>
