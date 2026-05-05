@@ -197,6 +197,10 @@ const Sidebar = ({ isOpen, toggle, onLogout }: { isOpen: boolean, toggle: () => 
               </a>
             </div>
             <p className="text-[7px] font-bold text-slate-500 uppercase tracking-tighter opacity-60">Criado e Produzido por PPH e CT PH de JIU-JITSU</p>
+            <div className="mt-1 flex items-center gap-2">
+              <span className="text-[6px] font-black text-blue-600/50 uppercase tracking-widest leading-none">Security_Node_Active</span>
+              <span className="text-[6px] font-bold text-slate-400 uppercase tracking-widest opacity-40">Automatic_Sync: Enabled</span>
+            </div>
           </div>
         </div>
       </aside>
@@ -547,8 +551,8 @@ const App: React.FC = () => {
                    </div>
                    <div className="space-y-1">
                       <p className="text-[12px] font-black text-slate-900 dark:text-white uppercase tracking-tighter italic">SYSBJJ INTELLIGENCE SYSTEM 2.0</p>
-                      <div className="flex items-center gap-2">
-                         <span className="px-2 py-0.5 bg-blue-600/10 border border-blue-600/20 rounded text-[7px] font-black text-blue-600 uppercase tracking-widest leading-none">Security_Node_Active</span>
+                      <div className="flex flex-col gap-0.5">
+                         <span className="text-[8px] font-black text-blue-600 uppercase tracking-widest leading-none">Security_Node_Active</span>
                          <span className="text-[8px] font-bold text-slate-400 uppercase tracking-widest opacity-60">Hash: SHA-256_Automatic_Sync_Enabled</span>
                       </div>
                    </div>
@@ -570,7 +574,7 @@ const App: React.FC = () => {
                           <span>@SISTEMABJJ</span>
                         </a>
                       </div>
-                      <p className="text-[8px] font-bold text-slate-400 uppercase tracking-widest">Criado e Produzido por PPH e CT PH de JIU-JITSU</p>
+                      <p className="text-[8px] font-bold text-slate-400 uppercase tracking-widest text-right">Criado e Produzido por PPH e CT PH de JIU-JITSU</p>
                    </div>
                 </div>
              </div>
