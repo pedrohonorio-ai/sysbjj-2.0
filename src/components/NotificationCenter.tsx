@@ -59,7 +59,7 @@ const NotificationCenter: React.FC = () => {
                   <div className="w-8 h-8 rounded-xl bg-blue-600/10 text-blue-600 flex items-center justify-center">
                     <Bell size={18} />
                   </div>
-                  <h3 className="text-sm font-black text-slate-900 dark:text-white uppercase tracking-tighter">Notificações</h3>
+                  <h3 className="text-sm font-black text-slate-900 dark:text-white uppercase tracking-tighter">{t('common.notifications')}</h3>
                 </div>
                 <button onClick={() => setIsOpen(false)} className="p-2 text-slate-400 hover:text-red-500 transition-colors">
                   <X size={18} />
@@ -98,7 +98,7 @@ const NotificationCenter: React.FC = () => {
                     <div className="w-16 h-16 bg-slate-50 dark:bg-slate-800 rounded-full flex items-center justify-center mx-auto text-slate-300">
                       <Bell size={32} />
                     </div>
-                    <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest italic tracking-[0.2em]">Tudo limpo por aqui</p>
+                    <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest italic tracking-[0.2em]">{t('common.noNotifications')}</p>
                   </div>
                 )}
               </div>
@@ -109,7 +109,7 @@ const NotificationCenter: React.FC = () => {
                     onClick={() => notifications.forEach(n => clearNotification(n.id))}
                     className="text-[9px] font-black text-blue-600 uppercase tracking-widest hover:underline"
                   >
-                    Limpar Tudo
+                    {t('common.clearAll')}
                   </button>
                 </div>
               )}

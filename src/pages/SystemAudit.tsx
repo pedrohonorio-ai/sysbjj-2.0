@@ -81,7 +81,14 @@ const SystemAudit: React.FC = () => {
       extension = 'json';
     } else {
       // CSV
-      const headers = ['Data', 'Usuario', 'Acao', 'Categoria', 'Detalhes', 'Hash'];
+      const headers = [
+        t('audit.csvHeaders.date'),
+        t('audit.csvHeaders.user'),
+        t('audit.csvHeaders.action'),
+        t('audit.csvHeaders.category'),
+        t('audit.csvHeaders.details'),
+        t('audit.csvHeaders.hash')
+      ];
       const rows = filteredLogs.map(log => [
         new Date(log.timestamp).toLocaleString(),
         log.userEmail,

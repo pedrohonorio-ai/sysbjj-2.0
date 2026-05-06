@@ -180,7 +180,7 @@ const Sidebar = ({ isOpen, toggle, onLogout }: { isOpen: boolean, toggle: () => 
                 <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
                 <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-emerald-500"></span>
               </div>
-              <p className="text-[10px] font-black text-white uppercase tracking-tighter italic">Integridade Blindada</p>
+              <p className="text-[10px] font-black text-white uppercase tracking-tighter italic">{t('common.shieldedIntegrity')}</p>
             </div>
             <div className="mt-3 flex items-center justify-between relative z-10">
               <div className="flex items-center gap-1.5 px-2 py-0.5 bg-white/5 rounded-full border border-white/10">

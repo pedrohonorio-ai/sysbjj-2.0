@@ -161,7 +161,7 @@ const AttendancePage: React.FC = () => {
       },
       (error) => {
         console.error("Geolocation error:", error);
-        alert("Erro ao obter sua localização. Certifique-se de que o GPS está ligado e as permissões foram concedidas.");
+        alert(t('attendance.geoError'));
         setLocationStatus('fail');
       },
       { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 }
@@ -174,7 +174,7 @@ const AttendancePage: React.FC = () => {
     const selectedClass = schedules.find(s => s.id === selectedClassId);
     
     doc.setFontSize(20);
-    doc.text(`SYSBJJ 2.0 - ${t('attendance.dailyCall')}`, 14, 22);
+    doc.text(`SYSBJJ 2.0 - ${t('attendance.title')}`, 14, 22);
     doc.setFontSize(12);
     doc.text(`${t('common.date')}: ${today}`, 14, 32);
     doc.text(`${t('common.classes')}: ${selectedClass ? selectedClass.title : t('common.all')}`, 14, 40);
@@ -187,13 +187,13 @@ const AttendancePage: React.FC = () => {
 
     autoTable(doc, {
       startY: 50,
-      head: [['Nome do Aluno', 'Faixa', 'Status']],
+      head: [[t('common.name'), t('common.beltRank'), t('common.status')]],
       body: data,
       theme: 'grid',
       headStyles: { fillColor: '#1e293b' }
     });
 
-    doc.save(`Chamada_${today.replace(/\//g, '-')}.pdf`);
+    doc.save(`${t('attendance.title')}_${today.replace(/\//g, '-')}.pdf`);
   };
 
   const handleExportMonthly = () => {
@@ -201,13 +201,13 @@ const AttendancePage: React.FC = () => {
     const month = new Date().toLocaleString('default', { month: 'long', year: 'numeric' });
     
     doc.setFontSize(20);
-    doc.text(`SYSBJJ 2.0 - Controle Mensal de Frequência`, 14, 22);
+    doc.text(`SYSBJJ 2.0 - ${t('attendance.monthlyControl')}`, 14, 22);
     doc.setFontSize(12);
-    doc.text(`Mês: ${month}`, 14, 32);
+    doc.text(`${t('attendance.monthLabel')}: ${month}`, 14, 32);
 
     const now = new Date();
     const daysInMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0).getDate();
-    const headers = ['Aluno', ...Array.from({ length: daysInMonth }, (_, i) => (i + 1).toString())];
+    const headers = [t('common.name'), ...Array.from({ length: daysInMonth }, (_, i) => (i + 1).toString())];
 
     const data = activeStudents.map(s => {
       const row = [s.name];
@@ -228,7 +228,7 @@ const AttendancePage: React.FC = () => {
       headStyles: { fillColor: '#1e293b' }
     });
 
-    doc.save(`Frequencia_Mensal_${month.replace(/ /g, '_')}.pdf`);
+    doc.save(`${t('attendance.monthlyControl')}_${month.replace(/ /g, '_')}.pdf`);
   };
 
   const toggleAttendance = (id: string) => {
@@ -243,7 +243,7 @@ const AttendancePage: React.FC = () => {
     
     // Geofencing enforcement
     if (profile.latitude && profile.longitude && locationStatus !== 'success') {
-      alert("Acesso Negado: Você precisa validar sua localização (GPS) antes de registrar a presença.");
+      alert(t('attendance.geoDenied'));
       verifyLocation();
       return;
     }

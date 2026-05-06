@@ -111,35 +111,35 @@ const CameraCapture = ({ onCapture, onClose }: { onCapture: (img: string) => voi
   );
 };
 
-const validateStudent = (student: Partial<Student>): { isValid: boolean; errors: string[] } => {
+const validateStudent = (student: Partial<Student>, t: any): { isValid: boolean; errors: string[] } => {
   const errors: string[] = [];
   
   if (!student.name || student.name.trim().length < 3) {
-    errors.push('Nome deve ter pelo menos 3 caracteres.');
+    errors.push(t('students.validation.nameLength'));
   }
 
   if (student.email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(student.email)) {
-    errors.push('Formato de e-mail inválido.');
+    errors.push(t('students.validation.invalidEmail'));
   }
 
   if (student.cpf && student.cpf.replace(/\D/g, '').length !== 11) {
-    errors.push('CPF deve ter 11 dígitos.');
+    errors.push(t('students.validation.cpfLength'));
   }
 
   if (student.phone && student.phone.replace(/\D/g, '').length < 10) {
-    errors.push('Telefone inválido.');
+    errors.push(t('students.validation.invalidPhone'));
   }
 
   if (!student.birthDate) {
-    errors.push('Data de nascimento é obrigatória.');
+    errors.push(t('students.validation.birthDateRequired'));
   }
 
   if (student.monthlyValue !== undefined && student.monthlyValue < 0) {
-    errors.push('Valor mensal não pode ser negativo.');
+    errors.push(t('students.validation.negativeMonthly'));
   }
 
   if (student.dueDay !== undefined && (student.dueDay < 1 || student.dueDay > 31)) {
-    errors.push('Dia de vencimento deve ser entre 1 e 31.');
+    errors.push(t('students.validation.dueDayRange'));
   }
 
   return {
@@ -266,20 +266,20 @@ const NewStudentModal = ({ onClose, defaultIsKid }: { onClose: () => void, defau
     e.preventDefault();
     setError(null);
     
-    const validation = validateStudent(formData);
+    const validation = validateStudent(formData, t);
     if (!validation.isValid) {
       setError(validation.errors.join(' '));
       return;
     }
     
     if (!formData.lgpdConsent) {
-      setError("O consentimento LGPD é obrigatório para o cadastro.");
+      setError(t('common.lgpdWarning'));
       return;
     }
 
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     if (formData.email && !emailRegex.test(formData.email)) {
-      setError("Email inválido. Por favor, verifique.");
+      setError(t('common.invalidEmail'));
       return;
     }
 
@@ -388,14 +388,14 @@ const NewStudentModal = ({ onClose, defaultIsKid }: { onClose: () => void, defau
                       onClick={() => setShowCamera(true)}
                       className="px-4 py-2 bg-blue-600 text-white rounded-xl font-black uppercase text-[9px] tracking-widest shadow-lg shadow-blue-500/20 flex items-center gap-2"
                     >
-                      <Camera size={14} /> Usar Câmera
+                      <Camera size={14} /> {t('common.useCamera')}
                     </button>
                     <button 
                       type="button"
                       onClick={() => fileInputRef.current?.click()}
                       className="px-4 py-2 bg-white dark:bg-slate-900 text-slate-600 dark:text-slate-400 border border-slate-200 dark:border-slate-700 rounded-xl font-black uppercase text-[9px] tracking-widest flex items-center gap-2 shadow-sm"
                     >
-                      <Plus size={14} /> Galeria
+                      <Plus size={14} /> {t('common.gallery')}
                     </button>
                   </div>
                   <input type="file" ref={fileInputRef} className="hidden" accept="image/*" onChange={handlePhotoUpload} />
@@ -480,11 +480,11 @@ const NewStudentModal = ({ onClose, defaultIsKid }: { onClose: () => void, defau
                     onChange={e => setFormData({...formData, civilStatus: e.target.value})}
                   >
                     <option value="">{t('common.select')}</option>
-                    <option value="Solteiro(a)">Solteiro(a)</option>
-                    <option value="Casado(a)">Casado(a)</option>
-                    <option value="Divorciado(a)">Divorciado(a)</option>
-                    <option value="Viúvo(a)">Viúvo(a)</option>
-                    <option value="União Estável">União Estável</option>
+                    <option value="Solteiro(a)">{t('common.civilStatusOptions.single')}</option>
+                    <option value="Casado(a)">{t('common.civilStatusOptions.married')}</option>
+                    <option value="Divorciado(a)">{t('common.civilStatusOptions.divorced')}</option>
+                    <option value="Viúvo(a)">{t('common.civilStatusOptions.widowed')}</option>
+                    <option value="União Estável">{t('common.civilStatusOptions.stableUnion')}</option>
                   </select>
                 </div>
 
@@ -515,7 +515,7 @@ const NewStudentModal = ({ onClose, defaultIsKid }: { onClose: () => void, defau
                     className="w-full px-6 py-4 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-2xl outline-none focus:ring-2 focus:ring-blue-600 dark:text-white font-bold" 
                     value={formData.address}
                     onChange={e => setFormData({...formData, address: e.target.value})}
-                    placeholder="Rua, Número, Bairro, Cidade - UF"
+                    placeholder={t('common.addressPlaceholder')}
                   />
                 </div>
               </div>
@@ -527,19 +527,19 @@ const NewStudentModal = ({ onClose, defaultIsKid }: { onClose: () => void, defau
                   <div className="w-16 h-16 bg-indigo-100 dark:bg-indigo-900/30 rounded-2xl flex items-center justify-center mx-auto text-indigo-600 mb-6">
                     <ShieldCheck size={32} />
                   </div>
-                  <h3 className="text-xl font-black text-indigo-900 dark:text-white uppercase tracking-tighter">Blockchain Registry</h3>
-                  <p className="text-xs text-indigo-500 mt-2 font-medium">Os dados deste aluno serão selados criptograficamente. Toda alteração gerará um novo hash de integridade irreversível.</p>
+                  <h3 className="text-xl font-black text-indigo-900 dark:text-white uppercase tracking-tighter">{t('common.blockchainRegistry')}</h3>
+                  <p className="text-xs text-indigo-500 mt-2 font-medium">{t('common.blockchainRegistryDesc')}</p>
                 </div>
 
                 <div className="space-y-4">
                   <div className="flex items-center gap-4 p-5 bg-white dark:bg-slate-800 rounded-2xl border border-slate-100 dark:border-slate-700 shadow-sm">
                     <div className="w-10 h-10 rounded-xl bg-slate-100 dark:bg-slate-900 flex items-center justify-center text-slate-400"><Zap size={20}/></div>
                     <div className="flex-1">
-                      <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Hash de Entrada</p>
+                      <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">{t('common.entryHash')}</p>
                       <p className="text-[10px] font-mono text-slate-500 truncate">SYSBJJ_GENESIS_NODE_STATIC</p>
                     </div>
                   </div>
-                  <p className="text-[9px] font-bold text-slate-400 uppercase text-center tracking-[0.2em]">O sistema irá assinar digitalmente o registro ao salvar.</p>
+                  <p className="text-[9px] font-bold text-slate-400 uppercase text-center tracking-[0.2em]">{t('common.digitalSignatureNote')}</p>
                 </div>
               </div>
             )}
@@ -595,6 +595,7 @@ const NewStudentModal = ({ onClose, defaultIsKid }: { onClose: () => void, defau
                     onChange={e => setFormData({...formData, height: parseFloat(e.target.value)})}
                   />
                 </div>
+
 
                 <div className="md:col-span-2 p-6 bg-blue-50 dark:bg-blue-900/10 rounded-3xl border border-blue-100 dark:border-blue-900/20 grid grid-cols-2 gap-4">
                   <div>
@@ -698,7 +699,7 @@ const NewStudentModal = ({ onClose, defaultIsKid }: { onClose: () => void, defau
                 </div>
 
                 <div className="space-y-2">
-                  <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Órgão Emissor</label>
+                  <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">{t('common.rgIssuer')}</label>
                   <input 
                     type="text" 
                     className="w-full px-6 py-4 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-2xl outline-none focus:ring-2 focus:ring-blue-600 dark:text-white font-bold" 
@@ -708,7 +709,7 @@ const NewStudentModal = ({ onClose, defaultIsKid }: { onClose: () => void, defau
                 </div>
 
                 <div className="space-y-2">
-                  <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">CEP</label>
+                  <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">{t('common.zipCode')}</label>
                   <input 
                     type="text" 
                     className="w-full px-6 py-4 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-2xl outline-none focus:ring-2 focus:ring-blue-600 dark:text-white font-bold" 
@@ -724,7 +725,7 @@ const NewStudentModal = ({ onClose, defaultIsKid }: { onClose: () => void, defau
                     className="w-full px-6 py-4 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-2xl outline-none focus:ring-2 focus:ring-blue-600 dark:text-white font-bold" 
                     value={formData.address}
                     onChange={e => setFormData({...formData, address: e.target.value})}
-                    placeholder="Rua, Número, Complemento"
+                    placeholder={t('common.addressPlaceholder')}
                   />
                 </div>
 
@@ -745,7 +746,7 @@ const NewStudentModal = ({ onClose, defaultIsKid }: { onClose: () => void, defau
                     className="w-full px-6 py-4 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-2xl outline-none focus:ring-2 focus:ring-blue-600 dark:text-white font-bold" 
                     value={formData.state}
                     onChange={e => setFormData({...formData, state: e.target.value})}
-                    placeholder="Ex: RJ"
+                    placeholder={t('common.stateExample')}
                   />
                 </div>
 
@@ -802,7 +803,7 @@ const NewStudentModal = ({ onClose, defaultIsKid }: { onClose: () => void, defau
                     />
                     <div className="flex-1">
                       <p className="text-[10px] font-black uppercase text-emerald-700 dark:text-emerald-400">{t('common.lgpdConsent')}</p>
-                      <p className="text-[9px] text-slate-500 font-medium">Concordo com o armazenamento e processamento dos meus dados pessoais conforme a Lei Geral de Proteção de Dados.</p>
+                      <p className="text-[9px] text-slate-500 font-medium">{t('common.lgpdConsentDesc')}</p>
                     </div>
                   </label>
                 </div>
@@ -810,7 +811,7 @@ const NewStudentModal = ({ onClose, defaultIsKid }: { onClose: () => void, defau
                 <div className="md:col-span-2 space-y-4">
                   <div className="flex items-center justify-between mb-2">
                     <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">
-                      {t('common.documentsSection') || 'Documentos & Anexos'}
+                      {t('common.documentsSection')}
                     </label>
                     <button 
                       type="button"
@@ -890,7 +891,7 @@ const NewStudentModal = ({ onClose, defaultIsKid }: { onClose: () => void, defau
                     value={formData.bloodType}
                     onChange={e => setFormData({...formData, bloodType: e.target.value})}
                   >
-                    <option value="">Selecione</option>
+                    <option value="">{t('common.select')}</option>
                     <option value="A+">A+</option>
                     <option value="A-">A-</option>
                     <option value="B+">B+</option>
@@ -908,7 +909,7 @@ const NewStudentModal = ({ onClose, defaultIsKid }: { onClose: () => void, defau
                     className="w-full px-6 py-4 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-2xl outline-none focus:ring-2 focus:ring-blue-600 dark:text-white font-bold min-h-[120px]" 
                     value={formData.medicalConditions}
                     onChange={e => setFormData({...formData, medicalConditions: e.target.value})}
-                    placeholder="Ex: Alergias, asma, problemas cardíacos, cirurgias recentes, etc."
+                    placeholder={t('common.medicalPlaceholder')}
                   />
                 </div>
               </div>
@@ -1066,7 +1067,7 @@ const StudentDetailsModal = ({ student, onClose }: { student: Student; onClose: 
   const handleUpdateRegistration = (e: React.FormEvent) => {
     e.preventDefault();
     
-    const validation = validateStudent(editFormData);
+    const validation = validateStudent(editFormData, t);
     if (!validation.isValid) {
       alert(validation.errors.join('\n'));
       return;
@@ -1536,9 +1537,9 @@ const StudentDetailsModal = ({ student, onClose }: { student: Student; onClose: 
                       <input type="date" className="w-full px-5 py-3.5 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-2xl outline-none focus:ring-2 focus:ring-blue-600 dark:text-white font-bold" value={editFormData.lastPromotionDate} onChange={e => setEditFormData({...editFormData, lastPromotionDate: e.target.value})} />
                     </div>
                     <div className="space-y-2">
-                      <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Turma (Classe)</label>
+                      <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">{t('common.class')}</label>
                       <select className="w-full px-5 py-3.5 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-2xl outline-none focus:ring-2 focus:ring-blue-600 dark:text-white appearance-none font-bold" value={editFormData.classId || ''} onChange={e => setEditFormData({...editFormData, classId: e.target.value})}>
-                        <option value="">Sem Turma Fixa</option>
+                        <option value="">{t('common.noFixedClass') || 'Sem Turma Fixa'}</option>
                         {schedules.map(s => <option key={s.id} value={s.id}>{s.title}</option>)}
                       </select>
                     </div>
@@ -1561,31 +1562,31 @@ const StudentDetailsModal = ({ student, onClose }: { student: Student; onClose: 
               <div className="lg:col-span-12 space-y-6 sm:space-y-10">
                 {/* Professional Performance Card */}
                 <section className="space-y-4">
-                  <h3 className="text-[10px] font-black text-slate-400 uppercase tracking-widest flex items-center gap-2"><Trophy size={14} className="text-blue-600"/> {t('students.professionalPerformance') || 'Performance Profissional (KPIs)'}</h3>
+                  <h3 className="text-[10px] font-black text-slate-400 uppercase tracking-widest flex items-center gap-2"><Trophy size={14} className="text-blue-600"/> {t('common.professionalPerformance')}</h3>
                   <div className="p-8 rounded-[2.5rem] bg-slate-950 text-white border border-white/5 shadow-2xl relative overflow-hidden group">
                     <div className="absolute top-0 right-0 w-64 h-64 bg-blue-600 rounded-full blur-[100px] opacity-10 group-hover:opacity-20 transition-opacity" />
                     <div className="grid grid-cols-2 md:grid-cols-4 gap-8 relative z-10">
                       <div className="text-center">
-                        <p className="text-[8px] font-black text-blue-400 uppercase tracking-widest mb-1">Assiduidade</p>
+                        <p className="text-[8px] font-black text-blue-400 uppercase tracking-widest mb-1">{t('common.attendance.attendance')}</p>
                         <p className="text-2xl font-black">{Math.min(100, (student.attendanceCount / 100) * 100).toFixed(0)}%</p>
                         <div className="w-full h-1 bg-white/10 rounded-full mt-2 overflow-hidden">
                            <div className="h-full bg-blue-500 rounded-full" style={{ width: `${Math.min(100, (student.attendanceCount / 100) * 100)}%` }} />
                         </div>
                       </div>
                       <div className="text-center">
-                        <p className="text-[8px] font-black text-blue-400 uppercase tracking-widest mb-1">Maturidade</p>
+                        <p className="text-[8px] font-black text-blue-400 uppercase tracking-widest mb-1">{t('common.maturity')}</p>
                         <p className="text-2xl font-black">{beltAnalysis?.progress.toFixed(0) || 0}%</p>
                         <div className="w-full h-1 bg-white/10 rounded-full mt-2 overflow-hidden">
                            <div className="h-full bg-amber-500 rounded-full" style={{ width: `${beltAnalysis?.progress || 0}%` }} />
                         </div>
                       </div>
                       <div className="text-center">
-                        <p className="text-[8px] font-black text-blue-400 uppercase tracking-widest mb-1">Nível de Foco</p>
-                        <p className="text-xl font-black uppercase text-emerald-400">{student.status === StudentStatus.ACTIVE ? 'Elite' : 'Frequente'}</p>
+                        <p className="text-[8px] font-black text-blue-400 uppercase tracking-widest mb-1">{t('common.focusLevel')}</p>
+                        <p className="text-xl font-black uppercase text-emerald-400">{student.status === StudentStatus.ACTIVE ? t('common.elite') : t('common.frequent')}</p>
                       </div>
                       <div className="text-center">
-                        <p className="text-[8px] font-black text-blue-400 uppercase tracking-widest mb-1">Potencial Pro</p>
-                        <p className="text-xl font-black uppercase text-blue-400">{student.isCompetitor ? 'High Perf' : 'Standard'}</p>
+                        <p className="text-[8px] font-black text-blue-400 uppercase tracking-widest mb-1">{t('analysis.proPotential')}</p>
+                        <p className="text-xl font-black uppercase text-blue-400">{student.isCompetitor ? 'High Perf' : t('common.standard')}</p>
                       </div>
                     </div>
                   </div>
@@ -1593,16 +1594,15 @@ const StudentDetailsModal = ({ student, onClose }: { student: Student; onClose: 
               </div>
 
               <div className="lg:col-span-7 space-y-6 sm:space-y-10">
-                {/* Personal Summary */}
                 <section className="space-y-4">
-                  <h3 className="text-[9px] sm:text-[10px] font-black text-slate-400 uppercase tracking-widest flex items-center gap-2"><User size={14} /> {t('students.personalInfo') || 'Informações Pessoais'}</h3>
+                  <h3 className="text-[9px] sm:text-[10px] font-black text-slate-400 uppercase tracking-widest flex items-center gap-2"><User size={14} /> {t('common.personalInfo')}</h3>
                   <div className="p-6 rounded-[2rem] bg-slate-50 dark:bg-slate-800 border border-slate-100 dark:border-slate-700 grid grid-cols-1 sm:grid-cols-2 gap-4 lg:gap-6">
                     <div>
-                        <p className="text-[8px] font-black text-slate-400 uppercase tracking-widest mb-1">WhatsApp</p>
+                        <p className="text-[8px] font-black text-slate-400 uppercase tracking-widest mb-1">{t('common.phone')}</p>
                         <p className="font-bold text-slate-900 dark:text-white break-all">+{student.phone}</p>
                     </div>
                     <div>
-                        <p className="text-[8px] font-black text-slate-400 uppercase tracking-widest mb-1">E-mail</p>
+                        <p className="text-[8px] font-black text-slate-400 uppercase tracking-widest mb-1">{t('common.email')}</p>
                         <p className="font-bold text-slate-900 dark:text-white break-all">{student.email || '--'}</p>
                     </div>
                     <div>
@@ -1610,8 +1610,8 @@ const StudentDetailsModal = ({ student, onClose }: { student: Student; onClose: 
                         <p className="font-bold text-slate-900 dark:text-white">{new Date(student.birthDate).toLocaleDateString()}</p>
                     </div>
                     <div>
-                        <p className="text-[8px] font-black text-slate-400 uppercase tracking-widest mb-1">Data de Início</p>
-                        <p className="font-bold text-blue-600 uppercase italic">{student.joinedAt ? new Date(student.joinedAt).toLocaleDateString() : 'Não registrado'}</p>
+                        <p className="text-[8px] font-black text-slate-400 uppercase tracking-widest mb-1">{t('common.startDate')}</p>
+                        <p className="font-bold text-blue-600 uppercase italic">{student.joinedAt ? new Date(student.joinedAt).toLocaleDateString() : t('common.notRegistered')}</p>
                     </div>
                     <div className="sm:col-span-2">
                         <p className="text-[8px] font-black text-slate-400 uppercase tracking-widest mb-1">{t('common.address')}</p>
@@ -1654,11 +1654,11 @@ const StudentDetailsModal = ({ student, onClose }: { student: Student; onClose: 
                           <div className="flex justify-between items-end">
                              <div>
                                 <p className="text-3xl font-black text-white leading-none tabular-nums">{student.rulesKnowledge || 0}%</p>
-                                <p className="text-[8px] font-bold uppercase text-blue-400 mt-1">NÍVEL DE MESTRIA</p>
+                                <p className="text-[8px] font-bold uppercase text-blue-400 mt-1">{t('common.masteryLevel').toUpperCase()}</p>
                              </div>
                              <div className="text-right">
                                 <p className="text-lg font-black text-white tabular-nums">{student.rewardPoints || 0}</p>
-                                <p className="text-[8px] font-bold uppercase text-slate-400">PONTOS VITALÍCIOS</p>
+                                <p className="text-[8px] font-bold uppercase text-slate-400">{t('common.lifetimePoints').toUpperCase()}</p>
                              </div>
                           </div>
                           <div className="w-full h-2 bg-white/10 rounded-full overflow-hidden">
@@ -1668,7 +1668,7 @@ const StudentDetailsModal = ({ student, onClose }: { student: Student; onClose: 
                              />
                           </div>
                           <p className="text-[9px] font-bold text-slate-400 uppercase tracking-widest leading-relaxed">
-                             {student.completedRuleLessons?.length || 0} de {IBJJF_LESSONS?.length || 10} módulos concluídos.
+                             {student.completedRuleLessons?.length || 0} {t('common.of')} {IBJJF_LESSONS?.length || 10} {t('common.modulesCompleted')}.
                           </p>
                         </div>
                      </div>
@@ -1684,7 +1684,7 @@ const StudentDetailsModal = ({ student, onClose }: { student: Student; onClose: 
                 <div className="p-8 rounded-[2.5rem] bg-slate-50 dark:bg-slate-800 border border-slate-100 dark:border-slate-700 grid grid-cols-1 md:grid-cols-2 gap-8">
                   <div>
                       <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2">{t('common.bloodType')}</p>
-                      <p className="text-xl font-black text-red-600">{student.bloodType || 'Não informado'}</p>
+                      <p className="text-xl font-black text-red-600">{student.bloodType || t('common.notInformed')}</p>
                   </div>
                   <div>
                       <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2">{t('common.emergencyContact')}</p>
@@ -1693,7 +1693,7 @@ const StudentDetailsModal = ({ student, onClose }: { student: Student; onClose: 
                   </div>
                   <div className="col-span-full p-6 bg-white dark:bg-slate-900 rounded-3xl border border-slate-200 dark:border-slate-700">
                       <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-4">{t('common.medicalConditions')}</p>
-                      <p className="text-base font-bold text-orange-600 italic whitespace-pre-wrap">{student.medicalConditions || 'Nenhuma condição médica registrada.'}</p>
+                      <p className="text-base font-bold text-orange-600 italic whitespace-pre-wrap">{student.medicalConditions || t('common.noMedicalCondition')}</p>
                   </div>
                 </div>
               </section>
@@ -1779,9 +1779,9 @@ const StudentDetailsModal = ({ student, onClose }: { student: Student; onClose: 
                        <ShieldCheck size={28} />
                      </div>
                      <div>
-                       <p className="text-[9px] font-black text-slate-400 uppercase tracking-[0.2em] mb-1">Consentimento LGPD</p>
+                       <p className="text-[9px] font-black text-slate-400 uppercase tracking-[0.2em] mb-1">{t('common.lgpdConsent')}</p>
                        <p className={`text-lg font-black uppercase tracking-tighter ${student.lgpdConsent ? 'text-emerald-600' : 'text-slate-400'}`}>
-                         {student.lgpdConsent ? 'CONCEDIDO' : 'PENDENTE'}
+                         {student.lgpdConsent ? t('common.granted').toUpperCase() : t('status.Pending').toUpperCase()}
                        </p>
                      </div>
                    </div>
@@ -1790,8 +1790,8 @@ const StudentDetailsModal = ({ student, onClose }: { student: Student; onClose: 
                        <FileText size={28} />
                      </div>
                      <div>
-                       <p className="text-[9px] font-black uppercase tracking-[0.2em] mb-1">Assinatura Digital</p>
-                       <p className="text-lg font-black uppercase tracking-tighter text-blue-600">ATIVO</p>
+                       <p className="text-[9px] font-black uppercase tracking-[0.2em] mb-1">{t('common.digitalSignature')}</p>
+                       <p className="text-lg font-black uppercase tracking-tighter text-blue-600">{t('common.active').toUpperCase()}</p>
                      </div>
                    </div>
                    <div className="md:col-span-2 grid grid-cols-2 md:grid-cols-4 gap-6 pt-6 border-t border-slate-100 dark:border-slate-700">
@@ -1964,16 +1964,16 @@ const StudentDetailsModal = ({ student, onClose }: { student: Student; onClose: 
                  <div className="relative z-10 flex flex-col md:flex-row gap-8 items-center">
                     <div className="flex-1 w-full space-y-6">
                       <div>
-                        <p className="text-[10px] font-black text-blue-400 uppercase tracking-[0.2em] mb-2"> Technical Archetype </p>
-                        <h3 className="text-3xl font-black uppercase tracking-tighter italic">{student.isCompetitor ? 'High Performance Athlete' : 'Standard Practitioner'}</h3>
+                        <p className="text-[10px] font-black text-blue-400 uppercase tracking-[0.2em] mb-2"> {t('analysis.technicalArchetype')} </p>
+                        <h3 className="text-3xl font-black uppercase tracking-tighter italic">{student.isCompetitor ? t('analysis.proAthlete') : t('analysis.standardPractitioner')}</h3>
                       </div>
                       
                       <div className="grid grid-cols-2 gap-4">
                         {[
-                          { label: 'Quedas', val: 45, color: 'bg-orange-500' },
-                          { label: 'Passagem', val: 75, color: 'bg-emerald-500' },
-                          { label: 'Guarda', val: 92, color: 'bg-blue-500' },
-                          { label: 'Finalização', val: 68, color: 'bg-red-500' }
+                          { label: t('common.takedowns'), val: 45, color: 'bg-orange-500' },
+                          { label: t('common.passing'), val: 75, color: 'bg-emerald-500' },
+                          { label: t('common.guard'), val: 92, color: 'bg-blue-500' },
+                          { label: t('common.submission'), val: 68, color: 'bg-red-500' }
                         ].map((stat, i) => (
                           <div key={i} className="space-y-2">
                              <div className="flex justify-between text-[8px] font-black uppercase tracking-widest text-slate-400">
@@ -2057,7 +2057,7 @@ const StudentDetailsModal = ({ student, onClose }: { student: Student; onClose: 
                {/* Timeline de Graduação */}
                <section className="space-y-6">
                  <h3 className="text-[10px] font-black text-slate-400 uppercase tracking-widest flex items-center gap-2">
-                   <Trophy size={14} className="text-amber-500" /> Jornada de Mestria
+                   <Trophy size={14} className="text-amber-500" /> {t('common.masteryJourney')}
                  </h3>
                  <div className="relative pt-12 pb-8 px-10 bg-white dark:bg-slate-900 rounded-[3.5rem] border border-slate-200 dark:border-slate-800 shadow-xl overflow-x-auto">
                    <div className="absolute top-1/2 left-10 right-10 h-0.5 bg-slate-100 dark:bg-slate-800 -translate-y-1/2" />
@@ -2159,18 +2159,18 @@ const StudentDetailsModal = ({ student, onClose }: { student: Student; onClose: 
                                 <Zap size={24} className="text-white" />
                              </div>
                              <div>
-                                <p className="text-[9px] font-black uppercase tracking-[0.2em] opacity-70">Previsão Evolutiva (AI)</p>
-                                <p className="text-sm font-black uppercase tracking-tight">Potencial Pró-Atleta</p>
+                                <p className="text-[9px] font-black uppercase tracking-[0.2em] opacity-70">{t('analysis.evolutionaryForecast')}</p>
+                                <p className="text-sm font-black uppercase tracking-tight">{t('analysis.proPotential')}</p>
                              </div>
                           </div>
                           <div className="mt-8">
                              <p className="text-sm font-medium leading-relaxed opacity-90 italic">
-                               "Baseado na assiduidade de {student.attendanceCount} treinos, o aluno demonstra maturidade acima da média para o tempo de faixa."
+                               "{t('analysis.evolutionNote').replace('{{count}}', student.attendanceCount.toString())}"
                              </p>
                           </div>
                        </div>
                        <button className="relative z-10 w-full mt-10 py-5 bg-white text-indigo-600 rounded-2xl font-black uppercase text-[10px] tracking-widest shadow-2xl hover:scale-105 active:scale-95 transition-all">
-                          Gerar Relatório de Evolução
+                          {t('analysis.generateReport')}
                        </button>
                     </div>
                   </div>
@@ -2201,16 +2201,16 @@ const StudentDetailsModal = ({ student, onClose }: { student: Student; onClose: 
                        t('audit.identitySealPending')}
                     </h3>
                     <p className="text-sm text-slate-500 font-medium max-w-md mx-auto mt-2">
-                       {student.securityAuditStatus === 'Verified' ? 'Este aluno possui histórico imutável verificado e carimbado na blockchain SYSBJJ.' : 
-                        student.securityAuditStatus === 'Compromised' ? 'Foram detectadas inconsistências nos registros deste aluno. Auditoria manual obrigatória.' : 
-                        'Aguardando verificação biométrica e documental para carimbo de integridade.'}
+                       {student.securityAuditStatus === 'Verified' ? t('audit.blockchainVerifiedDesc') : 
+                        student.securityAuditStatus === 'Compromised' ? t('audit.integrityCompromisedDesc') : 
+                        t('audit.identitySealPendingDesc')}
                     </p>
                   </div>
                   <div className="flex justify-center gap-4">
                      <button className="px-6 py-2.5 bg-indigo-600 text-white rounded-xl text-[9px] font-black uppercase tracking-[0.2em] shadow-lg shadow-indigo-500/20 hover:scale-105 transition-all">
-                        {student.securityAuditStatus === 'Verified' ? 'Re-Verificar' : 'Solicitar Verificação'}
+                        {student.securityAuditStatus === 'Verified' ? t('common.reVerify') : t('common.requestVerification')}
                      </button>
-                     <button className="px-6 py-2.5 bg-white dark:bg-slate-900 text-slate-500 rounded-xl text-[9px] font-black uppercase tracking-[0.2em] border border-slate-200 dark:border-slate-800">Ver Ledger</button>
+                     <button className="px-6 py-2.5 bg-white dark:bg-slate-900 text-slate-500 rounded-xl text-[9px] font-black uppercase tracking-[0.2em] border border-slate-200 dark:border-slate-800">{t('common.viewLedger')}</button>
                   </div>
                 </div>
 
@@ -2240,8 +2240,8 @@ const StudentDetailsModal = ({ student, onClose }: { student: Student; onClose: 
                         <ShieldCheck size={24} />
                         <span className="text-[10px] font-black uppercase tracking-[0.3em]">Master Seal</span>
                       </div>
-                      <h4 className="text-2xl font-black uppercase tracking-tighter mb-2 italic">Certificado Digital</h4>
-                      <p className="text-[10px] text-slate-500 font-bold uppercase tracking-widest mb-6">Emissão e Assinatura via Trust-Protocol</p>
+                      <h4 className="text-2xl font-black uppercase tracking-tighter mb-2 italic">{t('common.digitalCertificate')}</h4>
+                      <p className="text-[10px] text-slate-500 font-bold uppercase tracking-widest mb-6">{t('common.trustProtocolDesc')}</p>
                     </div>
                     <button className="w-full py-5 bg-indigo-600 text-white rounded-2xl font-black uppercase text-[10px] tracking-widest hover:bg-indigo-700 transition-all flex items-center justify-center gap-3 shadow-2xl shadow-indigo-500/20">
                       <FileCheck size={18} /> {t('audit.downloadCertificate')}
@@ -2254,24 +2254,24 @@ const StudentDetailsModal = ({ student, onClose }: { student: Student; onClose: 
             <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
                <div className="flex justify-between items-center bg-slate-50 dark:bg-slate-800 p-6 rounded-[2rem] border border-slate-200 dark:border-slate-700">
                  <div>
-                   <h3 className="text-xl font-black text-slate-900 dark:text-white uppercase tracking-tighter">Galeria de Posições</h3>
-                   <p className="text-[10px] text-slate-400 mt-1 uppercase font-bold tracking-widest">Vídeos de técnicas para estudo</p>
+                   <h3 className="text-xl font-black text-slate-900 dark:text-white uppercase tracking-tighter">{t('videos.title')}</h3>
+                   <p className="text-[10px] text-slate-400 mt-1 uppercase font-bold tracking-widest">{t('videos.subtitle')}</p>
                  </div>
                  <button 
                    onClick={() => setShowAddVideo(true)}
                    className="px-6 py-3 bg-blue-600 text-white rounded-xl font-black uppercase text-[10px] tracking-widest flex items-center gap-2 hover:bg-blue-700 shadow-lg shadow-blue-500/20 active:scale-95 transition-all"
                  >
-                   <Plus size={16} /> NOVO VÍDEO
+                   <Plus size={16} /> {t('videos.addBtn')}
                  </button>
                </div>
 
                {(!student.positionVideos || student.positionVideos.length === 0) ? (
                  <div className="text-center py-20 bg-slate-50 dark:bg-slate-800/50 rounded-[3rem] border-2 border-dashed border-slate-200 dark:border-slate-700">
-                   <div className="w-20 h-20 bg-slate-100 dark:bg-slate-800 rounded-3xl flex items-center justify-center text-slate-400 mx-auto mb-4">
-                     <BookOpen size={40} />
-                   </div>
-                   <h4 className="text-xl font-black text-slate-400 uppercase tracking-tighter">Nenhum vídeo cadastrado</h4>
-                   <p className="text-xs text-slate-500 mt-2">Clique em "Novo Vídeo" para começar a tutorar o aluno.</p>
+                    <div className="w-20 h-20 bg-slate-100 dark:bg-slate-800 rounded-3xl flex items-center justify-center text-slate-400 mx-auto mb-4">
+                      <BookOpen size={40} />
+                    </div>
+                    <h4 className="text-xl font-black text-slate-400 uppercase tracking-tighter">{t('videos.empty')}</h4>
+                    <p className="text-xs text-slate-500 mt-2">{t('videos.emptyDesc')}</p>
                  </div>
                ) : (
                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -2322,8 +2322,8 @@ const StudentDetailsModal = ({ student, onClose }: { student: Student; onClose: 
                     <div className="bg-white dark:bg-slate-900 w-full max-w-lg rounded-[2.5rem] overflow-hidden shadow-2xl border border-slate-200 dark:border-slate-800">
                        <div className="p-8 border-b border-slate-100 dark:border-slate-800 flex justify-between items-center bg-slate-50 dark:bg-slate-800/50">
                           <div>
-                            <h3 className="text-2xl font-black text-slate-900 dark:text-white uppercase tracking-tighter">Novo Vídeo</h3>
-                            <p className="text-[10px] text-slate-400 font-bold uppercase tracking-widest mt-1">Adicionar técnica de estudo</p>
+                            <h3 className="text-2xl font-black text-slate-900 dark:text-white uppercase tracking-tighter">{t('videos.modalTitle')}</h3>
+                            <p className="text-[10px] text-slate-400 font-bold uppercase tracking-widest mt-1">{t('videos.modalSubtitle')}</p>
                           </div>
                           <button onClick={() => setShowAddVideo(false)} className="p-3 bg-white dark:bg-slate-900 rounded-2xl text-slate-400 hover:text-slate-600 transition-colors shadow-sm">
                             <X size={20} />
@@ -2331,17 +2331,17 @@ const StudentDetailsModal = ({ student, onClose }: { student: Student; onClose: 
                        </div>
                        <div className="p-8 space-y-6">
                           <div className="space-y-2">
-                             <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Título da Posição</label>
+                             <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">{t('videos.fieldTitle')}</label>
                              <input 
                                type="text" 
                                value={newVideo.title}
                                onChange={e => setNewVideo({...newVideo, title: e.target.value})}
-                               placeholder="Ex: Passagem de Guarda Toureando"
+                               placeholder={t('videos.fieldTitlePlaceholder')}
                                className="w-full px-6 py-4 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-2xl outline-none focus:ring-2 focus:ring-blue-600 dark:text-white font-bold"
                              />
                           </div>
                           <div className="space-y-2">
-                             <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">URL do Vídeo (Youtube/Vimeo)</label>
+                             <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">{t('videos.fieldUrl')}</label>
                              <input 
                                type="text" 
                                value={newVideo.videoUrl}
@@ -2817,7 +2817,7 @@ const Students: React.FC = () => {
               value={classFilter}
               onChange={(e) => setClassFilter(e.target.value)}
             >
-              <option value="">{t('common.allClasses') || 'Todas as Turmas'}</option>
+              <option value="">{t('common.allClasses')}</option>
               {schedules.map(s => (
                 <option key={s.id} value={s.id}>{s.title}</option>
               ))}
@@ -2831,7 +2831,7 @@ const Students: React.FC = () => {
                value={instructorFilter}
                onChange={(e) => setInstructorFilter(e.target.value)}
              >
-               <option value="">Professores</option>
+               <option value="">{t('common.allInstructors')}</option>
                {uniqueInstructors.map(inst => (
                  <option key={inst} value={inst}>{inst}</option>
                ))}
@@ -2845,9 +2845,9 @@ const Students: React.FC = () => {
               value={beltFilter}
               onChange={(e) => setBeltFilter(e.target.value)}
             >
-              <option value="">{t('common.allBelts') || 'Todas as Faixas'}</option>
+              <option value="">{t('common.allBelts')}</option>
               {Object.keys(BELT_COLORS).map((belt) => (
-                 <option key={belt} value={belt}>{belt}</option>
+                 <option key={belt} value={belt}>{t(`belts.${belt}`)}</option>
               ))}
             </select>
           </div>
@@ -2859,7 +2859,7 @@ const Students: React.FC = () => {
               value={statusFilter}
               onChange={(e) => setStatusFilter(e.target.value as StudentStatus)}
             >
-              <option value="">Status</option>
+              <option value="">{t('common.status')}</option>
               {Object.values(StudentStatus).map(status => (
                 <option key={status} value={status}>{t(`status.${status}`)}</option>
               ))}
@@ -2877,8 +2877,8 @@ const Students: React.FC = () => {
                 <tr>
                   <th className="px-8 py-4 text-[9px] font-black text-slate-400 uppercase tracking-[0.3em]">{t('common.name')}</th>
                   <th className="px-8 py-4 text-[9px] font-black text-slate-400 uppercase tracking-[0.3em]">{t('students.currentBelt')}</th>
-                  <th className="px-8 py-4 text-[9px] font-black text-slate-400 uppercase tracking-[0.3em]">{activeView === 'waitlist' ? 'Fila / Rank' : 'Status / Mestria'}</th>
-                  <th className="px-8 py-4 text-[9px] font-black text-slate-400 uppercase tracking-[0.3em] text-center">Frequência</th>
+                  <th className="px-8 py-4 text-[9px] font-black text-slate-400 uppercase tracking-[0.3em]">{activeView === 'waitlist' ? t('common.waitlistRank') : t('common.statusMastery')}</th>
+                  <th className="px-8 py-4 text-[9px] font-black text-slate-400 uppercase tracking-[0.3em] text-center">{t('attendance.attendance')}</th>
                   <th className="px-8 py-4 text-[9px] font-black text-slate-400 uppercase tracking-[0.3em] text-right">{t('common.actions')}</th>
                 </tr>
               </thead>
@@ -2935,7 +2935,7 @@ const Students: React.FC = () => {
                           </div>
                           <div className="flex items-center gap-1.5 opacity-60">
                             <Medal size={10} className="text-yellow-500" />
-                            <span className="text-[8px] font-black tabular-nums tracking-widest uppercase">{student.rewardPoints || 0} PTS MÉRITO</span>
+                            <span className="text-[8px] font-black tabular-nums tracking-widest uppercase">{student.rewardPoints || 0} {t('common.meritPoints')}</span>
                           </div>
                         </div>
                       </td>
@@ -2999,11 +2999,11 @@ const Students: React.FC = () => {
 
                 <div className="w-full grid grid-cols-2 gap-3 pt-2">
                    <div className="p-3 bg-slate-50 dark:bg-slate-800 rounded-2xl border border-slate-100 dark:border-slate-700">
-                      <p className="text-[8px] font-black text-slate-400 uppercase tracking-widest mb-1">Frequência</p>
+                      <p className="text-[8px] font-black text-slate-400 uppercase tracking-widest mb-1">{t('attendance.attendance')}</p>
                       <p className="text-lg font-black text-slate-900 dark:text-white tabular-nums">{student.attendanceCount || 0}</p>
                    </div>
                    <div className="p-3 bg-slate-50 dark:bg-slate-800 rounded-2xl border border-slate-100 dark:border-slate-700">
-                      <p className="text-[8px] font-black text-slate-400 uppercase tracking-widest mb-1">Mestria</p>
+                      <p className="text-[8px] font-black text-slate-400 uppercase tracking-widest mb-1">{t('common.mastery')}</p>
                       <p className="text-lg font-black text-blue-600 tabular-nums">{student.rulesKnowledge || 0}%</p>
                    </div>
                 </div>

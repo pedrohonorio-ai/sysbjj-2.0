@@ -1,6 +1,6 @@
 
 import React, { useState, useMemo } from 'react';
-import { Plus, Clock, User, Trash2, Calendar, X, Save, Edit2, LayoutList, ArrowRight } from 'lucide-react';
+import { Plus, Clock, User, Trash2, Calendar, X, Save, Edit2, LayoutList, ArrowRight, Filter } from 'lucide-react';
 import { useData } from '../contexts/DataContext';
 import { ClassSchedule } from '../types';
 import { useTranslation } from '../contexts/LanguageContext';
@@ -157,7 +157,7 @@ const Classes: React.FC = () => {
              {/* Hint for mobile users */}
              <div className="lg:hidden flex items-center justify-center gap-2 mb-8 text-slate-400">
                <ArrowRight size={16} className="animate-bounce" />
-               <p className="text-[10px] font-black uppercase tracking-widest">{t('common.swipeToScroll') || 'Deslize horizontalmente para o Grid'}</p>
+               <p className="text-[10px] font-black uppercase tracking-widest">{t('common.swipeToScroll')}</p>
              </div>
              
              <div className="overflow-x-auto scrollbar-thin scrollbar-thumb-slate-200 dark:scrollbar-thumb-slate-800 pb-4 relative z-10">
