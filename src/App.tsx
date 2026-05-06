@@ -19,6 +19,7 @@ import ExhibitionMode from './pages/ExhibitionMode';
 import SystemAudit from './pages/SystemAudit';
 import LanguageSelection from './pages/LanguageSelection';
 import Login from './pages/Login';
+import NotificationCenter from './components/NotificationCenter';
 import { useTranslation } from './contexts/LanguageContext';
 import { useTheme } from './contexts/ThemeContext';
 import { useProfile } from './contexts/ProfileContext';
@@ -342,10 +343,7 @@ const Header = ({ toggleSidebar, auth, onLogout }: { toggleSidebar: () => void, 
           />
         </div>
 
-        <button className="relative p-3 bg-white dark:bg-white/5 border border-slate-200 dark:border-white/10 rounded-2xl text-slate-500 hover:text-blue-600 transition-all shadow-sm active:scale-95">
-          <Bell size={18} />
-          <span className="absolute top-3 right-3 w-2 h-2 bg-blue-600 rounded-full border-2 border-white dark:border-slate-900" />
-        </button>
+        <NotificationCenter />
         
         <button 
           onClick={handleThemeToggle}
@@ -427,7 +425,7 @@ const App: React.FC = () => {
       };
 
       updatePresence();
-      const interval = setInterval(updatePresence, 30000); // 30 seconds
+      const interval = setInterval(updatePresence, 300000); // 5 minutes - reduce write quota pressure
       return () => clearInterval(interval);
     }
   }, [auth.isLoggedIn, auth.email, auth.role]);

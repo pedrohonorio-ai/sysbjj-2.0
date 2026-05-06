@@ -122,6 +122,7 @@ export interface ClassSchedule {
   instructor: string;
   category: string;
   days: string[]; // ['Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sab', 'Dom']
+  notes?: string;
 }
 
 export interface IBJJFRule {
@@ -273,6 +274,7 @@ export interface AttendanceRecord {
   date: string;
   lessonPlanId?: string;
   classId?: string;
+  notes?: string;
 }
 
 export interface PositionVideo {

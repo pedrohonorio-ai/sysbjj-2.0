@@ -9,7 +9,7 @@ import {
   RefreshCw, FileText, Upload, ShieldCheck, AlertCircle, ShieldAlert, ChevronRight,
   Map, Star, Users2, Medal, Presentation, ClipboardCheck, GraduationCap, Check,
   CreditCard, Video, ExternalLink, MessageSquare, Cake, TrendingUp, Users,
-  Target, Dumbbell, Activity, ClipboardList, MapPin, Instagram
+  Target, Dumbbell, Activity, ClipboardList
 } from 'lucide-react';
 import { Html5QrcodeScanner } from 'html5-qrcode';
 import { useTranslation } from '../contexts/LanguageContext';
@@ -25,7 +25,6 @@ import {
   PolarAngleAxis, PolarRadiusAxis
 } from 'recharts';
 import CryptoJS from 'crypto-js';
-import { calculateDistance, getCurrentLocation } from '../services/locationUtils';
 
 const StudentPortal: React.FC = () => {
   const { code } = useParams();
@@ -40,7 +39,6 @@ const StudentPortal: React.FC = () => {
   const [showReceipt, setShowReceipt] = useState(false);
   const [paymentProcessing, setPaymentProcessing] = useState(false);
   const [checkinSuccess, setCheckinSuccess] = useState(false);
-  const [geofenceStatus, setGeofenceStatus] = useState<'idle' | 'verifying' | 'success' | 'fail'>('idle');
   const [copied, setCopied] = useState(false);
   const [selectedPhoto, setSelectedPhoto] = useState<GalleryImage | null>(null);
   const [receiptFile, setReceiptFile] = useState<string | null>(null);
@@ -404,33 +402,8 @@ const StudentPortal: React.FC = () => {
     return () => clearTimeout(timer);
   }, [code]);
 
-  const handleScanSimulation = async () => {
+  const handleScanSimulation = () => {
     if (student) {
-      // Geofencing Check
-      if (profile.latitude && profile.longitude) {
-        setGeofenceStatus('verifying');
-        try {
-          const position = await getCurrentLocation();
-          const dist = calculateDistance(
-            position.coords.latitude,
-            position.coords.longitude,
-            profile.latitude,
-            profile.longitude
-          );
-          
-          if (dist > (profile.geofenceRadius || 100)) {
-            setGeofenceStatus('fail');
-            alert(`${t('attendance.geoFail')}: ${Math.round(dist)}m`);
-            return;
-          }
-          setGeofenceStatus('success');
-        } catch (error) {
-          setGeofenceStatus('fail');
-          alert(t('attendance.geoFail'));
-          return;
-        }
-      }
-
       recordAttendance([student.id]);
       setCheckinSuccess(true);
       setShowScanner(false);
@@ -517,6 +490,11 @@ const StudentPortal: React.FC = () => {
     }
   };
 
+  const studentRef = useRef(student);
+  useEffect(() => {
+    studentRef.current = student;
+  }, [student]);
+
   useEffect(() => {
     let scanner: Html5QrcodeScanner | null = null;
     if (showScanner) {
@@ -528,34 +506,9 @@ const StudentPortal: React.FC = () => {
           aspectRatio: 1.0
         }, false);
         
-        scanner.render(async (decodedText) => {
-          if (student) {
-            // Geofencing Check
-            if (profile.latitude && profile.longitude) {
-              setGeofenceStatus('verifying');
-              try {
-                const position = await getCurrentLocation();
-                const dist = calculateDistance(
-                  position.coords.latitude,
-                  position.coords.longitude,
-                  profile.latitude,
-                  profile.longitude
-                );
-                
-                if (dist > (profile.geofenceRadius || 100)) {
-                  setGeofenceStatus('fail');
-                  alert(`${t('attendance.geoFail')}: ${Math.round(dist)}m`);
-                  return;
-                }
-                setGeofenceStatus('success');
-              } catch (error) {
-                setGeofenceStatus('fail');
-                alert(t('attendance.geoFail'));
-                return;
-              }
-            }
-
-            recordAttendance([student.id]);
+        scanner.render((decodedText) => {
+          if (studentRef.current) {
+            recordAttendance([studentRef.current.id]);
             setCheckinSuccess(true);
             setShowScanner(false);
             setTimeout(() => setCheckinSuccess(false), 3000);
@@ -572,7 +525,7 @@ const StudentPortal: React.FC = () => {
         scanner.clear().catch(e => console.error("Failed to clear scanner", e));
       }
     };
-  }, [showScanner, student]);
+  }, [showScanner]);
 
   if (loading) return <div className="min-h-screen flex items-center justify-center bg-slate-950"><div className="w-12 h-12 border-4 border-blue-600 border-t-transparent rounded-full animate-spin" /></div>;
   if (!student) return <div className="min-h-screen bg-slate-950 flex items-center justify-center text-white p-8 text-center font-black uppercase tracking-tighter">{t('portal.invalidCode')}</div>;
@@ -807,15 +760,6 @@ const StudentPortal: React.FC = () => {
               >
                 <Camera size={24} className="text-blue-500" /> {t('portal.checkinBtn')}
               </button>
-              
-              {geofenceStatus !== 'idle' && (
-                <div className={`flex items-center justify-center gap-2 text-[8px] font-black uppercase tracking-[0.2em] ${geofenceStatus === 'success' ? 'text-emerald-500' : geofenceStatus === 'fail' ? 'text-red-500' : 'text-blue-500 animate-pulse'}`}>
-                   <MapPin size={10} />
-                   {geofenceStatus === 'verifying' && 'Verificando Localização...'}
-                   {geofenceStatus === 'success' && 'Localização Validada'}
-                   {geofenceStatus === 'fail' && 'Fora da Área Permitida'}
-                </div>
-              )}
               
               {checkinSuccess && (
                 <motion.div 
@@ -1672,31 +1616,6 @@ const StudentPortal: React.FC = () => {
             </div>
           </div>
         )}
-        <div className="pt-12 pb-8 border-t border-slate-200 dark:border-white/5 space-y-4">
-          <div className="flex flex-col items-center gap-2">
-            <ShieldCheck size={24} className="text-blue-600" />
-            <p className="text-[10px] font-black text-slate-900 dark:text-white uppercase tracking-tighter italic text-center">SYSBJJ INTELLIGENCE SYSTEM 2.0</p>
-          </div>
-          
-          <div className="space-y-4">
-            <div className="flex flex-col items-center space-y-1">
-              <div className="flex items-center gap-4">
-                <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest italic">© 2026 SYBJJ BY CT Pedro Honorio</p>
-                <a href="https://instagram.com/sistemabjj" target="_blank" rel="noopener noreferrer" className="text-[9px] font-black text-blue-600 hover:text-blue-500 transition-all uppercase tracking-widest italic flex items-center gap-1.5">
-                  <Instagram size={10} />
-                  <span>@SISTEMABJJ</span>
-                </a>
-              </div>
-              <p className="text-[7px] font-bold text-slate-400 opacity-60 uppercase tracking-widest">Criado e Produzido por PPH e CT PH de JIU-JITSU</p>
-            </div>
-
-            <div className="flex flex-col items-center gap-1">
-              <p className="text-[7px] font-black text-slate-400 uppercase tracking-[0.2em] italic">SYSBJJ INTELLIGENCE SYSTEM 2.0</p>
-              <span className="text-[6px] font-black text-blue-600 uppercase tracking-widest leading-none">Security_Node_Active</span>
-              <span className="text-[6px] font-bold text-slate-400 uppercase tracking-[0.2em] opacity-40">Hash: SHA-256_Automatic_Sync_Enabled</span>
-            </div>
-          </div>
-        </div>
       </main>
 
       {showScanner && (

@@ -13,7 +13,6 @@ import autoTable from 'jspdf-autotable';
 import { QRCodeCanvas } from 'qrcode.react';
 import { Html5QrcodeScanner } from 'html5-qrcode';
 import { motion, AnimatePresence } from 'motion/react';
-import { calculateDistance, getCurrentLocation } from '../services/locationUtils';
 
 type AttendanceMode = 'manual' | 'scanner' | 'station';
 
@@ -24,18 +23,22 @@ const AttendancePage: React.FC = () => {
   const [attendedIds, setAttendedIds] = useState<string[]>([]);
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedClassId, setSelectedClassId] = useState<string>('all');
+  const [selectedInstructor, setSelectedInstructor] = useState<string>('all');
+  const [sessionNotes, setSessionNotes] = useState('');
   const [isSaved, setIsSaved] = useState(false);
   const [mode, setMode] = useState<AttendanceMode>('manual');
   const [showAllStudents, setShowAllStudents] = useState(false);
   const [locationStatus, setLocationStatus] = useState<'idle' | 'verifying' | 'success' | 'fail'>('idle');
-  const [distance, setDistance] = useState<number | null>(null);
-
-  const isGeofenceConfigured = useMemo(() => !!(profile.latitude && profile.longitude), [profile]);
   
   const scannerRef = useRef<Html5QrcodeScanner | null>(null);
 
   const activeStudents = useMemo(() => students.filter(s => s.status === StudentStatus.ACTIVE), [students]);
   
+  const instructors = useMemo(() => {
+    const list = schedules.map(s => s.instructor).filter(Boolean);
+    return Array.from(new Set(list));
+  }, [schedules]);
+
   const filtered = useMemo(() => {
     let list = activeStudents;
     
@@ -46,14 +49,36 @@ const AttendancePage: React.FC = () => {
       }
     }
 
+    if (selectedInstructor !== 'all') {
+      const instructorSchedules = schedules.filter(s => s.instructor === selectedInstructor);
+      const categoryMatch = instructorSchedules.some(s => s.category === 'Kids');
+      const categoryAdultMatch = instructorSchedules.some(s => s.category !== 'Kids');
+      
+      // If we filtered by instructor, we might want to narrow down students based on the categories that instructor teaches
+      // But for now, let's just use it to filter the CLASS list (handled in UI)
+    }
+
     if (searchTerm) {
       list = list.filter(s => s.name.toLowerCase().includes(searchTerm.toLowerCase()));
     }
     
     return list;
-  }, [activeStudents, selectedClassId, searchTerm, showAllStudents, schedules]);
+  }, [activeStudents, selectedClassId, searchTerm, showAllStudents, schedules, selectedInstructor]);
+
+  const filteredSchedules = useMemo(() => {
+    if (selectedInstructor === 'all') return schedules;
+    return schedules.filter(s => s.instructor === selectedInstructor);
+  }, [schedules, selectedInstructor]);
 
   // QR Scanning Logic
+  const studentsRef = useRef(students);
+  const attendedIdsRef = useRef(attendedIds);
+
+  useEffect(() => {
+    studentsRef.current = students;
+    attendedIdsRef.current = attendedIds;
+  }, [students, attendedIds]);
+
   useEffect(() => {
     if (mode === 'scanner') {
       const scanner = new Html5QrcodeScanner("reader", { 
@@ -65,9 +90,12 @@ const AttendancePage: React.FC = () => {
       scanner.render((decodedText) => {
         if (decodedText.startsWith('SYSBJJ-STUDENT-')) {
           const studentId = decodedText.split('-STUDENT-')[1];
-          const student = students.find(s => s.id === studentId);
-          if (student && !attendedIds.includes(studentId)) {
-            setAttendedIds(prev => [...prev, studentId]);
+          const student = studentsRef.current.find(s => s.id === studentId);
+          if (student && !attendedIdsRef.current.includes(studentId)) {
+            setAttendedIds(prev => {
+              if (prev.includes(studentId)) return prev;
+              return [...prev, studentId];
+            });
             const audio = new Audio('https://assets.mixkit.co/active_storage/sfx/2571/2571-preview.mp3');
             audio.play().catch(() => {});
           }
@@ -89,39 +117,55 @@ const AttendancePage: React.FC = () => {
         scannerRef.current.clear().catch(e => console.error(e));
       }
     };
-  }, [mode, students, attendedIds]);
+  }, [mode]);
 
   // Geolocation Logic
-  const verifyLocation = async () => {
-    if (!isGeofenceConfigured) {
-      alert(t('settings.locationSection') + ": " + t('settings.coordinatesNotConfigured'));
+  const verifyLocation = () => {
+    if (!navigator.geolocation) {
+      alert("Seu navegador não suporta geolocalização.");
+      setLocationStatus('fail');
+      return;
+    }
+
+    if (!profile.latitude || !profile.longitude) {
+      alert("As coordenadas da academia não estão configuradas no perfil do Sensei.");
+      setLocationStatus('fail');
       return;
     }
 
     setLocationStatus('verifying');
-    try {
-      const position = await getCurrentLocation();
-      const dist = calculateDistance(
-        position.coords.latitude,
-        position.coords.longitude,
-        profile.latitude!,
-        profile.longitude!
-      );
-      
-      setDistance(dist);
-      const geofenceRadius = profile.geofenceRadius || 100;
+    navigator.geolocation.getCurrentPosition(
+      (position) => {
+        const academyLat = profile.latitude!;
+        const academyLng = profile.longitude!;
+        const geofenceRadius = profile.geofenceRadius || 100;
+        
+        const R = 6371e3; // metres
+        const φ1 = position.coords.latitude * Math.PI/180;
+        const φ2 = academyLat * Math.PI/180;
+        const Δφ = (academyLat-position.coords.latitude) * Math.PI/180;
+        const Δλ = (academyLng-position.coords.longitude) * Math.PI/180;
 
-      if (dist <= geofenceRadius) {
-        setLocationStatus('success');
-      } else {
+        const a = Math.sin(Δφ/2) * Math.sin(Δφ/2) +
+                  Math.cos(φ1) * Math.cos(φ2) *
+                  Math.sin(Δλ/2) * Math.sin(Δλ/2);
+        const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+        const distance = R * c;
+
+        if (distance <= geofenceRadius) {
+          setLocationStatus('success');
+        } else {
+          alert(`Você está fora do raio permitido (${Math.round(distance)}m da academia). O raio configurado é de ${geofenceRadius}m.`);
+          setLocationStatus('fail');
+        }
+      },
+      (error) => {
+        console.error("Geolocation error:", error);
+        alert("Erro ao obter sua localização. Certifique-se de que o GPS está ligado e as permissões foram concedidas.");
         setLocationStatus('fail');
-        alert(`${t('attendance.geoFail')}: ${Math.round(dist)}m > ${geofenceRadius}m`);
-      }
-    } catch (error) {
-      console.error('Error verifying location:', error);
-      setLocationStatus('fail');
-      alert(t('attendance.geoFail'));
-    }
+      },
+      { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 }
+    );
   };
 
   const handleExportDaily = () => {
@@ -197,16 +241,17 @@ const AttendancePage: React.FC = () => {
   const handleSave = () => {
     if (attendedIds.length === 0) return;
     
-    // Se o geofencing estiver configurado, exige verificação de sucesso
-    if (isGeofenceConfigured && locationStatus !== 'success') {
-      alert(t('attendance.geoRequired') + " - Por favor, verifique sua localização primeiro.");
+    // Geofencing enforcement
+    if (profile.latitude && profile.longitude && locationStatus !== 'success') {
+      alert("Acesso Negado: Você precisa validar sua localização (GPS) antes de registrar a presença.");
       verifyLocation();
       return;
     }
 
-    recordAttendance(attendedIds, undefined, selectedClassId !== 'all' ? selectedClassId : undefined);
+    recordAttendance(attendedIds, undefined, selectedClassId !== 'all' ? selectedClassId : undefined, sessionNotes);
     setIsSaved(true);
     setAttendedIds([]);
+    setSessionNotes('');
     setTimeout(() => setIsSaved(false), 3000);
   };
 
@@ -260,9 +305,26 @@ const AttendancePage: React.FC = () => {
       <div className="flex flex-col lg:flex-row gap-8">
         <div className="w-full lg:w-80 shrink-0 space-y-6">
           <div className="bg-white dark:bg-slate-900 p-8 rounded-[3rem] border border-slate-200 dark:border-slate-800 shadow-2xl space-y-6">
+            <div className="pt-6 border-t border-slate-100 dark:border-slate-800">
+               <label className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] mb-4 block italic">{t('attendance.filterInstructor') || 'FILTRAR POR INSTRUTOR'}</label>
+               <select 
+                 value={selectedInstructor}
+                 onChange={(e) => {
+                   setSelectedInstructor(e.target.value);
+                   setSelectedClassId('all');
+                 }}
+                 className="w-full px-6 py-4 bg-slate-50 dark:bg-slate-800 border-2 border-slate-100 dark:border-slate-800 rounded-2xl outline-none focus:ring-2 focus:ring-blue-600 dark:text-white font-black text-[10px] uppercase tracking-widest appearance-none"
+               >
+                 <option value="all">{t('common.all')}</option>
+                 {instructors.map(inst => (
+                   <option key={inst} value={inst}>{inst}</option>
+                 ))}
+               </select>
+            </div>
+
             <div>
               <label className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] mb-4 block italic">{t('attendance.selectClass')}</label>
-              <div className="space-y-3">
+              <div className="space-y-3 max-h-[300px] overflow-y-auto pr-2 scrollbar-thin">
                 <button 
                   onClick={() => setSelectedClassId('all')}
                   className={`w-full px-6 py-4 rounded-2xl text-left text-[11px] font-black uppercase tracking-widest transition-all border-2 ${selectedClassId === 'all' ? 'border-blue-600 bg-blue-50 dark:bg-blue-900/20 text-blue-600' : 'border-slate-50 dark:border-slate-800 bg-slate-50 dark:bg-slate-800 text-slate-500'}`}
@@ -272,14 +334,14 @@ const AttendancePage: React.FC = () => {
                     {t('attendance.allStudents')}
                   </div>
                 </button>
-                {schedules.map(sch => (
+                {filteredSchedules.map(sch => (
                   <button 
                     key={sch.id}
                     onClick={() => setSelectedClassId(sch.id)}
                     className={`w-full px-6 py-4 rounded-2xl text-left text-[11px] font-black uppercase tracking-widest transition-all border-2 ${selectedClassId === sch.id ? 'border-blue-600 bg-blue-50 dark:bg-blue-900/20 text-blue-600' : 'border-slate-50 dark:border-slate-800 bg-slate-50 dark:bg-slate-800 text-slate-500'}`}
                   >
                      <div className="flex flex-col">
-                        <span className="text-[9px] opacity-60">{sch.time}</span>
+                        <span className="text-[9px] opacity-60">{sch.time} • {sch.instructor}</span>
                         <span>{sch.title}</span>
                      </div>
                   </button>
@@ -336,11 +398,6 @@ const AttendancePage: React.FC = () => {
                   </>
                 )}
               </button>
-              {distance !== null && locationStatus !== 'idle' && (
-                <p className="text-[9px] font-bold text-center uppercase tracking-widest opacity-60">
-                  Distância: {Math.round(distance)}m
-                </p>
-              )}
             </div>
           </div>
         </div>
@@ -384,7 +441,7 @@ const AttendancePage: React.FC = () => {
                             isChecked ? 'bg-blue-600 text-white' : 'bg-slate-900 dark:bg-white text-white dark:text-slate-900'
                           }`}>
                             {student.photoUrl ? (
-                              <img src={student.photoUrl} alt={student.name} className="w-full h-full object-cover" />
+                              <img src={student.photoUrl} alt={student.name} className="w-full h-full object-cover" loading="lazy" />
                             ) : (
                               student.name[0]
                             )}
@@ -408,16 +465,28 @@ const AttendancePage: React.FC = () => {
                   })}
                 </div>
 
-                <div className="mt-12 flex justify-end">
-                   <button 
-                    onClick={handleSave}
-                    disabled={attendedIds.length === 0}
-                    className={`px-16 py-6 rounded-[2rem] font-black uppercase tracking-[0.3em] text-sm transition-all shadow-2xl active:scale-95 ${
-                      isSaved ? 'bg-green-600 text-white' : 'bg-blue-600 text-white shadow-blue-600/30'
-                    }`}
-                  >
-                    {isSaved ? t('attendance.evolutionRegistered') : t('attendance.confirmTraining')}
-                  </button>
+                <div className="mt-12 space-y-6">
+                   <div>
+                     <label className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] mb-4 block italic">NOTAS DA SESSÃO / CONTEÚDO DA AULA</label>
+                     <textarea
+                       placeholder="O que foi ensinado hoje? Observações técnicas..."
+                       className="w-full px-8 py-6 bg-slate-50 dark:bg-slate-800 border-2 border-transparent rounded-[2rem] focus:border-blue-600 focus:bg-white dark:focus:bg-slate-900 dark:text-white font-bold text-lg transition-all outline-none min-h-[120px]"
+                       value={sessionNotes}
+                       onChange={(e) => setSessionNotes(e.target.value)}
+                     />
+                   </div>
+                   
+                   <div className="flex justify-end">
+                      <button 
+                       onClick={handleSave}
+                       disabled={attendedIds.length === 0}
+                       className={`px-16 py-6 rounded-[2rem] font-black uppercase tracking-[0.3em] text-sm transition-all shadow-2xl active:scale-95 ${
+                         isSaved ? 'bg-green-600 text-white' : 'bg-blue-600 text-white shadow-blue-600/30'
+                       }`}
+                     >
+                       {isSaved ? t('attendance.evolutionRegistered') : t('attendance.confirmTraining')}
+                     </button>
+                   </div>
                 </div>
               </motion.div>
             )}
@@ -513,15 +582,9 @@ const AttendancePage: React.FC = () => {
                       </div>
                    </div>
                    
-                    <div className="flex flex-col items-center gap-1 opacity-50">
-                      <p className="text-[10px] font-black text-slate-400 uppercase tracking-[0.4em] italic text-center">
-                        SYSBJJ INTELLIGENCE SYSTEM 2.0
-                      </p>
-                      <span className="text-[8px] font-black text-blue-600 uppercase tracking-widest leading-none">Security_Node_Active</span>
-                      <p className="text-[8px] font-bold text-slate-500 uppercase tracking-widest leading-none">
-                        Hash: SHA-256_Automatic_Sync_Enabled
-                      </p>
-                    </div>
+                   <p className="text-[10px] font-black text-slate-400 uppercase tracking-[0.4em] italic">
+                     SYSBJJ Academy • {new Date().getFullYear()} • {t('attendance.biometricLog')}
+                   </p>
                 </div>
               </motion.div>
             )}

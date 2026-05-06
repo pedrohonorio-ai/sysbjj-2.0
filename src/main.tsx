@@ -8,20 +8,69 @@ import { LanguageProvider } from './contexts/LanguageContext';
 import { ProfileProvider } from './contexts/ProfileContext';
 import { DataProvider } from './contexts/DataContext';
 
-const ErrorFallback = ({ error }: { error: Error }) => (
-  <div style={{ padding: '20px', color: 'red', backgroundColor: '#fff', height: '100vh', fontFamily: 'sans-serif' }}>
-    <h1>SYSTEM ERROR: ABIERTO EL TATAME PERO ALGO FALLÓ</h1>
-    <p>OSS! Sensei, o sistema detectou um erro crítico:</p>
-    <pre style={{ backgroundColor: '#eee', padding: '10px', borderRadius: '5px', overflow: 'auto' }}>{error.message}</pre>
-    <details style={{ marginTop: '10px' }}>
-      <summary>Detalhes do Erro</summary>
-      <pre style={{ fontSize: '12px' }}>{error.stack}</pre>
-    </details>
+  const ErrorFallback = ({ error }: { error: Error }) => (
+  <div style={{ 
+    padding: '40px', 
+    color: '#fff', 
+    backgroundColor: '#020617', 
+    height: '100vh', 
+    fontFamily: 'system-ui, sans-serif',
+    display: 'flex',
+    flexDirection: 'column',
+    alignItems: 'center',
+    justifyContent: 'center',
+    textAlign: 'center'
+  }}>
+    <div style={{ 
+      width: '80px', 
+      height: '80px', 
+      backgroundColor: '#ef4444', 
+      borderRadius: '24px', 
+      display: 'flex', 
+      alignItems: 'center', 
+      justifyContent: 'center',
+      marginBottom: '24px',
+      boxShadow: '0 0 40px rgba(239, 68, 68, 0.2)'
+    }}>
+      <span style={{ fontSize: '40px', fontWeight: 'bold' }}>!</span>
+    </div>
+    <h1 style={{ fontSize: '32px', fontWeight: '900', letterSpacing: '-0.05em', textTransform: 'uppercase', fontStyle: 'italic', marginBottom: '16px' }}>
+      SISTEMA INTERROMPIDO
+    </h1>
+    <p style={{ fontSize: '18px', fontWeight: '500', color: '#94a3b8', marginBottom: '32px', maxWidth: '500px' }}>
+      OSS! Sensei, ocorreu um erro técnico que impediu a evolução do sistema. O tatame está sendo limpo.
+    </p>
+    <div style={{ 
+      backgroundColor: '#1e293b', 
+      padding: '24px', 
+      borderRadius: '24px', 
+      border: '1px solid rgba(255,255,255,0.1)',
+      textAlign: 'left',
+      maxWidth: '600px',
+      width: '100%',
+      marginBottom: '32px'
+    }}>
+      <p style={{ color: '#ef4444', fontWeight: 'bold', fontSize: '12px', textTransform: 'uppercase', marginBottom: '8px' }}>Log de Erro:</p>
+      <pre style={{ margin: 0, fontSize: '13px', overflow: 'auto', color: '#cbd5e1', whiteSpace: 'pre-wrap' }}>{error.message}</pre>
+    </div>
     <button 
       onClick={() => window.location.reload()}
-      style={{ marginTop: '20px', padding: '10px 20px', backgroundColor: '#0051FF', color: '#fff', border: 'none', borderRadius: '5px', fontWeight: 'bold', cursor: 'pointer' }}
+      style={{ 
+        padding: '16px 40px', 
+        backgroundColor: '#2563eb', 
+        color: '#fff', 
+        border: 'none', 
+        borderRadius: '20px', 
+        fontWeight: '900', 
+        fontSize: '14px',
+        textTransform: 'uppercase',
+        letterSpacing: '0.1em',
+        cursor: 'pointer',
+        boxShadow: '0 20px 40px rgba(37, 99, 235, 0.3)',
+        transition: 'all 0.2s'
+      }}
     >
-      Recarregar Sistema
+      REINICIAR SISTEMA
     </button>
   </div>
 );
