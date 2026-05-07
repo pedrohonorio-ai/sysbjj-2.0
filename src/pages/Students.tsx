@@ -339,7 +339,7 @@ const NewStudentModal = ({ onClose, defaultIsKid }: { onClose: () => void, defau
                 onClick={() => setActiveTab('security')}
                 className={`px-4 py-2 rounded-xl text-[9px] font-black uppercase tracking-widest transition-all ${activeTab === 'security' ? 'bg-indigo-600 text-white shadow-lg shadow-indigo-500/30' : 'bg-slate-100 dark:bg-slate-800 text-slate-400'}`}
               >
-                SEGURANÇA & INTEGRIDADE
+                {t('common.securityIntegrity')}
               </button>
               <button 
                 onClick={() => setActiveTab('legal')}
@@ -939,7 +939,7 @@ const StudentDetailsModal = ({ student, onClose }: { student: Student; onClose: 
   const [activeTab, setActiveTab] = useState<'overview' | 'analysis' | 'progress' | 'edit' | 'admin' | 'videos' | 'financial' | 'security' | 'contract' | 'health' | 'documents'>('overview');
   const [editTab, setEditTab] = useState<'basics' | 'legal' | 'technical' | 'health'>('basics');
   const { t } = useTranslation();
-  const { deleteStudent, updateStudent, schedules } = useData();
+  const { deleteStudent, updateStudent, schedules, ledger } = useData();
   const [editPros, setEditPros] = useState(student.pros || '');
   const [editCons, setEditCons] = useState(student.cons || '');
   const [showSuccess, setShowSuccess] = useState(false);
@@ -1567,7 +1567,7 @@ const StudentDetailsModal = ({ student, onClose }: { student: Student; onClose: 
                     <div className="absolute top-0 right-0 w-64 h-64 bg-blue-600 rounded-full blur-[100px] opacity-10 group-hover:opacity-20 transition-opacity" />
                     <div className="grid grid-cols-2 md:grid-cols-4 gap-8 relative z-10">
                       <div className="text-center">
-                        <p className="text-[8px] font-black text-blue-400 uppercase tracking-widest mb-1">{t('common.attendance.attendance')}</p>
+                        <p className="text-[8px] font-black text-blue-400 uppercase tracking-widest mb-1">{t('common.attendanceStats.attendance')}</p>
                         <p className="text-2xl font-black">{Math.min(100, (student.attendanceCount / 100) * 100).toFixed(0)}%</p>
                         <div className="w-full h-1 bg-white/10 rounded-full mt-2 overflow-hidden">
                            <div className="h-full bg-blue-500 rounded-full" style={{ width: `${Math.min(100, (student.attendanceCount / 100) * 100)}%` }} />
@@ -1808,7 +1808,7 @@ const StudentDetailsModal = ({ student, onClose }: { student: Student; onClose: 
                          <p className="font-bold text-slate-900 dark:text-white uppercase">{student.civilStatus || '--'}</p>
                       </div>
                       <div>
-                         <p className="text-[8px] font-black text-slate-400 uppercase tracking-widest mb-1">Profissão</p>
+                         <p className="text-[8px] font-black text-slate-400 uppercase tracking-widest mb-1">{t('common.profession')}</p>
                          <p className="font-bold text-slate-900 dark:text-white uppercase">{student.occupation || '--'}</p>
                       </div>
                    </div>
@@ -1817,7 +1817,7 @@ const StudentDetailsModal = ({ student, onClose }: { student: Student; onClose: 
 
                <section className="space-y-4">
                  <h3 className="text-[10px] font-black text-slate-400 uppercase tracking-widest flex items-center gap-2">
-                   <Download size={14} /> {t('common.documentsSection') || 'Repositório de Documentos'}
+                   <Download size={14} /> {t('common.documentsSection')}
                  </h3>
                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
                    {student.documents && student.documents.length > 0 ? (
@@ -1841,7 +1841,7 @@ const StudentDetailsModal = ({ student, onClose }: { student: Student; onClose: 
                               download={doc.name}
                               className="px-4 py-2 bg-slate-900 dark:bg-white text-white dark:text-slate-900 rounded-xl text-[9px] font-black uppercase tracking-widest hover:bg-blue-600 hover:text-white transition-all shadow-xl"
                             >
-                              BAIXAR
+                              {t('common.download')}
                             </a>
                          </div>
                        </div>
@@ -1849,7 +1849,7 @@ const StudentDetailsModal = ({ student, onClose }: { student: Student; onClose: 
                    ) : (
                      <div className="col-span-full py-20 text-center bg-slate-50 dark:bg-slate-800/30 rounded-[3rem] border-2 border-dashed border-slate-200 dark:border-slate-700">
                        <FileWarning size={48} className="mx-auto text-slate-200 mb-4" />
-                       <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Nenhum documento anexado.</p>
+                       <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">{t('common.noDocuments')}</p>
                      </div>
                    )}
                  </div>
@@ -1896,12 +1896,11 @@ const StudentDetailsModal = ({ student, onClose }: { student: Student; onClose: 
                     </div>
                  </div>
                </div>
-               
-               <div className="p-8 bg-slate-900 rounded-[2.5rem] text-white min-h-[300px]">
+                   <div className="p-8 bg-slate-900 rounded-[2.5rem] text-white min-h-[300px]">
                   <div className="flex items-center justify-between mb-8">
                     <h3 className="text-xl font-black uppercase tracking-tighter flex items-center gap-3">
                       <FileText size={24} className="text-blue-400"/>
-                      {t('financial.historyTitle')}
+                      {t('common.paymentHistory')}
                     </h3>
                   </div>
                   
@@ -1914,30 +1913,38 @@ const StudentDetailsModal = ({ student, onClose }: { student: Student; onClose: 
                         <div className="col-span-2 text-right">{t('financial.status')}</div>
                       </div>
                       <div className="space-y-2">
-                        <div className="grid grid-cols-1 md:grid-cols-12 gap-4 items-center px-6 py-5 bg-white/5 rounded-2xl border border-white/5 hover:bg-white/10 transition-colors">
-                           <div className="md:col-span-4 flex items-center gap-3">
-                             <div className="w-10 h-10 rounded-full bg-blue-500/20 flex items-center justify-center text-blue-400">
-                               <Plus size={18}/>
-                             </div>
-                             <div>
-                               <p className="text-sm font-black uppercase tracking-tight">{t('financial.activeMonthly')}</p>
-                               <p className="text-[8px] font-bold text-slate-500 uppercase tracking-widest">{t('financial.proPlan')}</p>
-                             </div>
-                           </div>
-                           <div className="md:col-span-3">
-                             <p className="text-[9px] font-black text-blue-400 uppercase tracking-widest md:hidden mb-1">{t('financial.date')}</p>
-                             <p className="text-xs font-bold text-slate-400">{student.lastPaymentDate ? new Date(student.lastPaymentDate).toLocaleDateString() : t('financial.checkStatement')}</p>
-                           </div>
-                           <div className="md:col-span-3 text-right">
-                             <p className="text-[9px] font-black text-blue-400 uppercase tracking-widest md:hidden mb-1">{t('financial.value')}</p>
-                             <p className="text-sm font-black">{t('common.currencySymbol')} {student.monthlyValue}</p>
-                           </div>
-                           <div className="md:col-span-2 text-right">
-                              <span className="px-3 py-1 bg-emerald-500/20 text-emerald-400 rounded-lg text-[8px] font-black uppercase tracking-widest">
-                                {t('financial.liquidated')}
-                              </span>
-                           </div>
-                        </div>
+                        {ledger.filter(entry => entry.studentId === student.id).length > 0 ? (
+                          ledger.filter(entry => entry.studentId === student.id).map((entry) => (
+                            <div key={entry.id} className="grid grid-cols-1 md:grid-cols-12 gap-4 items-center px-6 py-5 bg-white/5 rounded-2xl border border-white/5 hover:bg-white/10 transition-colors">
+                               <div className="md:col-span-4 flex items-center gap-3">
+                                 <div className="w-10 h-10 rounded-full bg-blue-500/20 flex items-center justify-center text-blue-400">
+                                   <Plus size={18}/>
+                                 </div>
+                                 <div className="max-w-[200px]">
+                                   <p className="text-sm font-black uppercase tracking-tight truncate">{entry.description}</p>
+                                   <p className="text-[8px] font-bold text-slate-500 uppercase tracking-widest">{entry.type}</p>
+                                 </div>
+                               </div>
+                               <div className="md:col-span-3">
+                                 <p className="text-[9px] font-black text-blue-400 uppercase tracking-widest md:hidden mb-1">{t('financial.date')}</p>
+                                 <p className="text-xs font-bold text-slate-400">{new Date(entry.timestamp).toLocaleDateString()}</p>
+                               </div>
+                               <div className="md:col-span-3 text-right">
+                                 <p className="text-[9px] font-black text-blue-400 uppercase tracking-widest md:hidden mb-1">{t('financial.value')}</p>
+                                 <p className="text-sm font-black">{t('common.currencySymbol')} {entry.amount.toLocaleString()}</p>
+                               </div>
+                               <div className="md:col-span-2 text-right">
+                                  <span className="px-3 py-1 bg-emerald-500/20 text-emerald-400 rounded-lg text-[8px] font-black uppercase tracking-widest">
+                                    {t('financial.liquidated')}
+                                  </span>
+                               </div>
+                            </div>
+                          ))
+                        ) : (
+                          <div className="py-12 text-center bg-white/5 rounded-2xl border-2 border-dashed border-white/5">
+                            <p className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">{t('business.noRecords')}</p>
+                          </div>
+                        )}
                       </div>
                       <div className="pt-8 text-center opacity-40">
                          <p className="text-[9px] font-black uppercase tracking-[0.3em]">{t('financial.endOfHistory')}</p>
@@ -2029,7 +2036,7 @@ const StudentDetailsModal = ({ student, onClose }: { student: Student; onClose: 
                     className="w-full min-h-[200px] p-6 bg-slate-50 dark:bg-slate-900 border-2 border-slate-100 dark:border-slate-800 rounded-[2.5rem] text-sm font-medium outline-none focus:border-blue-600 transition-all dark:text-white"
                     defaultValue={student.technicalNotes || ''}
                     onBlur={(e) => updateStudent(student.id, { technicalNotes: e.target.value })}
-                    placeholder="Registre aqui o feedback técnico detalhado..."
+                    placeholder={t('common.feedbackPlaceholder')}
                   />
                </div>
 
@@ -2054,7 +2061,7 @@ const StudentDetailsModal = ({ student, onClose }: { student: Student; onClose: 
 
            {activeTab === 'progress' && (
             <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
-               {/* Timeline de Graduação */}
+               {/* {t('common.timelineGraduation')} */}
                <section className="space-y-6">
                  <h3 className="text-[10px] font-black text-slate-400 uppercase tracking-widest flex items-center gap-2">
                    <Trophy size={14} className="text-amber-500" /> {t('common.masteryJourney')}
@@ -2141,8 +2148,8 @@ const StudentDetailsModal = ({ student, onClose }: { student: Student; onClose: 
                           <div className="mt-6 p-4 bg-white dark:bg-slate-900 rounded-2xl border border-slate-100 dark:border-slate-800">
                             <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest leading-relaxed">
                               {beltAnalysis.isEligible 
-                                ? 'Status: Aluno apto para avaliação técnica de mudança de faixa/grau.' 
-                                : `Faltam aproximadamente ${(beltAnalysis.minTime - beltAnalysis.diffMonths)} meses de carência técnica.`}
+                                ? t('common.readyForEvaluation')
+                                : t('common.missingMonths', { months: (beltAnalysis.minTime - beltAnalysis.diffMonths) })}
                             </p>
                           </div>
                         </div>
@@ -2221,7 +2228,7 @@ const StudentDetailsModal = ({ student, onClose }: { student: Student; onClose: 
                       {[
                         { action: 'Acesso ao Portal', color: 'bg-emerald-400', date: 'Hoje, 14:20' },
                         { action: 'Upload de Documento', color: 'bg-blue-400', date: 'Ontem, 09:15' },
-                        { action: 'Login Suspeito Bloqueado', color: 'bg-red-400', date: '3 dias atrás' }
+                        { action: t('common.suspiciousLoginReport'), color: 'bg-red-400', date: t('common.threeDaysAgo') }
                       ].map((log, i) => (
                         <div key={i} className="flex items-center gap-4 p-4 bg-white dark:bg-slate-900 rounded-2xl border border-slate-50 dark:border-slate-800 shadow-sm group">
                           <div className={`w-3 h-3 rounded-full ${log.color} group-hover:scale-125 transition-transform`} />
@@ -2291,7 +2298,7 @@ const StudentDetailsModal = ({ student, onClose }: { student: Student; onClose: 
                             <h4 className="font-black text-slate-900 dark:text-white uppercase text-sm leading-tight">{video.title}</h4>
                             <button 
                               onClick={() => {
-                                if(confirm('Excluir este vídeo?')) {
+                                if(confirm(t('common.confirmDeleteVideo') || 'Excluir este vídeo?')) {
                                   const updated = student.positionVideos?.filter(v => v.id !== video.id);
                                   updateStudent(student.id, { positionVideos: updated });
                                 }
@@ -2838,18 +2845,31 @@ const Students: React.FC = () => {
              </select>
           </div>
 
-          <div className="relative flex-1 min-w-[140px]">
-            <Medal className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={12} />
-            <select 
-              className="w-full pl-9 pr-4 py-2.5 bg-white dark:bg-slate-800 border-none rounded-xl focus:ring-4 focus:ring-blue-500/10 transition-all text-[9px] font-black uppercase tracking-widest text-slate-900 dark:text-white appearance-none"
-              value={beltFilter}
-              onChange={(e) => setBeltFilter(e.target.value)}
+          <div className="flex-1 min-w-[300px] bg-white dark:bg-slate-800 rounded-xl p-1 flex items-center gap-1 overflow-x-auto scrollbar-hide border border-slate-100 dark:border-slate-700">
+            <button 
+              onClick={() => setBeltFilter('')}
+              className={`px-4 py-2 rounded-lg text-[8px] font-black uppercase tracking-widest transition-all whitespace-nowrap ${beltFilter === '' ? 'bg-slate-900 dark:bg-white text-white dark:text-slate-900 shadow-lg' : 'text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-700'}`}
             >
-              <option value="">{t('common.allBelts')}</option>
-              {Object.keys(BELT_COLORS).map((belt) => (
-                 <option key={belt} value={belt}>{t(`belts.${belt}`)}</option>
-              ))}
-            </select>
+              {t('common.allBelts')}
+            </button>
+            {Object.keys(BELT_COLORS).map((belt) => {
+              const bgClass = BELT_COLORS[belt as keyof typeof BELT_COLORS] || 'bg-slate-500';
+              const isSelected = beltFilter === belt;
+              return (
+                <button 
+                  key={belt}
+                  onClick={() => setBeltFilter(belt)}
+                  className={`px-3 py-2 rounded-lg flex items-center gap-2 transition-all border-2 ${isSelected ? 'border-blue-500 scale-105 shadow-md shadow-blue-500/20' : 'border-transparent opacity-60 hover:opacity-100'}`}
+                >
+                  <div className={`w-10 h-3 rounded-sm ${bgClass} border border-black/20 shadow-inner relative overflow-hidden`}>
+                    <div className="absolute right-2 top-0 bottom-0 w-2 bg-slate-900/30" />
+                  </div>
+                  <span className={`text-[8px] font-black uppercase tracking-tighter whitespace-nowrap ${isSelected ? 'text-blue-600' : 'text-slate-500'}`}>
+                    {t(`belts.${belt}`)}
+                  </span>
+                </button>
+              );
+            })}
           </div>
 
           <div className="relative flex-1 min-w-[140px]">
@@ -3068,7 +3088,7 @@ const Students: React.FC = () => {
                   {activeView === 'kids' ? (
                     <div className="flex items-center gap-1.5 px-3 py-1.5 bg-yellow-50 dark:bg-yellow-900/10 rounded-lg border border-yellow-100 dark:border-yellow-900/20">
                       <Medal size={12} className="text-yellow-600" />
-                      <span className="font-black text-yellow-700 dark:text-yellow-500 text-[9px] uppercase tracking-wider">{student.rewardPoints || 0} OSS PTS</span>
+                      <span className="font-black text-yellow-700 dark:text-yellow-500 text-[9px] uppercase tracking-wider">{student.rewardPoints || 0} {t('common.meritPoints')}</span>
                     </div>
                   ) : (
                     <div className="flex items-center gap-2">

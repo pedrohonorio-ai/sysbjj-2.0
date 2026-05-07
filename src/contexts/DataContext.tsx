@@ -1,6 +1,6 @@
 
 import React, { createContext, useContext, useState, useEffect, ReactNode, useCallback } from 'react';
-import { Student, Payment, ClassSchedule, GalleryImage, ExtraRevenue, KimonoOrder, LessonPlan, LibraryTechnique, TechniqueCategory, BeltColor, Product, Plan, PaymentReceipt, TransactionLedger, SystemLog } from '../types';
+import { Student, Payment, ClassSchedule, GalleryImage, ExtraRevenue, KimonoOrder, LessonPlan, LibraryTechnique, TechniqueCategory, BeltColor, Product, Plan, PaymentReceipt, TransactionLedger, SystemLog, AttendanceRecord } from '../types';
 import CryptoJS from 'crypto-js';
 import { IBJJF_LESSONS } from '../constants/rulesData';
 import { db } from '../firebase';
@@ -71,6 +71,7 @@ interface DataContextType {
   ledger: TransactionLedger[];
   logs: SystemLog[];
   presence: { email: string; lastSeen: number; role: string; userAgent: string; id: string }[];
+  attendance: AttendanceRecord[];
   notifications: { id: string; message: string; type: 'info' | 'success' | 'warning'; timestamp: number }[];
   logAction: (action: string, details: string, category: SystemLog['category']) => void;
   verifyAuditIntegrity: () => boolean;
@@ -244,6 +245,7 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   const [receipts, setReceipts] = useState<PaymentReceipt[]>(() => loadSafely('oss_receipts', []));
   const [ledger, setLedger] = useState<TransactionLedger[]>(() => loadSafely('oss_ledger', []));
   const [logs, setLogs] = useState<SystemLog[]>([]);
+  const [attendance, setAttendance] = useState<AttendanceRecord[]>([]);
   const [presence, setPresence] = useState<{ email: string; lastSeen: number; role: string; userAgent: string; id: string }[]>([]);
   const [notifications, setNotifications] = useState<{ id: string; message: string; type: 'info' | 'success' | 'warning'; timestamp: number }[]>([]);
   const [isAuthenticated, setIsAuthenticated] = useState(false);
@@ -922,7 +924,7 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
 
   return (
     <DataContext.Provider value={{ 
-      students, payments, schedules, gallery, extraRevenue, orders, lessonPlans, techniques, products, plans, receipts, ledger, logs, presence, notifications,
+      students, payments, schedules, gallery, extraRevenue, orders, lessonPlans, techniques, products, plans, receipts, ledger, logs, attendance, presence, notifications,
       logAction, verifyAuditIntegrity, addStudent, updateStudent, deleteStudent, addPayment, addReceipt, approveReceipt, rejectReceipt, addLedgerEntry, clearNotification, recordAttendance, completeRuleLesson,
       addSchedule, updateSchedule, deleteSchedule,
       addGalleryImage,

@@ -2,9 +2,9 @@ import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { 
   QrCode, CheckCircle, Search, Save, FileSpreadsheet, 
   Camera, X, Filter, Download, UserPlus, MapPin, 
-  Scan, LayoutGrid, Tablet
+  Scan, LayoutGrid, Tablet, Sparkles, Zap
 } from 'lucide-react';
-import { StudentStatus, ClassSchedule } from '../types';
+import { StudentStatus, ClassSchedule, Student } from '../types';
 import { useTranslation } from '../contexts/LanguageContext';
 import { useData } from '../contexts/DataContext';
 import { useProfile } from '../contexts/ProfileContext';
@@ -25,6 +25,7 @@ const AttendancePage: React.FC = () => {
   const [selectedClassId, setSelectedClassId] = useState<string>('all');
   const [selectedInstructor, setSelectedInstructor] = useState<string>('all');
   const [sessionNotes, setSessionNotes] = useState('');
+  const [lastCheckedStudent, setLastCheckedStudent] = useState<Student | null>(null);
   const [isSaved, setIsSaved] = useState(false);
   const [mode, setMode] = useState<AttendanceMode>('manual');
   const [showAllStudents, setShowAllStudents] = useState(false);
@@ -232,6 +233,14 @@ const AttendancePage: React.FC = () => {
   };
 
   const toggleAttendance = (id: string) => {
+    const isAdding = !attendedIds.includes(id);
+    if (isAdding) {
+      const student = students.find(s => s.id === id);
+      if (student) {
+        setLastCheckedStudent(student);
+        setTimeout(() => setLastCheckedStudent(null), 2500);
+      }
+    }
     setAttendedIds(prev => 
       prev.includes(id) ? prev.filter(i => i !== id) : [...prev, id]
     );
@@ -303,6 +312,57 @@ const AttendancePage: React.FC = () => {
       </div>
 
       <div className="flex flex-col lg:flex-row gap-8">
+        {/* Check-in Success Animation Overlay */}
+        <AnimatePresence>
+          {lastCheckedStudent && (
+            <motion.div
+              initial={{ opacity: 0, scale: 0.5 }}
+              animate={{ opacity: 1, scale: 1 }}
+              exit={{ opacity: 0, scale: 1.2, transition: { duration: 0.2 } }}
+              className="fixed inset-0 z-[100] flex items-center justify-center pointer-events-none px-4"
+            >
+              <motion.div 
+                animate={{ 
+                  scale: [1, 1.05, 1],
+                  rotate: [0, 2, -2, 0]
+                }}
+                transition={{ duration: 0.5, repeat: Infinity }}
+                className="bg-slate-900 border-4 border-blue-600 p-8 sm:p-12 rounded-[3.5rem] sm:rounded-[5rem] shadow-[0_0_100px_rgba(37,99,235,0.5)] flex flex-col items-center gap-6 sm:gap-8 relative max-w-lg w-full"
+              >
+                <div className="absolute -top-6 -left-6 sm:-top-10 sm:-left-10 w-16 h-16 sm:w-24 sm:h-24 bg-blue-600 rounded-full flex items-center justify-center text-white shadow-2xl animate-bounce">
+                  <Sparkles size={32} className="sm:w-10 sm:h-10" />
+                </div>
+                
+                <div className="w-32 h-32 sm:w-48 sm:h-48 rounded-[2rem] sm:rounded-[3rem] border-4 sm:border-8 border-white/10 overflow-hidden shadow-2xl ring-4 sm:ring-8 ring-blue-600/20">
+                  {lastCheckedStudent.photoUrl ? (
+                    <img src={lastCheckedStudent.photoUrl} className="w-full h-full object-cover" />
+                  ) : (
+                    <div className="w-full h-full bg-slate-800 flex items-center justify-center text-4xl sm:text-6xl font-black text-white">
+                      {lastCheckedStudent.name[0]}
+                    </div>
+                  )}
+                </div>
+
+                <div className="text-center">
+                  <h2 className="text-2xl sm:text-4xl font-black text-white uppercase tracking-tighter italic mb-1 sm:mb-2 text-blue-500">CHECK-IN OK!</h2>
+                  <p className="text-3xl sm:text-5xl font-black text-white uppercase tracking-tight break-words px-2">{lastCheckedStudent.name}</p>
+                </div>
+
+                <div className="flex flex-col sm:flex-row gap-3 sm:gap-4 w-full justify-center">
+                  <div className="px-5 py-3 bg-white/5 rounded-2xl border border-white/10 flex items-center justify-center gap-3">
+                    <Zap className="text-amber-500" size={18} />
+                    <span className="text-white font-black uppercase text-xs tracking-widest">{lastCheckedStudent.attendanceCount + 1} AULAS</span>
+                  </div>
+                  <div className="px-5 py-3 bg-blue-600 rounded-2xl flex items-center justify-center gap-3 shadow-lg shadow-blue-600/40">
+                    <CheckCircle className="text-white" size={18} />
+                    <span className="text-white font-black uppercase text-xs tracking-widest">OSS! PRESENÇA</span>
+                  </div>
+                </div>
+              </motion.div>
+            </motion.div>
+          )}
+        </AnimatePresence>
+
         <div className="w-full lg:w-80 shrink-0 space-y-6">
           <div className="bg-white dark:bg-slate-900 p-8 rounded-[3rem] border border-slate-200 dark:border-slate-800 shadow-2xl space-y-6">
             <div className="pt-6 border-t border-slate-100 dark:border-slate-800">
