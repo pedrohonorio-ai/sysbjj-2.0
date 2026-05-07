@@ -1,6 +1,6 @@
 
 import React, { createContext, useContext, useState, useEffect, ReactNode, useCallback } from 'react';
-import { Student, Payment, ClassSchedule, GalleryImage, ExtraRevenue, KimonoOrder, LessonPlan, LibraryTechnique, TechniqueCategory, BeltColor, Product, Plan, PaymentReceipt, TransactionLedger, SystemLog, AttendanceRecord } from '../types';
+import { Student, Payment, ClassSchedule, GalleryImage, ExtraRevenue, KimonoOrder, LessonPlan, LibraryTechnique, TechniqueCategory, BeltColor, Product, Plan, PaymentReceipt, TransactionLedger, SystemLog, AttendanceRecord, ExtraRevenueCategory } from '../types';
 import CryptoJS from 'crypto-js';
 import { IBJJF_LESSONS } from '../constants/rulesData';
 import { db } from '../firebase';
@@ -174,6 +174,19 @@ const DEFAULT_TECHNIQUES: LibraryTechnique[] = [
   { id: 'T-062', name: 'Pummeling (Esgrima)', category: TechniqueCategory.WARMUP, beltLevel: BeltColor.WHITE, description: 'Disputa de esgrima em pé ou solo.' }
 ];
 
+const DEFAULT_PRODUCTS: Product[] = [
+  { id: 'P-1', name: 'Kimono Ultra Light Preto', price: 450, category: ExtraRevenueCategory.PRODUCT, stock: 15 },
+  { id: 'P-2', name: 'Faixa Pro - Todas as Cores', price: 80, category: ExtraRevenueCategory.PRODUCT, stock: 50 },
+  { id: 'P-3', name: 'Rash Guard SYSBJJ Edition', price: 180, category: ExtraRevenueCategory.PRODUCT, stock: 20 },
+  { id: 'P-4', name: 'Whey Protein Isolado 900g', price: 210, category: ExtraRevenueCategory.PRODUCT, stock: 10 }
+];
+
+const DEFAULT_PLANS: Plan[] = [
+  { id: 'PL-1', name: 'Plano Mensal', price: 280, description: 'Acesso total a todas as aulas.', benefits: ['Sem fidelidade', 'Acesso ao App', 'Treinos Livres'] },
+  { id: 'PL-2', name: 'Plano Semestral', price: 240, description: 'Economia com fidelidade de 6 meses.', benefits: ['Desconto de 15%', 'Acesso VIP', 'Aula Particular Mensal'] },
+  { id: 'PL-3', name: 'Plano Kids', price: 190, description: 'Foco técnico e educacional para crianças.', benefits: ['Ludicidade Técnica', 'Acompanhamento Escolar', 'Eventos Kids'] }
+];
+
 // Helper to compress base64 images to save LocalStorage space is now imported from lib/imageUtils
 
 export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
@@ -240,8 +253,8 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   const [orders, setOrders] = useState<KimonoOrder[]>(() => loadSafely('oss_orders', []));
   const [lessonPlans, setLessonPlans] = useState<LessonPlan[]>(() => loadSafely('oss_lesson_plans', []));
   const [techniques, setTechniques] = useState<LibraryTechnique[]>(() => loadSafely('oss_techniques', DEFAULT_TECHNIQUES));
-  const [products, setProducts] = useState<Product[]>(() => loadSafely('oss_products', []));
-  const [plans, setPlans] = useState<Plan[]>(() => loadSafely('oss_plans', []));
+  const [products, setProducts] = useState<Product[]>(() => loadSafely('oss_products', DEFAULT_PRODUCTS));
+  const [plans, setPlans] = useState<Plan[]>(() => loadSafely('oss_plans', DEFAULT_PLANS));
   const [receipts, setReceipts] = useState<PaymentReceipt[]>(() => loadSafely('oss_receipts', []));
   const [ledger, setLedger] = useState<TransactionLedger[]>(() => loadSafely('oss_ledger', []));
   const [logs, setLogs] = useState<SystemLog[]>([]);
