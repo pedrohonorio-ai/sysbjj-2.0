@@ -14,9 +14,9 @@ const Finances: React.FC = () => {
   const [isVerifying, setIsVerifying] = useState(false);
   const [verifyStatus, setVerifyStatus] = useState<'verified' | 'unverified'>('verified');
 
-  const totalBalance = ledger.reduce((acc, curr) => acc + (curr.type === 'INCOME' ? curr.amount : -curr.amount), 0);
-  const monthIncome = ledger.filter(l => l.type === 'INCOME').reduce((acc, curr) => acc + curr.amount, 0);
-  const monthExpense = ledger.filter(l => l.type === 'EXPENSE').reduce((acc, curr) => acc + curr.amount, 0);
+  const totalBalance = ledger.reduce((acc, curr) => acc + (curr.type === 'Income' || curr.type === 'StudentPayment' || curr.type === 'ExtraRevenue' ? curr.amount : -curr.amount), 0);
+  const monthIncome = ledger.filter(l => ['Income', 'StudentPayment', 'ExtraRevenue'].includes(l.type)).reduce((acc, curr) => acc + curr.amount, 0);
+  const monthExpense = ledger.filter(l => l.type === 'Expense').reduce((acc, curr) => acc + curr.amount, 0);
 
   const runVerification = () => {
     setIsVerifying(true);
@@ -30,7 +30,9 @@ const Finances: React.FC = () => {
   const filteredLedger = ledger.filter(item => {
     const matchesSearch = item.description.toLowerCase().includes(searchTerm.toLowerCase()) || 
                           item.category.toLowerCase().includes(searchTerm.toLowerCase());
-    const matchesFilter = filter === 'all' || (filter === 'income' && item.type === 'INCOME') || (filter === 'expense' && item.type === 'EXPENSE');
+    const matchesFilter = filter === 'all' || 
+                          (filter === 'income' && ['Income', 'StudentPayment', 'ExtraRevenue'].includes(item.type)) || 
+                          (filter === 'expense' && item.type === 'Expense');
     return matchesSearch && matchesFilter;
   });
 
@@ -155,8 +157,8 @@ const Finances: React.FC = () => {
                        </div>
                     </td>
                     <td className="py-4 px-4 text-right whitespace-nowrap">
-                       <p className={`text-sm font-black italic ${item.type === 'INCOME' ? 'text-emerald-500' : 'text-rose-500'}`}>
-                         {item.type === 'INCOME' ? '+' : '-'} {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(item.amount)}
+                       <p className={`text-sm font-black italic ${['Income', 'StudentPayment', 'ExtraRevenue'].includes(item.type) ? 'text-emerald-500' : 'text-rose-500'}`}>
+                         {['Income', 'StudentPayment', 'ExtraRevenue'].includes(item.type) ? '+' : '-'} {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(item.amount)}
                        </p>
                     </td>
                     <td className="py-4 px-4">

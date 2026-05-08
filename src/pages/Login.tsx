@@ -1,9 +1,17 @@
 
 import React, { useState } from 'react';
-import { Shield, Lock, User, Key, ArrowRight, Instagram } from 'lucide-react';
+import { Shield, Lock, User, Key, ArrowRight, Instagram, Mail, Fingerprint, History, ShieldCheck } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { useTranslation } from '../contexts/LanguageContext';
 import { useProfile } from '../contexts/ProfileContext';
+import { useData } from '../contexts/DataContext';
+import { auth as firebaseAuth } from '../firebase';
+import { 
+  signInWithEmailAndPassword, 
+  createUserWithEmailAndPassword, 
+  updateProfile,
+  sendPasswordResetEmail
+} from 'firebase/auth';
 
 interface LoginProps {
   onLogin: (role: 'admin' | 'student', studentCode?: string, email?: string) => void;
@@ -12,20 +20,56 @@ interface LoginProps {
 const Login: React.FC<LoginProps> = ({ onLogin }) => {
   const { t } = useTranslation();
   const { profile } = useProfile();
+  const { logAction, addLedgerEntry } = useData();
   const [activeTab, setActiveTab ] = useState<'admin' | 'student'>('admin');
+  const [mode, setMode] = useState<'login' | 'register' | 'forgot'>('login');
+  
+  // Form States
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+  const [name, setName] = useState('');
   const [pin, setPin] = useState('');
   const [studentCode, setStudentCode] = useState('');
+  
+  const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+  const [success, setSuccess] = useState('');
 
-  const handleAdminLogin = (e: React.FormEvent) => {
+  const handleAdminLogin = async (e: React.FormEvent) => {
     e.preventDefault();
-    // Simplified logic for now: check against a default PIN or the one in profile if we had one
-    // In a real app, this would be more secure.
-    if (pin === '1234') { // Default PIN
-      onLogin('admin', undefined, 'admin@sysbjj.com');
-    } else {
-      setError(t('login.pinIncorrect'));
-      setTimeout(() => setError(''), 3000);
+    setLoading(true);
+    setError('');
+
+    try {
+      if (mode === 'login') {
+        const userCredential = await signInWithEmailAndPassword(firebaseAuth, email, password);
+        onLogin('admin', undefined, userCredential.user.email || email);
+      } else if (mode === 'register') {
+        if (!name) throw new Error('Nome é obrigatório');
+        const userCredential = await createUserWithEmailAndPassword(firebaseAuth, email, password);
+        await updateProfile(userCredential.user, { displayName: name });
+        
+        // Blockchain audit registration
+        addLedgerEntry({
+          type: 'StatusChange',
+          amount: 0,
+          description: `Novo Nó de Usuário Registrado: ${email}`,
+          category: 'Security',
+          method: 'Blockchain-Sync'
+        });
+        
+        logAction('Novo Usuário', `Conta criada para ${email}`, 'Security');
+        onLogin('admin', undefined, email);
+      } else if (mode === 'forgot') {
+        await sendPasswordResetEmail(firebaseAuth, email);
+        setSuccess('E-mail de recuperação enviado!');
+        setTimeout(() => setMode('login'), 3000);
+      }
+    } catch (err: any) {
+      console.error(err);
+      setError(err.message || 'Erro na autenticação');
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -41,10 +85,11 @@ const Login: React.FC<LoginProps> = ({ onLogin }) => {
 
   return (
     <div className="min-h-screen bg-slate-950 flex items-center justify-center p-4 relative overflow-hidden">
-      {/* Background Decor */}
-      <div className="absolute top-0 left-0 w-full h-full opacity-20 pointer-events-none">
-        <div className="absolute top-[-10%] left-[-10%] w-[40%] h-[40%] bg-blue-600 rounded-full blur-[120px]" />
-        <div className="absolute bottom-[-10%] right-[-10%] w-[40%] h-[40%] bg-red-600 rounded-full blur-[120px]" />
+      {/* Background Decor - Blockchain Mesh Theme */}
+      <div className="absolute top-0 left-0 w-full h-full opacity-30 pointer-events-none">
+        <div className="absolute top-[-10%] left-[-10%] w-[50%] h-[50%] bg-blue-600/20 rounded-full blur-[150px]" />
+        <div className="absolute bottom-[-10%] right-[-10%] w-[50%] h-[50%] bg-indigo-600/20 rounded-full blur-[150px]" />
+        <div className="absolute inset-0 bg-[url('https://www.transparenttextures.com/patterns/carbon-fibre.png')] opacity-10" />
       </div>
 
       <motion.div 
@@ -52,65 +97,132 @@ const Login: React.FC<LoginProps> = ({ onLogin }) => {
         animate={{ opacity: 1, y: 0 }}
         className="w-full max-w-md z-10"
       >
-        <div className="bg-slate-900/50 backdrop-blur-3xl border border-white/10 rounded-[2.5rem] p-8 shadow-2xl">
+        <div className="bg-slate-900/40 backdrop-blur-3xl border border-white/10 rounded-[3rem] p-10 shadow-2xl relative overflow-hidden">
+          {/* Subtle Blockchain Line */}
+          <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-transparent via-blue-500 to-transparent opacity-50" />
+          
           <div className="flex flex-col items-center mb-8">
-            {profile.logoUrl ? (
-              <img src={profile.logoUrl} alt="Logo" className="w-24 h-24 object-contain mb-4" />
-            ) : (
-              <div className="w-20 h-20 bg-blue-600 rounded-3xl flex items-center justify-center text-white text-4xl font-black mb-4 shadow-xl">
-                {profile.academyName?.[0] || 'S'}
+            <motion.div 
+              whileHover={{ rotate: 5, scale: 1.05 }}
+              className="relative mb-6"
+            >
+              {profile.logoUrl ? (
+                <img src={profile.logoUrl} alt="Logo" className="w-24 h-24 object-contain shadow-2xl" />
+              ) : (
+                <div className="w-20 h-20 bg-gradient-to-br from-blue-600 to-indigo-700 rounded-3xl flex items-center justify-center text-white text-4xl font-black shadow-2xl border border-white/20">
+                  {profile.academyName?.[0] || 'S'}
+                </div>
+              )}
+              <div className="absolute -bottom-2 -right-2 w-8 h-8 bg-slate-950 rounded-full flex items-center justify-center border border-white/10 text-blue-500 shadow-lg">
+                <Fingerprint size={16} />
               </div>
-            )}
-            <h1 className="text-2xl font-black text-white uppercase tracking-tighter italic">{profile.academyName}</h1>
-            <p className="text-slate-400 text-[10px] font-black uppercase tracking-[0.3em] mt-2">Intelligence System 2.0</p>
+            </motion.div>
+            <h1 className="text-3xl font-black text-white uppercase tracking-tighter italic text-center">
+              {profile.academyName}
+            </h1>
+            <div className="flex items-center gap-2 mt-2">
+              <span className="w-1.5 h-1.5 rounded-full bg-blue-500 animate-pulse" />
+              <p className="text-slate-400 text-[10px] font-black uppercase tracking-[0.4em]">Integrated OS 2.0</p>
+            </div>
           </div>
 
-          <div className="flex bg-slate-950/50 p-1 rounded-2xl mb-8 border border-white/5">
+          <div className="flex bg-slate-950/60 p-1.5 rounded-2xl mb-8 border border-white/5">
             <button 
-              onClick={() => setActiveTab('admin')}
-              className={`flex-1 py-3 text-[10px] font-black uppercase tracking-widest rounded-xl transition-all ${activeTab === 'admin' ? 'bg-blue-600 text-white shadow-lg' : 'text-slate-500 hover:text-white'}`}
+              onClick={() => { setActiveTab('admin'); setMode('login'); }}
+              className={`flex-1 py-3 text-[10px] font-black uppercase tracking-widest rounded-xl transition-all flex items-center justify-center gap-2 ${activeTab === 'admin' ? 'bg-blue-600 text-white shadow-lg' : 'text-slate-500 hover:text-white'}`}
             >
-              Sensei
+              <Shield size={12} /> Sensei
             </button>
             <button 
               onClick={() => setActiveTab('student')}
-              className={`flex-1 py-3 text-[10px] font-black uppercase tracking-widest rounded-xl transition-all ${activeTab === 'student' ? 'bg-blue-600 text-white shadow-lg' : 'text-slate-500 hover:text-white'}`}
+              className={`flex-1 py-3 text-[10px] font-black uppercase tracking-widest rounded-xl transition-all flex items-center justify-center gap-2 ${activeTab === 'student' ? 'bg-blue-600 text-white shadow-lg' : 'text-slate-500 hover:text-white'}`}
             >
-              {t('common.students').split(' ')[0]}
+              <User size={12} /> {t('common.students').split(' ')[0]}
             </button>
           </div>
 
           <AnimatePresence mode="wait">
             {activeTab === 'admin' ? (
               <motion.form 
-                key="admin-form"
-                initial={{ opacity: 0, x: -10 }}
-                animate={{ opacity: 1, x: 0 }}
-                exit={{ opacity: 0, x: 10 }}
+                key={mode}
+                initial={{ opacity: 0, scale: 0.95 }}
+                animate={{ opacity: 1, scale: 1 }}
+                exit={{ opacity: 0, scale: 1.05 }}
                 onSubmit={handleAdminLogin}
-                className="space-y-6"
+                className="space-y-5"
               >
-                <div>
-                  <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-3 block pl-2">
-                    {t('login.insertPin')}
-                  </label>
+                {mode === 'register' && (
+                  <div className="space-y-2">
+                    <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest ml-2">Nome Completo</label>
+                    <div className="relative">
+                      <User className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-500" size={18} />
+                      <input 
+                        type="text" 
+                        required
+                        value={name}
+                        onChange={(e) => setName(e.target.value)}
+                        placeholder="EX: HELIO GRACIE"
+                        className="w-full bg-slate-950/80 border border-white/10 rounded-2xl py-4 pl-12 pr-4 text-white font-bold text-xs uppercase focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all"
+                      />
+                    </div>
+                  </div>
+                )}
+
+                <div className="space-y-2">
+                  <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest ml-2">E-mail Corporativo</label>
                   <div className="relative">
-                    <Key className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-500" size={18} />
+                    <Mail className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-500" size={18} />
                     <input 
-                      type="password" 
-                      value={pin}
-                      onChange={(e) => setPin(e.target.value)}
-                      maxLength={4}
-                      placeholder="••••"
-                      className="w-full bg-slate-950 border border-white/10 rounded-2xl py-4 pl-12 pr-4 text-white font-black tracking-[1em] text-center focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all placeholder:tracking-normal"
+                      type="email" 
+                      required
+                      value={email}
+                      onChange={(e) => setEmail(e.target.value)}
+                      placeholder="seu@email.com"
+                      className="w-full bg-slate-950/80 border border-white/10 rounded-2xl py-4 pl-12 pr-4 text-white font-bold text-xs focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all"
                     />
                   </div>
                 </div>
-                {error && <p className="text-red-500 text-[10px] font-bold text-center uppercase tracking-wider">{error}</p>}
-                <button type="submit" className="w-full bg-blue-600 hover:bg-blue-500 text-white font-black py-4 rounded-2xl transition-all shadow-xl shadow-blue-600/20 flex items-center justify-center gap-3 group uppercase text-xs tracking-widest">
-                   {t('login.accessMaster')}
-                  <ArrowRight size={18} className="group-hover:translate-x-1 transition-transform" />
+
+                {mode !== 'forgot' && (
+                  <div className="space-y-2">
+                    <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest ml-2">Senha de Acesso</label>
+                    <div className="relative">
+                      <Key className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-500" size={18} />
+                      <input 
+                        type="password" 
+                        required
+                        value={password}
+                        onChange={(e) => setPassword(e.target.value)}
+                        placeholder="••••••••"
+                        className="w-full bg-slate-950/80 border border-white/10 rounded-2xl py-4 pl-12 pr-4 text-white font-bold text-xs focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all"
+                      />
+                    </div>
+                  </div>
+                )}
+
+                {error && <div className="p-4 bg-red-500/10 border border-red-500/20 rounded-xl text-red-500 text-[10px] font-black uppercase text-center">{error}</div>}
+                {success && <div className="p-4 bg-emerald-500/10 border border-emerald-500/20 rounded-xl text-emerald-500 text-[10px] font-black uppercase text-center">{success}</div>}
+
+                <button 
+                  type="submit" 
+                  disabled={loading}
+                  className="w-full bg-blue-600 hover:bg-blue-500 disabled:opacity-50 text-white font-black py-4 rounded-2xl transition-all shadow-xl shadow-blue-600/20 flex items-center justify-center gap-3 group uppercase text-xs tracking-widest"
+                >
+                  {loading ? 'Processando Bloco...' : mode === 'login' ? 'Validar Acesso Master' : mode === 'register' ? 'Gerar Novo Nó' : 'Resetar Credenciais'}
+                  {!loading && <ArrowRight size={18} className="group-hover:translate-x-1 transition-transform" />}
                 </button>
+
+                <div className="flex flex-col gap-3 mt-4">
+                  {mode === 'login' && (
+                    <>
+                      <button type="button" onClick={() => setMode('register')} className="text-[9px] font-black text-slate-500 hover:text-blue-500 uppercase tracking-widest transition-colors">Não tem conta? Criar acesso profissional</button>
+                      <button type="button" onClick={() => setMode('forgot')} className="text-[9px] font-black text-slate-500 hover:text-blue-500 uppercase tracking-widest transition-colors italic">Esqueceu a senha?</button>
+                    </>
+                  )}
+                  {mode !== 'login' && (
+                    <button type="button" onClick={() => setMode('login')} className="text-[9px] font-black text-slate-500 hover:text-blue-500 uppercase tracking-widest transition-colors">Voltar para o Login</button>
+                  )}
+                </div>
               </motion.form>
             ) : (
               <motion.form 
@@ -121,7 +233,7 @@ const Login: React.FC<LoginProps> = ({ onLogin }) => {
                 onSubmit={handleStudentLogin}
                 className="space-y-6"
               >
-                <div>
+                <div className="space-y-2">
                   <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-3 block pl-2">
                     {t('login.portalCode')}
                   </label>
@@ -149,15 +261,26 @@ const Login: React.FC<LoginProps> = ({ onLogin }) => {
           </AnimatePresence>
         </div>
 
-        <div className="mt-12 text-center">
-            <div className="flex items-center justify-center gap-2 mb-4">
-                <Shield size={16} className="text-blue-500" />
-                <span className="text-[10px] font-black text-slate-500 uppercase tracking-widest italic">Security Protocol Active</span>
-            </div>
-            <p className="text-[9px] font-bold text-slate-600 uppercase tracking-[0.2em] mb-2">© 2026 SYBJJ BY CT Pedro Honorio</p>
-            <a href="https://instagram.com/sistemabjj" target="_blank" rel="noopener noreferrer" className="text-[10px] font-black text-slate-500 hover:text-blue-500 transition-colors uppercase tracking-widest flex items-center justify-center gap-2">
-                <Instagram size={12} /> @SISTEMABJJ
-            </a>
+        <div className="mt-12">
+           <div className="flex flex-col items-center gap-6">
+              <div className="grid grid-cols-3 gap-8 opacity-20">
+                 <Shield className="text-white" size={24} />
+                 <Fingerprint className="text-white" size={24} />
+                 <History className="text-white" size={24} />
+              </div>
+              <div className="text-center space-y-4">
+                 <div className="flex items-center justify-center gap-2">
+                    <ShieldCheck size={16} className="text-blue-500" />
+                    <span className="text-[10px] font-black text-slate-500 uppercase tracking-widest italic">Protocolo Blockchain SYBJJ Ativo</span>
+                 </div>
+                 <div className="space-y-1">
+                    <p className="text-[9px] font-bold text-slate-600 uppercase tracking-[0.2em]">© 2026 SYBJJ BY CT Pedro Honorio</p>
+                    <a href="https://instagram.com/sistemabjj" target="_blank" rel="noopener noreferrer" className="text-[10px] font-black text-slate-500 hover:text-blue-500 transition-colors uppercase tracking-widest flex items-center justify-center gap-2">
+                        <Instagram size={12} /> @SISTEMABJJ
+                    </a>
+                 </div>
+              </div>
+           </div>
         </div>
       </motion.div>
     </div>

@@ -77,6 +77,7 @@ interface DataContextType {
   notifications: { id: string; message: string; type: 'info' | 'success' | 'warning'; timestamp: number }[];
   logAction: (action: string, details: string, category: SystemLog['category']) => void;
   verifyAuditIntegrity: () => boolean;
+  verifyLedgerIntegrity: () => boolean;
   addStudent: (student: Omit<Student, 'id'>) => Promise<void>;
   updateStudent: (id: string, updates: Partial<Student>) => Promise<void>;
   deleteStudent: (id: string) => void;
