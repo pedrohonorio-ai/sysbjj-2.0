@@ -1,6 +1,6 @@
 
 import React, { createContext, useContext, useState, useEffect, ReactNode, useCallback } from 'react';
-import { Student, Payment, ClassSchedule, GalleryImage, ExtraRevenue, KimonoOrder, LessonPlan, LibraryTechnique, TechniqueCategory, BeltColor, Product, Plan, PaymentReceipt, TransactionLedger, SystemLog, AttendanceRecord, ExtraRevenueCategory } from '../types';
+import { Student, Payment, ClassSchedule, GalleryImage, ExtraRevenue, KimonoOrder, LessonPlan, LibraryTechnique, TechniqueCategory, BeltColor, Product, Plan, PaymentReceipt, TransactionLedger, SystemLog, AttendanceRecord, ExtraRevenueCategory, GraduationCriterion } from '../types';
 import CryptoJS from 'crypto-js';
 import { IBJJF_LESSONS } from '../constants/rulesData';
 import { db } from '../firebase';
@@ -114,7 +114,6 @@ interface DataContextType {
   approveGraduation: (studentId: string, newBelt: string) => void;
   exportData: () => void;
   importData: (jsonData: string) => void;
-  verifyLedgerIntegrity: () => boolean;
 }
 
 const DataContext = createContext<DataContextType | undefined>(undefined);
@@ -535,6 +534,8 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       type: 'StudentPayment',
       amount: payment.amount,
       description: `Pagamento de mensalidade: ${payment.name}`,
+      category: 'Mensalidade',
+      method: payment.method,
       studentId: students.find(s => s.name === payment.name)?.id
     });
   };
@@ -787,6 +788,8 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       type: 'StatusChange',
       amount: 0,
       description: `Graduação: ${student.name} (${newBelt})`,
+      category: 'Graduação',
+      method: 'Sistema',
       studentId: studentId
     });
 
@@ -820,6 +823,8 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       type: 'ExtraRevenue',
       amount: rev.amount,
       description: `Venda/Serviço: ${rev.description} (${rev.category})`,
+      category: rev.category,
+      method: rev.paymentMethod,
       studentId: rev.studentId
     });
   };
@@ -993,6 +998,7 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       addTechnique, updateTechnique, deleteTechnique,
       addProduct, updateProduct, deleteProduct,
       addPlan, updatePlan, deletePlan,
+      approveGraduation,
       exportData, importData, verifyLedgerIntegrity
     }}>
       {children}

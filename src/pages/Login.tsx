@@ -46,6 +46,8 @@ const Login: React.FC<LoginProps> = ({ onLogin }) => {
         onLogin('admin', undefined, userCredential.user.email || email);
       } else if (mode === 'register') {
         if (!name) throw new Error('Nome é obrigatório');
+        if (password.length < 6) throw new Error('A senha deve ter pelo menos 6 caracteres');
+        
         const userCredential = await createUserWithEmailAndPassword(firebaseAuth, email, password);
         await updateProfile(userCredential.user, { displayName: name });
         
@@ -67,7 +69,23 @@ const Login: React.FC<LoginProps> = ({ onLogin }) => {
       }
     } catch (err: any) {
       console.error(err);
-      setError(err.message || 'Erro na autenticação');
+      let errorMessage = 'Erro na autenticação';
+      
+      if (err.code === 'auth/weak-password') {
+        errorMessage = 'A senha deve ter pelo menos 6 caracteres';
+      } else if (err.code === 'auth/email-already-in-use') {
+        errorMessage = 'Este e-mail já está em uso';
+      } else if (err.code === 'auth/invalid-email') {
+        errorMessage = 'E-mail inválido';
+      } else if (err.code === 'auth/user-not-found' || err.code === 'auth/wrong-password' || err.code === 'auth/invalid-credential') {
+        errorMessage = 'E-mail ou senha incorretos';
+      } else if (err.code === 'auth/too-many-requests') {
+        errorMessage = 'Muitas tentativas de acesso. Por favor, aguarde alguns minutos ou resete sua senha.';
+      } else if (err.message) {
+        errorMessage = err.message;
+      }
+      
+      setError(errorMessage);
     } finally {
       setLoading(false);
     }
@@ -197,6 +215,9 @@ const Login: React.FC<LoginProps> = ({ onLogin }) => {
                         className="w-full bg-slate-950/80 border border-white/10 rounded-2xl py-4 pl-12 pr-4 text-white font-bold text-xs focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all"
                       />
                     </div>
+                    {mode === 'register' && (
+                      <p className="text-[8px] text-slate-500 font-bold uppercase tracking-widest ml-2">Mínimo 6 caracteres</p>
+                    )}
                   </div>
                 )}
 

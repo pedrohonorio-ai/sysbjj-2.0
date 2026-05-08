@@ -1,4 +1,6 @@
 
+import { BeltColor, KidsBeltColor } from '../types';
+
 export interface RuleQuestion {
   id: string;
   question: string;
@@ -38,6 +40,118 @@ export interface RuleCourse {
   lessons: RuleLesson[];
   minBelt?: BeltColor | KidsBeltColor;
 }
+
+export interface WeightClass {
+  category: string;
+  weight: string; // e.g. "57.5 kg / 126.5 lbs"
+}
+
+export interface IBJJFReference {
+  points: { position: string; value: number; description: string }[];
+  fouls: { serious: string[]; technical: string[] };
+  illegalMoves: { belt: string; moves: string[] }[];
+  matchDurations: { belt: string; time: string }[];
+  ageCategories: { name: string; age: string }[];
+  weightClasses: {
+    male: WeightClass[];
+    female: WeightClass[];
+  };
+}
+
+export const IBJJF_REFERENCE: IBJJFReference = {
+  points: [
+    { position: 'Montada (Mount)', value: 4, description: 'Sentar sobre o tronco do oponente com joelhos no chão.' },
+    { position: 'Costas (Back Control)', value: 4, description: 'Controle com ganchos nas pernas e braços envolvendo o tronco.' },
+    { position: 'Passagem de Guarda (Guard Pass)', value: 3, description: 'Transpor a guarda e estabilizar por 3 segundos na lateral.' },
+    { position: 'Queda (Takedown)', value: 2, description: 'Levar o oponente ao solo e estabilizar por 3 segundos.' },
+    { position: 'Raspagem (Sweep)', value: 2, description: 'Inverter a posição partindo da guarda e estabilizar no topo.' },
+    { position: 'Joelho na Barriga (Knee on Belly)', value: 2, description: 'Estabilizar o oponente com o joelho no plexo ou abdômen.' },
+  ],
+  fouls: {
+    serious: [
+      'Bate-estaca (Slam)',
+      'Dedo no olho ou boca',
+      'Puxar dedos individualmente',
+      'Golpes traumáticos (Soco, chute, etc)',
+      'Escarrar ou morder',
+      'Conduta antidesportiva grave'
+    ],
+    technical: [
+      'Fugir da área de luta',
+      'Amarrar o jogo (Stalling)',
+      'Despir-se do Kimono durante a luta',
+      'Pisar fora da área para evitar queda'
+    ]
+  },
+  illegalMoves: [
+    { 
+      belt: 'Branca (White)', 
+      moves: [
+        'Mão de Vaca (Wrist lock)', 
+        'Pular na Guarda (Jumping guard)', 
+        'Triângulo puxando a cabeça', 
+        'Qualquer chave de perna exceto Botinha reta',
+        'Cervical',
+        'Ezequiel por dentro da manga'
+      ] 
+    },
+    { 
+      belt: 'Azul / Roxa (Blue / Purple)', 
+      moves: [
+        'Chave de Rim e Tesoura', 
+        'Pular na guarda (Juvenil)', 
+        'Qualquer chave de perna exceto Botinha reta',
+        'Bíceps e Panturrilha (Slicers)'
+      ] 
+    },
+    { 
+      belt: 'Marrom / Preta (Brown / Black)', 
+      moves: [
+        'Crucifixação (Cervical)',
+        'Rasteira de Calcanhar (Heel hold - No Gi apenas em categorias Pro)',
+        'Qualquer técnica que pressione a coluna vertebral'
+      ] 
+    }
+  ],
+  matchDurations: [
+    { belt: 'Branca', time: '5 min' },
+    { belt: 'Azul', time: '6 min' },
+    { belt: 'Roxa', time: '7 min' },
+    { belt: 'Marrom', time: '8 min' },
+    { belt: 'Preta', time: '10 min' },
+  ],
+  ageCategories: [
+    { name: 'Kids', age: '4 a 15 anos' },
+    { name: 'Juvenil', age: '16 e 17 anos' },
+    { name: 'Adulto', age: '18 a 29 anos' },
+    { name: 'Master 1', age: '30 a 35 anos' },
+    { name: 'Master 2', age: '36 a 40 anos' },
+    { name: 'Master 3+', age: 'Acima de 41 anos' },
+  ],
+  weightClasses: {
+    male: [
+      { category: 'Galo (Rooster)', weight: 'Até 57.5 kg' },
+      { category: 'Pluma (Light Feather)', weight: 'Até 64.0 kg' },
+      { category: 'Pena (Feather)', weight: 'Até 70.0 kg' },
+      { category: 'Leve (Light)', weight: 'Até 76.0 kg' },
+      { category: 'Médio (Middle)', weight: 'Até 82.3 kg' },
+      { category: 'Meio-Pesado (Medium Heavy)', weight: 'Até 88.3 kg' },
+      { category: 'Pesado (Heavy)', weight: 'Até 94.3 kg' },
+      { category: 'Super-Pesado (Super Heavy)', weight: 'Até 100.5 kg' },
+      { category: 'Pesadíssimo (Ultra Heavy)', weight: 'Sem limite' },
+    ],
+    female: [
+      { category: 'Galo (Rooster)', weight: 'Até 48.5 kg' },
+      { category: 'Pluma (Light Feather)', weight: 'Até 53.5 kg' },
+      { category: 'Pena (Feather)', weight: 'Até 58.5 kg' },
+      { category: 'Leve (Light)', weight: 'Até 64.0 kg' },
+      { category: 'Médio (Middle)', weight: 'Até 69.0 kg' },
+      { category: 'Meio-Pesado (Medium Heavy)', weight: 'Até 74.0 kg' },
+      { category: 'Pesado (Heavy)', weight: 'Até 79.3 kg' },
+      { category: 'Super-Pesado (Super Heavy)', weight: 'Sem limite' },
+    ]
+  }
+};
 
 export const IBJJF_COURSES: RuleCourse[] = [
   {
@@ -127,18 +241,25 @@ export const IBJJF_COURSES: RuleCourse[] = [
     lessons: [
       {
         id: 'rule-grad-1',
-        title: 'Faixas Adultas: O Caminho do Guerreiro',
+        title: 'Faixas Adultas: Tempos e Idades',
         category: 'Graduation',
-        content: 'Branca (Sem carência), Azul (2 anos), Roxa (1.5 anos), Marrom (1 ano). Idades mínimas: Azul (16 anos), Roxa (16 anos), Marrom (18 anos), Preta (19 anos).',
+        content: 'O sistema IBJJF exige tempos mínimos em cada faixa antes da promoção: Branca (Sem tempo mínimo), Azul (2 anos), Roxa (1,5 anos), Marrom (1 ano). Idades mínimas: Azul e Roxa (16 anos), Marrom (18 anos), Preta (19 anos). Para a faixa preta, o atleta deve estar devidamente registrado na confederação e ter curso de arbitragem atualizado.',
         points: 40,
         icon: 'GraduationCap',
         questions: [
           {
             id: 'q-grad-1',
-            question: 'Qual a idade mínima para ser graduado à faixa roxa pela IBJJF?',
-            options: ['15 anos', '16 anos', '18 anos', '17 anos'],
+            question: 'Qual o tempo mínimo que um atleta deve permanecer na faixa azul antes de ir para a roxa?',
+            options: ['1 ano', '2 anos', '1.5 anos', '6 meses'],
             correctAnswer: 1,
-            explanation: 'A idade mínima para a faixa roxa é 16 anos.'
+            explanation: 'A IBJJF exige que o atleta permaneça no mínimo 2 anos na faixa azul.'
+          },
+          {
+            id: 'q-grad-1-2',
+            question: 'Um atleta de 17 anos pode ser graduado à faixa marrom?',
+            options: ['Sim, se for competidor', 'Sim, com autorização', 'Não, a idade mínima é 18 anos', 'Sim, se já tiver 2 anos de roxa'],
+            correctAnswer: 2,
+            explanation: 'A idade mínima para a faixa marrom é 18 anos, independente do tempo de praticante.'
           }
         ]
       },
