@@ -385,6 +385,9 @@ export interface Student {
     cardio?: number;
     strategy?: number;
   };
+  performanceRatings?: PerformanceRating[];
+  sparringLogs?: SparringLog[];
+  competitions?: CompetitionRecord[];
   securityAuditStatus?: 'Verified' | 'Unverified' | 'Compromised';
   documents?: {
     id: string;
@@ -431,5 +434,53 @@ export interface TransactionLedger {
   studentId?: string;
   previousHash: string;
   hash: string;
+}
+
+export interface PerformanceRating {
+  technical: number;
+  tactical: number;
+  physical: number;
+  behavioral: number;
+  mindset: number;
+  updatedAt: number;
+}
+
+export interface SparringLog {
+  id: string;
+  studentId: string;
+  date: string;
+  partnerName: string;
+  rounds: number;
+  intensity: 'Light' | 'Moderate' | 'Hard' | 'Extreme';
+  submissions: {
+    type: string;
+    action: 'Achieved' | 'Conceded';
+    count: number;
+  }[];
+  notes: string;
+}
+
+export interface CompetitionRecord {
+  id: string;
+  studentId: string;
+  eventName: string;
+  date: string;
+  category: string;
+  belt: string;
+  result: 'Gold' | 'Silver' | 'Bronze' | 'Participation';
+  matches: {
+    opponent: string;
+    result: string;
+    method: string;
+  }[];
+}
+
+export interface TeacherObservation {
+  id: string;
+  studentId: string;
+  authorId: string;
+  content: string;
+  timestamp: number;
+  tags: string[];
 }
 

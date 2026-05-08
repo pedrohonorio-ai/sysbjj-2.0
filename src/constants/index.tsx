@@ -15,7 +15,8 @@ import {
   Shield,
   BookOpen,
   Store,
-  Clock
+  Clock,
+  TrendingUp
 } from 'lucide-react';
 
 export const MASTER_ADMINS = ['dahfire@gmail.com', 'dashfire@gmail.com', 'pedro.honorio@gm.rio'];
@@ -23,9 +24,9 @@ export const MASTER_ADMINS = ['dahfire@gmail.com', 'dashfire@gmail.com', 'pedro.
 export const NAVIGATION_ITEMS = [
   { id: 'dashboard', label: 'Painel', icon: <LayoutDashboard size={20} className="text-blue-500" /> },
   { id: 'students', label: 'Alunos', icon: <Users size={20} className="text-indigo-500" /> },
-  { id: 'classes', label: 'Turmas', icon: <Calendar size={20} className="text-emerald-500" /> },
+  { id: 'teaching-hub', label: 'Hube de Ensino', icon: <BookOpenCheck size={20} className="text-purple-500" /> },
+  { id: 'performance', label: 'HUB de Performance', icon: <TrendingUp size={20} className="text-blue-600" /> },
   { id: 'business', label: 'Hub de Negócios', icon: <Store size={20} className="text-amber-500" /> },
-  { id: 'curriculum', label: 'Quadro de Trabalho', icon: <BookOpenCheck size={20} className="text-purple-500" /> },
   { id: 'attendance', label: 'Chamada', icon: <CalendarCheck size={20} className="text-rose-500" /> },
   { id: 'finances', label: 'Financeiro', icon: <CreditCard size={20} className="text-emerald-400" /> },
   { id: 'history', label: 'Histórico', icon: <Clock size={20} className="text-gray-500" /> },

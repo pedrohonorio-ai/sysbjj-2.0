@@ -5,7 +5,6 @@ import { motion, AnimatePresence } from 'motion/react';
 import { NAVIGATION_ITEMS, BELT_COLORS, MASTER_ADMINS } from './constants';
 import Dashboard from './pages/Dashboard';
 import Students from './pages/Students';
-import Classes from './pages/Classes';
 import IBJJFRules from './pages/IBJJFRules';
 import BusinessHub from './pages/BusinessHub';
 import AttendancePage from './pages/Attendance';
@@ -15,7 +14,8 @@ import Finances from './pages/Finances';
 import FightTimer from './pages/FightTimer';
 import Settings from './pages/Settings';
 import StudentPortal from './pages/StudentPortal';
-import Curriculum from './pages/Curriculum';
+import CurriculumHub from './pages/CurriculumHub';
+import PerformanceAnalytics from './pages/PerformanceAnalytics';
 import ExhibitionMode from './pages/ExhibitionMode';
 import SystemAudit from './pages/SystemAudit';
 import LanguageSelection from './pages/LanguageSelection';
@@ -55,7 +55,7 @@ const Sidebar = ({ isOpen, toggle, onLogout }: { isOpen: boolean, toggle: () => 
     return true;
   });
 
-  const coreItems = filteredItems.filter(item => ['dashboard', 'students', 'classes', 'business', 'curriculum', 'attendance'].includes(item.id));
+  const coreItems = filteredItems.filter(item => ['dashboard', 'students', 'teaching-hub', 'performance', 'business', 'attendance'].includes(item.id));
   const evolutionItems = filteredItems.filter(item => ['promotions', 'ibjjf-rules'].includes(item.id));
 
   const renderNavItem = (item: any) => {
@@ -515,10 +515,10 @@ const App: React.FC = () => {
                   <Route path="/" element={<Dashboard />} />
                   <Route path="/dashboard" element={<Dashboard />} />
                   <Route path="/students" element={<Students />} />
-                  <Route path="/classes" element={<Classes />} />
+                  <Route path="/teaching-hub" element={<CurriculumHub />} />
+                  <Route path="/performance" element={<PerformanceAnalytics />} />
                   <Route path="/ibjjf-rules" element={<IBJJFRules />} />
                   <Route path="/business" element={<BusinessHub />} />
-                  <Route path="/curriculum" element={<Curriculum />} />
                   <Route path="/attendance" element={<AttendancePage />} />
                   <Route path="/finances" element={<Finances />} />
                   <Route path="/history" element={<AttendanceHistory />} />
