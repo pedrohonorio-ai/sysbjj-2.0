@@ -27,6 +27,7 @@ export const NAVIGATION_ITEMS = [
   { id: 'business', label: 'Hub de Negócios', icon: <Store size={20} className="text-amber-500" /> },
   { id: 'curriculum', label: 'Quadro de Trabalho', icon: <BookOpenCheck size={20} className="text-purple-500" /> },
   { id: 'attendance', label: 'Chamada', icon: <CalendarCheck size={20} className="text-rose-500" /> },
+  { id: 'finances', label: 'Financeiro', icon: <CreditCard size={20} className="text-emerald-400" /> },
   { id: 'history', label: 'Histórico', icon: <Clock size={20} className="text-gray-500" /> },
   { id: 'promotions', label: 'Graduação', icon: <Trophy size={20} className="text-yellow-500" /> },
   { id: 'ibjjf-rules', label: 'Regras IBJJF', icon: <Shield size={20} className="text-slate-500" /> },

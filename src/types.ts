@@ -423,9 +423,11 @@ export interface PaymentReceipt {
 export interface TransactionLedger {
   id: string;
   timestamp: number;
-  type: 'Income' | 'Expense' | 'StudentPayment' | 'ExtraRevenue';
+  type: 'Income' | 'Expense' | 'StudentPayment' | 'ExtraRevenue' | 'StatusChange';
   amount: number;
   description: string;
+  category: string;
+  method: string;
   studentId?: string;
   previousHash: string;
   hash: string;

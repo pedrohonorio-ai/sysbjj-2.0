@@ -1,43 +1,76 @@
 
 import React, { useState, useMemo } from 'react';
-import { Award, Star, Search, ShieldCheck, Clock, CheckCircle2, AlertCircle, TrendingUp, UserCheck, QrCode, Lock, ChevronRight, Zap, Medal } from 'lucide-react';
+import { Award, Star, Search, ShieldCheck, Clock, CheckCircle2, AlertCircle, TrendingUp, UserCheck, QrCode, Lock, ChevronRight, Zap, Medal, Settings2, Users, Baby, Info, Save, Plus, Trash2, Scale } from 'lucide-react';
 import { useTranslation } from '../contexts/LanguageContext';
 import { useData } from '../contexts/DataContext';
 import { motion, AnimatePresence } from 'motion/react';
-import { BeltColor, Student } from '../types';
+import { BeltColor, KidsBeltColor, Student, GraduationCriterion } from '../types';
 import { BELT_COLORS, IBJJF_BELT_RULES } from '../constants';
+import { BELT_REQUIREMENTS, KIDS_BELT_REQUIREMENTS } from '../constants/beltRequirements';
+import VerificationBadge from '../components/ui/VerificationBadge';
 
 const BeltSystem: React.FC = () => {
   const { t } = useTranslation();
-  const { students, verifyAuditIntegrity, logs } = useData();
+  const { students, verifyAuditIntegrity, logs, professorRules, setProfessorRules, approveGraduation } = useData();
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedStudent, setSelectedStudent] = useState<Student | null>(null);
   const [isVerifying, setIsVerifying] = useState(false);
   const [verificationResult, setVerificationResult] = useState<'success' | 'fail' | null>(null);
+  const [activeBoard, setActiveBoard] = useState<'adult' | 'kids'>('adult');
+  const [showProfessorSettings, setShowProfessorSettings] = useState(false);
 
   const elegibleStudents = useMemo(() => {
     return students.filter(s => {
-      // Basic logic for "Ready for Graduation"
-      // 1. Attendance count (e.g., > 40)
-      // 2. Rules knowledge (e.g., > 50%)
-      // 3. Manual flag
+      const isCorrectCategory = activeBoard === 'adult' ? !s.isKid : s.isKid;
+      const matchesSearch = s.name.toLowerCase().includes(searchTerm.toLowerCase());
+      
+      // Eligibility logic based on Professor Rules weights (Simulated)
+      // In a real app index, we would calculate this based on attendanceHistory, ruleLessons, etc.
       const hasAttendance = s.attendanceCount >= 40;
       const hasKnowledge = (s.rulesKnowledge || 0) >= 50;
-      const matchesSearch = s.name.toLowerCase().includes(searchTerm.toLowerCase());
-      return matchesSearch && (hasAttendance || hasKnowledge || s.isReadyForPromotion);
+      
+      return isCorrectCategory && matchesSearch && (hasAttendance || hasKnowledge || s.isReadyForPromotion);
     }).sort((a, b) => (b.attendanceCount || 0) - (a.attendanceCount || 0));
-  }, [students, searchTerm]);
+  }, [students, searchTerm, activeBoard]);
+
+  const handleApprove = () => {
+    if (!selectedStudent) return;
+    
+    // Get next belt
+    const belts = activeBoard === 'adult' ? Object.keys(BELT_COLORS) : Object.keys(BELT_COLORS); // Simplificação
+    const currentIndex = belts.indexOf(selectedStudent.belt);
+    const nextBelt = belts[currentIndex + 1] || selectedStudent.belt;
+
+    if (confirm(`Deseja graduar ${selectedStudent.name} para a faixa ${nextBelt}? Esta ação será registrada no Ledger Imutável.`)) {
+      approveGraduation(selectedStudent.id, nextBelt);
+      setSelectedStudent(null);
+    }
+  };
 
   const runBlockchainVerification = () => {
     setIsVerifying(true);
     setVerificationResult(null);
-    
-    // Simulate complex blockchain verification
     setTimeout(() => {
       const isIntegrityOk = verifyAuditIntegrity();
       setVerificationResult(isIntegrityOk ? 'success' : 'fail');
       setIsVerifying(false);
     }, 2000);
+  };
+
+  const addCriterion = () => {
+    const name = prompt('Nome do Critério (ex: Pontualidade):');
+    if (name) {
+      setProfessorRules(prev => [...prev, { id: `rule-${Date.now()}`, name, weight: 0.1 }]);
+    }
+  };
+
+  const removeCriterion = (id: string) => {
+    setProfessorRules(prev => prev.filter(r => r.id !== id));
+  };
+
+  const getRequirements = (belt: string, isKid: boolean) => {
+    if (isKid) return KIDS_BELT_REQUIREMENTS[belt] || ['Requisitos não definidos'];
+    return BELT_REQUIREMENTS[belt] || ['Requisitos não definidos'];
   };
 
   return (
@@ -47,12 +80,19 @@ const BeltSystem: React.FC = () => {
           <h1 className="text-3xl font-black text-slate-900 dark:text-white uppercase tracking-tighter italic">Sistema de <span className="text-blue-600">Graduação</span></h1>
           <p className="text-slate-400 font-bold uppercase tracking-widest text-[10px] mt-2">Evolução Técnica, Meritocracia e Registros Imutáveis</p>
         </div>
-        <div className="flex items-center gap-4 bg-emerald-500/10 px-6 py-3 rounded-2xl border border-emerald-500/20">
-           <ShieldCheck className="text-emerald-500" size={20} />
-           <div>
-             <p className="text-[8px] font-black text-emerald-600 uppercase tracking-[0.2em]">Status do Ledger</p>
-             <p className="text-[10px] font-bold text-emerald-700 dark:text-emerald-400 uppercase">Integridade Verificada</p>
-           </div>
+        <div className="flex items-center gap-2 bg-slate-100 dark:bg-white/5 p-1 rounded-2xl">
+           <button 
+             onClick={() => setActiveBoard('adult')}
+             className={`px-6 py-3 rounded-xl flex items-center gap-2 text-[10px] font-black uppercase tracking-widest transition-all ${activeBoard === 'adult' ? 'bg-white dark:bg-slate-800 text-blue-600 shadow-xl' : 'text-slate-400 opacity-50'}`}
+           >
+             <Users size={14} /> Adultos
+           </button>
+           <button 
+             onClick={() => setActiveBoard('kids')}
+             className={`px-6 py-3 rounded-xl flex items-center gap-2 text-[10px] font-black uppercase tracking-widest transition-all ${activeBoard === 'kids' ? 'bg-white dark:bg-slate-800 text-blue-600 shadow-xl' : 'text-slate-400 opacity-50'}`}
+           >
+             <Baby size={14} /> Kids
+           </button>
         </div>
       </header>
 
@@ -62,19 +102,70 @@ const BeltSystem: React.FC = () => {
              <div className="flex items-center justify-between mb-8">
                 <h2 className="text-xl font-black text-slate-900 dark:text-white uppercase tracking-tighter italic flex items-center gap-3">
                   <TrendingUp size={24} className="text-blue-600" />
-                  Alunos Aptos para Graduação
+                  {activeBoard === 'adult' ? 'Adultos Aptos' : 'Crianças Aptas'}
                 </h2>
-                <div className="relative">
-                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={14} />
-                  <input 
-                    type="text" 
-                    placeholder="Filtrar guerreiros..."
-                    value={searchTerm}
-                    onChange={(e) => setSearchTerm(e.target.value)}
-                    className="pl-9 pr-4 py-2 bg-slate-50 dark:bg-white/5 border border-transparent rounded-xl text-[10px] font-bold focus:ring-2 focus:ring-blue-500 transition-all outline-none"
-                  />
+                <div className="flex items-center gap-4">
+                  <div className="relative">
+                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={14} />
+                    <input 
+                      type="text" 
+                      placeholder="Filtrar guerreiros..."
+                      value={searchTerm}
+                      onChange={(e) => setSearchTerm(e.target.value)}
+                      className="pl-9 pr-4 py-2 bg-slate-50 dark:bg-white/5 border border-transparent rounded-xl text-[10px] font-bold focus:ring-2 focus:ring-blue-500 transition-all outline-none"
+                    />
+                  </div>
+                  <button 
+                    onClick={() => setShowProfessorSettings(!showProfessorSettings)}
+                    className={`p-2 rounded-xl transition-all ${showProfessorSettings ? 'bg-blue-600 text-white shadow-xl shadow-blue-600/20' : 'bg-slate-100 dark:bg-white/5 text-slate-400'}`}
+                  >
+                    <Settings2 size={20} />
+                  </button>
                 </div>
              </div>
+
+             <AnimatePresence>
+               {showProfessorSettings && (
+                 <motion.div 
+                   initial={{ height: 0, opacity: 0 }}
+                   animate={{ height: 'auto', opacity: 1 }}
+                   exit={{ height: 0, opacity: 0 }}
+                   className="mb-8 p-6 bg-blue-600/5 rounded-[2rem] border border-blue-600/10 overflow-hidden"
+                 >
+                    <div className="flex items-center justify-between mb-4">
+                       <h3 className="text-[10px] font-black text-blue-600 uppercase tracking-widest flex items-center gap-2">
+                         <Star size={14} /> Regras do Professor (Syllabus)
+                       </h3>
+                       <button onClick={addCriterion} className="p-1.5 bg-blue-600 text-white rounded-lg hover:scale-105 transition-all">
+                         <Plus size={14} />
+                       </button>
+                    </div>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                       {professorRules.map(rule => (
+                         <div key={rule.id} className="flex items-center justify-between p-3 bg-white dark:bg-slate-800 rounded-xl border border-slate-100 dark:border-white/5 group">
+                            <span className="text-[10px] font-bold text-slate-700 dark:text-slate-300">{rule.name}</span>
+                            <div className="flex items-center gap-3">
+                               <input 
+                                 type="number" 
+                                 step="0.1" 
+                                 max="1" 
+                                 value={rule.weight}
+                                 onChange={(e) => {
+                                   const val = parseFloat(e.target.value);
+                                   setProfessorRules(prev => prev.map(r => r.id === rule.id ? { ...r, weight: val } : r));
+                                 }}
+                                 className="w-12 h-8 bg-slate-50 dark:bg-white/5 rounded-lg text-center text-[10px] font-black border-none"
+                               />
+                               <button onClick={() => removeCriterion(rule.id)} className="text-slate-300 hover:text-rose-500 transition-colors opacity-0 group-hover:opacity-100">
+                                 <Trash2 size={14} />
+                               </button>
+                            </div>
+                         </div>
+                       ))}
+                    </div>
+                 </motion.div>
+               )}
+             </AnimatePresence>
 
              <div className="space-y-3">
                {elegibleStudents.length === 0 ? (
@@ -190,7 +281,7 @@ const BeltSystem: React.FC = () => {
                   </div>
                   <div>
                     <h3 className="text-2xl font-black text-slate-900 dark:text-white uppercase tracking-tighter italic">{selectedStudent.name}</h3>
-                    <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mt-1">Nível de Domínio Atual</p>
+                    <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mt-1">Nível de Domínio Atual: {selectedStudent.belt}</p>
                   </div>
                 </div>
 
@@ -205,38 +296,47 @@ const BeltSystem: React.FC = () => {
                   </div>
                 </div>
 
-                <div className="space-y-4">
-                   <h4 className="text-[10px] font-black text-slate-900 dark:text-white uppercase tracking-widest flex items-center gap-2">
-                     <Clock size={14} className="text-blue-500" />
-                     Próxima Graduação: Requisitos
-                   </h4>
-                   
+                <div className="space-y-6">
                    <div className="space-y-3">
-                     {[
-                       { label: 'Permanência Mínima', value: '18 Meses', progress: 80, color: 'bg-emerald-500' },
-                       { label: 'Frequência Técnica', value: '40/50 Aulas', progress: 80, color: 'bg-blue-500' },
-                       { label: 'Conhecimento Regras', value: `${selectedStudent.rulesKnowledge || 0}/100%`, progress: selectedStudent.rulesKnowledge || 0, color: 'bg-purple-500' },
-                       { label: 'Postura & Ética', value: 'Excelente', progress: 95, color: 'bg-amber-500' },
-                     ].map((req, rid) => (
-                       <div key={rid} className="space-y-1.5">
-                          <div className="flex justify-between items-end">
-                            <span className="text-[9px] font-bold text-slate-500 uppercase tracking-tight">{req.label}</span>
-                            <span className="text-[10px] font-black text-slate-900 dark:text-white uppercase">{req.value}</span>
+                      <h4 className="text-[10px] font-black text-slate-900 dark:text-white uppercase tracking-widest flex items-center gap-2">
+                        <Info size={14} className="text-blue-500" />
+                        Critérios do Professor
+                      </h4>
+                      <div className="grid grid-cols-1 gap-2">
+                        {professorRules.map(rule => (
+                          <div key={rule.id} className="flex justify-between items-center p-3 bg-slate-50 dark:bg-white/5 rounded-xl">
+                             <span className="text-[9px] font-bold text-slate-500 uppercase">{rule.name}</span>
+                             <div className="flex gap-1">
+                                {[1,2,3,4,5].map(star => (
+                                  <Star key={star} size={10} className={star <= (selectedStudent.behaviorScore || 4) ? 'text-amber-500 fill-amber-500' : 'text-slate-300'} />
+                                ))}
+                             </div>
                           </div>
-                          <div className="h-1.5 bg-slate-100 dark:bg-white/5 rounded-full overflow-hidden">
-                             <motion.div 
-                               initial={{ width: 0 }}
-                               animate={{ width: `${req.progress}%` }}
-                               className={`h-full ${req.color} shadow-[0_0_10px_rgba(37,99,235,0.3)]`} 
-                             />
-                          </div>
-                       </div>
-                     ))}
+                        ))}
+                      </div>
+                   </div>
+
+                   <div className="space-y-4">
+                      <h4 className="text-[10px] font-black text-slate-900 dark:text-white uppercase tracking-widest flex items-center gap-2">
+                        <Scale size={14} className="text-blue-500" />
+                        Requisitos Técnicos (IBJJF)
+                      </h4>
+                      <div className="max-h-48 overflow-y-auto space-y-2 pr-2 custom-scrollbar">
+                        {getRequirements(selectedStudent.belt, selectedStudent.isKid).map((req, idx) => (
+                           <div key={idx} className="flex items-center gap-3 p-2 bg-slate-50 dark:bg-white/5 rounded-lg border border-transparent hover:border-blue-500/20 transition-all">
+                              <CheckCircle2 size={14} className="text-emerald-500 shrink-0" />
+                              <span className="text-[9px] font-bold text-slate-600 dark:text-slate-400 uppercase leading-tight">{req}</span>
+                           </div>
+                        ))}
+                      </div>
                    </div>
                 </div>
 
-                <button className="w-full py-5 bg-slate-900 dark:bg-white text-white dark:text-slate-900 rounded-2xl font-black uppercase text-[10px] tracking-widest flex items-center justify-center gap-3 shadow-xl hover:bg-blue-600 hover:text-white transition-all">
-                  <CheckCircle2 size={18} />
+                <button 
+                  onClick={handleApprove}
+                  className="w-full py-5 bg-slate-900 dark:bg-white text-white dark:text-slate-900 rounded-2xl font-black uppercase text-[10px] tracking-widest flex items-center justify-center gap-3 shadow-xl hover:bg-blue-600 hover:text-white transition-all"
+                >
+                  <Medal size={18} />
                   Aprovar para Próxima Faixa
                 </button>
               </motion.div>

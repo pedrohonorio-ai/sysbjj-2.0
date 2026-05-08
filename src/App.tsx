@@ -11,6 +11,7 @@ import BusinessHub from './pages/BusinessHub';
 import AttendancePage from './pages/Attendance';
 import AttendanceHistory from './pages/AttendanceHistory';
 import BeltSystem from './pages/BeltSystem';
+import Finances from './pages/Finances';
 import FightTimer from './pages/FightTimer';
 import Settings from './pages/Settings';
 import StudentPortal from './pages/StudentPortal';
@@ -519,6 +520,7 @@ const App: React.FC = () => {
                   <Route path="/business" element={<BusinessHub />} />
                   <Route path="/curriculum" element={<Curriculum />} />
                   <Route path="/attendance" element={<AttendancePage />} />
+                  <Route path="/finances" element={<Finances />} />
                   <Route path="/history" element={<AttendanceHistory />} />
                   <Route path="/promotions" element={<BeltSystem />} />
                   <Route path="/language" element={<LanguageSelection />} />

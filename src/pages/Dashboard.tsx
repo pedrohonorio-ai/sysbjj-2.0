@@ -1,16 +1,19 @@
 
 import React from 'react';
 import { motion } from 'motion/react';
-import { Users, Calendar, TrendingUp, DollarSign, Award, ArrowUpRight, ArrowDownRight, Clock, ShieldCheck, Activity, Cake } from 'lucide-react';
+import { Users, Calendar, TrendingUp, DollarSign, Award, ArrowUpRight, ArrowDownRight, Clock, ShieldCheck, Activity, Cake, History } from 'lucide-react';
 import { useTranslation } from '../contexts/LanguageContext';
 import { useData } from '../contexts/DataContext';
 import { useProfile } from '../contexts/ProfileContext';
-import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, BarChart, Bar, Cell } from 'recharts';
+import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
+import VerificationBadge from '../components/ui/VerificationBadge';
 
 const Dashboard: React.FC = () => {
   const { t } = useTranslation();
-  const { students, payments, logAction } = useData();
+  const { students, payments, logs, verifyAuditIntegrity } = useData();
   const { profile } = useProfile();
+
+  const auditStatus = verifyAuditIntegrity() ? 'verified' : 'unverified';
 
   const activeStudents = students.filter(s => s.status === 'Active').length;
   const overdueStudents = students.filter(s => s.status === 'Overdue').length;
@@ -234,6 +237,54 @@ const Dashboard: React.FC = () => {
             Exportar Relatório Estratégico
           </button>
         </div>
+      </div>
+
+      <div className="bg-white dark:bg-slate-900 rounded-[3rem] border border-slate-200 dark:border-white/5 p-8 shadow-2xl">
+         <div className="flex items-center justify-between mb-8">
+            <div>
+               <h2 className="text-xl font-black text-slate-900 dark:text-white uppercase tracking-tighter italic flex items-center gap-2">
+                 <History size={24} className="text-blue-600" />
+                 Atividades Recentes do Ledger
+               </h2>
+               <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mt-1">Sincronização em tempo real com a corrente de custódia</p>
+            </div>
+            <VerificationBadge status={auditStatus} />
+         </div>
+
+         <div className="space-y-4">
+            {logs.slice(0, 5).map((log, idx) => (
+              <motion.div 
+                initial={{ opacity: 0, x: -20 }}
+                animate={{ opacity: 1, x: 0 }}
+                transition={{ delay: idx * 0.1 }}
+                key={log.id} 
+                className="flex items-center justify-between p-5 bg-slate-50 dark:bg-white/5 rounded-3xl border border-transparent hover:border-blue-500/20 transition-all group"
+              >
+                 <div className="flex items-center gap-6">
+                    <div className="w-12 h-12 bg-white dark:bg-slate-800 rounded-2xl flex items-center justify-center text-blue-600 shadow-sm">
+                       <ShieldCheck size={20} />
+                    </div>
+                    <div>
+                       <div className="flex items-center gap-3">
+                          <h4 className="text-sm font-black text-slate-900 dark:text-white uppercase tracking-tight">{log.action}</h4>
+                          <span className={`px-2 py-0.5 rounded-lg text-[8px] font-black uppercase tracking-widest ${
+                             log.category === 'Security' ? 'bg-rose-500/10 text-rose-500' :
+                             log.category === 'Financial' ? 'bg-emerald-500/10 text-emerald-500' :
+                             'bg-blue-500/10 text-blue-500'
+                          }`}>
+                            {log.category}
+                          </span>
+                       </div>
+                       <p className="text-[10px] font-medium text-slate-500 uppercase tracking-widest mt-1">{log.details}</p>
+                    </div>
+                 </div>
+                 <div className="text-right hidden sm:block">
+                    <p className="text-[10px] font-black text-slate-900 dark:text-white uppercase tracking-widest">{new Date(log.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</p>
+                    <p className="text-[8px] font-mono text-slate-400 truncate w-32 ml-auto mt-1">HASH: {log.hash?.substring(0, 16)}...</p>
+                 </div>
+              </motion.div>
+            ))}
+         </div>
       </div>
     </div>
   );

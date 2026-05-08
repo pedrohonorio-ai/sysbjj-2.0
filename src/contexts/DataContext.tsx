@@ -69,6 +69,8 @@ interface DataContextType {
   plans: Plan[];
   receipts: PaymentReceipt[];
   ledger: TransactionLedger[];
+  professorRules: GraduationCriterion[];
+  setProfessorRules: React.Dispatch<React.SetStateAction<GraduationCriterion[]>>;
   logs: SystemLog[];
   presence: { email: string; lastSeen: number; role: string; userAgent: string; id: string }[];
   attendance: AttendanceRecord[];
@@ -108,6 +110,7 @@ interface DataContextType {
   addPlan: (plan: Omit<Plan, 'id'>) => void;
   updatePlan: (id: string, updates: Partial<Plan>) => void;
   deletePlan: (id: string) => void;
+  approveGraduation: (studentId: string, newBelt: string) => void;
   exportData: () => void;
   importData: (jsonData: string) => void;
   verifyLedgerIntegrity: () => boolean;
@@ -257,6 +260,12 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   const [plans, setPlans] = useState<Plan[]>(() => loadSafely('oss_plans', DEFAULT_PLANS));
   const [receipts, setReceipts] = useState<PaymentReceipt[]>(() => loadSafely('oss_receipts', []));
   const [ledger, setLedger] = useState<TransactionLedger[]>(() => loadSafely('oss_ledger', []));
+  const [professorRules, setProfessorRules] = useState<GraduationCriterion[]>(() => loadSafely('oss_professor_rules', [
+    { id: 'rule-1', name: 'Presença Mensal (>12)', weight: 0.3 },
+    { id: 'rule-2', name: 'Domínio Técnico (Exame)', weight: 0.4 },
+    { id: 'rule-3', name: 'Comportamento & Disciplina', weight: 0.2 },
+    { id: 'rule-4', name: 'Conhecimento de Regras', weight: 0.1 }
+  ]));
   const [logs, setLogs] = useState<SystemLog[]>([]);
   const [attendance, setAttendance] = useState<AttendanceRecord[]>([]);
   const [presence, setPresence] = useState<{ email: string; lastSeen: number; role: string; userAgent: string; id: string }[]>([]);
@@ -752,6 +761,42 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     logAction('Horário Removido', `Aula ID ${id} excluída`, 'Security');
   };
 
+  const approveGraduation = useCallback((studentId: string, newBelt: string) => {
+    const student = students.find(s => s.id === studentId);
+    if (!student) return;
+
+    const oldBelt = student.belt;
+    const updates = { 
+      belt: newBelt as any, 
+      isReadyForPromotion: false,
+      lastPromotionDate: new Date().toISOString().split('T')[0]
+    };
+
+    // Optimistic Update
+    setStudents(prev => prev.map(s => s.id === studentId ? { ...s, ...updates } : s));
+
+    if (db) {
+      updateDoc(doc(db, 'students', studentId), updates).catch(err => handleFirestoreError(err, OperationType.UPDATE, `students/${studentId}`));
+    }
+
+    logAction('Graduação Aprovada', `Aluno ${student.name} graduado de ${oldBelt} para ${newBelt}`, 'Security');
+    
+    // Log to ledger for "Blockchain" financial/status audits
+    addLedgerEntry({
+      type: 'StatusChange',
+      amount: 0,
+      description: `Graduação: ${student.name} (${newBelt})`,
+      studentId: studentId
+    });
+
+    setNotifications(prev => [{
+      id: `GRD-${Date.now()}`,
+      message: `Graduação de ${student.name} confirmada e registrada no Ledger!`,
+      type: 'success',
+      timestamp: Date.now()
+    }, ...prev]);
+  }, [students, logAction, addLedgerEntry]);
+
   const addGalleryImage = (image: Omit<GalleryImage, 'id'>) => {
     setGallery(prev => [{ ...image, id: `IMG-${Date.now()}` }, ...prev]);
   };
@@ -937,7 +982,7 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
 
   return (
     <DataContext.Provider value={{ 
-      students, payments, schedules, gallery, extraRevenue, orders, lessonPlans, techniques, products, plans, receipts, ledger, logs, attendance, presence, notifications,
+      students, payments, schedules, gallery, extraRevenue, orders, lessonPlans, techniques, products, plans, receipts, ledger, professorRules, setProfessorRules, logs, attendance, presence, notifications,
       logAction, verifyAuditIntegrity, addStudent, updateStudent, deleteStudent, addPayment, addReceipt, approveReceipt, rejectReceipt, addLedgerEntry, clearNotification, recordAttendance, completeRuleLesson,
       addSchedule, updateSchedule, deleteSchedule,
       addGalleryImage,
