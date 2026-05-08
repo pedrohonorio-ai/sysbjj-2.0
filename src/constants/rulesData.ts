@@ -52,6 +52,10 @@ export interface IBJJFReference {
   illegalMoves: { belt: string; moves: string[] }[];
   matchDurations: { belt: string; time: string }[];
   ageCategories: { name: string; age: string }[];
+  graduationChart: {
+    adult: { belt: string; age: string; time: string; color: string }[];
+    kids: { belt: string; age: string; color: string }[];
+  };
   weightClasses: {
     male: WeightClass[];
     female: WeightClass[];
@@ -128,6 +132,30 @@ export const IBJJF_REFERENCE: IBJJFReference = {
     { name: 'Master 2', age: '36 a 40 anos' },
     { name: 'Master 3+', age: 'Acima de 41 anos' },
   ],
+  graduationChart: {
+    adult: [
+      { belt: 'Branca', age: 'Qualquer', time: 'Sem mínimo', color: 'White' },
+      { belt: 'Azul', age: '16 anos', time: '2 anos (ou 1 se 1.5 de roxa)', color: 'Blue' },
+      { belt: 'Roxa', age: '16 anos', time: '1.5 anos (ou 2 se veio da azul)', color: 'Purple' },
+      { belt: 'Marrom', age: '18 anos', time: '1 ano', color: 'Brown' },
+      { belt: 'Preta', age: '19 anos', time: '36 meses', color: 'Black' },
+    ],
+    kids: [
+      { belt: 'Branca', age: '4 a 15 anos', color: 'White' },
+      { belt: 'Cinza / Branca', age: '4 a 15 anos', color: 'White-Gray' },
+      { belt: 'Cinza', age: '4 a 15 anos', color: 'Gray' },
+      { belt: 'Cinza / Preta', age: '4 a 15 anos', color: 'Gray-Black' },
+      { belt: 'Amarela / Branca', age: '7 a 15 anos', color: 'White-Yellow' },
+      { belt: 'Amarela', age: '7 a 15 anos', color: 'Yellow' },
+      { belt: 'Amarela / Preta', age: '7 a 15 anos', color: 'Black-Yellow' },
+      { belt: 'Laranja / Branca', age: '10 a 15 anos', color: 'White-Orange' },
+      { belt: 'Laranja', age: '10 a 15 anos', color: 'Orange' },
+      { belt: 'Laranja / Preta', age: '10 a 15 anos', color: 'Black-Orange' },
+      { belt: 'Verde / Branca', age: '13 a 15 anos', color: 'White-Green' },
+      { belt: 'Verde', age: '13 a 15 anos', color: 'Green' },
+      { belt: 'Verde / Preta', age: '13 a 15 anos', color: 'Black-Green' },
+    ]
+  },
   weightClasses: {
     male: [
       { category: 'Galo (Rooster)', weight: 'Até 57.5 kg' },

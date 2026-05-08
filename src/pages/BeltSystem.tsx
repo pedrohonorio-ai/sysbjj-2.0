@@ -7,6 +7,7 @@ import { motion, AnimatePresence } from 'motion/react';
 import { BeltColor, KidsBeltColor, Student, GraduationCriterion } from '../types';
 import { BELT_COLORS, IBJJF_BELT_RULES } from '../constants';
 import { BELT_REQUIREMENTS, KIDS_BELT_REQUIREMENTS } from '../constants/beltRequirements';
+import { IBJJF_REFERENCE } from '../constants/rulesData';
 import VerificationBadge from '../components/ui/VerificationBadge';
 
 const BeltSystem: React.FC = () => {
@@ -16,8 +17,9 @@ const BeltSystem: React.FC = () => {
   const [selectedStudent, setSelectedStudent] = useState<Student | null>(null);
   const [isVerifying, setIsVerifying] = useState(false);
   const [verificationResult, setVerificationResult] = useState<'success' | 'fail' | null>(null);
-  const [activeBoard, setActiveBoard] = useState<'adult' | 'kids'>('adult');
+  const [activeBoard, setActiveBoard] = useState<'adult' | 'kids' | 'chart'>('adult');
   const [showProfessorSettings, setShowProfessorSettings] = useState(false);
+  const [chartSubTab, setChartSubTab] = useState<'adult' | 'kids'>('adult');
 
   const elegibleStudents = useMemo(() => {
     return students.filter(s => {
@@ -83,22 +85,122 @@ const BeltSystem: React.FC = () => {
         <div className="flex items-center gap-2 bg-slate-100 dark:bg-white/5 p-1 rounded-2xl">
            <button 
              onClick={() => setActiveBoard('adult')}
-             className={`px-6 py-3 rounded-xl flex items-center gap-2 text-[10px] font-black uppercase tracking-widest transition-all ${activeBoard === 'adult' ? 'bg-white dark:bg-slate-800 text-blue-600 shadow-xl' : 'text-slate-400 opacity-50'}`}
+             className={`px-6 py-3 rounded-xl flex items-center gap-2 text-[10px] font-black uppercase tracking-widest transition-all ${activeBoard === 'adult' ? 'bg-white dark:bg-slate-800 text-blue-600 shadow-xl' : 'text-slate-400 opacity-50 hover:opacity-100'}`}
            >
              <Users size={14} /> Adultos
            </button>
            <button 
              onClick={() => setActiveBoard('kids')}
-             className={`px-6 py-3 rounded-xl flex items-center gap-2 text-[10px] font-black uppercase tracking-widest transition-all ${activeBoard === 'kids' ? 'bg-white dark:bg-slate-800 text-blue-600 shadow-xl' : 'text-slate-400 opacity-50'}`}
+             className={`px-6 py-3 rounded-xl flex items-center gap-2 text-[10px] font-black uppercase tracking-widest transition-all ${activeBoard === 'kids' ? 'bg-white dark:bg-slate-800 text-blue-600 shadow-xl' : 'text-slate-400 opacity-50 hover:opacity-100'}`}
            >
              <Baby size={14} /> Kids
+           </button>
+           <button 
+             onClick={() => setActiveBoard('chart')}
+             className={`px-6 py-3 rounded-xl flex items-center gap-2 text-[10px] font-black uppercase tracking-widest transition-all ${activeBoard === 'chart' ? 'bg-white dark:bg-slate-800 text-blue-600 shadow-xl' : 'text-slate-400 opacity-50 hover:opacity-100'}`}
+           >
+             <ShieldCheck size={14} /> {t('beltSystem.officialChart')}
            </button>
         </div>
       </header>
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-        <div className="lg:col-span-2 space-y-6">
-          <div className="bg-white dark:bg-slate-900 rounded-[3rem] border border-slate-200 dark:border-white/5 p-8 shadow-2xl relative overflow-hidden">
+      <AnimatePresence mode="wait">
+        {activeBoard === 'chart' ? (
+          <motion.div
+            key="chart"
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -20 }}
+            className="space-y-8"
+          >
+            <div className="flex bg-white dark:bg-slate-900 p-2 rounded-3xl border border-slate-200 dark:border-white/5 shadow-xl max-w-md mx-auto">
+              <button 
+                onClick={() => setChartSubTab('adult')}
+                className={`flex-1 py-4 rounded-2xl text-[10px] font-black uppercase tracking-widest flex items-center justify-center gap-3 transition-all ${chartSubTab === 'adult' ? 'bg-blue-600 text-white shadow-xl' : 'text-slate-400 hover:text-slate-100'}`}
+              >
+                {t('beltSystem.adultJuvenile')}
+              </button>
+              <button 
+                onClick={() => setChartSubTab('kids')}
+                className={`flex-1 py-4 rounded-2xl text-[10px] font-black uppercase tracking-widest flex items-center justify-center gap-3 transition-all ${chartSubTab === 'kids' ? 'bg-blue-600 text-white shadow-xl' : 'text-slate-400 hover:text-slate-100'}`}
+              >
+                {t('beltSystem.kidsTab')}
+              </button>
+            </div>
+
+            <div className="bg-white dark:bg-slate-900 rounded-[3rem] border border-slate-200 dark:border-white/5 p-8 shadow-2xl relative overflow-hidden">
+               <div className="absolute top-0 right-0 p-12 text-blue-600/5">
+                  <ShieldCheck size={200} />
+               </div>
+               
+               <div className="relative z-10">
+                  <h3 className="text-2xl font-black text-slate-900 dark:text-white uppercase tracking-tighter italic mb-8">
+                     {t('beltSystem.graduationChartTitle')}
+                  </h3>
+
+                  <div className="overflow-x-auto">
+                    <table className="w-full text-left border-separate border-spacing-y-2">
+                       <thead>
+                          <tr className="text-[10px] font-black text-slate-400 uppercase tracking-widest">
+                             <th className="px-6 py-4">{t('beltRank')}</th>
+                             <th className="px-6 py-4">{t('beltSystem.minAge')}</th>
+                             {chartSubTab === 'adult' && <th className="px-6 py-4">{t('beltSystem.minTime')}</th>}
+                             <th className="px-6 py-4 text-right">{t('common.audit')}</th>
+                          </tr>
+                       </thead>
+                       <tbody>
+                          {(chartSubTab === 'adult' ? IBJJF_REFERENCE.graduationChart.adult : IBJJF_REFERENCE.graduationChart.kids).map((item: any, idx: number) => (
+                            <tr key={idx} className="bg-slate-50 dark:bg-white/5 rounded-2xl group hover:bg-slate-100 dark:hover:bg-white/10 transition-all">
+                               <td className="px-6 py-4 rounded-l-2xl">
+                                  <div className="flex items-center gap-4">
+                                     <div className={`w-12 h-4 rounded-full ${BELT_COLORS[item.color]} border border-black/10`} />
+                                     <span className="font-black uppercase tracking-tight italic text-sm text-slate-900 dark:text-white">{item.belt}</span>
+                                  </div>
+                               </td>
+                               <td className="px-6 py-4">
+                                  <span className="text-xs font-bold text-slate-500 uppercase italic">{item.age}</span>
+                               </td>
+                               {chartSubTab === 'adult' && (
+                                 <td className="px-6 py-4">
+                                    <span className="text-xs font-bold text-blue-600 uppercase italic">{item.time}</span>
+                                 </td>
+                               )}
+                               <td className="px-6 py-4 text-right rounded-r-2xl">
+                                  <div className="inline-flex items-center gap-2 px-3 py-1 bg-white dark:bg-slate-800 rounded-lg border border-slate-100 dark:border-white/5">
+                                     <div className="w-2 h-2 rounded-full bg-blue-600 animate-pulse" />
+                                     <span className="text-[8px] font-black uppercase text-slate-400">OSS!</span>
+                                  </div>
+                               </td>
+                            </tr>
+                          ))}
+                       </tbody>
+                    </table>
+                  </div>
+
+                  <div className="mt-12 p-8 bg-slate-900 rounded-[2.5rem] text-white overflow-hidden relative">
+                     <div className="absolute inset-0 bg-blue-600/10" />
+                     <div className="relative z-10 flex flex-col md:flex-row items-center gap-8">
+                        <div className="w-16 h-16 bg-blue-600 rounded-2xl flex items-center justify-center shadow-lg">
+                           <Info size={32} />
+                        </div>
+                        <div className="flex-1">
+                           <h4 className="text-lg font-black uppercase tracking-tighter italic mb-2">{t('beltSystem.timelineNote')}</h4>
+                           <p className="text-sm font-bold opacity-60 uppercase tracking-widest leading-relaxed">
+                              {chartSubTab === 'adult' 
+                                ? t('beltSystem.adultTimelineNote')
+                                : t('beltSystem.kidsTimelineNote')
+                              }
+                           </p>
+                        </div>
+                     </div>
+                  </div>
+               </div>
+            </div>
+          </motion.div>
+        ) : (
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+            <div className="lg:col-span-2 space-y-6">
+              <div className="bg-white dark:bg-slate-900 rounded-[3rem] border border-slate-200 dark:border-white/5 p-8 shadow-2xl relative overflow-hidden">
              <div className="flex items-center justify-between mb-8">
                 <h2 className="text-xl font-black text-slate-900 dark:text-white uppercase tracking-tighter italic flex items-center gap-3">
                   <TrendingUp size={24} className="text-blue-600" />
@@ -352,8 +454,10 @@ const BeltSystem: React.FC = () => {
           </AnimatePresence>
         </div>
       </div>
-    </div>
-  );
+    )}
+    </AnimatePresence>
+  </div>
+);
 };
 
 export default BeltSystem;
