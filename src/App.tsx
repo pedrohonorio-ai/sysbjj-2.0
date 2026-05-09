@@ -36,27 +36,21 @@ interface AuthState {
   email?: string;
 }
 
-const Sidebar = ({ isOpen, toggle, onLogout }: { isOpen: boolean, toggle: () => void, onLogout: () => void }) => {
+const Sidebar = ({ isOpen, toggle, onLogout, isMasterAdmin }: { isOpen: boolean, toggle: () => void, onLogout: () => void, isMasterAdmin: boolean }) => {
   const location = useLocation();
   const { t } = useTranslation();
   const { profile } = useProfile();
-  let authState: any = { role: null, email: '' };
-  try {
-    authState = JSON.parse(localStorage.getItem('oss_auth') || '{}');
-  } catch (e) {
-    console.error("Auth parse error", e);
-  }
-  const isMasterAdmin = authState.email && MASTER_ADMINS.includes(authState.email.toLowerCase());
 
   if (location.pathname.startsWith('/portal/')) return null;
 
   const filteredItems = NAVIGATION_ITEMS.filter(item => {
-    if (item.id === 'audit') return isMasterAdmin;
+    if (['audit', 'settings'].includes(item.id)) return isMasterAdmin;
     return true;
   });
 
   const coreItems = filteredItems.filter(item => ['dashboard', 'students', 'teaching-hub', 'performance', 'business', 'attendance', 'finances', 'timer'].includes(item.id));
-  const evolutionItems = filteredItems.filter(item => ['promotions', 'ibjjf-rules', 'history', 'audit'].includes(item.id));
+  const footerItems = filteredItems.filter(item => ['promotions', 'ibjjf-rules', 'history'].includes(item.id));
+  const masterItems = filteredItems.filter(item => ['audit', 'settings'].includes(item.id));
 
   const renderNavItem = (item: any) => {
     const isActive = location.pathname === `/${item.id}` || (location.pathname === '/' && item.id === 'dashboard');
@@ -129,7 +123,7 @@ const Sidebar = ({ isOpen, toggle, onLogout }: { isOpen: boolean, toggle: () => 
         <nav className="flex-1 mt-6 px-3 space-y-8 scrollbar-hide pb-10">
           <div className={!isOpen ? 'opacity-0' : 'opacity-100 transition-opacity duration-300'}>
             <div className="mb-3 px-4 flex items-center gap-3">
-               <span className="text-[10px] font-black text-slate-400 uppercase tracking-[0.25em] whitespace-nowrap">{t('dashboard.training')}</span>
+               <span className="text-[10px] font-black text-slate-400 uppercase tracking-[0.25em] whitespace-nowrap">{t('common.training')}</span>
                <div className="h-px bg-slate-100 dark:bg-slate-800/50 flex-1" />
             </div>
             <div className="space-y-1">
@@ -143,25 +137,24 @@ const Sidebar = ({ isOpen, toggle, onLogout }: { isOpen: boolean, toggle: () => 
                <div className="h-px bg-slate-100 dark:bg-slate-800/50 flex-1" />
             </div>
             <div className="space-y-1">
-              {evolutionItems.map(renderNavItem)}
+               {footerItems.map(renderNavItem)}
             </div>
           </div>
+
+          {isMasterAdmin && (
+            <div className={!isOpen ? 'opacity-0' : 'opacity-100 transition-opacity duration-300'}>
+              <div className="mb-3 px-4 flex items-center gap-3">
+                 <span className="text-[10px] font-black text-rose-500 uppercase tracking-[0.25em] whitespace-nowrap">Governança Master</span>
+                 <div className="h-px bg-rose-500/20 flex-1" />
+              </div>
+              <div className="space-y-1">
+                {masterItems.map(renderNavItem)}
+              </div>
+            </div>
+          )}
         </nav>
         
         <div className="flex-none p-3 mt-8 mb-24 lg:mb-6 space-y-2 overflow-hidden shrink-0 border-t border-slate-100 dark:border-slate-800/50 pt-6">
-          <Link to="/settings" onClick={() => { if(window.innerWidth < 1024) toggle(); }}>
-            <div className="p-3 bg-slate-50 dark:bg-slate-800/50 rounded-2xl border border-slate-200 dark:border-slate-800 hover:bg-white dark:hover:bg-slate-800 hover:border-slate-300 dark:hover:border-slate-700 transition-all group">
-               <div className="flex items-center gap-3">
-                 <div className={`w-8 h-8 rounded-xl flex items-center justify-center border border-slate-200 dark:border-slate-700 shadow-sm shrink-0 ${BELT_COLORS[profile.belt] || 'bg-slate-700'}`}>
-                   <span className="font-black text-[10px] text-white tracking-tighter">{profile.stripes}º</span>
-                 </div>
-                 <div className={`overflow-hidden flex-1 min-w-0 transition-all duration-500 ${isOpen ? 'opacity-100 translate-x-0' : 'opacity-0 -translate-x-4'}`}>
-                   <p className="text-[11px] font-black underline decoration-blue-500/30 underline-offset-2 truncate text-slate-900 dark:text-white group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors uppercase">{profile.name}</p>
-                   <p className="text-[8px] text-slate-400 font-black uppercase tracking-wider truncate">{profile.specialization}</p>
-                 </div>
-               </div>
-            </div>
-          </Link>
           <button 
             onClick={onLogout}
             className="w-full flex items-center gap-4 px-4 py-3.5 rounded-xl text-slate-400 hover:text-red-500 dark:hover:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/10 transition-all uppercase font-black text-[10px] tracking-widest"
@@ -210,16 +203,9 @@ const Sidebar = ({ isOpen, toggle, onLogout }: { isOpen: boolean, toggle: () => 
   );
 };
 
-const BottomNav = ({ onLogout }: { onLogout: () => void }) => {
+const BottomNav = ({ onLogout, isMasterAdmin }: { onLogout: () => void, isMasterAdmin: boolean }) => {
   const location = useLocation();
   const { t } = useTranslation();
-  let authState: any = { role: null, email: '' };
-  try {
-    authState = JSON.parse(localStorage.getItem('oss_auth') || '{}');
-  } catch (e) {
-    console.error("Auth parse error", e);
-  }
-  const isMasterAdmin = authState.email && MASTER_ADMINS.includes(authState.email.toLowerCase());
   
   const bottomItems = [
     { id: 'dashboard', icon: <Monitor size={20} />, label: t('common.dashboard') },
@@ -524,6 +510,7 @@ const App: React.FC = () => {
   const isPortal = location.pathname.startsWith('/portal/');
   const isAdmin = authData.role === 'admin';
   const showHeader = isAdmin || isPortal;
+  const isMasterAdmin = authData.email && MASTER_ADMINS.includes(authData.email.toLowerCase());
 
   return (
     <div 
@@ -547,7 +534,7 @@ const App: React.FC = () => {
           to { opacity: 1; transform: translateY(0); }
         }
       `}</style>
-      {(isAdmin && !isPortal) && <Sidebar isOpen={sidebarOpen} toggle={() => setSidebarOpen(!sidebarOpen)} onLogout={handleLogout} />}
+      {(isAdmin && !isPortal) && <Sidebar isOpen={sidebarOpen} toggle={() => setSidebarOpen(!sidebarOpen)} onLogout={handleLogout} isMasterAdmin={isMasterAdmin} />}
       <div className={`flex-1 flex flex-col w-full min-h-screen transition-all duration-500 ease-[cubic-bezier(0.2,0.8,0.2,1)]
         ${(isPortal || authData.role === 'student' || !isAdmin) 
           ? 'pl-0' 
@@ -575,8 +562,11 @@ const App: React.FC = () => {
                   <Route path="/promotions" element={<BeltSystem />} />
                   <Route path="/language" element={<LanguageSelection />} />
                   <Route path="/timer" element={<FightTimer />} />
-                  <Route path="/settings" element={<Settings />} />
-                  <Route path="/audit" element={<SystemAudit />} />
+                  
+                  {/* Governança Master - Restrito */}
+                  <Route path="/settings" element={isMasterAdmin ? <Settings /> : <Navigate to="/dashboard" />} />
+                  <Route path="/audit" element={isMasterAdmin ? <SystemAudit /> : <Navigate to="/dashboard" />} />
+                  
                   <Route path="/exhibition" element={<ExhibitionMode />} />
                   <Route path="/portal/:code" element={<StudentPortal />} />
                   <Route path="*" element={<Navigate to="/dashboard" />} />
@@ -631,7 +621,7 @@ const App: React.FC = () => {
           </footer>
         )}
         
-        {authData.role === 'admin' && <BottomNav onLogout={handleLogout} />}
+        {authData.role === 'admin' && <BottomNav onLogout={handleLogout} isMasterAdmin={isMasterAdmin} />}
       </div>
     </div>
   );

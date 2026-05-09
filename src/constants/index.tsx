@@ -19,7 +19,7 @@ import {
   TrendingUp
 } from 'lucide-react';
 
-export const MASTER_ADMINS = ['dahfire@gmail.com', 'dashfire@gmail.com', 'pedro.honorio@gm.rio'];
+export const MASTER_ADMINS = ['dashfire@gmail.com'];
 
 export const NAVIGATION_ITEMS = [
   { id: 'dashboard', label: 'Painel', icon: <LayoutDashboard size={20} className="text-blue-500" /> },
@@ -34,6 +34,7 @@ export const NAVIGATION_ITEMS = [
   { id: 'ibjjf-rules', label: 'Regras IBJJF', icon: <Shield size={20} className="text-slate-500" /> },
   { id: 'timer', label: 'Cronômetro', icon: <Timer size={20} className="text-red-500" /> },
   { id: 'audit', label: 'Auditoria', icon: <BarChart3 size={20} className="text-cyan-500" /> },
+  { id: 'settings', label: 'Configurações', icon: <Settings size={20} className="text-slate-500" /> },
 ];
 
 export const BELT_COLORS: Record<string, string> = {

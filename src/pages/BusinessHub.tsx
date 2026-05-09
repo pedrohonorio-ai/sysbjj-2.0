@@ -28,7 +28,7 @@ const BusinessHub: React.FC = () => {
     <div className="space-y-8 pb-20">
       <header className="flex flex-col md:flex-row md:items-center justify-between gap-6">
         <div>
-          <h1 className="text-3xl font-black text-slate-900 dark:text-white uppercase tracking-tighter italic">Business <span className="text-blue-600">Hub</span></h1>
+          <h1 className="text-3xl font-black text-slate-900 dark:text-white uppercase tracking-tighter italic">Hub de <span className="text-blue-600">Negócios</span></h1>
           <p className="text-slate-400 font-bold uppercase tracking-widest text-[10px] mt-2">Gestão Comercial, Loja e Receitas Extras</p>
         </div>
         <div className="flex bg-slate-100 dark:bg-slate-800 p-1 rounded-2xl border border-slate-200 dark:border-white/5 overflow-x-auto no-scrollbar">

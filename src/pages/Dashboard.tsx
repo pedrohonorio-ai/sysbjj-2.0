@@ -1,8 +1,8 @@
 
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { motion } from 'motion/react';
-import { Users, Calendar, TrendingUp, DollarSign, Award, ArrowUpRight, ArrowDownRight, Clock, ShieldCheck, Activity, Cake, History } from 'lucide-react';
+import { Users, Calendar, TrendingUp, DollarSign, Award, ArrowUpRight, ArrowDownRight, Clock, ShieldCheck, Activity, Cake, History, CloudSun, Timer } from 'lucide-react';
 import { useTranslation } from '../contexts/LanguageContext';
 import { useData } from '../contexts/DataContext';
 import { useProfile } from '../contexts/ProfileContext';
@@ -13,6 +13,29 @@ const Dashboard: React.FC = () => {
   const { t } = useTranslation();
   const { students, payments, logs, verifyAuditIntegrity } = useData();
   const { profile } = useProfile();
+  const [currentTime, setCurrentTime] = useState(new Date());
+  const [temp, setTemp] = useState<number | null>(null);
+
+  useEffect(() => {
+    const timer = setInterval(() => setCurrentTime(new Date()), 1000);
+    
+    // Fetch local temperature using Open-Meteo
+    if (navigator.geolocation) {
+      navigator.geolocation.getCurrentPosition(async (position) => {
+        try {
+          const res = await fetch(`https://api.open-meteo.com/v1/forecast?latitude=${position.coords.latitude}&longitude=${position.coords.longitude}&current_weather=true`);
+          const data = await res.json();
+          if (data.current_weather) {
+            setTemp(Math.round(data.current_weather.temperature));
+          }
+        } catch (err) {
+          console.error("Error fetching weather:", err);
+        }
+      });
+    }
+
+    return () => clearInterval(timer);
+  }, []);
 
   const auditStatus = verifyAuditIntegrity() ? 'verified' : 'unverified';
 
@@ -30,8 +53,8 @@ const Dashboard: React.FC = () => {
   const stats = [
     { title: t('dashboard.totalStudents'), value: students.length, icon: <Users size={24} />, color: 'bg-blue-500', trend: '+12%', isUp: true, link: '/students' },
     { title: t('dashboard.activeStudents'), value: activeStudents, icon: <Activity size={24} />, color: 'bg-emerald-500', trend: '+5%', isUp: true, link: '/students' },
-    { title: t('common.timer'), value: 'PRO TIMER', icon: <Clock size={24} />, color: 'bg-rose-500', trend: 'IBJJF', isUp: true, link: '/timer' },
-    { title: t('dashboard.monthlyRevenue'), value: `R$ ${totalRevenue.toLocaleString()}`, icon: <DollarSign size={24} />, color: 'bg-purple-500', trend: '+18%', isUp: true, link: '/finances' },
+    { title: t('common.timer'), value: 'PRO TIMER', icon: <Timer size={24} />, color: 'bg-rose-500', trend: 'IBJJF', isUp: true, link: '/timer' },
+    { title: t('dashboard.monthlyRevenue'), value: `R$ ${totalRevenue.toLocaleString()}`, icon: <TrendingUp size={24} />, color: 'bg-purple-500', trend: '+18%', isUp: true, link: '/finances' },
   ];
 
   const chartData = [
@@ -55,14 +78,37 @@ const Dashboard: React.FC = () => {
             Status da Academia: {profile.academyName} | Protocolo de Monitoramento Ativo
           </p>
         </div>
-        <div className="flex items-center gap-3">
-            <div className="px-4 py-2 bg-emerald-500/10 border border-emerald-500/20 rounded-2xl flex items-center gap-2">
+        
+        <div className="flex flex-wrap items-center gap-4">
+           {/* Real-time Clock Widget */}
+           <div className="bg-white dark:bg-slate-900 px-6 py-3 rounded-2xl border border-slate-100 dark:border-white/5 shadow-xl flex flex-col items-end min-w-[220px]">
+              <div className="text-2xl font-black text-slate-900 dark:text-white font-mono tracking-tighter">
+                 {currentTime.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit', second: '2-digit' })}
+              </div>
+              <div className="text-[9px] font-black text-blue-500 uppercase tracking-[0.2em] mt-1">
+                 {currentTime.toLocaleDateString('pt-BR', { weekday: 'short', day: '2-digit', month: 'short', year: 'numeric' }).toUpperCase()}
+              </div>
+           </div>
+
+           {/* Temperature Widget */}
+           <div className="bg-white dark:bg-slate-900 px-6 py-3 rounded-2xl border border-slate-100 dark:border-white/5 shadow-xl flex items-center gap-4">
+              <div className="w-10 h-10 rounded-xl bg-amber-500/10 flex items-center justify-center text-amber-500">
+                 <CloudSun size={20} />
+              </div>
+              <div>
+                 <div className="text-xl font-black text-slate-900 dark:text-white font-mono">
+                    {temp !== null ? `${temp}°C` : '--°C'}
+                 </div>
+                 <div className="text-[9px] font-black text-slate-400 uppercase tracking-widest leading-none">
+                    {t('dashboard.dojoTemp')}
+                 </div>
+              </div>
+           </div>
+
+           <div className="px-4 py-2 bg-emerald-500/10 border border-emerald-500/20 rounded-2xl flex items-center gap-2">
                 <div className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
-                <span className="text-[10px] font-black text-emerald-600 uppercase tracking-widest leading-none">Tatame em Tempo Real</span>
-            </div>
-            <button className="p-3 bg-white dark:bg-white/5 border border-slate-200 dark:border-white/10 rounded-2xl text-slate-500 dark:text-slate-400 hover:text-blue-600 transition-all">
-                <TrendingUp size={20} />
-            </button>
+                <span className="text-[10px] font-black text-emerald-600 uppercase tracking-widest leading-none">{t('dashboard.tatameRealTime')}</span>
+           </div>
         </div>
       </header>
 
@@ -91,7 +137,7 @@ const Dashboard: React.FC = () => {
                     {stat.isUp ? <ArrowUpRight size={12} /> : <ArrowDownRight size={12} />}
                     {stat.trend}
                   </div>
-                  <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest opacity-60">vs mês ant.</span>
+                  <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest opacity-60">{t('dashboard.vsLastMonth')}</span>
                 </div>
               </div>
             </Link>
@@ -113,7 +159,7 @@ const Dashboard: React.FC = () => {
                </div>
                <div>
                   <h2 className="text-2xl font-black uppercase tracking-tighter italic">{t('dashboard.birthdays')}</h2>
-                  <p className="text-xs font-bold uppercase tracking-widest opacity-80 mt-1">Hoje é dia de festa no tatame! OSS!</p>
+                  <p className="text-xs font-bold uppercase tracking-widest opacity-80 mt-1">{t('dashboard.birthdayMessage')}</p>
                </div>
             </div>
             <div className="flex flex-wrap gap-4">
@@ -134,17 +180,17 @@ const Dashboard: React.FC = () => {
         <div className="xl:col-span-2 bg-white dark:bg-slate-900 rounded-[3rem] border border-slate-200 dark:border-white/5 p-8 shadow-2xl relative overflow-hidden">
           <div className="flex items-center justify-between mb-8 relative z-10">
             <div>
-              <h2 className="text-xl font-black text-slate-900 dark:text-white uppercase tracking-tighter italic">Fluxo de Presença & Receita</h2>
-              <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mt-1">Dados consolidados da última semana de treinamento</p>
+              <h2 className="text-xl font-black text-slate-900 dark:text-white uppercase tracking-tighter italic">{t('dashboard.presenceRevenue')}</h2>
+              <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mt-1">{t('dashboard.weeklyReview')}</p>
             </div>
             <div className="flex items-center gap-4">
               <div className="flex items-center gap-2">
                 <div className="w-3 h-3 rounded-full bg-blue-500" />
-                <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Presenças</span>
+                <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">{t('dashboard.presences')}</span>
               </div>
               <div className="flex items-center gap-2">
                 <div className="w-3 h-3 rounded-full bg-purple-500/30 border border-purple-500" />
-                <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Receita</span>
+                <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">{t('dashboard.revenue')}</span>
               </div>
             </div>
           </div>
@@ -192,8 +238,8 @@ const Dashboard: React.FC = () => {
           <div className="absolute top-0 right-0 w-64 h-64 bg-blue-600/10 rounded-full -mr-32 -mt-32 blur-3xl group-hover:scale-125 transition-transform duration-700" />
           
           <div className="relative z-10 mb-8">
-            <h2 className="text-xl font-black text-white uppercase tracking-tighter italic">Status do Tatame</h2>
-            <p className="text-[10px] font-bold text-slate-500 uppercase tracking-widest mt-1">Integridade e Fluxo de Graduação</p>
+            <h2 className="text-xl font-black text-white uppercase tracking-tighter italic">{t('dashboard.tatameStatus')}</h2>
+            <p className="text-[10px] font-bold text-slate-500 uppercase tracking-widest mt-1">{t('dashboard.graduationIntegrity')}</p>
           </div>
 
           <div className="space-y-6 flex-1 relative z-10">
@@ -203,7 +249,7 @@ const Dashboard: React.FC = () => {
                   <div className="p-2 bg-blue-500/20 rounded-xl text-blue-500">
                     <ShieldCheck size={18} />
                   </div>
-                  <span className="text-[11px] font-black text-white uppercase tracking-widest">Protocolo de Segurança</span>
+                  <span className="text-[11px] font-black text-white uppercase tracking-widest">{t('dashboard.securityProtocol')}</span>
                 </div>
                 <span className="text-[10px] font-black text-emerald-500 uppercase tracking-widest">Ativo</span>
               </div>
@@ -214,7 +260,7 @@ const Dashboard: React.FC = () => {
                   className="h-full bg-blue-500 shadow-[0_0_10px_#3b82f6]"
                 />
               </div>
-              <p className="mt-3 text-[8px] font-medium text-slate-500 uppercase tracking-widest leading-none">Criptografia SHA-256 Validada</p>
+              <p className="mt-3 text-[8px] font-medium text-slate-500 uppercase tracking-widest leading-none text-slate-400">Criptografia SHA-256 Validada</p>
             </div>
 
             <div className="p-5 bg-white/5 rounded-3xl border border-white/10 hover:border-white/20 transition-all group/item">
@@ -223,9 +269,9 @@ const Dashboard: React.FC = () => {
                   <div className="p-2 bg-purple-500/20 rounded-xl text-purple-500">
                     <Award size={18} />
                   </div>
-                  <span className="text-[11px] font-black text-white uppercase tracking-widest">Ranking Global da Academia</span>
+                  <span className="text-[11px] font-black text-white uppercase tracking-widest">{t('dashboard.globalRanking')}</span>
                 </div>
-                <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">#1 Local</span>
+                <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">{t('dashboard.localRank')}</span>
               </div>
               <div className="w-full h-2 bg-slate-800 rounded-full overflow-hidden">
                 <motion.div 
@@ -234,12 +280,12 @@ const Dashboard: React.FC = () => {
                   className="h-full bg-purple-500 shadow-[0_0_10px_#a855f7]"
                 />
               </div>
-              <p className="mt-3 text-[8px] font-medium text-slate-500 uppercase tracking-widest leading-none">Baseado no Sistema de Pontos de Mérito</p>
+              <p className="mt-3 text-[8px] font-medium text-slate-500 uppercase tracking-widest leading-none text-slate-400">{t('dashboard.meritSystem')}</p>
             </div>
           </div>
 
           <button className="mt-8 w-full bg-white text-slate-950 font-black py-4 rounded-2xl text-[11px] uppercase tracking-widest shadow-2xl shadow-white/10 transition-all hover:bg-slate-200 active:scale-95 relative z-10">
-            Exportar Relatório Estratégico
+            {t('dashboard.exportReport')}
           </button>
         </div>
       </div>
@@ -249,9 +295,9 @@ const Dashboard: React.FC = () => {
             <div>
                <h2 className="text-xl font-black text-slate-900 dark:text-white uppercase tracking-tighter italic flex items-center gap-2">
                  <History size={24} className="text-blue-600" />
-                 Atividades Recentes do Ledger
+                 {t('dashboard.recentActivities')}
                </h2>
-               <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mt-1">Sincronização em tempo real com a corrente de custódia</p>
+               <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mt-1">{t('dashboard.syncStatus')}</p>
             </div>
             <VerificationBadge status={auditStatus} />
          </div>
