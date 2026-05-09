@@ -25,16 +25,9 @@ import { useTranslation } from './contexts/LanguageContext';
 import { useTheme } from './contexts/ThemeContext';
 import { useProfile } from './contexts/ProfileContext';
 import { useData } from './contexts/DataContext';
-import { db, auth } from './firebase';
-import { signInAnonymously } from 'firebase/auth';
+import { useAuth } from './context/AuthContext';
+import { db } from './firebase';
 import { doc, setDoc } from 'firebase/firestore';
-
-interface AuthState {
-  isLoggedIn: boolean;
-  role: 'admin' | 'student' | null;
-  studentCode?: string;
-  email?: string;
-}
 
 const Sidebar = ({ isOpen, toggle, onLogout, isMasterAdmin }: { isOpen: boolean, toggle: () => void, onLogout: () => void, isMasterAdmin: boolean }) => {
   const location = useLocation();
@@ -242,7 +235,7 @@ const BottomNav = ({ onLogout, isMasterAdmin }: { onLogout: () => void, isMaster
   );
 };
 
-const Header = ({ toggleSidebar, auth, onLogout }: { toggleSidebar: () => void, auth: AuthState, onLogout: () => void }) => {
+const Header = ({ toggleSidebar, auth, onLogout }: { toggleSidebar: () => void, auth: { role: 'admin' | 'student' | null, email?: string }, onLogout: () => void }) => {
   const { setTheme, resolvedTheme } = useTheme();
   const { t } = useTranslation();
   const { profile } = useProfile();
@@ -399,38 +392,11 @@ const App: React.FC = () => {
   const navigate = useNavigate();
   const { profile } = useProfile();
   const { logAction } = useData();
+  const { user, role, studentCode, loading, logout } = useAuth();
   
-  useEffect(() => {
-    // Auto-login anonymously to enable Firestore writes if not authenticated
-    // This is useful for student portal check-ins and logs when not fully logged in via email
-    if (auth) {
-      signInAnonymously(auth).catch(err => {
-        // Silent specific errors that are expected in restricted environments
-        const silentErrors = [
-          'auth/admin-restricted-operation',
-          'auth/operation-not-allowed',
-          'auth/configuration-not-found'
-        ];
-        if (!silentErrors.includes(err.code)) {
-          console.warn("Auth initialization note:", err.message);
-        }
-      });
-    }
-  }, []);
-
-  const [authData, setAuthData] = useState<AuthState>(() => {
-    try {
-      const saved = localStorage.getItem('oss_auth');
-      return saved ? JSON.parse(saved) : { isLoggedIn: false, role: null };
-    } catch (e) {
-      console.error("Initial auth parse error", e);
-      return { isLoggedIn: false, role: null };
-    }
-  });
-
   // Track Online Status
   useEffect(() => {
-    if (authData.isLoggedIn && authData.email && db) {
+    if (role === 'admin' && user?.email && db) {
       const deviceId = localStorage.getItem('oss_device_id') || Math.random().toString(36).substring(2, 15);
       if (!localStorage.getItem('oss_device_id')) localStorage.setItem('oss_device_id', deviceId);
 
@@ -448,11 +414,11 @@ const App: React.FC = () => {
           else if (/Edge/i.test(ua)) browser = "Edge";
           
           const deviceInfo = `${device} (${browser})`;
-          const presenceRef = doc(db, 'presence', `${authData.email!.replace(/\./g, '_')}_${deviceId}`);
+          const presenceRef = doc(db, 'presence', `${user.email!.replace(/\./g, '_')}_${deviceId}`);
           await setDoc(presenceRef, {
-            email: authData.email,
+            email: user.email,
             lastSeen: Date.now(),
-            role: authData.role,
+            role: role,
             userAgent: deviceInfo,
             deviceId: deviceId
           }, { merge: true });
@@ -465,52 +431,42 @@ const App: React.FC = () => {
       const interval = setInterval(updatePresence, 300000); // 5 minutes - reduce write quota pressure
       return () => clearInterval(interval);
     }
-  }, [authData.isLoggedIn, authData.email, authData.role]);
+  }, [role, user?.email]);
 
   useEffect(() => {
-    if (authData.isLoggedIn && authData.email) {
-      logAction('Sessão Restaurada', `Usuário ${authData.email} acessou o sistema`, 'System');
+    if (role && (user?.email || studentCode)) {
+      logAction('Sessão Restaurada', `Usuário ${user?.email || studentCode} acessou o sistema`, 'System');
     }
   }, []);
 
   useEffect(() => {
     window.scrollTo(0, 0);
-    if (authData.isLoggedIn && authData.role === 'student' && !location.pathname.startsWith('/portal/')) {
-      navigate(`/portal/${authData.studentCode}`);
-    }
-  }, [location.pathname, authData, navigate]);
-
-  const handleLogin = (role: 'admin' | 'student', studentCode?: string, email?: string) => {
-    const newAuth: AuthState = { isLoggedIn: true, role, studentCode, email };
-    setAuthData(newAuth);
-    localStorage.setItem('oss_auth', JSON.stringify(newAuth));
-    
-    // Log direct login
-    if (email) {
-      logAction('Login', `Usuário ${email} entrou no sistema (${role})`, 'Security');
-    }
-    
-    if (role === 'admin') {
-      navigate('/dashboard');
-    } else {
+    if (role === 'student' && studentCode && !location.pathname.startsWith('/portal/')) {
       navigate(`/portal/${studentCode}`);
     }
-  };
+  }, [location.pathname, role, studentCode, navigate]);
 
-  const handleLogout = () => {
-    setAuthData({ isLoggedIn: false, role: null });
-    localStorage.removeItem('oss_auth');
+  const handleLogout = async () => {
+    await logout();
     navigate('/');
   };
 
-  if (!authData.isLoggedIn) {
-    return <Login onLogin={handleLogin} />;
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-slate-950 flex items-center justify-center">
+        <div className="w-12 h-12 border-4 border-blue-600 border-t-transparent rounded-full animate-spin" />
+      </div>
+    );
+  }
+
+  if (!role) {
+    return <Login />; // onLogin is now handled by AuthContext
   }
 
   const isPortal = location.pathname.startsWith('/portal/');
-  const isAdmin = authData.role === 'admin';
+  const isAdmin = role === 'admin';
   const showHeader = isAdmin || isPortal;
-  const isMasterAdmin = authData.email && MASTER_ADMINS.includes(authData.email.toLowerCase());
+  const isMasterAdmin = user?.email && MASTER_ADMINS.includes(user.email.toLowerCase());
 
   return (
     <div 
@@ -536,10 +492,10 @@ const App: React.FC = () => {
       `}</style>
       {(isAdmin && !isPortal) && <Sidebar isOpen={sidebarOpen} toggle={() => setSidebarOpen(!sidebarOpen)} onLogout={handleLogout} isMasterAdmin={isMasterAdmin} />}
       <div className={`flex-1 flex flex-col w-full min-h-screen transition-all duration-500 ease-[cubic-bezier(0.2,0.8,0.2,1)]
-        ${(isPortal || authData.role === 'student' || !isAdmin) 
+        ${(isPortal || role === 'student' || !isAdmin) 
           ? 'pl-0' 
           : (sidebarOpen ? 'lg:pl-72' : 'lg:pl-0')}`}>
-        {showHeader && <Header toggleSidebar={() => setSidebarOpen(!sidebarOpen)} auth={authData} onLogout={handleLogout} />}
+        {showHeader && <Header toggleSidebar={() => setSidebarOpen(!sidebarOpen)} auth={{ role, email: user?.email }} onLogout={handleLogout} />}
         <main className={`p-4 sm:p-8 lg:p-12 pt-24 lg:pt-32 flex-1 w-full ${isPortal ? 'max-w-full' : 'max-w-[1920px]'} mx-auto overflow-x-hidden pb-32 lg:pb-12 relative group`}>
           {/* Version Tracking for Sync Verification */}
           <div className="fixed bottom-6 right-6 pointer-events-none opacity-0 group-hover:opacity-30 transition-opacity z-[100]">
@@ -547,7 +503,7 @@ const App: React.FC = () => {
           </div>
           <div className="page-transition" key={location.pathname}>
             <Routes>
-              {authData.role === 'admin' ? (
+              {role === 'admin' ? (
                 <>
                   <Route path="/" element={<Dashboard />} />
                   <Route path="/dashboard" element={<Dashboard />} />
@@ -574,7 +530,7 @@ const App: React.FC = () => {
               ) : (
                 <>
                   <Route path="/portal/:code" element={<StudentPortal />} />
-                  <Route path="*" element={<Navigate to={`/portal/${authData.studentCode}`} />} />
+                  <Route path="*" element={<Navigate to={`/portal/${studentCode}`} />} />
                 </>
               )}
             </Routes>
@@ -582,7 +538,7 @@ const App: React.FC = () => {
         </main>
 
         {/* Global Footer Optimization */}
-        {authData.role === 'admin' && !isPortal && (
+        {role === 'admin' && !isPortal && (
           <footer className="hidden md:block py-12 px-12 border-t border-slate-100 dark:border-white/5 bg-white/5 dark:bg-slate-950/20 mb-8 mx-auto w-full max-w-[1920px] rounded-[3rem] transition-all">
              <div className="flex flex-col lg:flex-row items-center justify-between gap-8">
                 <div className="flex items-center gap-6">
@@ -621,7 +577,7 @@ const App: React.FC = () => {
           </footer>
         )}
         
-        {authData.role === 'admin' && <BottomNav onLogout={handleLogout} isMasterAdmin={isMasterAdmin} />}
+        {role === 'admin' && <BottomNav onLogout={handleLogout} isMasterAdmin={isMasterAdmin} />}
       </div>
     </div>
   );

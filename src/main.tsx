@@ -7,6 +7,7 @@ import { ThemeProvider } from './contexts/ThemeContext';
 import { LanguageProvider } from './contexts/LanguageContext';
 import { ProfileProvider } from './contexts/ProfileContext';
 import { DataProvider } from './contexts/DataContext';
+import { AuthProvider } from './context/AuthContext';
 
   const ErrorFallback = ({ error }: { error: Error }) => (
   <div style={{ 
@@ -103,11 +104,13 @@ createRoot(document.getElementById('root')!).render(
       <BrowserRouter>
         <ThemeProvider>
           <LanguageProvider>
-            <ProfileProvider>
-              <DataProvider>
-                <App />
-              </DataProvider>
-            </ProfileProvider>
+            <AuthProvider>
+              <ProfileProvider>
+                <DataProvider>
+                  <App />
+                </DataProvider>
+              </ProfileProvider>
+            </AuthProvider>
           </LanguageProvider>
         </ThemeProvider>
       </BrowserRouter>

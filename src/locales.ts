@@ -1579,7 +1579,6 @@ const pt = {
     transaction: "Transação",
     developedBy: "Desenvolvido por",
     supportViaPix: "Apoie este projeto via PIX",
-    logout: "Sair do Sistema",
     synced: "Sincronizado",
     videos: "Vídeos",
     download: "Baixar",

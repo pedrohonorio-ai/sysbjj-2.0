@@ -5,26 +5,26 @@ import { motion, AnimatePresence } from 'motion/react';
 import { useTranslation } from '../contexts/LanguageContext';
 import { useProfile } from '../contexts/ProfileContext';
 import { useData } from '../contexts/DataContext';
-import { auth } from '../firebase';
-import { 
-  signInWithEmailAndPassword, 
-  createUserWithEmailAndPassword, 
-  updateProfile,
-  sendPasswordResetEmail,
-  GoogleAuthProvider,
-  signInWithPopup
-} from 'firebase/auth';
+import { useAuth } from '../context/AuthContext';
 
-interface LoginProps {
-  onLogin: (role: 'admin' | 'student', studentCode?: string, email?: string) => void;
-}
-
-const Login: React.FC<LoginProps> = ({ onLogin }) => {
+const Login: React.FC = () => {
   const { t } = useTranslation();
   const { profile } = useProfile();
   const { logAction, addLedgerEntry } = useData();
+  const { login, register, loginGoogle, resetPassword, setStudentAuth, isConfigured } = useAuth();
   const [activeTab, setActiveTab ] = useState<'admin' | 'student'>('admin');
   const [mode, setMode] = useState<'login' | 'register' | 'forgot'>('login');
+  
+  // Form States
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+  const [name, setName] = useState('');
+  const [studentCodeInput, setStudentCodeInput] = useState('');
+  
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState('');
+  const [success, setSuccess] = useState('');
+
   const [currentTime, setCurrentTime] = useState(new Date());
   
   useEffect(() => {
@@ -44,28 +44,25 @@ const Login: React.FC<LoginProps> = ({ onLogin }) => {
     minute: '2-digit',
     second: '2-digit'
   });
-  
-  // Form States
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
-  const [name, setName] = useState('');
-  const [pin, setPin] = useState('');
-  const [studentCode, setStudentCode] = useState('');
-  
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState('');
-  const [success, setSuccess] = useState('');
 
   const handleGoogleLogin = async () => {
     setLoading(true);
     setError('');
-    const provider = new GoogleAuthProvider();
     try {
-      const result = await signInWithPopup(auth, provider);
-      onLogin('admin', undefined, result.user.email || '');
+      await loginGoogle();
+      // AuthProvider handles state change
     } catch (err: any) {
-      console.error(err);
-      setError('Erro ao autenticar com Google. Verifique se pop-ups estão permitidos.');
+      console.error('Google Login Error:', err);
+      // We check for common Supabase error patterns
+      const errorMessage = err.message || err.msg || '';
+      
+      if (errorMessage.includes('provider is not enabled')) {
+        setError('Google Login não está habilitado no seu painel Supabase. Siga os passos abaixo para corrigir.');
+      } else if (err.code === 'auth/unauthorized-domain' || errorMessage.includes('unauthorized domain')) {
+        setError('Domínio não autorizado. Adicione os domínios permitidos nas configurações de autenticação do Supabase.');
+      } else {
+        setError('Falha ao iniciar autenticação Google. Verifique sua conexão e tente novamente.');
+      }
     } finally {
       setLoading(false);
     }
@@ -78,8 +75,8 @@ const Login: React.FC<LoginProps> = ({ onLogin }) => {
 
     try {
       if (mode === 'login') {
-        const userCredential = await signInWithEmailAndPassword(auth, email, password);
-        onLogin('admin', undefined, userCredential.user.email || email);
+        const { error } = await login(email, password);
+        if (error) throw error;
       } else if (mode === 'register') {
         if (!name) throw new Error('Nome é obrigatório');
         if (password.length < 6) {
@@ -88,8 +85,8 @@ const Login: React.FC<LoginProps> = ({ onLogin }) => {
           return;
         }
         
-        const userCredential = await createUserWithEmailAndPassword(auth, email, password);
-        await updateProfile(userCredential.user, { displayName: name });
+        const { data, error } = await register(email, password, name);
+        if (error) throw error;
         
         // Blockchain audit registration
         addLedgerEntry({
@@ -101,31 +98,14 @@ const Login: React.FC<LoginProps> = ({ onLogin }) => {
         });
         
         logAction('Novo Usuário', `Conta criada para ${email}`, 'Security');
-        onLogin('admin', undefined, email);
       } else if (mode === 'forgot') {
-        await sendPasswordResetEmail(auth, email);
+        await resetPassword(email);
         setSuccess('E-mail de recuperação enviado!');
         setTimeout(() => setMode('login'), 3000);
       }
     } catch (err: any) {
       console.error(err);
-      let errorMessage = 'Erro na autenticação';
-      
-      if (err.code === 'auth/weak-password') {
-        errorMessage = 'A senha fornecida é muito fraca. Use pelo menos 6 caracteres.';
-      } else if (err.code === 'auth/email-already-in-use') {
-        errorMessage = 'Este e-mail já está sendo utilizado por outra conta.';
-      } else if (err.code === 'auth/invalid-email') {
-        errorMessage = 'O formato do e-mail é inválido.';
-      } else if (err.code === 'auth/user-not-found' || err.code === 'auth/wrong-password' || err.code === 'auth/invalid-credential') {
-        errorMessage = 'E-mail ou senha incorretos.';
-      } else if (err.code === 'auth/too-many-requests') {
-        errorMessage = 'Acesso bloqueado temporariamente por excesso de tentativas. Tente novamente em alguns minutos ou altere sua senha.';
-      } else if (err.message) {
-        errorMessage = err.message;
-      }
-      
-      setError(errorMessage);
+      setError(err.message || 'Erro na autenticação');
     } finally {
       setLoading(false);
     }
@@ -133,8 +113,8 @@ const Login: React.FC<LoginProps> = ({ onLogin }) => {
 
   const handleStudentLogin = (e: React.FormEvent) => {
     e.preventDefault();
-    if (studentCode.length >= 4) {
-      onLogin('student', studentCode);
+    if (studentCodeInput.length >= 4) {
+      setStudentAuth(studentCodeInput);
     } else {
       setError(t('login.studentNotFound'));
       setTimeout(() => setError(''), 3000);
@@ -169,6 +149,14 @@ const Login: React.FC<LoginProps> = ({ onLogin }) => {
           {/* Subtle Blockchain Line */}
           <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-transparent via-blue-500 to-transparent opacity-50" />
           
+          {!isConfigured && activeTab === 'admin' && (
+            <div className="mb-6 p-4 bg-amber-500/10 border border-amber-500/20 rounded-2xl">
+              <p className="text-[10px] font-black text-amber-500 uppercase tracking-widest text-center leading-relaxed">
+                Supabase não configurado. Adicione VITE_SUPABASE_URL e VITE_SUPABASE_ANON_KEY no menu de configurações do AI Studio.
+              </p>
+            </div>
+          )}
+
           <div className="flex flex-col items-center mb-8">
             <motion.div 
               whileHover={{ rotate: 5, scale: 1.05 }}
@@ -271,7 +259,24 @@ const Login: React.FC<LoginProps> = ({ onLogin }) => {
                   </div>
                 )}
 
-                {error && <div className="p-4 bg-red-500/10 border border-red-500/20 rounded-xl text-red-500 text-[10px] font-black uppercase text-center">{error}</div>}
+                {error && (
+                  <div className="space-y-4">
+                    <div className="p-4 bg-red-500/10 border border-red-500/20 rounded-xl text-red-500 text-[10px] font-black uppercase text-center leading-relaxed">
+                      {error}
+                    </div>
+                    {error.includes('Supabase') && (
+                      <div className="p-4 bg-white/5 border border-white/10 rounded-xl space-y-3">
+                        <p className="text-[10px] font-black text-blue-500 uppercase tracking-widest italic">Ação Necessária para o Sensei:</p>
+                        <ol className="text-[9px] text-slate-400 font-bold space-y-2 uppercase list-decimal list-inside">
+                          <li>Acesse o <a href="https://supabase.com/dashboard" target="_blank" rel="noopener noreferrer" className="text-blue-500 underline">Dashboard do Supabase</a></li>
+                          <li>Vá em <span className="text-white">Authentication</span> &gt; <span className="text-white">Providers</span></li>
+                          <li>Encontre <span className="text-white">Google</span> e clique em <span className="text-white">Enable</span></li>
+                          <li>Clique em <span className="text-white">Save</span> no final da página</li>
+                        </ol>
+                      </div>
+                    )}
+                  </div>
+                )}
                 {success && <div className="p-4 bg-emerald-500/10 border border-emerald-500/20 rounded-xl text-emerald-500 text-[10px] font-black uppercase text-center">{success}</div>}
 
                 <button 
@@ -324,8 +329,8 @@ const Login: React.FC<LoginProps> = ({ onLogin }) => {
                     <User className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-500" size={18} />
                     <input 
                       type="text" 
-                      value={studentCode}
-                      onChange={(e) => setStudentCode(e.target.value.toUpperCase())}
+                      value={studentCodeInput}
+                      onChange={(e) => setStudentCodeInput(e.target.value.toUpperCase())}
                       placeholder="OSS-XXXX"
                       className="w-full bg-slate-950 border border-white/10 rounded-2xl py-4 pl-12 pr-4 text-white font-black uppercase tracking-[0.2em] focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all placeholder:tracking-normal"
                     />

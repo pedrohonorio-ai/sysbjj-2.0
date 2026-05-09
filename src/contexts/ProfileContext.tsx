@@ -1,7 +1,8 @@
 
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 import { ProfessorProfile, BeltColor } from '../types';
-import { db, auth } from '../firebase';
+import { db } from '../firebase';
+import { useAuth } from '../context/AuthContext';
 import { doc, onSnapshot, setDoc, updateDoc } from 'firebase/firestore';
 
 interface ProfileContextType {
@@ -26,6 +27,7 @@ const DEFAULT_PROFILE: ProfessorProfile = {
 const ProfileContext = createContext<ProfileContextType | undefined>(undefined);
 
 export const ProfileProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
+  const { user } = useAuth();
   const [profile, setProfile] = useState<ProfessorProfile>(() => {
     const saved = localStorage.getItem('oss_profile');
     return saved ? JSON.parse(saved) : DEFAULT_PROFILE;
@@ -33,12 +35,12 @@ export const ProfileProvider: React.FC<{ children: ReactNode }> = ({ children })
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
-    if (!db || !auth.currentUser) {
+    if (!db || !user) {
       setIsLoading(false);
       return;
     }
 
-    const uid = auth.currentUser.uid;
+    const uid = user.id;
     // Use the UID for individual profiles
     const profileRef = doc(db, 'users', uid, 'settings', 'academy_profile');
     
@@ -58,15 +60,15 @@ export const ProfileProvider: React.FC<{ children: ReactNode }> = ({ children })
     });
 
     return () => unsubscribe();
-  }, [auth.currentUser]);
+  }, [user]);
 
   const updateProfile = async (updates: Partial<ProfessorProfile>) => {
     const newProfile = { ...profile, ...updates };
     setProfile(newProfile);
     localStorage.setItem('oss_profile', JSON.stringify(newProfile));
 
-    if (db && auth.currentUser) {
-      const uid = auth.currentUser.uid;
+    if (db && user) {
+      const uid = user.id;
       const profileRef = doc(db, 'users', uid, 'settings', 'academy_profile');
       await setDoc(profileRef, newProfile, { merge: true });
     }

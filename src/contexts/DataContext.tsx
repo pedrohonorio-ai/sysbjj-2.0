@@ -3,7 +3,8 @@ import React, { createContext, useContext, useState, useEffect, ReactNode, useCa
 import { Student, Payment, ClassSchedule, GalleryImage, ExtraRevenue, KimonoOrder, LessonPlan, LibraryTechnique, TechniqueCategory, BeltColor, Product, Plan, PaymentReceipt, TransactionLedger, SystemLog, AttendanceRecord, ExtraRevenueCategory, GraduationCriterion } from '../types';
 import CryptoJS from 'crypto-js';
 import { IBJJF_LESSONS } from '../constants/rulesData';
-import { db, auth } from '../firebase';
+import { db } from '../firebase';
+import { useAuth } from '../context/AuthContext';
 import { compressImage } from '../services/imageUtils';
 import { INITIAL_STUDENTS, INITIAL_SCHEDULES, INITIAL_PLANS } from '../services/academyInitializer';
 import { 
@@ -249,6 +250,7 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     }
   }, []);
 
+  const { user, role: authRole, studentCode } = useAuth();
   const [students, setStudents] = useState<Student[]>(() => loadSafely('oss_students', []));
   const [payments, setPayments] = useState<Payment[]>(() => loadSafely('oss_payments', []));
   const [schedules, setSchedules] = useState<ClassSchedule[]>(() => loadSafely('oss_schedules', DEFAULT_SCHEDULES));
@@ -271,29 +273,19 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   const [attendance, setAttendance] = useState<AttendanceRecord[]>([]);
   const [presence, setPresence] = useState<{ email: string; lastSeen: number; role: string; userAgent: string; id: string }[]>([]);
   const [notifications, setNotifications] = useState<{ id: string; message: string; type: 'info' | 'success' | 'warning'; timestamp: number }[]>([]);
-  const [isAuthenticated, setIsAuthenticated] = useState(false);
   const lastHashRef = React.useRef<string>('0');
 
   // Helper to get user-specific collection reference
   const getUserCollection = useCallback((collectionName: string) => {
-    if (!db || !auth.currentUser) return null;
-    return collection(db, 'users', auth.currentUser.uid, collectionName);
-  }, [db, auth.currentUser]);
+    if (!db || !user) return null;
+    return collection(db, 'users', user.id, collectionName);
+  }, [db, user]);
 
-  // Sync Auth State
-  useEffect(() => {
-    const checkAuth = () => {
-      const authData = localStorage.getItem('oss_auth');
-      setIsAuthenticated(!!authData);
-    };
-    checkAuth();
-    window.addEventListener('storage', checkAuth);
-    return () => window.removeEventListener('storage', checkAuth);
-  }, []);
+  const isAuthenticated = !!user || (authRole === 'student' && !!studentCode);
 
   // Firestore Real-time Sync (Optimized with Auth-gate and Limits) - NOW ISOLATED BY UID
   useEffect(() => {
-    if (!db || !isAuthenticated || !auth.currentUser) return;
+    if (!db || !isAuthenticated) return;
 
     const studentsColl = getUserCollection('students');
     const unsubStudents = studentsColl ? onSnapshot(studentsColl, (snap) => {
@@ -380,7 +372,7 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
 
     // AUTO-INITIALIZATION for New Users
     const initializeNewUser = async () => {
-        if (!auth.currentUser) return;
+        if (!user) return;
         
         // Wait a bit to ensure cloud data had time to sync
         setTimeout(async () => {
@@ -432,7 +424,7 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       unsubTechniques(); unsubExtraRevenue(); unsubProducts(); unsubPlans();
       unsubGallery(); unsubOrders();
     };
-  }, [db, isAuthenticated, auth.currentUser, getUserCollection]);
+  }, [db, isAuthenticated, user, getUserCollection]);
 
   // Persistência automática em cada mudança (Local Storage as fallback for UI smoothness)
   useEffect(() => { saveSafely('oss_students', students); }, [students, saveSafely]);
@@ -467,7 +459,7 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       return `${device} (${browser})`;
     };
 
-    const emailToLog = auth.email || 'system@sysbjj.com';
+    const emailToLog = user?.email || 'system@sysbjj.com';
     const previousHash = lastHashRef.current;
     const timestamp = Date.now();
     const id = `LOG-${timestamp}-${Math.random().toString(36).substr(2, 5)}`;
@@ -483,7 +475,7 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     const newLog: SystemLog = {
       id,
       timestamp,
-      userId: auth.uid || 'system',
+      userId: user?.id || 'system',
       userEmail: emailToLog,
       action,
       details,
