@@ -5,14 +5,14 @@ import {
   Shield, BookOpen, AlertTriangle, CheckCircle2, Info, Trophy, 
   ChevronRight, PlayCircle, Star, Scale, GraduationCap, 
   ArrowLeft, Send, Baby, Search, Filter, Hash, User, 
-  Target, Zap, Clock, ShieldCheck, Weight, Flame, X
+  Target, Zap, Clock, ShieldCheck, Weight, Flame, X, AlertCircle
 } from 'lucide-react';
 import { useTranslation } from '../contexts/LanguageContext';
 import { IBJJF_LESSONS, RuleLesson, IBJJF_COURSES, RuleCourse, RuleQuestion, IBJJF_REFERENCE } from '../constants/rulesData';
 
 const IBJJFRules: React.FC = () => {
   const { t } = useTranslation();
-  const [activeView, setActiveView] = useState<'academy' | 'reference'>('academy');
+  const [activeView, setActiveView] = useState<'academy' | 'reference' | 'rulebook'>('academy');
   const [selectedCourse, setSelectedCourse] = useState<RuleCourse | null>(null);
   const [selectedLesson, setSelectedLesson] = useState<RuleLesson | null>(null);
   const [quizScore, setQuizScore] = useState<number>(0);
@@ -85,11 +85,17 @@ const IBJJFRules: React.FC = () => {
            >
              <BookOpen size={16} /> Referência
            </button>
+           <button 
+             onClick={() => setActiveView('rulebook')}
+             className={`px-8 py-3 rounded-[1.5rem] text-[10px] font-black uppercase tracking-widest flex items-center gap-3 transition-all ${activeView === 'rulebook' ? 'bg-white dark:bg-slate-900 text-blue-600 shadow-xl border border-slate-100 dark:border-white/5' : 'text-slate-400 hover:text-slate-600'}`}
+           >
+             <ShieldCheck size={16} /> Rulebook
+           </button>
         </div>
       </header>
 
       <AnimatePresence mode="wait">
-        {activeView === 'academy' ? (
+        {activeView === 'academy' && (
           <motion.div
             key="academy"
             initial={{ opacity: 0, x: -20 }}
@@ -343,7 +349,9 @@ const IBJJFRules: React.FC = () => {
               </div>
             )}
           </motion.div>
-        ) : (
+        )}
+
+        {activeView === 'reference' && (
           <motion.div
             key="reference"
             initial={{ opacity: 0, x: 20 }}
@@ -548,7 +556,88 @@ const IBJJFRules: React.FC = () => {
              </div>
           </motion.div>
         )}
-      </AnimatePresence>
+
+        {activeView === 'rulebook' && (
+          <motion.div
+            key="rulebook"
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -20 }}
+            className="space-y-12"
+          >
+               <div className="bg-slate-950 rounded-[4rem] p-12 text-white relative overflow-hidden border border-white/5 shadow-2xl">
+                  <div className="absolute top-0 right-0 w-96 h-96 bg-blue-600 rounded-full blur-[150px] opacity-20" />
+                  <div className="relative z-10 max-w-3xl">
+                     <h2 className="text-5xl font-black italic tracking-tighter uppercase mb-6 leading-none">Seções Essenciais do Livro de Regras</h2>
+                     <p className="text-lg text-slate-400 font-medium italic mb-10 leading-relaxed">O Livro de Regras da IBJJF é o pilar fundamental para qualquer competidor. Abaixo, resumimos os pontos críticos que definem o curso de uma luta oficial.</p>
+                     
+                     <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        <div className="p-8 bg-white/5 rounded-3xl border border-white/10 hover:bg-white/10 transition-all group">
+                           <Shield className="text-blue-400 mb-6 group-hover:scale-110 transition-transform" size={40} />
+                           <h4 className="text-xl font-black uppercase tracking-tight mb-4">Área de Luta</h4>
+                           <p className="text-xs text-slate-500 leading-relaxed italic uppercase font-bold">A área total do tatame deve ser de no mínimo 64m² e máximo 100m². A área externa é a zona de segurança. Sair da área de luta em situação de finalização ou queda iminente resulta em punição ou desclassificação.</p>
+                        </div>
+                        <div className="p-8 bg-white/5 rounded-3xl border border-white/10 hover:bg-white/10 transition-all group">
+                           <Scale className="text-emerald-400 mb-6 group-hover:scale-110 transition-transform" size={40} />
+                           <h4 className="text-xl font-black uppercase tracking-tight mb-4">Pesagem</h4>
+                           <p className="text-xs text-slate-500 leading-relaxed italic uppercase font-bold">A pesagem oficial ocorre imediatamente antes da primeira luta. O atleta tem apenas uma chance. O Kimono deve estar limpo e dentro das medidas oficiais (6 dedos de folga no braço e calça).</p>
+                        </div>
+                        <div className="p-8 bg-white/5 rounded-3xl border border-white/10 hover:bg-white/10 transition-all group">
+                           <AlertCircle className="text-rose-400 mb-6 group-hover:scale-110 transition-transform" size={40} />
+                           <h4 className="text-xl font-black uppercase tracking-tight mb-4">Interrupção</h4>
+                           <p className="text-xs text-slate-500 leading-relaxed italic uppercase font-bold">O árbitro pode interromper a luta se notar que um atleta está em perigo físico real (perda de consciência) ou se houver sangramento não estancável.</p>
+                        </div>
+                        <div className="p-8 bg-white/5 rounded-3xl border border-white/10 hover:bg-white/10 transition-all group">
+                           <Zap className="text-amber-400 mb-6 group-hover:scale-110 transition-transform" size={40} />
+                           <h4 className="text-xl font-black uppercase tracking-tight mb-4">Vantagens</h4>
+                           <p className="text-xs text-slate-500 leading-relaxed italic uppercase font-bold">Concedidas quando o atleta quase atinge uma posição de pontuação ou quase finaliza o oponente. São usadas como critério de desempate antes da decisão arbitral.</p>
+                        </div>
+                     </div>
+                  </div>
+               </div>
+
+               <div className="bg-white dark:bg-slate-900 rounded-[3.5rem] border border-slate-200 dark:border-white/5 p-12 shadow-2xl">
+                  <h3 className="text-3xl font-black text-slate-900 dark:text-white uppercase tracking-tighter italic mb-10">Tabela de Infrações Graves</h3>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-12">
+                     <div className="space-y-6">
+                        <div className="flex items-center gap-4 text-rose-600 font-black uppercase tracking-widest text-xs">
+                           <AlertTriangle size={20} /> Desclassificação Direta
+                        </div>
+                        <ul className="space-y-4">
+                           {['Bate-estaca (Slam)', 'Dedo no olho ou boca', 'Falar com o árbitro de forma agressiva', 'Finalizações que torçam a coluna', 'Morder ou cuspir', 'Fugir da área para evitar finalização'].map((item, i) => (
+                             <li key={i} className="flex gap-4 p-4 bg-slate-50 dark:bg-white/5 rounded-2xl border border-transparent hover:border-rose-500/20 transition-all font-bold text-xs text-slate-500 uppercase italic">
+                               <div className="w-1.5 h-1.5 bg-rose-500 rounded-full mt-1.5 shrink-0" />
+                               {item}
+                             </li>
+                           ))}
+                        </ul>
+                     </div>
+                     <div className="space-y-6">
+                        <div className="flex items-center gap-4 text-blue-600 font-black uppercase tracking-widest text-xs">
+                           <Scale size={20} /> Punções Acumuladas
+                        </div>
+                        <ul className="space-y-4">
+                           {[
+                             { d: '1ª Punição', effect: 'Apenas advertência verbal' },
+                             { d: '2ª Punição', effect: 'Oponente recebe 1 vantagem' },
+                             { d: '3ª Punição', effect: 'Oponente recebe 2 pontos' },
+                             { d: '4ª Punição', effect: 'Desclassificação imediata' }
+                           ].map((item, i) => (
+                             <div key={i} className="flex items-center justify-between p-4 bg-slate-50 dark:bg-white/5 rounded-2xl border border-transparent hover:border-blue-500/20 transition-all">
+                                <span className="text-xs font-black text-slate-900 dark:text-white uppercase italic">{item.d}</span>
+                                <span className="text-[10px] font-bold text-blue-600 uppercase italic">{item.effect}</span>
+                             </div>
+                           ))}
+                        </ul>
+                        <p className="p-6 bg-blue-600/5 rounded-3xl border border-blue-600/10 text-[10px] font-bold text-blue-600 uppercase italic leading-relaxed">
+                           "Amarrar a luta (Stalling) é a causa mais comum de punições. Lembre-se: O Jiu-Jitsu Brasileiro preza pela combatividade."
+                        </p>
+                     </div>
+                  </div>
+               </div>
+            </motion.div>
+          )}
+        </AnimatePresence>
     </div>
   );
 };

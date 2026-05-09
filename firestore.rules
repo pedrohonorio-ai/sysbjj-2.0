@@ -14,14 +14,25 @@ service cloud.firestore {
              request.auth.token.email_verified == true;
     }
 
-    // System Logs: Only master admin can read, everyone can create (to log actions)
-    match /system_logs/{logId} {
-      allow read: if isMasterAdmin();
-      allow create: if true; // Allow logging from any client for now, but in production we'd restrict
+    // Users data: Isolated by UID
+    match /users/{userId}/{allPaths=**} {
+      allow read, write: if isAuthenticated() && request.auth.uid == userId;
     }
 
-    // Default rules for other collections
-    match /{document=**} {
+    // System Logs: Only master admin can read everything, users can only write to their own log node
+    match /users/{userId}/system_logs/{logId} {
+      allow read, write: if isAuthenticated() && request.auth.uid == userId;
+    }
+
+    // Keep global logs rule for legacy or system compatibility if needed, 
+    // but preferred way is the isolated path above.
+    match /system_logs/{logId} {
+      allow read: if isMasterAdmin();
+      allow create: if true; 
+    }
+
+    // Presence: shared for the academy (or also isolated - choosing isolated for now)
+    match /presence/{presenceId} {
       allow read, write: if isAuthenticated();
     }
   }

@@ -1,16 +1,18 @@
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Shield, Lock, User, Key, ArrowRight, Instagram, Mail, Fingerprint, History, ShieldCheck } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { useTranslation } from '../contexts/LanguageContext';
 import { useProfile } from '../contexts/ProfileContext';
 import { useData } from '../contexts/DataContext';
-import { auth as firebaseAuth } from '../firebase';
+import { auth } from '../firebase';
 import { 
   signInWithEmailAndPassword, 
   createUserWithEmailAndPassword, 
   updateProfile,
-  sendPasswordResetEmail
+  sendPasswordResetEmail,
+  GoogleAuthProvider,
+  signInWithPopup
 } from 'firebase/auth';
 
 interface LoginProps {
@@ -23,6 +25,25 @@ const Login: React.FC<LoginProps> = ({ onLogin }) => {
   const { logAction, addLedgerEntry } = useData();
   const [activeTab, setActiveTab ] = useState<'admin' | 'student'>('admin');
   const [mode, setMode] = useState<'login' | 'register' | 'forgot'>('login');
+  const [currentTime, setCurrentTime] = useState(new Date());
+  
+  useEffect(() => {
+    const timer = setInterval(() => setCurrentTime(new Date()), 1000);
+    return () => clearInterval(timer);
+  }, []);
+
+  const formattedDate = currentTime.toLocaleDateString('pt-BR', {
+    weekday: 'long',
+    day: '2-digit',
+    month: 'long',
+    year: 'numeric'
+  });
+
+  const formattedTime = currentTime.toLocaleTimeString('pt-BR', {
+    hour: '2-digit',
+    minute: '2-digit',
+    second: '2-digit'
+  });
   
   // Form States
   const [email, setEmail] = useState('');
@@ -35,6 +56,21 @@ const Login: React.FC<LoginProps> = ({ onLogin }) => {
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
 
+  const handleGoogleLogin = async () => {
+    setLoading(true);
+    setError('');
+    const provider = new GoogleAuthProvider();
+    try {
+      const result = await signInWithPopup(auth, provider);
+      onLogin('admin', undefined, result.user.email || '');
+    } catch (err: any) {
+      console.error(err);
+      setError('Erro ao autenticar com Google. Verifique se pop-ups estão permitidos.');
+    } finally {
+      setLoading(false);
+    }
+  };
+
   const handleAdminLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
@@ -42,13 +78,17 @@ const Login: React.FC<LoginProps> = ({ onLogin }) => {
 
     try {
       if (mode === 'login') {
-        const userCredential = await signInWithEmailAndPassword(firebaseAuth, email, password);
+        const userCredential = await signInWithEmailAndPassword(auth, email, password);
         onLogin('admin', undefined, userCredential.user.email || email);
       } else if (mode === 'register') {
         if (!name) throw new Error('Nome é obrigatório');
-        if (password.length < 6) throw new Error('A senha deve ter pelo menos 6 caracteres');
+        if (password.length < 6) {
+          setError('A senha deve ter pelo menos 6 caracteres');
+          setLoading(false);
+          return;
+        }
         
-        const userCredential = await createUserWithEmailAndPassword(firebaseAuth, email, password);
+        const userCredential = await createUserWithEmailAndPassword(auth, email, password);
         await updateProfile(userCredential.user, { displayName: name });
         
         // Blockchain audit registration
@@ -63,7 +103,7 @@ const Login: React.FC<LoginProps> = ({ onLogin }) => {
         logAction('Novo Usuário', `Conta criada para ${email}`, 'Security');
         onLogin('admin', undefined, email);
       } else if (mode === 'forgot') {
-        await sendPasswordResetEmail(firebaseAuth, email);
+        await sendPasswordResetEmail(auth, email);
         setSuccess('E-mail de recuperação enviado!');
         setTimeout(() => setMode('login'), 3000);
       }
@@ -72,15 +112,15 @@ const Login: React.FC<LoginProps> = ({ onLogin }) => {
       let errorMessage = 'Erro na autenticação';
       
       if (err.code === 'auth/weak-password') {
-        errorMessage = 'A senha deve ter pelo menos 6 caracteres';
+        errorMessage = 'A senha fornecida é muito fraca. Use pelo menos 6 caracteres.';
       } else if (err.code === 'auth/email-already-in-use') {
-        errorMessage = 'Este e-mail já está em uso';
+        errorMessage = 'Este e-mail já está sendo utilizado por outra conta.';
       } else if (err.code === 'auth/invalid-email') {
-        errorMessage = 'E-mail inválido';
+        errorMessage = 'O formato do e-mail é inválido.';
       } else if (err.code === 'auth/user-not-found' || err.code === 'auth/wrong-password' || err.code === 'auth/invalid-credential') {
-        errorMessage = 'E-mail ou senha incorretos';
+        errorMessage = 'E-mail ou senha incorretos.';
       } else if (err.code === 'auth/too-many-requests') {
-        errorMessage = 'Muitas tentativas de acesso. Por favor, aguarde alguns minutos ou resete sua senha.';
+        errorMessage = 'Acesso bloqueado temporariamente por excesso de tentativas. Tente novamente em alguns minutos ou altere sua senha.';
       } else if (err.message) {
         errorMessage = err.message;
       }
@@ -103,6 +143,16 @@ const Login: React.FC<LoginProps> = ({ onLogin }) => {
 
   return (
     <div className="min-h-screen bg-slate-950 flex items-center justify-center p-4 relative overflow-hidden">
+      {/* Real-time Clock & Date */}
+      <div className="absolute top-8 right-8 z-50 text-right hidden sm:block">
+        <div className="text-4xl font-black text-white tracking-tighter font-mono">
+          {formattedTime}
+        </div>
+        <div className="text-[10px] font-black text-blue-500 uppercase tracking-[0.2em] mt-1">
+          {formattedDate}
+        </div>
+      </div>
+
       {/* Background Decor - Blockchain Mesh Theme */}
       <div className="absolute top-0 left-0 w-full h-full opacity-30 pointer-events-none">
         <div className="absolute top-[-10%] left-[-10%] w-[50%] h-[50%] bg-blue-600/20 rounded-full blur-[150px]" />
@@ -232,6 +282,18 @@ const Login: React.FC<LoginProps> = ({ onLogin }) => {
                   {loading ? 'Processando Bloco...' : mode === 'login' ? 'Validar Acesso Master' : mode === 'register' ? 'Gerar Novo Nó' : 'Resetar Credenciais'}
                   {!loading && <ArrowRight size={18} className="group-hover:translate-x-1 transition-transform" />}
                 </button>
+
+                {mode === 'login' && (
+                  <button 
+                    type="button"
+                    onClick={handleGoogleLogin}
+                    disabled={loading}
+                    className="w-full bg-white text-slate-900 hover:bg-slate-100 disabled:opacity-50 font-black py-4 rounded-2xl transition-all shadow-xl flex items-center justify-center gap-3 group uppercase text-xs tracking-widest border border-slate-200"
+                  >
+                    <img src="https://www.google.com/favicon.ico" alt="Google" className="w-4 h-4" />
+                    Entrar com Google
+                  </button>
+                )}
 
                 <div className="flex flex-col gap-3 mt-4">
                   {mode === 'login' && (

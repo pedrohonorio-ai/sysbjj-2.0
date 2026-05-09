@@ -1,7 +1,7 @@
 
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 import { ProfessorProfile, BeltColor } from '../types';
-import { db } from '../firebase';
+import { db, auth } from '../firebase';
 import { doc, onSnapshot, setDoc, updateDoc } from 'firebase/firestore';
 
 interface ProfileContextType {
@@ -33,13 +33,14 @@ export const ProfileProvider: React.FC<{ children: ReactNode }> = ({ children })
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
-    if (!db) {
+    if (!db || !auth.currentUser) {
       setIsLoading(false);
       return;
     }
 
-    // Use a fixed ID for the academy settings since there's typically only one academy profile
-    const profileRef = doc(db, 'settings', 'academy_profile');
+    const uid = auth.currentUser.uid;
+    // Use the UID for individual profiles
+    const profileRef = doc(db, 'users', uid, 'settings', 'academy_profile');
     
     const unsubscribe = onSnapshot(profileRef, (docSnap) => {
       if (docSnap.exists()) {
@@ -47,7 +48,7 @@ export const ProfileProvider: React.FC<{ children: ReactNode }> = ({ children })
         setProfile(cloudProfile);
         localStorage.setItem('oss_profile', JSON.stringify(cloudProfile));
       } else {
-        // If it doesn't exist in cloud yet, we could initialize it
+        // If it doesn't exist in cloud yet for this user, initialize it
         setDoc(profileRef, profile).catch(console.error);
       }
       setIsLoading(false);
@@ -57,15 +58,16 @@ export const ProfileProvider: React.FC<{ children: ReactNode }> = ({ children })
     });
 
     return () => unsubscribe();
-  }, []);
+  }, [auth.currentUser]);
 
   const updateProfile = async (updates: Partial<ProfessorProfile>) => {
     const newProfile = { ...profile, ...updates };
     setProfile(newProfile);
     localStorage.setItem('oss_profile', JSON.stringify(newProfile));
 
-    if (db) {
-      const profileRef = doc(db, 'settings', 'academy_profile');
+    if (db && auth.currentUser) {
+      const uid = auth.currentUser.uid;
+      const profileRef = doc(db, 'users', uid, 'settings', 'academy_profile');
       await setDoc(profileRef, newProfile, { merge: true });
     }
   };

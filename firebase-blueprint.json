@@ -81,21 +81,33 @@
     }
   },
   "firestore": {
-    "students/{studentId}": {
+    "users/{userId}/students/{studentId}": {
       "schema": "Student",
-      "description": "Collection of students."
+      "description": "Collection of students for a specific sensei."
     },
-    "payments/{paymentId}": {
+    "users/{userId}/payments/{paymentId}": {
       "schema": "Payment",
-      "description": "Student tuition payments."
+      "description": "Student tuition payments for a specific academy."
     },
-    "system_logs/{logId}": {
+    "users/{userId}/system_logs/{logId}": {
       "schema": "SystemLog",
-      "description": "Audit trails."
+      "description": "Audit trails for a specific sensei."
     },
-    "schedules/{scheduleId}": {
+    "users/{userId}/schedules/{scheduleId}": {
       "schema": "ClassSchedule",
-      "description": "Class calendar."
+      "description": "Class calendar for a specific academy."
+    },
+    "users/{userId}/ledger/{ledgerId}": {
+      "schema": "TransactionLedger",
+      "description": "Immutable transaction ledger."
+    },
+    "users/{userId}/receipts/{receiptId}": {
+      "schema": "PaymentReceipt",
+      "description": "Payment receipts uploaded by students."
+    },
+    "users/{userId}/settings/academy_profile": {
+      "schema": "ProfessorProfile",
+      "description": "Academy branding and settings."
     }
   }
 }

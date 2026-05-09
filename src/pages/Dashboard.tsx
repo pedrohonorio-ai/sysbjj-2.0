@@ -1,5 +1,6 @@
 
 import React from 'react';
+import { Link } from 'react-router-dom';
 import { motion } from 'motion/react';
 import { Users, Calendar, TrendingUp, DollarSign, Award, ArrowUpRight, ArrowDownRight, Clock, ShieldCheck, Activity, Cake, History } from 'lucide-react';
 import { useTranslation } from '../contexts/LanguageContext';
@@ -27,10 +28,10 @@ const Dashboard: React.FC = () => {
   });
 
   const stats = [
-    { title: t('dashboard.totalStudents'), value: students.length, icon: <Users size={24} />, color: 'bg-blue-500', trend: '+12%', isUp: true },
-    { title: t('dashboard.activeStudents'), value: activeStudents, icon: <Activity size={24} />, color: 'bg-emerald-500', trend: '+5%', isUp: true },
-    { title: t('dashboard.pendingPayments'), value: overdueStudents, icon: <Clock size={24} />, color: 'bg-amber-500', trend: '-2%', isUp: false },
-    { title: t('dashboard.monthlyRevenue'), value: `R$ ${totalRevenue.toLocaleString()}`, icon: <DollarSign size={24} />, color: 'bg-purple-500', trend: '+18%', isUp: true },
+    { title: t('dashboard.totalStudents'), value: students.length, icon: <Users size={24} />, color: 'bg-blue-500', trend: '+12%', isUp: true, link: '/students' },
+    { title: t('dashboard.activeStudents'), value: activeStudents, icon: <Activity size={24} />, color: 'bg-emerald-500', trend: '+5%', isUp: true, link: '/students' },
+    { title: t('common.timer'), value: 'PRO TIMER', icon: <Clock size={24} />, color: 'bg-rose-500', trend: 'IBJJF', isUp: true, link: '/timer' },
+    { title: t('dashboard.monthlyRevenue'), value: `R$ ${totalRevenue.toLocaleString()}`, icon: <DollarSign size={24} />, color: 'bg-purple-500', trend: '+18%', isUp: true, link: '/finances' },
   ];
 
   const chartData = [
@@ -72,24 +73,28 @@ const Dashboard: React.FC = () => {
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: idx * 0.1 }}
-            className="p-6 bg-white dark:bg-slate-900 rounded-[2.5rem] border border-slate-200 dark:border-white/5 shadow-xl shadow-slate-200/50 dark:shadow-none group hover:scale-[1.02] transition-all cursor-default overflow-hidden relative"
           >
-            <div className="absolute top-0 right-0 w-32 h-32 bg-slate-100 dark:bg-white/5 rounded-full -mr-16 -mt-16 group-hover:scale-110 transition-transform duration-500" />
-            <div className="relative z-10">
-              <div className={`w-12 h-12 ${stat.color} rounded-2xl flex items-center justify-center text-white mb-6 shadow-lg shadow-blue-500/20`}>
-                {stat.icon}
-              </div>
-              <p className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] mb-1">{stat.title}</p>
-              <h3 className="text-2xl font-black text-slate-900 dark:text-white uppercase tracking-tighter leading-none">{stat.value}</h3>
-              
-              <div className="mt-4 flex items-center gap-2">
-                <div className={`flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-black ${stat.isUp ? 'text-emerald-500 bg-emerald-500/10' : 'text-red-500 bg-red-500/10'}`}>
-                  {stat.isUp ? <ArrowUpRight size={12} /> : <ArrowDownRight size={12} />}
-                  {stat.trend}
+            <Link 
+              to={stat.link}
+              className="p-6 bg-white dark:bg-slate-900 rounded-[2.5rem] border border-slate-200 dark:border-white/5 shadow-xl shadow-slate-200/50 dark:shadow-none group hover:scale-[1.02] transition-all cursor-pointer overflow-hidden relative block h-full"
+            >
+              <div className="absolute top-0 right-0 w-32 h-32 bg-slate-100 dark:bg-white/5 rounded-full -mr-16 -mt-16 group-hover:scale-110 transition-transform duration-500" />
+              <div className="relative z-10">
+                <div className={`w-12 h-12 ${stat.color} rounded-2xl flex items-center justify-center text-white mb-6 shadow-lg shadow-blue-500/20`}>
+                  {stat.icon}
                 </div>
-                <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest opacity-60">vs mês ant.</span>
+                <p className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] mb-1">{stat.title}</p>
+                <h3 className="text-2xl font-black text-slate-900 dark:text-white uppercase tracking-tighter leading-none">{stat.value}</h3>
+                
+                <div className="mt-4 flex items-center gap-2">
+                  <div className={`flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-black ${stat.isUp ? 'text-emerald-500 bg-emerald-500/10' : 'text-red-500 bg-red-500/10'}`}>
+                    {stat.isUp ? <ArrowUpRight size={12} /> : <ArrowDownRight size={12} />}
+                    {stat.trend}
+                  </div>
+                  <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest opacity-60">vs mês ant.</span>
+                </div>
               </div>
-            </div>
+            </Link>
           </motion.div>
         ))}
       </div>

@@ -9,7 +9,7 @@ import {
   RefreshCw, FileText, Upload, ShieldCheck, AlertCircle, ShieldAlert, ChevronRight,
   Map, Star, Users2, Medal, Presentation, ClipboardCheck, GraduationCap, Check,
   CreditCard, Video, ExternalLink, MessageSquare, Cake, TrendingUp, Users,
-  Target, Dumbbell, Activity, ClipboardList
+  Target, Dumbbell, Activity, ClipboardList, Timer, Pause, RotateCcw
 } from 'lucide-react';
 import { Html5QrcodeScanner } from 'html5-qrcode';
 import { useTranslation } from '../contexts/LanguageContext';
@@ -17,7 +17,7 @@ import { useData } from '../contexts/DataContext';
 import { useProfile } from '../contexts/ProfileContext';
 import { StudentStatus, GalleryImage, BeltColor, KidsBeltColor } from '../types';
 import { BELT_COLORS, IBJJF_BELT_RULES } from '../constants';
-import { IBJJF_LESSONS, RuleLesson, RuleScenario } from '../constants/rulesData';
+import { IBJJF_LESSONS, RuleLesson, RuleScenario, IBJJF_REFERENCE } from '../constants/rulesData';
 import ReactMarkdown from 'react-markdown';
 
 import { 
@@ -33,7 +33,26 @@ const StudentPortal: React.FC = () => {
   const { students, recordAttendance, gallery, payments, addGalleryImage, addReceipt, completeRuleLesson, logs } = useData();
   const { profile } = useProfile();
   const [loading, setLoading] = useState(true);
-  const [activeTab, setActiveTab] = useState<'home' | 'training' | 'knowledge' | 'community' | 'wallet' | 'gallery' | 'homeTraining'>('home');
+  const [activeTab, setActiveTab] = useState<'home' | 'training' | 'knowledge' | 'community' | 'wallet' | 'gallery' | 'homeTraining' | 'timer' | 'rules'>('home');
+  const [timerTimeLeft, setTimerTimeLeft] = useState(300);
+  const [timerIsRunning, setTimerIsRunning] = useState(false);
+
+  useEffect(() => {
+    let interval: any;
+    if (timerIsRunning && timerTimeLeft > 0) {
+      interval = setInterval(() => {
+        setTimerTimeLeft(prev => prev - 1);
+      }, 1000);
+    } else if (timerTimeLeft === 0) {
+      setTimerIsRunning(false);
+    }
+    return () => clearInterval(interval);
+  }, [timerIsRunning, timerTimeLeft]);
+
+  const resetTimer = () => {
+    setTimerIsRunning(false);
+    setTimerTimeLeft(300);
+  };
   const [showScanner, setShowScanner] = useState(false);
   const [showPix, setShowPix] = useState(false);
   const [showReceipt, setShowReceipt] = useState(false);
@@ -1616,6 +1635,109 @@ const StudentPortal: React.FC = () => {
             </div>
           </div>
         )}
+        {activeTab === 'timer' && (
+          <motion.div 
+            initial={{ opacity: 0, scale: 0.95 }}
+            animate={{ opacity: 1, scale: 1 }}
+            className="space-y-8 py-10"
+          >
+            <div className="text-center space-y-2">
+               <h3 className="text-2xl font-black text-slate-900 dark:text-white uppercase tracking-tighter italic">{t('timer.title')}</h3>
+               <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Treino Independente</p>
+            </div>
+
+            <div className="flex flex-col items-center justify-center space-y-12">
+               <div className="text-8xl font-black tabular-nums tracking-tighter italic text-slate-900 dark:text-white">
+                  {Math.floor(timerTimeLeft / 60)}:{(timerTimeLeft % 60).toString().padStart(2, '0')}
+               </div>
+
+               <div className="flex items-center gap-6">
+                  <button 
+                    onClick={() => setTimerIsRunning(!timerIsRunning)}
+                    className={`w-24 h-24 rounded-[2rem] flex items-center justify-center text-white shadow-2xl transition-all active:scale-95 ${timerIsRunning ? 'bg-slate-800' : 'bg-blue-600'}`}
+                  >
+                    {timerIsRunning ? <Pause size={40} /> : <Play size={40} className="translate-x-1" />}
+                  </button>
+                  <button 
+                    onClick={resetTimer}
+                    className="w-16 h-16 rounded-3xl bg-slate-100 dark:bg-slate-800 flex items-center justify-center text-slate-400 hover:text-blue-600 transition-all active:scale-95"
+                  >
+                    <RotateCcw size={28} />
+                  </button>
+               </div>
+
+               <div className="flex flex-wrap justify-center gap-3">
+                  {[2, 3, 5, 6, 8, 10].map(m => (
+                    <button 
+                      key={m}
+                      onClick={() => { setTimerIsRunning(false); setTimerTimeLeft(m * 60); }}
+                      className={`px-6 py-3 rounded-2xl text-[10px] font-black uppercase tracking-widest border transition-all ${timerTimeLeft === m * 60 ? 'bg-slate-900 text-white border-slate-900' : 'bg-white dark:bg-slate-900 border-slate-200 dark:border-white/5 text-slate-400'}`}
+                    >
+                      {m} MIN
+                    </button>
+                  ))}
+               </div>
+            </div>
+          </motion.div>
+        )}
+
+        {activeTab === 'rules' && (
+          <motion.div 
+            initial={{ opacity: 0, scale: 0.95 }}
+            animate={{ opacity: 1, scale: 1 }}
+            className="space-y-8"
+          >
+            <div className="text-center space-y-2">
+               <h3 className="text-2xl font-black text-slate-900 dark:text-white uppercase tracking-tighter italic">{t('portal.navRules')}</h3>
+               <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Consulta Rápida Oficial</p>
+            </div>
+
+            <div className="bg-white dark:bg-slate-900 rounded-[3rem] p-6 border border-slate-200 dark:border-white/5 shadow-xl">
+               <h4 className="text-sm font-black text-slate-900 dark:text-white uppercase mb-6 flex items-center gap-2">
+                  <Trophy size={16} className="text-amber-500" /> {t('beltSystem.graduationChartTitle')}
+               </h4>
+               
+               <div className="space-y-4">
+                  <p className="text-[10px] font-black text-blue-600 uppercase tracking-widest mb-4 italic">Sistema de Faixas Adulto</p>
+                  <div className="grid grid-cols-1 gap-2">
+                    {IBJJF_REFERENCE.graduationChart.adult.map((item, idx) => (
+                      <div key={idx} className="flex items-center justify-between p-4 bg-slate-50 dark:bg-slate-800/50 rounded-2xl border border-slate-100 dark:border-white/5">
+                        <div className="flex items-center gap-3">
+                           <div className={`w-8 h-2 rounded-full ${BELT_COLORS[item.color] || 'bg-slate-500'} border border-black/10`} />
+                           <span className="text-[10px] font-black text-slate-900 dark:text-white uppercase">{item.belt}</span>
+                        </div>
+                        <span className="text-[8px] font-black text-slate-400 uppercase">{item.age}</span>
+                      </div>
+                    ))}
+                  </div>
+
+                  <p className="text-[10px] font-black text-emerald-600 uppercase tracking-widest mt-8 mb-4 italic">Sistema de Faixas Kids</p>
+                  <div className="grid grid-cols-2 gap-2">
+                    {IBJJF_REFERENCE.graduationChart.kids.slice(0, 10).map((item, idx) => (
+                      <div key={idx} className="flex flex-col gap-2 p-4 bg-slate-50 dark:bg-slate-800/50 rounded-2xl border border-slate-100 dark:border-white/5">
+                        <div className={`w-full h-1.5 rounded-full ${BELT_COLORS[item.color] || 'bg-slate-500'} border border-black/10`} />
+                        <span className="text-[9px] font-black text-slate-900 dark:text-white uppercase truncate">{item.belt}</span>
+                        <span className="text-[7px] font-black text-slate-400 uppercase">{item.age}</span>
+                      </div>
+                    ))}
+                  </div>
+               </div>
+            </div>
+
+            <div className="bg-slate-900 rounded-[2.5rem] p-8 text-white relative overflow-hidden shadow-2xl">
+               <div className="absolute top-0 right-0 w-32 h-32 bg-red-600 rounded-full blur-[60px] opacity-20" />
+               <h4 className="text-lg font-black uppercase tracking-tighter italic mb-4">Pontuação Oficial</h4>
+               <div className="space-y-3">
+                  {IBJJF_REFERENCE.points.map((p, i) => (
+                    <div key={i} className="flex items-center justify-between py-2 border-b border-white/5">
+                      <span className="text-xs font-medium text-slate-400">{p.position}</span>
+                      <span className="text-sm font-black text-red-500 tabular-nums">+{p.value} PTS</span>
+                    </div>
+                  ))}
+               </div>
+            </div>
+          </motion.div>
+        )}
       </main>
 
       {showScanner && (
@@ -1793,6 +1915,8 @@ const StudentPortal: React.FC = () => {
         <button onClick={() => setActiveTab('community')} className={`flex flex-col items-center gap-1 shrink-0 ${activeTab === 'community' ? 'text-blue-600' : 'text-slate-400'}`}><Users size={22} /><span className="text-[7px] font-black uppercase whitespace-nowrap">{t('portal.navCommunity')}</span></button>
         <button onClick={() => setActiveTab('wallet')} className={`flex flex-col items-center gap-1 shrink-0 ${activeTab === 'wallet' ? 'text-blue-600' : 'text-slate-400'}`}><CreditCard size={22} /><span className="text-[7px] font-black uppercase whitespace-nowrap">{t('portal.navWallet')}</span></button>
         <button onClick={() => setActiveTab('gallery')} className={`flex flex-col items-center gap-1 shrink-0 ${activeTab === 'gallery' ? 'text-blue-600' : 'text-slate-400'}`}><ImageIcon size={22} /><span className="text-[7px] font-black uppercase whitespace-nowrap">{t('portal.navGallery')}</span></button>
+        <button onClick={() => setActiveTab('timer')} className={`flex flex-col items-center gap-1 shrink-0 ${activeTab === 'timer' ? 'text-blue-600' : 'text-slate-400'}`}><Timer size={22} /><span className="text-[7px] font-black uppercase whitespace-nowrap">{t('portal.navTimer')}</span></button>
+        <button onClick={() => setActiveTab('rules')} className={`flex flex-col items-center gap-1 shrink-0 ${activeTab === 'rules' ? 'text-blue-600' : 'text-slate-400'}`}><Shield size={22} /><span className="text-[7px] font-black uppercase whitespace-nowrap">{t('portal.navRules')}</span></button>
       </nav>
 
       <style>{` .no-scrollbar::-webkit-scrollbar { display: none; } .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; } @keyframes scan { 0% { transform: translateY(-150px); } 100% { transform: translateY(150px); } } `}</style>

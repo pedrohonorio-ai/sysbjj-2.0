@@ -25,7 +25,7 @@ import { useTranslation } from './contexts/LanguageContext';
 import { useTheme } from './contexts/ThemeContext';
 import { useProfile } from './contexts/ProfileContext';
 import { useData } from './contexts/DataContext';
-import { db, auth as firebaseAuth } from './firebase';
+import { db, auth } from './firebase';
 import { signInAnonymously } from 'firebase/auth';
 import { doc, setDoc } from 'firebase/firestore';
 
@@ -40,13 +40,13 @@ const Sidebar = ({ isOpen, toggle, onLogout }: { isOpen: boolean, toggle: () => 
   const location = useLocation();
   const { t } = useTranslation();
   const { profile } = useProfile();
-  let auth: any = { role: null, email: '' };
+  let authState: any = { role: null, email: '' };
   try {
-    auth = JSON.parse(localStorage.getItem('oss_auth') || '{}');
+    authState = JSON.parse(localStorage.getItem('oss_auth') || '{}');
   } catch (e) {
     console.error("Auth parse error", e);
   }
-  const isMasterAdmin = auth.email && MASTER_ADMINS.includes(auth.email.toLowerCase());
+  const isMasterAdmin = authState.email && MASTER_ADMINS.includes(authState.email.toLowerCase());
 
   if (location.pathname.startsWith('/portal/')) return null;
 
@@ -55,8 +55,8 @@ const Sidebar = ({ isOpen, toggle, onLogout }: { isOpen: boolean, toggle: () => 
     return true;
   });
 
-  const coreItems = filteredItems.filter(item => ['dashboard', 'students', 'teaching-hub', 'performance', 'business', 'attendance'].includes(item.id));
-  const evolutionItems = filteredItems.filter(item => ['promotions', 'ibjjf-rules'].includes(item.id));
+  const coreItems = filteredItems.filter(item => ['dashboard', 'students', 'teaching-hub', 'performance', 'business', 'attendance', 'finances', 'timer'].includes(item.id));
+  const evolutionItems = filteredItems.filter(item => ['promotions', 'ibjjf-rules', 'history', 'audit'].includes(item.id));
 
   const renderNavItem = (item: any) => {
     const isActive = location.pathname === `/${item.id}` || (location.pathname === '/' && item.id === 'dashboard');
@@ -139,7 +139,7 @@ const Sidebar = ({ isOpen, toggle, onLogout }: { isOpen: boolean, toggle: () => 
 
           <div className={!isOpen ? 'opacity-0' : 'opacity-100 transition-opacity duration-300'}>
             <div className="mb-3 px-4 flex items-center gap-3">
-               <span className="text-[10px] font-black text-slate-400 uppercase tracking-[0.25em] whitespace-nowrap">{t('common.evolution')}</span>
+               <span className="text-[10px] font-black text-slate-400 uppercase tracking-[0.25em] whitespace-nowrap">{t('common.tools')}</span>
                <div className="h-px bg-slate-100 dark:bg-slate-800/50 flex-1" />
             </div>
             <div className="space-y-1">
@@ -213,13 +213,13 @@ const Sidebar = ({ isOpen, toggle, onLogout }: { isOpen: boolean, toggle: () => 
 const BottomNav = ({ onLogout }: { onLogout: () => void }) => {
   const location = useLocation();
   const { t } = useTranslation();
-  let auth: any = { role: null, email: '' };
+  let authState: any = { role: null, email: '' };
   try {
-    auth = JSON.parse(localStorage.getItem('oss_auth') || '{}');
+    authState = JSON.parse(localStorage.getItem('oss_auth') || '{}');
   } catch (e) {
     console.error("Auth parse error", e);
   }
-  const isMasterAdmin = auth.email && MASTER_ADMINS.includes(auth.email.toLowerCase());
+  const isMasterAdmin = authState.email && MASTER_ADMINS.includes(authState.email.toLowerCase());
   
   const bottomItems = [
     { id: 'dashboard', icon: <Monitor size={20} />, label: t('common.dashboard') },
@@ -263,10 +263,31 @@ const Header = ({ toggleSidebar, auth, onLogout }: { toggleSidebar: () => void, 
   const location = useLocation();
   const navigate = useNavigate();
   const [currentTime, setCurrentTime] = useState(new Date());
+  const [temperature, setTemperature] = useState<number | null>(null);
 
   useEffect(() => {
     const timer = setInterval(() => setCurrentTime(new Date()), 1000);
     return () => clearInterval(timer);
+  }, []);
+
+  useEffect(() => {
+    const fetchWeather = async () => {
+      try {
+        navigator.geolocation.getCurrentPosition(async (position) => {
+          const { latitude, longitude } = position.coords;
+          const response = await fetch(`https://api.open-meteo.com/v1/forecast?latitude=${latitude}&longitude=${longitude}&current_weather=true`);
+          const data = await response.json();
+          if (data.current_weather) setTemperature(Math.round(data.current_weather.temperature));
+        }, async () => {
+          const response = await fetch('https://api.open-meteo.com/v1/forecast?latitude=-22.9068&longitude=-43.1729&current_weather=true');
+          const data = await response.json();
+          if (data.current_weather) setTemperature(Math.round(data.current_weather.temperature));
+        });
+      } catch (e) {}
+    };
+    fetchWeather();
+    const weatherInterval = setInterval(fetchWeather, 1800000);
+    return () => clearInterval(weatherInterval);
   }, []);
 
   const handleThemeToggle = () => {
@@ -293,6 +314,20 @@ const Header = ({ toggleSidebar, auth, onLogout }: { toggleSidebar: () => void, 
         </div>
       </div>
       <div className="flex items-center gap-2 sm:gap-4">
+        <div className="flex flex-col items-end mr-2">
+           <p className="text-[10px] font-black text-white tabular-nums leading-none">
+             {currentTime.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' })}
+           </p>
+           <p className="text-[7px] font-bold text-slate-500 uppercase tracking-widest mt-1">
+             {currentTime.toLocaleDateString([], { day: 'numeric', month: 'short', year: 'numeric' })}
+           </p>
+        </div>
+        {temperature !== null && (
+          <div className="flex items-center gap-1 px-3 py-1 bg-white/5 rounded-full border border-white/10 mr-2">
+             <Activity size={10} className="text-blue-500" />
+             <span className="text-[9px] font-black text-white">{temperature}°C</span>
+          </div>
+        )}
         <button 
           onClick={handleThemeToggle}
           className="p-2 text-slate-400 hover:text-white transition-colors"
@@ -335,6 +370,21 @@ const Header = ({ toggleSidebar, auth, onLogout }: { toggleSidebar: () => void, 
       </div>
 
       <div className="flex items-center gap-3 sm:gap-6">
+        <div className="flex items-center gap-4 px-3 sm:px-6 border-r border-slate-200 dark:border-white/5 mr-2 text-right">
+           <div>
+             <p className="text-[10px] sm:text-sm font-black text-slate-900 dark:text-white leading-none tabular-nums">
+               {currentTime.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' })}
+             </p>
+             <p className="text-[7px] sm:text-[8px] font-black text-slate-400 uppercase tracking-widest mt-1">
+               {currentTime.toLocaleDateString([], { weekday: 'short', day: 'numeric', month: 'long', year: 'numeric' })}
+             </p>
+           </div>
+           {temperature !== null && (
+             <div className="hidden xs:flex items-center gap-2 pl-4 border-l border-slate-200 dark:border-white/5">
+                <div className="text-sm sm:text-lg font-black italic text-blue-600 dark:text-blue-400 leading-none">{temperature}°C</div>
+             </div>
+           )}
+        </div>
         <div className="hidden lg:flex items-center gap-3 px-6 py-3 bg-white dark:bg-white/5 border border-slate-200 dark:border-white/10 rounded-2xl group focus-within:ring-2 focus-within:ring-blue-500/20 transition-all">
           <Search size={14} className="text-slate-400 group-focus-within:text-blue-500 transition-colors" />
           <input 
@@ -367,8 +417,8 @@ const App: React.FC = () => {
   useEffect(() => {
     // Auto-login anonymously to enable Firestore writes if not authenticated
     // This is useful for student portal check-ins and logs when not fully logged in via email
-    if (firebaseAuth) {
-      signInAnonymously(firebaseAuth).catch(err => {
+    if (auth) {
+      signInAnonymously(auth).catch(err => {
         // Silent specific errors that are expected in restricted environments
         const silentErrors = [
           'auth/admin-restricted-operation',
@@ -382,7 +432,7 @@ const App: React.FC = () => {
     }
   }, []);
 
-  const [auth, setAuth] = useState<AuthState>(() => {
+  const [authData, setAuthData] = useState<AuthState>(() => {
     try {
       const saved = localStorage.getItem('oss_auth');
       return saved ? JSON.parse(saved) : { isLoggedIn: false, role: null };
@@ -394,7 +444,7 @@ const App: React.FC = () => {
 
   // Track Online Status
   useEffect(() => {
-    if (auth.isLoggedIn && auth.email && db) {
+    if (authData.isLoggedIn && authData.email && db) {
       const deviceId = localStorage.getItem('oss_device_id') || Math.random().toString(36).substring(2, 15);
       if (!localStorage.getItem('oss_device_id')) localStorage.setItem('oss_device_id', deviceId);
 
@@ -412,11 +462,11 @@ const App: React.FC = () => {
           else if (/Edge/i.test(ua)) browser = "Edge";
           
           const deviceInfo = `${device} (${browser})`;
-          const presenceRef = doc(db, 'presence', `${auth.email!.replace(/\./g, '_')}_${deviceId}`);
+          const presenceRef = doc(db, 'presence', `${authData.email!.replace(/\./g, '_')}_${deviceId}`);
           await setDoc(presenceRef, {
-            email: auth.email,
+            email: authData.email,
             lastSeen: Date.now(),
-            role: auth.role,
+            role: authData.role,
             userAgent: deviceInfo,
             deviceId: deviceId
           }, { merge: true });
@@ -429,24 +479,24 @@ const App: React.FC = () => {
       const interval = setInterval(updatePresence, 300000); // 5 minutes - reduce write quota pressure
       return () => clearInterval(interval);
     }
-  }, [auth.isLoggedIn, auth.email, auth.role]);
+  }, [authData.isLoggedIn, authData.email, authData.role]);
 
   useEffect(() => {
-    if (auth.isLoggedIn && auth.email) {
-      logAction('Sessão Restaurada', `Usuário ${auth.email} acessou o sistema`, 'System');
+    if (authData.isLoggedIn && authData.email) {
+      logAction('Sessão Restaurada', `Usuário ${authData.email} acessou o sistema`, 'System');
     }
   }, []);
 
   useEffect(() => {
     window.scrollTo(0, 0);
-    if (auth.isLoggedIn && auth.role === 'student' && !location.pathname.startsWith('/portal/')) {
-      navigate(`/portal/${auth.studentCode}`);
+    if (authData.isLoggedIn && authData.role === 'student' && !location.pathname.startsWith('/portal/')) {
+      navigate(`/portal/${authData.studentCode}`);
     }
-  }, [location.pathname, auth, navigate]);
+  }, [location.pathname, authData, navigate]);
 
   const handleLogin = (role: 'admin' | 'student', studentCode?: string, email?: string) => {
     const newAuth: AuthState = { isLoggedIn: true, role, studentCode, email };
-    setAuth(newAuth);
+    setAuthData(newAuth);
     localStorage.setItem('oss_auth', JSON.stringify(newAuth));
     
     // Log direct login
@@ -462,17 +512,17 @@ const App: React.FC = () => {
   };
 
   const handleLogout = () => {
-    setAuth({ isLoggedIn: false, role: null });
+    setAuthData({ isLoggedIn: false, role: null });
     localStorage.removeItem('oss_auth');
     navigate('/');
   };
 
-  if (!auth.isLoggedIn) {
+  if (!authData.isLoggedIn) {
     return <Login onLogin={handleLogin} />;
   }
 
   const isPortal = location.pathname.startsWith('/portal/');
-  const isAdmin = auth.role === 'admin';
+  const isAdmin = authData.role === 'admin';
   const showHeader = isAdmin || isPortal;
 
   return (
@@ -499,10 +549,10 @@ const App: React.FC = () => {
       `}</style>
       {(isAdmin && !isPortal) && <Sidebar isOpen={sidebarOpen} toggle={() => setSidebarOpen(!sidebarOpen)} onLogout={handleLogout} />}
       <div className={`flex-1 flex flex-col w-full min-h-screen transition-all duration-500 ease-[cubic-bezier(0.2,0.8,0.2,1)]
-        ${(isPortal || auth.role === 'student' || !isAdmin) 
+        ${(isPortal || authData.role === 'student' || !isAdmin) 
           ? 'pl-0' 
           : (sidebarOpen ? 'lg:pl-72' : 'lg:pl-0')}`}>
-        {showHeader && <Header toggleSidebar={() => setSidebarOpen(!sidebarOpen)} auth={auth} onLogout={handleLogout} />}
+        {showHeader && <Header toggleSidebar={() => setSidebarOpen(!sidebarOpen)} auth={authData} onLogout={handleLogout} />}
         <main className={`p-4 sm:p-8 lg:p-12 pt-24 lg:pt-32 flex-1 w-full ${isPortal ? 'max-w-full' : 'max-w-[1920px]'} mx-auto overflow-x-hidden pb-32 lg:pb-12 relative group`}>
           {/* Version Tracking for Sync Verification */}
           <div className="fixed bottom-6 right-6 pointer-events-none opacity-0 group-hover:opacity-30 transition-opacity z-[100]">
@@ -510,7 +560,7 @@ const App: React.FC = () => {
           </div>
           <div className="page-transition" key={location.pathname}>
             <Routes>
-              {auth.role === 'admin' ? (
+              {authData.role === 'admin' ? (
                 <>
                   <Route path="/" element={<Dashboard />} />
                   <Route path="/dashboard" element={<Dashboard />} />
@@ -534,7 +584,7 @@ const App: React.FC = () => {
               ) : (
                 <>
                   <Route path="/portal/:code" element={<StudentPortal />} />
-                  <Route path="*" element={<Navigate to={`/portal/${auth.studentCode}`} />} />
+                  <Route path="*" element={<Navigate to={`/portal/${authData.studentCode}`} />} />
                 </>
               )}
             </Routes>
@@ -542,7 +592,7 @@ const App: React.FC = () => {
         </main>
 
         {/* Global Footer Optimization */}
-        {auth.role === 'admin' && !isPortal && (
+        {authData.role === 'admin' && !isPortal && (
           <footer className="hidden md:block py-12 px-12 border-t border-slate-100 dark:border-white/5 bg-white/5 dark:bg-slate-950/20 mb-8 mx-auto w-full max-w-[1920px] rounded-[3rem] transition-all">
              <div className="flex flex-col lg:flex-row items-center justify-between gap-8">
                 <div className="flex items-center gap-6">
@@ -581,7 +631,7 @@ const App: React.FC = () => {
           </footer>
         )}
         
-        {auth.role === 'admin' && <BottomNav onLogout={handleLogout} />}
+        {authData.role === 'admin' && <BottomNav onLogout={handleLogout} />}
       </div>
     </div>
   );

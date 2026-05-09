@@ -5,7 +5,7 @@ import { useTranslation } from '../contexts/LanguageContext';
 import { useData } from '../contexts/DataContext';
 import { motion, AnimatePresence } from 'motion/react';
 import { BeltColor, KidsBeltColor, Student, GraduationCriterion } from '../types';
-import { BELT_COLORS, IBJJF_BELT_RULES } from '../constants';
+import { BELT_COLORS, IBJJF_BELT_RULES, ADULT_BELTS, KIDS_BELTS } from '../constants';
 import { BELT_REQUIREMENTS, KIDS_BELT_REQUIREMENTS } from '../constants/beltRequirements';
 import { IBJJF_REFERENCE } from '../constants/rulesData';
 import VerificationBadge from '../components/ui/VerificationBadge';
@@ -39,9 +39,11 @@ const BeltSystem: React.FC = () => {
     if (!selectedStudent) return;
     
     // Get next belt
-    const belts = activeBoard === 'adult' ? Object.keys(BELT_COLORS) : Object.keys(BELT_COLORS); // Simplificação
+    const belts = selectedStudent.isKid ? KIDS_BELTS : ADULT_BELTS;
     const currentIndex = belts.indexOf(selectedStudent.belt);
-    const nextBelt = belts[currentIndex + 1] || selectedStudent.belt;
+    const nextBelt = (currentIndex !== -1 && currentIndex < belts.length - 1) 
+      ? belts[currentIndex + 1] 
+      : selectedStudent.belt;
 
     if (confirm(`Deseja graduar ${selectedStudent.name} para a faixa ${nextBelt}? Esta ação será registrada no Ledger Imutável.`)) {
       approveGraduation(selectedStudent.id, nextBelt);

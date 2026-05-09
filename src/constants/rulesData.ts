@@ -134,11 +134,13 @@ export const IBJJF_REFERENCE: IBJJFReference = {
   ],
   graduationChart: {
     adult: [
-      { belt: 'Branca', age: 'Qualquer', time: 'Sem mínimo', color: 'White' },
-      { belt: 'Azul', age: '16 anos', time: '2 anos (ou 1 se 1.5 de roxa)', color: 'Blue' },
-      { belt: 'Roxa', age: '16 anos', time: '1.5 anos (ou 2 se veio da azul)', color: 'Purple' },
-      { belt: 'Marrom', age: '18 anos', time: '1 ano', color: 'Brown' },
-      { belt: 'Preta', age: '19 anos', time: '36 meses', color: 'Black' },
+      { belt: 'Branca (White)', age: 'Iniciante', time: 'Sem mínimo', color: 'White' },
+      { belt: 'Azul (Blue)', age: '16 anos', time: '2 anos', color: 'Blue' },
+      { belt: 'Roxa (Purple)', age: '16 anos', time: '1.5 anos', color: 'Purple' },
+      { belt: 'Marrom (Brown)', age: '18 anos', time: '1 ano', color: 'Brown' },
+      { belt: 'Preta (Black)', age: '19 anos', time: '31 anos (Diplomado)', color: 'Black' },
+      { belt: 'Coral (Red/Black)', age: '50 anos', time: '31 anos de Preta', color: 'Red-Black' },
+      { belt: 'Vermelha (Red)', age: '67 anos', time: 'Termo de Vida', color: 'Red' },
     ],
     kids: [
       { belt: 'Branca', age: '4 a 15 anos', color: 'White' },
@@ -146,37 +148,37 @@ export const IBJJF_REFERENCE: IBJJFReference = {
       { belt: 'Cinza', age: '4 a 15 anos', color: 'Gray' },
       { belt: 'Cinza / Preta', age: '4 a 15 anos', color: 'Gray-Black' },
       { belt: 'Amarela / Branca', age: '7 a 15 anos', color: 'White-Yellow' },
-      { belt: 'Amarela', age: '7 a 15 anos', color: 'Yellow' },
-      { belt: 'Amarela / Preta', age: '7 a 15 anos', color: 'Black-Yellow' },
+      { belt: 'Amarela', age: '8 a 15 anos', color: 'Yellow' },
+      { belt: 'Amarela / Preta', age: '9 a 15 anos', color: 'Black-Yellow' },
       { belt: 'Laranja / Branca', age: '10 a 15 anos', color: 'White-Orange' },
-      { belt: 'Laranja', age: '10 a 15 anos', color: 'Orange' },
-      { belt: 'Laranja / Preta', age: '10 a 15 anos', color: 'Black-Orange' },
+      { belt: 'Laranja', age: '11 a 15 anos', color: 'Orange' },
+      { belt: 'Laranja / Preta', age: '12 a 15 anos', color: 'Black-Orange' },
       { belt: 'Verde / Branca', age: '13 a 15 anos', color: 'White-Green' },
-      { belt: 'Verde', age: '13 a 15 anos', color: 'Green' },
-      { belt: 'Verde / Preta', age: '13 a 15 anos', color: 'Black-Green' },
+      { belt: 'Verde', age: '14 a 15 anos', color: 'Green' },
+      { belt: 'Verde / Preta', age: '15 a 15 anos', color: 'Black-Green' },
     ]
   },
   weightClasses: {
     male: [
-      { category: 'Galo (Rooster)', weight: 'Até 57.5 kg' },
-      { category: 'Pluma (Light Feather)', weight: 'Até 64.0 kg' },
-      { category: 'Pena (Feather)', weight: 'Até 70.0 kg' },
-      { category: 'Leve (Light)', weight: 'Até 76.0 kg' },
-      { category: 'Médio (Middle)', weight: 'Até 82.3 kg' },
-      { category: 'Meio-Pesado (Medium Heavy)', weight: 'Até 88.3 kg' },
-      { category: 'Pesado (Heavy)', weight: 'Até 94.3 kg' },
-      { category: 'Super-Pesado (Super Heavy)', weight: 'Até 100.5 kg' },
-      { category: 'Pesadíssimo (Ultra Heavy)', weight: 'Sem limite' },
+      { category: 'Galo (Rooster)', weight: 'Até 57.5 kg / 126.8 lb' },
+      { category: 'Pluma (Light Feather)', weight: 'Até 64.0 kg / 141.1 lb' },
+      { category: 'Pena (Feather)', weight: 'Até 70.0 kg / 154.3 lb' },
+      { category: 'Leve (Light)', weight: 'Até 76.0 kg / 167.6 lb' },
+      { category: 'Médio (Middle)', weight: 'Até 82.3 kg / 181.4 lb' },
+      { category: 'Meio-Pesado (Medium Heavy)', weight: 'Até 88.3 kg / 194.7 lb' },
+      { category: 'Pesado (Heavy)', weight: 'Até 94.3 kg / 207.9 lb' },
+      { category: 'Super-Pesado (Super Heavy)', weight: 'Até 100.5 kg / 221.6 lb' },
+      { category: 'Pesadíssimo (Ultra Heavy)', weight: 'Sem Limite Máximo' },
     ],
     female: [
-      { category: 'Galo (Rooster)', weight: 'Até 48.5 kg' },
-      { category: 'Pluma (Light Feather)', weight: 'Até 53.5 kg' },
-      { category: 'Pena (Feather)', weight: 'Até 58.5 kg' },
-      { category: 'Leve (Light)', weight: 'Até 64.0 kg' },
-      { category: 'Médio (Middle)', weight: 'Até 69.0 kg' },
-      { category: 'Meio-Pesado (Medium Heavy)', weight: 'Até 74.0 kg' },
-      { category: 'Pesado (Heavy)', weight: 'Até 79.3 kg' },
-      { category: 'Super-Pesado (Super Heavy)', weight: 'Sem limite' },
+      { category: 'Galo (Rooster)', weight: 'Até 48.5 kg / 107 lb' },
+      { category: 'Pluma (Light Feather)', weight: 'Até 53.5 kg / 118 lb' },
+      { category: 'Pena (Feather)', weight: 'Até 58.5 kg / 129 lb' },
+      { category: 'Leve (Light)', weight: 'Até 64.0 kg / 141.1 lb' },
+      { category: 'Médio (Middle)', weight: 'Até 69.0 kg / 152.1 lb' },
+      { category: 'Meio-Pesado (Medium Heavy)', weight: 'Até 74.0 kg / 163.1 lb' },
+      { category: 'Pesado (Heavy)', weight: 'Até 79.3 kg / 174.8 lb' },
+      { category: 'Super-Pesado (Super Heavy)', weight: 'Sem Limite Máximo' },
     ]
   }
 };
@@ -191,7 +193,7 @@ export const IBJJF_COURSES: RuleCourse[] = [
         id: 'rule-points-1',
         title: 'Pontuação: Domínio Estratégico',
         category: 'Points',
-        content: 'No Jiu-Jitsu competitivo, os pontos são reflexos de posições de domínio. Quedas (2 pts), Passagem de Guarda (3 pts), Joelho na Barriga (2 pts), Montada (4 pts) e Pegada de Costas (4 pts). A estabilização por 3 segundos é o segredo do sucesso.',
+        content: 'No Jiu-Jitsu competitivo, os pontos são reflexos de posições de domínio. Quedas (2 pts), Passagem de Guarda (3 pts), Joelho na Barriga (2 pts), Montada (4 pts) e Pegada de Costas (4 pts). A estabilização por 3 segundos é o segredo do sucesso. Vantagens são concedidas por quase chegar a uma dessas posições ou por finalizações quase concretizadas.',
         points: 50,
         icon: 'Trophy',
         questions: [
@@ -215,7 +217,7 @@ export const IBJJF_COURSES: RuleCourse[] = [
         id: 'rule-fouls-1',
         title: 'Faltas e Punições',
         category: 'Fouls',
-        content: 'Faltas graves levam à desclassificação imediata. Punições acumuladas dão pontos ao adversário.',
+        content: 'Faltas graves levam à desclassificação imediata. Punições acumuladas dão pontos ao adversário. 1ª punição: Advertência; 2ª punição: Vantagem para o oponente; 3ª punição: 2 pontos para o oponente; 4ª punição: Desclassificação.',
         points: 80,
         icon: 'AlertTriangle',
         questions: [
@@ -225,6 +227,30 @@ export const IBJJF_COURSES: RuleCourse[] = [
             options: ['O oponente ganha 2 pontos', 'O oponente ganha 1 vantagem', 'Você é desclassificado', 'A luta recomeça em pé'],
             correctAnswer: 0,
             explanation: 'IBJJF: 1ª (Falta), 2ª (Vantagem p/ Op), 3ª (2 Pts p/ Op), 4ª (Desclassificação).'
+          }
+        ]
+      }
+    ]
+  },
+  {
+    id: 'course-master-sensei',
+    title: 'Master Sensei: Estratégia de Competição',
+    description: 'Aprenda a ganhar lutas no placar e a orientar seus alunos.',
+    lessons: [
+      {
+        id: 'rule-strategy-1',
+        title: 'Gestão de Placar e Tempo',
+        category: 'Etiquette',
+        content: 'Ganhar por uma vantagem é tão legítimo quanto ganhar por finalização em termos de campeonato. Aprenda quando arriscar e quando manter a posição. O uso estratégico do tempo é crucial, especialmente nos últimos 2 minutos da luta.',
+        points: 120,
+        icon: 'ShieldCheck',
+        questions: [
+          {
+            id: 'qs-1',
+            question: 'Se a luta terminar empatada em pontos e vantagens, quem decide o vencedor?',
+            options: ['Sorteio', 'O árbitro central', 'Os 3 árbitros por decisão lateral', 'Quem atacou por último'],
+            correctAnswer: 2,
+            explanation: 'Em caso de empate total, a decisão cabe aos três árbitros (um central e dois laterais).'
           }
         ]
       }
