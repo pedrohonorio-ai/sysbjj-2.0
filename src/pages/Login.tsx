@@ -24,8 +24,16 @@ const Login: React.FC = () => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
+  const [cooldown, setCooldown] = useState(0);
 
   const [currentTime, setCurrentTime] = useState(new Date());
+
+  useEffect(() => {
+    if (cooldown > 0) {
+      const timer = setTimeout(() => setCooldown(cooldown - 1), 1000);
+      return () => clearTimeout(timer);
+    }
+  }, [cooldown]);
   
   useEffect(() => {
     const timer = setInterval(() => setCurrentTime(new Date()), 1000);
@@ -58,6 +66,9 @@ const Login: React.FC = () => {
       
       if (errorMessage.includes('provider is not enabled')) {
         setError('Google Login não está habilitado no seu painel Supabase. Siga os passos abaixo para corrigir.');
+      } else if (errorMessage.includes('after 50 seconds') || errorMessage.includes('too many requests')) {
+        setError('Muitas tentativas. Por motivos de segurança, aguarde 60 segundos antes de tentar novamente.');
+        setCooldown(60);
       } else if (err.code === 'auth/unauthorized-domain' || errorMessage.includes('unauthorized domain')) {
         setError('Domínio não autorizado. Adicione os domínios permitidos nas configurações de autenticação do Supabase.');
       } else {
@@ -105,7 +116,13 @@ const Login: React.FC = () => {
       }
     } catch (err: any) {
       console.error(err);
-      setError(err.message || 'Erro na autenticação');
+      const errorMessage = err.message || '';
+      if (errorMessage.includes('after 50 seconds') || errorMessage.includes('too many requests')) {
+        setError('Acesso bloqueado temporariamente por excesso de tentativas. Aguarde 60 segundos.');
+        setCooldown(60);
+      } else {
+        setError(errorMessage || 'Erro na autenticação');
+      }
     } finally {
       setLoading(false);
     }
@@ -281,22 +298,22 @@ const Login: React.FC = () => {
 
                 <button 
                   type="submit" 
-                  disabled={loading}
+                  disabled={loading || cooldown > 0}
                   className="w-full bg-blue-600 hover:bg-blue-500 disabled:opacity-50 text-white font-black py-4 rounded-2xl transition-all shadow-xl shadow-blue-600/20 flex items-center justify-center gap-3 group uppercase text-xs tracking-widest"
                 >
-                  {loading ? 'Processando Bloco...' : mode === 'login' ? 'Validar Acesso Master' : mode === 'register' ? 'Gerar Novo Nó' : 'Resetar Credenciais'}
-                  {!loading && <ArrowRight size={18} className="group-hover:translate-x-1 transition-transform" />}
+                  {loading ? 'Processando Bloco...' : cooldown > 0 ? `Aguarde ${cooldown}s` : mode === 'login' ? 'Validar Acesso Master' : mode === 'register' ? 'Gerar Novo Nó' : 'Resetar Credenciais'}
+                  {!loading && cooldown === 0 && <ArrowRight size={18} className="group-hover:translate-x-1 transition-transform" />}
                 </button>
 
                 {mode === 'login' && (
                   <button 
                     type="button"
                     onClick={handleGoogleLogin}
-                    disabled={loading}
+                    disabled={loading || cooldown > 0}
                     className="w-full bg-white text-slate-900 hover:bg-slate-100 disabled:opacity-50 font-black py-4 rounded-2xl transition-all shadow-xl flex items-center justify-center gap-3 group uppercase text-xs tracking-widest border border-slate-200"
                   >
                     <img src="https://www.google.com/favicon.ico" alt="Google" className="w-4 h-4" />
-                    Entrar com Google
+                    {cooldown > 0 ? `Bloqueio de Segurança (${cooldown}s)` : 'Entrar com Google'}
                   </button>
                 )}
 
