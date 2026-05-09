@@ -13,6 +13,10 @@ const FightTimer: React.FC = () => {
   const [timeLeft, setTimeLeft] = useState(360); // 6:00 default
   const [isRunning, setIsRunning] = useState(false);
   const [isChampionshipMode, setIsChampionshipMode] = useState(false);
+  const [restTime, setRestTime] = useState(60);
+  const [currentRound, setCurrentRound] = useState(1);
+  const [totalRounds, setTotalRounds] = useState(5);
+  const [isResting, setIsResting] = useState(false);
 
   // Score states
   const [athlete1, setAthlete1] = useState({ points: 0, advantages: 0, penalties: 0 });
@@ -57,9 +61,20 @@ const FightTimer: React.FC = () => {
       interval = setInterval(() => {
         setTimeLeft(prev => {
           if (prev <= 1) {
-            playBeep(880, 1000);
-            setIsRunning(false);
-            return 0;
+            if (!isResting && currentRound < totalRounds) {
+              playBeep(880, 1000);
+              setIsResting(true);
+              return restTime;
+            } else if (isResting) {
+              playBeep(1200, 1000);
+              setIsResting(false);
+              setCurrentRound(c => c + 1);
+              return 360; // Reset to match time (should really use a state for matchTime)
+            } else {
+              playBeep(880, 2000);
+              setIsRunning(false);
+              return 0;
+            }
           }
           if (prev <= 11 && prev > 1) {
             playBeep(440, 100);
@@ -67,11 +82,11 @@ const FightTimer: React.FC = () => {
           return prev - 1;
         });
       }, 1000);
-    } else if (timeLeft === 0) {
+    } else if (timeLeft === 0 && !isResting) {
       setIsRunning(false);
     }
     return () => clearInterval(interval);
-  }, [isRunning, timeLeft]);
+  }, [isRunning, timeLeft, isResting, currentRound, totalRounds, restTime]);
 
   const formatTime = (seconds: number) => {
     const mins = Math.floor(seconds / 60);
@@ -248,12 +263,27 @@ const FightTimer: React.FC = () => {
               <div className="absolute top-0 left-0 w-full h-2 bg-slate-100 dark:bg-white/5 overflow-hidden">
                  <motion.div 
                    initial={{ width: '100%' }}
-                   animate={{ width: `${(timeLeft / 360) * 100}%` }}
-                   className={`h-full transition-colors ${timeLeft < 60 ? 'bg-rose-500' : 'bg-blue-600'}`}
+                   animate={{ width: `${(timeLeft / (isResting ? restTime : 360)) * 100}%` }}
+                   className={`h-full transition-colors ${isResting ? 'bg-emerald-500' : timeLeft < 60 ? 'bg-rose-500' : 'bg-blue-600'}`}
                  />
               </div>
 
-              <div className={`text-[120px] md:text-[220px] font-black tabular-nums tracking-tighter italic leading-none transition-colors ${timeLeft < 60 && timeLeft > 0 ? 'text-rose-500' : isRunning ? 'text-blue-600' : 'text-slate-900 dark:text-white'}`}>
+              <div className="flex items-center gap-4 mb-6">
+                 {Array.from({ length: totalRounds }).map((_, i) => (
+                   <div 
+                     key={i} 
+                     className={`w-3 h-3 rounded-full transition-all ${i + 1 < currentRound ? 'bg-blue-600' : i + 1 === currentRound ? 'bg-blue-600 shadow-[0_0_12px_rgba(59,130,246,0.6)] animate-pulse' : 'bg-slate-200 dark:bg-white/10'}`} 
+                   />
+                 ))}
+              </div>
+
+              <div className="text-center mb-4">
+                 <p className={`text-[12px] font-black uppercase tracking-[0.3em] font-mono ${isResting ? 'text-emerald-500' : 'text-slate-400'}`}>
+                    {isResting ? 'Intervalo de Descanso' : `Round ${currentRound} de ${totalRounds}`}
+                 </p>
+              </div>
+
+              <div className={`text-[120px] md:text-[220px] font-black tabular-nums tracking-tighter italic leading-none transition-colors ${isResting ? 'text-emerald-500' : timeLeft < 60 && timeLeft > 0 ? 'text-rose-500' : isRunning ? 'text-blue-600' : 'text-slate-900 dark:text-white'}`}>
                  {formatTime(timeLeft)}
               </div>
 

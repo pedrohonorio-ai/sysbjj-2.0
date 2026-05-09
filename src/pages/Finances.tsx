@@ -1,10 +1,11 @@
 import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import { CreditCard, DollarSign, ArrowUpRight, ArrowDownLeft, Search, Filter, Calendar, Users, ShieldCheck, Download, AlertCircle, TrendingUp, Wallet, Receipt, Trash2, CheckCircle2, Plus, X } from 'lucide-react';
+import { CreditCard, DollarSign, ArrowUpRight, ArrowDownLeft, Search, Filter, Calendar, Users, ShieldCheck, Download, AlertCircle, TrendingUp, Wallet, Receipt, Trash2, CheckCircle2, Plus, X, BarChart3 } from 'lucide-react';
 import { useData } from '../contexts/DataContext';
-import { format } from 'date-fns';
+import { format, startOfMonth, endOfMonth, eachDayOfInterval, isSameDay } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import VerificationBadge from '../components/ui/VerificationBadge';
+import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, AreaChart, Area } from 'recharts';
 
 const Finances: React.FC = () => {
   const { payments, receipts, ledger, students, verifyLedgerIntegrity, addLedgerEntry } = useData();
@@ -14,6 +15,30 @@ const Finances: React.FC = () => {
   const [isVerifying, setIsVerifying] = useState(false);
   const [verifyStatus, setVerifyStatus] = useState<'verified' | 'unverified'>('verified');
 
+  // Chart Data calculation
+  const getChartData = () => {
+    const start = startOfMonth(new Date());
+    const end = endOfMonth(new Date());
+    const days = eachDayOfInterval({ start, end });
+
+    return days.map(day => {
+      const dayIncome = ledger
+        .filter(l => isSameDay(new Date(l.timestamp), day) && ['Income', 'StudentPayment', 'ExtraRevenue'].includes(l.type))
+        .reduce((acc, curr) => acc + curr.amount, 0);
+      const dayExpense = ledger
+        .filter(l => isSameDay(new Date(l.timestamp), day) && l.type === 'Expense')
+        .reduce((acc, curr) => acc + curr.amount, 0);
+
+      return {
+        name: format(day, 'dd'),
+        income: dayIncome,
+        expenses: dayExpense,
+        balance: dayIncome - dayExpense
+      };
+    });
+  };
+
+  const chartData = getChartData();
   const totalBalance = ledger.reduce((acc, curr) => acc + (curr.type === 'Income' || curr.type === 'StudentPayment' || curr.type === 'ExtraRevenue' ? curr.amount : -curr.amount), 0);
   const monthIncome = ledger.filter(l => ['Income', 'StudentPayment', 'ExtraRevenue'].includes(l.type)).reduce((acc, curr) => acc + curr.amount, 0);
   const monthExpense = ledger.filter(l => l.type === 'Expense').reduce((acc, curr) => acc + curr.amount, 0);
@@ -77,6 +102,102 @@ const Finances: React.FC = () => {
             </div>
           </div>
         ))}
+      </div>
+
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
+        <div className="lg:col-span-8 bg-white dark:bg-slate-900 rounded-[3rem] border border-slate-200 dark:border-white/5 p-8 shadow-2xl relative overflow-hidden group">
+          <div className="absolute top-0 right-0 p-8 opacity-5 group-hover:opacity-10 transition-opacity"><BarChart3 size={120} /></div>
+          <div className="relative z-10">
+            <div className="flex items-center justify-between mb-8">
+               <h2 className="text-xl font-black text-slate-900 dark:text-white uppercase tracking-tighter italic flex items-center gap-3">
+                  <TrendingUp size={24} className="text-blue-600" />
+                  Fluxo de Caixa Mensal
+               </h2>
+               <div className="text-[10px] font-black text-slate-400 uppercase tracking-widest">{format(new Date(), 'MMMM yyyy', { locale: ptBR })}</div>
+            </div>
+            
+            <div className="h-[300px] w-full">
+              <ResponsiveContainer width="100%" height="100%">
+                <AreaChart data={chartData}>
+                  <defs>
+                    <linearGradient id="colorIncome" x1="0" y1="0" x2="0" y2="1">
+                      <stop offset="5%" stopColor="#3b82f6" stopOpacity={0.1}/>
+                      <stop offset="95%" stopColor="#3b82f6" stopOpacity={0}/>
+                    </linearGradient>
+                  </defs>
+                  <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
+                  <XAxis 
+                    dataKey="name" 
+                    axisLine={false} 
+                    tickLine={false} 
+                    tick={{ fontSize: 10, fontWeight: 700, fill: '#94a3b8' }} 
+                  />
+                  <YAxis 
+                    hide 
+                  />
+                  <Tooltip 
+                    contentStyle={{ borderRadius: '16px', border: 'none', boxShadow: '0 10px 15px -3px rgb(0 0 0 / 0.1)', fontWeight: 800, fontSize: '10px', textTransform: 'uppercase' }}
+                  />
+                  <Area 
+                    type="monotone" 
+                    dataKey="income" 
+                    stroke="#3b82f6" 
+                    strokeWidth={4}
+                    fillOpacity={1} 
+                    fill="url(#colorIncome)" 
+                  />
+                  <Area 
+                    type="monotone" 
+                    dataKey="expenses" 
+                    stroke="#f43f5e" 
+                    strokeWidth={4}
+                    fill="none" 
+                  />
+                </AreaChart>
+              </ResponsiveContainer>
+            </div>
+
+            <div className="flex items-center gap-8 mt-8 pt-8 border-t border-slate-100 dark:border-white/5">
+              <div className="flex items-center gap-3">
+                 <div className="w-3 h-3 rounded-full bg-blue-600" />
+                 <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Entradas</span>
+              </div>
+              <div className="flex items-center gap-3">
+                 <div className="w-3 h-3 rounded-full bg-rose-500" />
+                 <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Saídas</span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div className="lg:col-span-4 space-y-8">
+           <div className="bg-slate-900 rounded-[3rem] p-8 text-white relative overflow-hidden group border border-white/5">
+              <div className="absolute -right-4 -bottom-4 opacity-5 group-hover:opacity-10 transition-opacity"><Wallet size={120} /></div>
+              <h3 className="text-xl font-black uppercase tracking-tighter italic mb-6">Próximos Vencimentos</h3>
+              <div className="space-y-4">
+                 {students.filter(s => s.status === 'Overdue').slice(0, 3).map(s => (
+                   <div key={s.id} className="flex items-center justify-between p-4 bg-white/5 rounded-2xl border border-white/5">
+                      <div>
+                         <p className="text-xs font-black uppercase tracking-tight">{s.name}</p>
+                         <p className="text-[9px] font-bold text-rose-400 uppercase tracking-widest">Vencido dia {s.dueDay}</p>
+                      </div>
+                      <div className="text-right">
+                         <p className="text-sm font-black italic">R$ {s.monthlyValue.toLocaleString()}</p>
+                      </div>
+                   </div>
+                 ))}
+                 {students.filter(s => s.status === 'Overdue').length === 0 && (
+                    <div className="py-8 text-center bg-white/5 rounded-2xl border border-dashed border-white/10">
+                       <CheckCircle2 className="mx-auto text-emerald-400 mb-2" size={24} />
+                       <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Tudo em dia!</p>
+                    </div>
+                 )}
+              </div>
+              <button className="w-full mt-6 py-4 bg-blue-600 hover:bg-blue-700 text-white rounded-2xl font-black uppercase tracking-widest text-[10px] transition-all shadow-xl">
+                 Ver Todos os Atrasos
+              </button>
+           </div>
+        </div>
       </div>
 
       <div className="bg-white dark:bg-slate-900 rounded-[3rem] border border-slate-200 dark:border-white/5 p-8 shadow-2xl space-y-8">
