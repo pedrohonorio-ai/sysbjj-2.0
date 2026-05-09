@@ -3,25 +3,10 @@ import React, { createContext, useContext, useState, useEffect, ReactNode, useCa
 import { Student, Payment, ClassSchedule, GalleryImage, ExtraRevenue, KimonoOrder, LessonPlan, LibraryTechnique, TechniqueCategory, BeltColor, Product, Plan, PaymentReceipt, TransactionLedger, SystemLog, AttendanceRecord, ExtraRevenueCategory, GraduationCriterion } from '../types';
 import CryptoJS from 'crypto-js';
 import { IBJJF_LESSONS } from '../constants/rulesData';
-import { db } from '../firebase';
 import { useAuth } from '../context/AuthContext';
 import { compressImage } from '../services/imageUtils';
 import { INITIAL_STUDENTS, INITIAL_SCHEDULES, INITIAL_PLANS } from '../services/academyInitializer';
-import { 
-  collection, 
-  onSnapshot, 
-  doc, 
-  setDoc, 
-  updateDoc, 
-  deleteDoc, 
-  getDoc,
-  getDocs,
-  query,
-  where,
-  orderBy,
-  limit,
-  writeBatch
-} from 'firebase/firestore';
+import { api } from '../services/api';
 
 enum OperationType {
   CREATE = 'create',
@@ -39,19 +24,18 @@ interface FirestoreErrorInfo {
   authInfo: any;
 }
 
-const handleFirestoreError = (error: unknown, operationType: OperationType, path: string | null, setNotifications?: React.Dispatch<React.SetStateAction<any[]>>) => {
-  const errInfo: FirestoreErrorInfo = {
+const handleApiError = (error: unknown, operationType: OperationType, path: string | null, setNotifications?: React.Dispatch<React.SetStateAction<any[]>>) => {
+  const errInfo = {
     error: error instanceof Error ? error.message : String(error),
-    authInfo: {}, 
     operationType,
     path
   };
-  console.error('Firestore Error: ', JSON.stringify(errInfo));
+  console.error('API Error: ', JSON.stringify(errInfo));
   
   if (setNotifications) {
     setNotifications(prev => [{
       id: `ERR-${Date.now()}`,
-      message: `Erro na Nuvem (${operationType}): Verifique sua conexão.`,
+      message: `Erro na Evolução (${operationType}): Conexão com Supabase instável.`,
       type: 'warning',
       timestamp: Date.now()
     }, ...prev]);
@@ -275,156 +259,78 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   const [notifications, setNotifications] = useState<{ id: string; message: string; type: 'info' | 'success' | 'warning'; timestamp: number }[]>([]);
   const lastHashRef = React.useRef<string>('0');
 
-  // Helper to get user-specific collection reference
-  const getUserCollection = useCallback((collectionName: string) => {
-    if (!db || !user) return null;
-    return collection(db, 'users', user.id, collectionName);
-  }, [db, user]);
-
   const isAuthenticated = !!user || (authRole === 'student' && !!studentCode);
 
-  // Firestore Real-time Sync (Optimized with Auth-gate and Limits) - NOW ISOLATED BY UID
+  /**
+   * Sincronização Principal com Supabase/Prisma
+   */
   useEffect(() => {
-    if (!db || !isAuthenticated) return;
+    if (!isAuthenticated || !user?.id) return;
 
-    const studentsColl = getUserCollection('students');
-    const unsubStudents = studentsColl ? onSnapshot(studentsColl, (snap) => {
-      const cloudData = snap.docs.map(doc => ({ ...doc.data(), id: doc.id } as Student));
-      setStudents(cloudData);
-    }, (error) => handleFirestoreError(error, OperationType.LIST, 'students', setNotifications)) : () => {};
+    const fetchAllData = async () => {
+      try {
+        const [
+          studentsData,
+          paymentsData,
+          schedulesData,
+          logsData,
+          ledgerData,
+          receiptsData,
+          revData,
+          plansData,
+          techniquesData,
+          productsData,
+          subscriptionPlansData,
+          ordersData
+        ] = await Promise.all([
+          api.fetchData('students', user.id),
+          api.fetchData('payments', user.id),
+          api.fetchData('schedules', user.id),
+          api.fetchData('logs', user.id),
+          api.fetchData('ledger', user.id),
+          api.fetchData('receipts', user.id),
+          api.fetchData('extra_revenue', user.id),
+          api.fetchData('lesson_plans', user.id),
+          api.fetchData('techniques', user.id),
+          api.fetchData('products', user.id),
+          api.fetchData('plans', user.id),
+          api.fetchData('orders', user.id)
+        ]);
 
-    const paymentsColl = getUserCollection('payments');
-    const unsubPayments = paymentsColl ? onSnapshot(query(paymentsColl, orderBy('date', 'desc'), limit(200)), (snap) => {
-      const cloudData = snap.docs.map(doc => ({ ...doc.data(), id: doc.id } as Payment));
-      setPayments(cloudData);
-    }, (error) => handleFirestoreError(error, OperationType.LIST, 'payments', setNotifications)) : () => {};
+        setStudents(studentsData);
+        setPayments(paymentsData);
+        if (schedulesData.length > 0) setSchedules(schedulesData);
+        setLogs(logsData);
+        setLedger(ledgerData);
+        setReceipts(receiptsData);
+        if (revData.length > 0) setExtraRevenue(revData);
+        if (plansData.length > 0) setLessonPlans(plansData);
+        if (techniquesData.length > 0) setTechniques(techniquesData);
+        if (productsData.length > 0) setProducts(productsData);
+        if (subscriptionPlansData.length > 0) setPlans(subscriptionPlansData);
+        if (ordersData.length > 0) setOrders(ordersData);
 
-    const logsColl = getUserCollection('system_logs');
-    const unsubLogs = logsColl ? onSnapshot(query(logsColl, orderBy('timestamp', 'desc'), limit(50)), (snap) => {
-      const logsData = snap.docs.map(doc => doc.data() as SystemLog);
-      setLogs(logsData);
-    }, (error) => handleFirestoreError(error, OperationType.LIST, 'system_logs', setNotifications)) : () => {};
-
-    const ledgerColl = getUserCollection('ledger');
-    const unsubLedger = ledgerColl ? onSnapshot(query(ledgerColl, orderBy('timestamp', 'desc'), limit(100)), (snap) => {
-      const ledgerData = snap.docs.map(doc => doc.data() as TransactionLedger);
-      setLedger(ledgerData);
-    }, (error) => handleFirestoreError(error, OperationType.LIST, 'ledger', setNotifications)) : () => {};
-
-    const receiptsColl = getUserCollection('receipts');
-    const unsubReceipts = receiptsColl ? onSnapshot(query(receiptsColl, orderBy('timestamp', 'desc'), limit(50)), (snap) => {
-      const cloudData = snap.docs.map(doc => ({ ...doc.data(), id: doc.id } as PaymentReceipt));
-      setReceipts(cloudData);
-    }, (error) => handleFirestoreError(error, OperationType.LIST, 'receipts', setNotifications)) : () => {};
-
-    const schedulesColl = getUserCollection('schedules');
-    const unsubSchedules = schedulesColl ? onSnapshot(schedulesColl, (snap) => {
-      const cloudData = snap.docs.map(doc => doc.data() as ClassSchedule);
-      if (cloudData.length > 0) setSchedules(cloudData);
-    }) : () => {};
-
-    const lessonPlansColl = getUserCollection('lesson_plans');
-    const unsubLessonPlans = lessonPlansColl ? onSnapshot(lessonPlansColl, (snap) => {
-      const cloudData = snap.docs.map(doc => doc.data() as LessonPlan);
-      setLessonPlans(cloudData);
-    }) : () => {};
-
-    const presenceColl = getUserCollection('presence');
-    const unsubPresence = presenceColl ? onSnapshot(query(presenceColl, where('lastSeen', '>', Date.now() - 3600000), limit(50)), (snap) => {
-      setPresence(snap.docs.map(doc => ({ ...doc.data(), id: doc.id } as any)));
-    }, (error) => handleFirestoreError(error, OperationType.LIST, 'presence', setNotifications)) : () => {};
-
-    const techniquesColl = getUserCollection('techniques');
-    const unsubTechniques = techniquesColl ? onSnapshot(techniquesColl, (snap) => {
-      const cloudData = snap.docs.map(doc => doc.data() as LibraryTechnique);
-      if (cloudData.length > 0) setTechniques(cloudData);
-    }) : () => {};
-
-    const extraRevenueColl = getUserCollection('extra_revenue');
-    const unsubExtraRevenue = extraRevenueColl ? onSnapshot(extraRevenueColl, (snap) => {
-      const cloudData = snap.docs.map(doc => doc.data() as ExtraRevenue);
-      setExtraRevenue(cloudData);
-    }) : () => {};
-
-    const productsColl = getUserCollection('products');
-    const unsubProducts = productsColl ? onSnapshot(productsColl, (snap) => {
-      const cloudData = snap.docs.map(doc => doc.data() as Product);
-      if (cloudData.length > 0) setProducts(cloudData);
-    }) : () => {};
-
-    const plansColl = getUserCollection('plans');
-    const unsubPlans = plansColl ? onSnapshot(plansColl, (snap) => {
-      const cloudData = snap.docs.map(doc => doc.data() as Plan);
-      if (cloudData.length > 0) setPlans(cloudData);
-    }) : () => {};
-
-    const galleryColl = getUserCollection('gallery');
-    const unsubGallery = galleryColl ? onSnapshot(galleryColl, (snap) => {
-      const cloudData = snap.docs.map(doc => doc.data() as GalleryImage);
-      setGallery(cloudData);
-    }) : () => {};
-
-    const ordersColl = getUserCollection('orders');
-    const unsubOrders = ordersColl ? onSnapshot(ordersColl, (snap) => {
-      const cloudData = snap.docs.map(doc => doc.data() as KimonoOrder);
-      setOrders(cloudData);
-    }) : () => {};
-
-    // AUTO-INITIALIZATION for New Users
-    const initializeNewUser = async () => {
-        if (!user) return;
-        
-        // Wait a bit to ensure cloud data had time to sync
-        setTimeout(async () => {
-            // Only initialize if students list is empty after sync attempt
-            if (students.length === 0 && schedules.length <= 3) {
-                const studentsColl = getUserCollection('students');
-                const schedulesColl = getUserCollection('schedules');
-                const plansColl = getUserCollection('plans');
-                
-                if (studentsColl && schedulesColl && plansColl) {
-                    // Check if already initialized by looking for a specific log or marker
-                    // For simplicity, we just check if students is still 0
-                    const snap = await getDocs(query(studentsColl, limit(1)));
-                    if (snap.empty) {
-                        console.log("Initializing default data for new sensei...");
-                        
-                        // Add initial students
-                        for (const s of INITIAL_STUDENTS) {
-                            const id = `STU-${Date.now()}-${Math.random().toString(36).substr(2, 5)}`;
-                            await setDoc(doc(studentsColl, id), { ...s, id });
-                        }
-                        
-                        // Add initial schedules
-                        for (const s of INITIAL_SCHEDULES) {
-                            const id = `SCH-${Date.now()}-${Math.random().toString(36).substr(2, 5)}`;
-                            await setDoc(doc(schedulesColl, id), { ...s, id });
-                        }
-                        
-                        // Add initial plans
-                        for (const p of INITIAL_PLANS) {
-                           const id = `PLAN-${Date.now()}-${Math.random().toString(36).substr(2, 5)}`;
-                           // Note: the local plans state might not have a direct setPlans if it is managed by sync
-                           // We just push to firestore and let sync handle the rest
-                           await setDoc(doc(plansColl, id), { ...p, id });
-                        }
-                        
-                        logAction('Boas-vindas', 'Dados iniciais de exemplo configurados para sua academia.', 'System');
-                    }
-                }
-            }
-        }, 3000);
+        // Auto-initialization for empty accounts
+        if (studentsData.length === 0) {
+           console.log("Oss! Iniciando dados padrão para novo Sensei...");
+           for (const s of INITIAL_STUDENTS) {
+             const id = `STU-${Date.now()}-${Math.random().toString(36).substr(2, 5)}`;
+             await api.saveData('students', user.id, { ...s, id });
+           }
+           const refreshedStudents = await api.fetchData('students', user.id);
+           setStudents(refreshedStudents);
+        }
+      } catch (error) {
+        handleApiError(error, OperationType.LIST, 'all', setNotifications);
+      }
     };
 
-    initializeNewUser();
-
-    return () => {
-      unsubStudents(); unsubPayments(); unsubLogs(); unsubLedger();
-      unsubReceipts(); unsubSchedules(); unsubLessonPlans(); unsubPresence();
-      unsubTechniques(); unsubExtraRevenue(); unsubProducts(); unsubPlans();
-      unsubGallery(); unsubOrders();
-    };
-  }, [db, isAuthenticated, user, getUserCollection]);
+    fetchAllData();
+    
+    // Refresh periodicamente (opcional se não usar realtime)
+    const interval = setInterval(fetchAllData, 60000); // 1 minuto
+    return () => clearInterval(interval);
+  }, [isAuthenticated, user?.id]);
 
   // Persistência automática em cada mudança (Local Storage as fallback for UI smoothness)
   useEffect(() => { saveSafely('oss_students', students); }, [students, saveSafely]);
@@ -487,13 +393,11 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     
     setLogs(prev => [newLog, ...prev]);
     
-    // Also persist to Firestore - ISOLATED
-    const logsColl = getUserCollection('system_logs');
-    if (logsColl) {
-      const logRef = doc(logsColl, newLog.id);
-      setDoc(logRef, newLog).catch(err => handleFirestoreError(err, OperationType.CREATE, 'system_logs', setNotifications));
+    // API Sync
+    if (user?.id) {
+       api.saveData('logs', user.id, newLog).catch(err => handleApiError(err, OperationType.CREATE, 'logs'));
     }
-  }, [getUserCollection]);
+  }, [user?.id, user?.email]);
 
   const verifyAuditIntegrity = useCallback(() => {
     if (logs.length <= 1) return true;
@@ -564,9 +468,8 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       // Optimistic Update
       setStudents(prev => [...prev, newStudent]);
       
-      const studentsColl = getUserCollection('students');
-      if (studentsColl) {
-        await setDoc(doc(studentsColl, id), newStudent).catch(err => handleFirestoreError(err, OperationType.CREATE, 'students'));
+      if (user?.id) {
+        await api.saveData('students', user.id, newStudent).catch(err => handleApiError(err, OperationType.CREATE, 'students'));
       }
       
       logAction('Novo Cadastro', `Alunos ${student.name} cadastrado`, 'User');
@@ -586,23 +489,21 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     // Optimistic Update
     setStudents(prev => prev.map(s => s.id === id ? { ...s, ...finalUpdates } : s));
     
-    const studentsColl = getUserCollection('students');
-    if (studentsColl) {
-      await updateDoc(doc(studentsColl, id), finalUpdates).catch(err => handleFirestoreError(err, OperationType.UPDATE, `students/${id}`));
+    if (user?.id) {
+      await api.saveData('students', user.id, { ...finalUpdates, id }).catch(err => handleApiError(err, OperationType.UPDATE, `students/${id}`));
     }
     logAction('Atualização de Cadastro', `Dados do aluno ID ${id} atualizados`, 'User');
-  }, [logAction, getUserCollection]);
+  }, [logAction, user?.id]);
 
   const deleteStudent = useCallback((id: string) => {
     // Optimistic Update
     setStudents(prev => prev.filter(s => s.id !== id));
     
-    const studentsColl = getUserCollection('students');
-    if (studentsColl) {
-      deleteDoc(doc(studentsColl, id)).catch(err => handleFirestoreError(err, OperationType.DELETE, `students/${id}`));
+    if (user?.id) {
+      api.deleteData('students', id, user.id).catch(err => handleApiError(err, OperationType.DELETE, `students/${id}`));
     }
     logAction('Exclusão de Cadastro', `Aluno ID ${id} removido do sistema`, 'Security');
-  }, [logAction, getUserCollection]);
+  }, [logAction, user?.id]);
 
   const addPayment = (payment: Omit<Payment, 'id'>) => {
     const id = `PAY-${Date.now()}`;
@@ -611,9 +512,8 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     // Optimistic Update
     setPayments(prev => [newPayment, ...prev]);
     
-    const paymentsColl = getUserCollection('payments');
-    if (paymentsColl) {
-      setDoc(doc(paymentsColl, id), newPayment).catch(err => handleFirestoreError(err, OperationType.CREATE, 'payments'));
+    if (user?.id) {
+       api.saveData('payments', user.id, newPayment).catch(err => handleApiError(err, OperationType.CREATE, 'payments'));
     }
 
     logAction('Pagamento Registrado', `Mensalidade de ${payment.name} no valor de R$ ${payment.amount}`, 'Financial');
@@ -641,9 +541,8 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     // Optimistic Update
     setReceipts(prev => [newReceipt, ...prev]);
     
-    const receiptsColl = getUserCollection('receipts');
-    if (receiptsColl) {
-      setDoc(doc(receiptsColl, id), newReceipt).catch(err => handleFirestoreError(err, OperationType.CREATE, 'receipts'));
+    if (user?.id) {
+       api.saveData('receipts', user.id, newReceipt).catch(err => handleApiError(err, OperationType.CREATE, 'receipts'));
     }
 
     logAction('Comprovante Enviado', `Aluno ${receipt.studentName} enviou comprovante de R$ ${receipt.amount}`, 'Financial');
@@ -662,9 +561,8 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     // Optimistic Update
     setReceipts(prev => prev.map(r => r.id === id ? { ...r, status: 'Approved' } : r));
     
-    const receiptsColl = getUserCollection('receipts');
-    if (receiptsColl) {
-      updateDoc(doc(receiptsColl, id), { status: 'Approved' }).catch(err => handleFirestoreError(err, OperationType.UPDATE, `receipts/${id}`));
+    if (user?.id) {
+       api.saveData('receipts', user.id, { ...receipt, status: 'Approved' }).catch(err => handleApiError(err, OperationType.UPDATE, `receipts/${id}`));
     }
 
     logAction('Comprovante Aprovado', `Comprovante ID ${id} aprovado pelo administrador`, 'Financial');
@@ -691,11 +589,11 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
 
   const rejectReceipt = (id: string) => {
     // Optimistic Update
+    const receipt = receipts.find(r => r.id === id);
     setReceipts(prev => prev.map(r => r.id === id ? { ...r, status: 'Rejected' } : r));
     
-    const receiptsColl = getUserCollection('receipts');
-    if (receiptsColl) {
-      updateDoc(doc(receiptsColl, id), { status: 'Rejected' }).catch(err => handleFirestoreError(err, OperationType.UPDATE, `receipts/${id}`));
+    if (user?.id && receipt) {
+       api.saveData('receipts', user.id, { ...receipt, status: 'Rejected' }).catch(err => handleApiError(err, OperationType.UPDATE, `receipts/${id}`));
     }
 
     logAction('Comprovante Rejeitado', `Comprovante ID ${id} rejeitado pelo administrador`, 'Security');
@@ -720,13 +618,12 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     // Optimistic Update
     setLedger(prev => [newEntry, ...prev]);
 
-    const ledgerColl = getUserCollection('ledger');
-    if (ledgerColl) {
-      setDoc(doc(ledgerColl, id), newEntry).catch(err => handleFirestoreError(err, OperationType.CREATE, 'ledger'));
+    if (user?.id) {
+       api.saveData('ledger', user.id, newEntry).catch(err => handleApiError(err, OperationType.CREATE, 'ledger'));
     }
 
     logAction('Movimentação Ledger', `Nova entrada no ledger: ${entry.description}`, 'Financial');
-  }, [ledger, logAction, getUserCollection]);
+  }, [ledger, logAction, user?.id]);
 
   const clearNotification = (id: string) => {
     setNotifications(prev => prev.filter(n => n.id !== id));
@@ -754,8 +651,7 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   const recordAttendance = useCallback(async (studentIds: string[], lessonPlanId?: string, classId?: string, notes?: string) => {
     const today = new Date().toISOString().split('T')[0];
     
-    // Update local state first for responsiveness
-    setStudents(prev => prev.map(s => studentIds.includes(s.id) ? { 
+    const updatedStudents = students.map(s => studentIds.includes(s.id) ? { 
       ...s, 
       attendanceCount: (s.attendanceCount || 0) + 1,
       currentStreak: (s.currentStreak || 0) + 1,
@@ -763,31 +659,23 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         ...(s.attendanceHistory || []),
         { date: today, lessonPlanId, classId, notes }
       ]
-    } : s));
+    } : s);
 
-    // Persist to Cloud
-    const studentsColl = getUserCollection('students');
-    if (db && studentsColl) {
-      const batch = writeBatch(db);
-      for (const id of studentIds) {
-        const student = students.find(s => s.id === id); 
-        if (student) {
-          const studentRef = doc(studentsColl, id);
-          batch.update(studentRef, {
-            attendanceCount: (student.attendanceCount || 0) + 1,
-            currentStreak: (student.currentStreak || 0) + 1,
-            attendanceHistory: [
-              ...(student.attendanceHistory || []),
-              { date: today, lessonPlanId, classId, notes }
-            ]
-          });
-        }
-      }
-      await batch.commit().catch(err => handleFirestoreError(err, OperationType.UPDATE, 'students-bulk'));
+    // Update local state first for responsiveness
+    setStudents(updatedStudents);
+
+    // Persist to Cloud via API
+    if (user?.id) {
+       for (const id of studentIds) {
+          const student = updatedStudents.find(s => s.id === id);
+          if (student) {
+             api.saveData('students', user.id, student).catch(err => handleApiError(err, OperationType.UPDATE, `students/${id}`));
+          }
+       }
     }
 
     logAction('Chamada Realizada', `${studentIds.length} alunos marcaram presença`, 'User');
-  }, [students, logAction, getUserCollection]);
+  }, [students, logAction, user?.id]);
 
   const completeRuleLesson = useCallback((studentId: string, lessonId: string, points: number) => {
     const student = students.find(s => s.id === studentId);
@@ -809,9 +697,8 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     // Optimistic Update
     setStudents(prev => prev.map(s => s.id === studentId ? { ...s, ...updates } : s));
     
-    const studentsColl = getUserCollection('students');
-    if (studentsColl) {
-      updateDoc(doc(studentsColl, studentId), updates).catch(err => handleFirestoreError(err, OperationType.UPDATE, `students/${studentId}`));
+    if (user?.id) {
+       api.saveData('students', user.id, { ...updates, id: studentId }).catch(err => handleApiError(err, OperationType.UPDATE, `students/${studentId}`));
     }
 
     setNotifications(prev => [{
@@ -831,9 +718,8 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     // Optimistic Update
     setSchedules(prev => [...prev, newSchedule].sort((a, b) => a.time.localeCompare(b.time)));
     
-    const schedulesColl = getUserCollection('schedules');
-    if (schedulesColl) {
-      setDoc(doc(schedulesColl, id), newSchedule).catch(err => handleFirestoreError(err, OperationType.CREATE, 'schedules'));
+    if (user?.id) {
+       api.saveData('schedules', user.id, newSchedule).catch(err => handleApiError(err, OperationType.CREATE, 'schedules'));
     }
     
     logAction('Novo Horário', `Aula de ${schedule.title} adicionada ao cronograma`, 'System');
@@ -843,9 +729,8 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     // Optimistic Update
     setSchedules(prev => prev.map(s => s.id === id ? { ...s, ...updates } : s).sort((a, b) => a.time.localeCompare(b.time)));
     
-    const schedulesColl = getUserCollection('schedules');
-    if (schedulesColl) {
-      updateDoc(doc(schedulesColl, id), updates).catch(err => handleFirestoreError(err, OperationType.UPDATE, `schedules/${id}`));
+    if (user?.id) {
+       api.saveData('schedules', user.id, { ...updates, id }).catch(err => handleApiError(err, OperationType.UPDATE, `schedules/${id}`));
     }
     logAction('Horário Atualizado', `Aula ID ${id} modificada`, 'System');
   };
@@ -854,9 +739,8 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     // Optimistic Update
     setSchedules(prev => prev.filter(s => s.id !== id));
     
-    const schedulesColl = getUserCollection('schedules');
-    if (schedulesColl) {
-      deleteDoc(doc(schedulesColl, id)).catch(err => handleFirestoreError(err, OperationType.DELETE, `schedules/${id}`));
+    if (user?.id) {
+       api.deleteData('schedules', id, user.id).catch(err => handleApiError(err, OperationType.DELETE, `schedules/${id}`));
     }
     logAction('Horário Removido', `Aula ID ${id} excluída`, 'Security');
   };
@@ -875,9 +759,8 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     // Optimistic Update
     setStudents(prev => prev.map(s => s.id === studentId ? { ...s, ...updates } : s));
 
-    const studentsColl = getUserCollection('students');
-    if (studentsColl) {
-      updateDoc(doc(studentsColl, studentId), updates).catch(err => handleFirestoreError(err, OperationType.UPDATE, `students/${studentId}`));
+    if (user?.id) {
+       api.saveData('students', user.id, { ...updates, id: studentId }).catch(err => handleApiError(err, OperationType.UPDATE, `students/${studentId}`));
     }
 
     logAction('Graduação Aprovada', `Aluno ${student.name} graduado de ${oldBelt} para ${newBelt}`, 'Security');
@@ -905,9 +788,9 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     const newImage = { ...image, id };
     setGallery(prev => [newImage, ...prev]);
 
-    const galleryColl = getUserCollection('gallery');
-    if (galleryColl) {
-      setDoc(doc(galleryColl, id), newImage).catch(err => handleFirestoreError(err, OperationType.CREATE, 'gallery'));
+    if (user?.id) {
+       // Note: Currently gallery is not in Prisma but we can save it to localStorage and later implement S3/Storage
+       // For now just keep it in state/local
     }
   };
 
@@ -918,9 +801,8 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     // Optimistic Update
     setExtraRevenue(prev => [newRev, ...prev]);
     
-    const extraRevenueColl = getUserCollection('extra_revenue');
-    if (extraRevenueColl) {
-      setDoc(doc(extraRevenueColl, id), newRev).catch(err => handleFirestoreError(err, OperationType.CREATE, 'extra_revenue'));
+    if (user?.id) {
+       api.saveData('extra_revenue', user.id, newRev).catch(err => handleApiError(err, OperationType.CREATE, 'extra_revenue'));
     }
     
     logAction('Venda Extra', `Venda de ${rev.description} no valor de R$ ${rev.amount}`, 'Financial');
@@ -940,9 +822,8 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     // Optimistic Update
     setExtraRevenue(prev => prev.map(r => r.id === id ? { ...r, ...updates } : r));
     
-    const extraRevenueColl = getUserCollection('extra_revenue');
-    if (extraRevenueColl) {
-      updateDoc(doc(extraRevenueColl, id), updates).catch(err => handleFirestoreError(err, OperationType.UPDATE, `extra_revenue/${id}`));
+    if (user?.id) {
+      api.saveData('extra_revenue', user.id, { ...updates, id }).catch(err => handleApiError(err, OperationType.UPDATE, `extra_revenue/${id}`));
     }
     logAction('Venda Atualizada', `Venda ID ${id} modificada`, 'Financial');
   };
@@ -951,9 +832,8 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     // Optimistic Update
     setExtraRevenue(prev => prev.filter(r => r.id !== id));
     
-    const extraRevenueColl = getUserCollection('extra_revenue');
-    if (extraRevenueColl) {
-      deleteDoc(doc(extraRevenueColl, id)).catch(err => handleFirestoreError(err, OperationType.DELETE, `extra_revenue/${id}`));
+    if (user?.id) {
+       api.deleteData('extra_revenue', id, user.id).catch(err => handleApiError(err, OperationType.DELETE, `extra_revenue/${id}`));
     }
     logAction('Venda Removida', `Venda ID ${id} removida pelo administrador`, 'Security');
   };
@@ -963,25 +843,22 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     const newOrder = { ...order, id } as KimonoOrder;
     setOrders(prev => [newOrder, ...prev]);
 
-    const ordersColl = getUserCollection('orders');
-    if (ordersColl) {
-      setDoc(doc(ordersColl, id), newOrder).catch(err => handleFirestoreError(err, OperationType.CREATE, 'orders'));
+    if (user?.id) {
+       api.saveData('orders', user.id, newOrder).catch(err => handleApiError(err, OperationType.CREATE, 'orders'));
     }
   };
 
   const updateOrder = (id: string, updates: Partial<KimonoOrder>) => {
     setOrders(prev => prev.map(o => o.id === id ? { ...o, ...updates } : o));
-    const ordersColl = getUserCollection('orders');
-    if (ordersColl) {
-      updateDoc(doc(ordersColl, id), updates).catch(err => handleFirestoreError(err, OperationType.UPDATE, `orders/${id}`));
+    if (user?.id) {
+       api.saveData('orders', user.id, { ...updates, id }).catch(err => handleApiError(err, OperationType.UPDATE, `orders/${id}`));
     }
   };
 
   const deleteOrder = (id: string) => {
     setOrders(prev => prev.filter(o => o.id !== id));
-    const ordersColl = getUserCollection('orders');
-    if (ordersColl) {
-      deleteDoc(doc(ordersColl, id)).catch(err => handleFirestoreError(err, OperationType.DELETE, `orders/${id}`));
+    if (user?.id) {
+       api.deleteData('orders', id, user.id).catch(err => handleApiError(err, OperationType.DELETE, `orders/${id}`));
     }
   };
 
@@ -990,27 +867,24 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     const newPlan = { ...plan, id } as LessonPlan;
     setLessonPlans(prev => [newPlan, ...prev]);
     
-    const lessonPlansColl = getUserCollection('lesson_plans');
-    if (lessonPlansColl) {
-      setDoc(doc(lessonPlansColl, id), newPlan).catch(err => handleFirestoreError(err, OperationType.CREATE, 'lesson_plans'));
+    if (user?.id) {
+      api.saveData('lesson_plans', user.id, newPlan).catch(err => handleApiError(err, OperationType.CREATE, 'lesson_plans'));
     }
     logAction('Novo Plano de Aula', `QTD: ${plan.title} criado`, 'System');
   };
 
   const updateLessonPlan = (id: string, updates: Partial<LessonPlan>) => {
     setLessonPlans(prev => prev.map(p => p.id === id ? { ...p, ...updates } : p));
-    const lessonPlansColl = getUserCollection('lesson_plans');
-    if (lessonPlansColl) {
-      updateDoc(doc(lessonPlansColl, id), updates).catch(err => handleFirestoreError(err, OperationType.UPDATE, `lesson_plans/${id}`));
+    if (user?.id) {
+      api.saveData('lesson_plans', user.id, { ...updates, id }).catch(err => handleApiError(err, OperationType.UPDATE, `lesson_plans/${id}`));
     }
     logAction('Plano Atualizado', `QTD ID ${id} modificado`, 'System');
   };
 
   const deleteLessonPlan = (id: string) => {
     setLessonPlans(prev => prev.filter(p => p.id !== id));
-    const lessonPlansColl = getUserCollection('lesson_plans');
-    if (lessonPlansColl) {
-      deleteDoc(doc(lessonPlansColl, id)).catch(err => handleFirestoreError(err, OperationType.DELETE, `lesson_plans/${id}`));
+    if (user?.id) {
+      api.deleteData('lesson_plans', id, user.id).catch(err => handleApiError(err, OperationType.DELETE, `lesson_plans/${id}`));
     }
     logAction('Plano Removido', `QTD ID ${id} excluído`, 'Security');
   };
@@ -1020,27 +894,24 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     const newTech = { ...tech, id } as LibraryTechnique;
     setTechniques(prev => [...prev, newTech]);
     
-    const techniquesColl = getUserCollection('techniques');
-    if (techniquesColl) {
-      setDoc(doc(techniquesColl, id), newTech).catch(err => handleFirestoreError(err, OperationType.CREATE, 'techniques'));
+    if (user?.id) {
+      api.saveData('techniques', user.id, newTech).catch(err => handleApiError(err, OperationType.CREATE, 'techniques'));
     }
     logAction('Nova Técnica', `Técnica ${tech.name} adicionada à biblioteca`, 'System');
   };
 
   const updateTechnique = (id: string, updates: Partial<LibraryTechnique>) => {
     setTechniques(prev => prev.map(t => t.id === id ? { ...t, ...updates } : t));
-    const techniquesColl = getUserCollection('techniques');
-    if (techniquesColl) {
-      updateDoc(doc(techniquesColl, id), updates).catch(err => handleFirestoreError(err, OperationType.UPDATE, `techniques/${id}`));
+    if (user?.id) {
+      api.saveData('techniques', user.id, { ...updates, id }).catch(err => handleApiError(err, OperationType.UPDATE, `techniques/${id}`));
     }
     logAction('Técnica Atualizada', `Técnica ID ${id} modificada`, 'System');
   };
 
   const deleteTechnique = (id: string) => {
     setTechniques(prev => prev.filter(t => t.id !== id));
-    const techniquesColl = getUserCollection('techniques');
-    if (techniquesColl) {
-      deleteDoc(doc(techniquesColl, id)).catch(err => handleFirestoreError(err, OperationType.DELETE, `techniques/${id}`));
+    if (user?.id) {
+      api.deleteData('techniques', id, user.id).catch(err => handleApiError(err, OperationType.DELETE, `techniques/${id}`));
     }
     logAction('Técnica Removida', `Técnica ID ${id} excluída da biblioteca`, 'Security');
   };
@@ -1050,25 +921,22 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     const newProduct = { ...product, id } as Product;
     setProducts(prev => [...prev, newProduct]);
 
-    const productsColl = getUserCollection('products');
-    if (productsColl) {
-      setDoc(doc(productsColl, id), newProduct).catch(err => handleFirestoreError(err, OperationType.CREATE, 'products'));
+    if (user?.id) {
+       api.saveData('products', user.id, newProduct).catch(err => handleApiError(err, OperationType.CREATE, 'products'));
     }
   };
 
   const updateProduct = (id: string, updates: Partial<Product>) => {
     setProducts(prev => prev.map(p => p.id === id ? { ...p, ...updates } : p));
-    const productsColl = getUserCollection('products');
-    if (productsColl) {
-      updateDoc(doc(productsColl, id), updates).catch(err => handleFirestoreError(err, OperationType.UPDATE, `products/${id}`));
+    if (user?.id) {
+       api.saveData('products', user.id, { ...updates, id }).catch(err => handleApiError(err, OperationType.UPDATE, `products/${id}`));
     }
   };
 
   const deleteProduct = (id: string) => {
     setProducts(prev => prev.filter(p => p.id !== id));
-    const productsColl = getUserCollection('products');
-    if (productsColl) {
-      deleteDoc(doc(productsColl, id)).catch(err => handleFirestoreError(err, OperationType.DELETE, `products/${id}`));
+    if (user?.id) {
+       api.deleteData('products', id, user.id).catch(err => handleApiError(err, OperationType.DELETE, `products/${id}`));
     }
   };
 
@@ -1077,25 +945,22 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     const newPlan = { ...plan, id } as Plan;
     setPlans(prev => [...prev, newPlan]);
 
-    const plansColl = getUserCollection('plans');
-    if (plansColl) {
-      setDoc(doc(plansColl, id), newPlan).catch(err => handleFirestoreError(err, OperationType.CREATE, 'plans'));
+    if (user?.id) {
+       api.saveData('plans', user.id, newPlan).catch(err => handleApiError(err, OperationType.CREATE, 'plans'));
     }
   };
 
   const updatePlan = (id: string, updates: Partial<Plan>) => {
     setPlans(prev => prev.map(p => p.id === id ? { ...p, ...updates } : p));
-    const plansColl = getUserCollection('plans');
-    if (plansColl) {
-      updateDoc(doc(plansColl, id), updates).catch(err => handleFirestoreError(err, OperationType.UPDATE, `plans/${id}`));
+    if (user?.id) {
+       api.saveData('plans', user.id, { ...updates, id }).catch(err => handleApiError(err, OperationType.UPDATE, `plans/${id}`));
     }
   };
 
   const deletePlan = (id: string) => {
     setPlans(prev => prev.filter(p => p.id !== id));
-    const plansColl = getUserCollection('plans');
-    if (plansColl) {
-      deleteDoc(doc(plansColl, id)).catch(err => handleFirestoreError(err, OperationType.DELETE, `plans/${id}`));
+    if (user?.id) {
+       api.deleteData('plans', id, user.id).catch(err => handleApiError(err, OperationType.DELETE, `plans/${id}`));
     }
   };
 

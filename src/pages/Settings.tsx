@@ -5,8 +5,7 @@ import { useProfile } from '../contexts/ProfileContext';
 import { useData } from '../contexts/DataContext';
 import { AppLanguage } from '../types';
 import { Check, Globe, User, Save, Shield, Database, Download, Upload, Trash2, CreditCard, Mail, BookOpen, MapPin, Monitor, Activity, Users, TrendingUp, Trophy } from 'lucide-react';
-import { db } from '../firebase';
-import { collection, getDocs, query, onSnapshot, where } from 'firebase/firestore';
+import { api } from '../services/api';
 import { compressImage } from '../services/imageUtils';
 
 const languages = [
@@ -43,23 +42,28 @@ const Settings: React.FC = () => {
   });
 
   useEffect(() => {
-    if (isDashfireAdmin && db) {
-      // Monitor active presence
-      const fiveMinutesAgo = Date.now() - (5 * 60 * 1000);
-      const presenceQuery = query(collection(db, 'presence'), where('lastSeen', '>', fiveMinutesAgo));
-      const unsub = onSnapshot(presenceQuery, (snapshot) => {
-        const identities = snapshot.docs.map(doc => doc.data().email || doc.id).filter(Boolean);
-        
-        setSystemStats({ 
-          activeSessions: snapshot.size, 
-          totalAcademies: snapshot.size,
-          activeIdentities: identities
-        });
-      });
-      
-      return () => unsub();
+    if (isDashfireAdmin) {
+      const fetchPresence = async () => {
+        try {
+          const presenceData = await api.fetchData('presence', authData.id || 'admin');
+          if (Array.isArray(presenceData)) {
+            const identities = presenceData.map((p: any) => p.email || p.id).filter(Boolean);
+            setSystemStats({ 
+              activeSessions: presenceData.length, 
+              totalAcademies: presenceData.length,
+              activeIdentities: identities
+            });
+          }
+        } catch (e) {
+          console.error("Presence fetch failed", e);
+        }
+      };
+
+      fetchPresence();
+      const interval = setInterval(fetchPresence, 30000); // 30 seconds
+      return () => clearInterval(interval);
     }
-  }, [isDashfireAdmin]);
+  }, [isDashfireAdmin, authData.id]);
 
   const getCurrentLocation = () => {
     setIsCapturing(true);

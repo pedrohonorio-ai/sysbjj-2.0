@@ -1,9 +1,8 @@
 
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 import { ProfessorProfile, BeltColor } from '../types';
-import { db } from '../firebase';
 import { useAuth } from '../context/AuthContext';
-import { doc, onSnapshot, setDoc, updateDoc } from 'firebase/firestore';
+import { api } from '../services/api';
 
 interface ProfileContextType {
   profile: ProfessorProfile;
@@ -35,42 +34,38 @@ export const ProfileProvider: React.FC<{ children: ReactNode }> = ({ children })
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
-    if (!db || !user) {
+    if (!user?.id) {
       setIsLoading(false);
       return;
     }
 
-    const uid = user.id;
-    // Use the UID for individual profiles
-    const profileRef = doc(db, 'users', uid, 'settings', 'academy_profile');
-    
-    const unsubscribe = onSnapshot(profileRef, (docSnap) => {
-      if (docSnap.exists()) {
-        const cloudProfile = docSnap.data() as ProfessorProfile;
-        setProfile(cloudProfile);
-        localStorage.setItem('oss_profile', JSON.stringify(cloudProfile));
-      } else {
-        // If it doesn't exist in cloud yet for this user, initialize it
-        setDoc(profileRef, profile).catch(console.error);
+    const fetchProfile = async () => {
+      try {
+        const cloudProfile = await api.fetchData('profile', user.id);
+        if (cloudProfile && !Array.isArray(cloudProfile)) {
+          setProfile(cloudProfile);
+          localStorage.setItem('oss_profile', JSON.stringify(cloudProfile));
+        } else if (!cloudProfile || (Array.isArray(cloudProfile) && cloudProfile.length === 0)) {
+           // Initialize if not exists
+           await api.saveData('profile', user.id, profile);
+        }
+      } catch (error) {
+        console.error("Profile sync error:", error);
+      } finally {
+        setIsLoading(false);
       }
-      setIsLoading(false);
-    }, (error) => {
-      console.error("Profile sync error:", error);
-      setIsLoading(false);
-    });
+    };
 
-    return () => unsubscribe();
-  }, [user]);
+    fetchProfile();
+  }, [user?.id]);
 
   const updateProfile = async (updates: Partial<ProfessorProfile>) => {
     const newProfile = { ...profile, ...updates };
     setProfile(newProfile);
     localStorage.setItem('oss_profile', JSON.stringify(newProfile));
 
-    if (db && user) {
-      const uid = user.id;
-      const profileRef = doc(db, 'users', uid, 'settings', 'academy_profile');
-      await setDoc(profileRef, newProfile, { merge: true });
+    if (user?.id) {
+      await api.saveData('profile', user.id, newProfile);
     }
   };
 

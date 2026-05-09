@@ -1,0 +1,215 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
+}
+
+// OS SENSEI: Definindo modelos principais para a evolução do sistema
+
+model Student {
+  id               String   @id @default(cuid())
+  userId           String   // Referência ao UID do Supabase Auth
+  name             String
+  email            String?
+  phone            String?
+  birthDate        String?
+  belt             String   @default("Branca")
+  degrees          Int      @default(0)
+  photoUrl         String?
+  monthlyValue     Float    @default(0)
+  active           Boolean  @default(true)
+  lastPaymentDate  String?
+  attendanceCount  Int      @default(0)
+  currentStreak    Int      @default(0)
+  lastSeen         BigInt?
+  observations     String?
+  joinedAt         DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+  attendanceHistory Json?   // Histórico de chamadas
+
+  @@index([userId])
+}
+
+model Payment {
+  id          String   @id @default(cuid())
+  userId      String
+  studentId   String?
+  name        String
+  amount      Float
+  date        String
+  method      String
+  status      String   @default("Paid")
+  timestamp   DateTime @default(now())
+
+  @@index([userId])
+  @@index([studentId])
+}
+
+model ClassSchedule {
+  id          String   @id @default(cuid())
+  userId      String
+  time        String
+  title       String
+  instructor  String
+  category    String
+  days        String[]
+  active      Boolean  @default(true)
+
+  @@index([userId])
+}
+
+model SystemLog {
+  id           String   @id @default(cuid())
+  userId       String
+  timestamp    BigInt
+  userEmail    String
+  action       String
+  details      String
+  category     String
+  deviceInfo   String
+  previousHash String?
+  hash         String?
+
+  @@index([userId])
+}
+
+model TransactionLedger {
+  id           String   @id @default(cuid())
+  userId       String
+  type         String
+  amount       Float
+  description  String
+  category     String
+  method       String
+  studentId    String?
+  timestamp    BigInt
+  previousHash String
+  hash         String
+
+  @@index([userId])
+}
+
+model PaymentReceipt {
+  id          String   @id @default(cuid())
+  userId      String
+  studentId   String
+  studentName String
+  amount      Float
+  method      String
+  proofUrl    String?
+  status      String   @default("Pending")
+  timestamp   BigInt
+  notes       String?
+
+  @@index([userId])
+  @@index([studentId])
+}
+
+model ExtraRevenue {
+  id            String   @id @default(cuid())
+  userId        String
+  description   String
+  amount        Float
+  category      String
+  date          String
+  paymentMethod String
+  studentId     String?
+
+  @@index([userId])
+}
+
+model LessonPlan {
+  id         String   @id @default(cuid())
+  userId     String
+  title      String
+  objective  String
+  warmup     String
+  technique  String
+  sparring   String
+  beltLevel  String?
+  category   String?
+  active     Boolean  @default(true)
+
+  @@index([userId])
+}
+
+model LibraryTechnique {
+  id          String   @id @default(cuid())
+  userId      String
+  name        String
+  category    String
+  beltLevel   String
+  description String
+  videoUrl    String?
+
+  @@index([userId])
+}
+
+model Product {
+  id       String   @id @default(cuid())
+  userId   String
+  name     String
+  price    Float
+  category String
+  stock    Int      @default(0)
+
+  @@index([userId])
+}
+
+model KimonoOrder {
+  id        String   @id @default(cuid())
+  userId    String
+  studentId String
+  studentName String
+  item      String
+  size      String
+  amount    Float
+  status    String   @default("Pending")
+  timestamp DateTime @default(now())
+
+  @@index([userId])
+}
+
+model Presence {
+  id        String   @id @default(cuid())
+  userId    String
+  email     String
+  lastSeen  BigInt
+  userAgent String
+  deviceId  String
+
+  @@unique([email, deviceId])
+  @@index([userId])
+}
+
+model ProfessorProfile {
+  id               String   @id @default(cuid())
+  userId           String   @unique
+  name             String
+  academyName      String
+  belt             String
+  stripes          Int
+  specialization   String?
+  pixKey           String?
+  pixName          String?
+  pixCity          String?
+  logoUrl          String?
+  backgroundImageUrl String?
+
+  @@index([userId])
+}
+
+model Plan {
+  id          String   @id @default(cuid())
+  userId      String
+  name        String
+  price       Float
+  description String
+  benefits    String[]
+
+  @@index([userId])
+}

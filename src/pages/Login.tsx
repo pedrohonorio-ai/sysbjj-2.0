@@ -282,14 +282,29 @@ const Login: React.FC = () => {
                       {error}
                     </div>
                     {error.includes('Supabase') && (
-                      <div className="p-4 bg-white/5 border border-white/10 rounded-xl space-y-3">
-                        <p className="text-[10px] font-black text-blue-500 uppercase tracking-widest italic">Ação Necessária para o Sensei:</p>
+                      <div className="p-4 bg-white/5 border border-white/10 rounded-xl space-y-3 shadow-inner">
+                        <p className="text-[10px] font-black text-blue-500 uppercase tracking-widest italic flex items-center gap-2">
+                           <Shield size={10} className="animate-pulse" /> Ação Necessária para o Sensei:
+                        </p>
                         <ol className="text-[9px] text-slate-400 font-bold space-y-2 uppercase list-decimal list-inside">
-                          <li>Acesse o <a href="https://supabase.com/dashboard" target="_blank" rel="noopener noreferrer" className="text-blue-500 underline">Dashboard do Supabase</a></li>
+                          <li>Acesse o <a href="https://supabase.com/dashboard" target="_blank" rel="noopener noreferrer" className="text-blue-500 underline decoration-dotted">Dashboard do Supabase</a></li>
                           <li>Vá em <span className="text-white">Authentication</span> &gt; <span className="text-white">Providers</span></li>
                           <li>Encontre <span className="text-white">Google</span> e clique em <span className="text-white">Enable</span></li>
+                          <li>Certifique-se de que o <span className="text-blue-400">Google Client ID</span> e <span className="text-blue-400">Secret</span> estão corretos</li>
                           <li>Clique em <span className="text-white">Save</span> no final da página</li>
                         </ol>
+                        <div className="pt-2 border-t border-white/5">
+                           <button 
+                             type="button" 
+                             onClick={async () => {
+                               const res = await fetch('/api/test-db').then(r => r.json()).catch(() => ({ status: 'error', message: 'Servidor Offline' }));
+                               setError(`DIAGNÓSTICO DB: ${res.message || res.status}`);
+                             }}
+                             className="text-[8px] text-slate-600 hover:text-white transition-colors underline uppercase font-black"
+                           >
+                             Executar Diagnóstico de Banco de Dados (Prisma)
+                           </button>
+                        </div>
                       </div>
                     )}
                   </div>

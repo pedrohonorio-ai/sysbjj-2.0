@@ -26,8 +26,7 @@ import { useTheme } from './contexts/ThemeContext';
 import { useProfile } from './contexts/ProfileContext';
 import { useData } from './contexts/DataContext';
 import { useAuth } from './context/AuthContext';
-import { db } from './firebase';
-import { doc, setDoc } from 'firebase/firestore';
+import { api } from './services/api';
 
 const Sidebar = ({ isOpen, toggle, onLogout, isMasterAdmin }: { isOpen: boolean, toggle: () => void, onLogout: () => void, isMasterAdmin: boolean }) => {
   const location = useLocation();
@@ -396,7 +395,7 @@ const App: React.FC = () => {
   
   // Track Online Status
   useEffect(() => {
-    if (role === 'admin' && user?.email && db) {
+    if (role === 'admin' && user?.email && user?.id) {
       const deviceId = localStorage.getItem('oss_device_id') || Math.random().toString(36).substring(2, 15);
       if (!localStorage.getItem('oss_device_id')) localStorage.setItem('oss_device_id', deviceId);
 
@@ -414,24 +413,23 @@ const App: React.FC = () => {
           else if (/Edge/i.test(ua)) browser = "Edge";
           
           const deviceInfo = `${device} (${browser})`;
-          const presenceRef = doc(db, 'presence', `${user.email!.replace(/\./g, '_')}_${deviceId}`);
-          await setDoc(presenceRef, {
+          await api.saveData('presence', user.id, {
             email: user.email,
             lastSeen: Date.now(),
             role: role,
             userAgent: deviceInfo,
             deviceId: deviceId
-          }, { merge: true });
+          });
         } catch (e) {
           console.error("Presence update failed", e);
         }
       };
 
       updatePresence();
-      const interval = setInterval(updatePresence, 300000); // 5 minutes - reduce write quota pressure
+      const interval = setInterval(updatePresence, 300000); // 5 minutes
       return () => clearInterval(interval);
     }
-  }, [role, user?.email]);
+  }, [role, user?.email, user?.id]);
 
   useEffect(() => {
     if (role && (user?.email || studentCode)) {
