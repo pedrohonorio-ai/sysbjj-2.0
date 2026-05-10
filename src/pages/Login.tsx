@@ -11,7 +11,7 @@ const Login: React.FC = () => {
   const { t } = useTranslation();
   const { profile } = useProfile();
   const { logAction, addLedgerEntry } = useData();
-  const { login, register, loginGoogle, resetPassword, setStudentAuth, isConfigured } = useAuth();
+  const { login, register, resetPassword, setStudentAuth, isConfigured } = useAuth();
   const [activeTab, setActiveTab ] = useState<'admin' | 'student'>('admin');
   const [mode, setMode] = useState<'login' | 'register' | 'forgot'>('login');
   
@@ -53,32 +53,6 @@ const Login: React.FC = () => {
     second: '2-digit'
   });
 
-  const handleGoogleLogin = async () => {
-    setLoading(true);
-    setError('');
-    try {
-      await loginGoogle();
-      // AuthProvider handles state change
-    } catch (err: any) {
-      console.error('Google Login Error:', err);
-      // We check for common Supabase error patterns
-      const errorMessage = err.message || err.msg || '';
-      
-      if (errorMessage.includes('provider is not enabled')) {
-        setError('Google Login não está habilitado no seu painel Supabase. Siga os passos abaixo para corrigir.');
-      } else if (errorMessage.includes('after 50 seconds') || errorMessage.includes('too many requests')) {
-        setError('Muitas tentativas. Por motivos de segurança, aguarde 60 segundos antes de tentar novamente.');
-        setCooldown(60);
-      } else if (err.code === 'auth/unauthorized-domain' || errorMessage.includes('unauthorized domain')) {
-        setError('Domínio não autorizado. Adicione os domínios permitidos nas configurações de autenticação do Supabase.');
-      } else {
-        setError('Falha ao iniciar autenticação Google. Verifique sua conexão e tente novamente.');
-      }
-    } finally {
-      setLoading(false);
-    }
-  };
-
   const handleAdminLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
@@ -117,7 +91,9 @@ const Login: React.FC = () => {
     } catch (err: any) {
       console.error(err);
       const errorMessage = err.message || '';
-      if (errorMessage.includes('after 50 seconds') || errorMessage.includes('too many requests')) {
+      if (errorMessage === 'Invalid login credentials') {
+        setError('E-mail ou senha incorretos. Verifique suas credenciais.');
+      } else if (errorMessage.includes('after 50 seconds') || errorMessage.includes('too many requests')) {
         setError('Acesso bloqueado temporariamente por excesso de tentativas. Aguarde 60 segundos.');
         setCooldown(60);
       } else {
@@ -281,32 +257,6 @@ const Login: React.FC = () => {
                     <div className="p-4 bg-red-500/10 border border-red-500/20 rounded-xl text-red-500 text-[10px] font-black uppercase text-center leading-relaxed">
                       {error}
                     </div>
-                    {error.includes('Supabase') && (
-                      <div className="p-4 bg-white/5 border border-white/10 rounded-xl space-y-3 shadow-inner">
-                        <p className="text-[10px] font-black text-blue-500 uppercase tracking-widest italic flex items-center gap-2">
-                           <Shield size={10} className="animate-pulse" /> Ação Necessária para o Sensei:
-                        </p>
-                        <ol className="text-[9px] text-slate-400 font-bold space-y-2 uppercase list-decimal list-inside">
-                          <li>Acesse o <a href="https://supabase.com/dashboard" target="_blank" rel="noopener noreferrer" className="text-blue-500 underline decoration-dotted">Dashboard do Supabase</a></li>
-                          <li>Vá em <span className="text-white">Authentication</span> &gt; <span className="text-white">Providers</span></li>
-                          <li>Encontre <span className="text-white">Google</span> e clique em <span className="text-white">Enable</span></li>
-                          <li>Certifique-se de que o <span className="text-blue-400">Google Client ID</span> e <span className="text-blue-400">Secret</span> estão corretos</li>
-                          <li>Clique em <span className="text-white">Save</span> no final da página</li>
-                        </ol>
-                        <div className="pt-2 border-t border-white/5">
-                           <button 
-                             type="button" 
-                             onClick={async () => {
-                               const res = await fetch('/api/test-db').then(r => r.json()).catch(() => ({ status: 'error', message: 'Servidor Offline' }));
-                               setError(`DIAGNÓSTICO DB: ${res.message || res.status}`);
-                             }}
-                             className="text-[8px] text-slate-600 hover:text-white transition-colors underline uppercase font-black"
-                           >
-                             Executar Diagnóstico de Banco de Dados (Prisma)
-                           </button>
-                        </div>
-                      </div>
-                    )}
                   </div>
                 )}
                 {success && <div className="p-4 bg-emerald-500/10 border border-emerald-500/20 rounded-xl text-emerald-500 text-[10px] font-black uppercase text-center">{success}</div>}
@@ -319,18 +269,6 @@ const Login: React.FC = () => {
                   {loading ? 'Processando Bloco...' : cooldown > 0 ? `Aguarde ${cooldown}s` : mode === 'login' ? 'Validar Acesso Master' : mode === 'register' ? 'Gerar Novo Nó' : 'Resetar Credenciais'}
                   {!loading && cooldown === 0 && <ArrowRight size={18} className="group-hover:translate-x-1 transition-transform" />}
                 </button>
-
-                {mode === 'login' && (
-                  <button 
-                    type="button"
-                    onClick={handleGoogleLogin}
-                    disabled={loading || cooldown > 0}
-                    className="w-full bg-white text-slate-900 hover:bg-slate-100 disabled:opacity-50 font-black py-4 rounded-2xl transition-all shadow-xl flex items-center justify-center gap-3 group uppercase text-xs tracking-widest border border-slate-200"
-                  >
-                    <img src="https://www.google.com/favicon.ico" alt="Google" className="w-4 h-4" />
-                    {cooldown > 0 ? `Bloqueio de Segurança (${cooldown}s)` : 'Entrar com Google'}
-                  </button>
-                )}
 
                 <div className="flex flex-col gap-3 mt-4">
                   {mode === 'login' && (

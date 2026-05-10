@@ -13,7 +13,6 @@ interface AuthContextType extends AuthState {
   isConfigured: boolean;
   login: (email: string, pass: string) => Promise<any>;
   register: (email: string, pass: string, name?: string) => Promise<any>;
-  loginGoogle: () => Promise<any>;
   logout: () => Promise<void>;
   resetPassword: (email: string) => Promise<void>;
   setStudentAuth: (code: string) => void;
@@ -102,23 +101,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     });
   };
 
-  const loginGoogle = async () => {
-    if (!supabase) throw new Error("Supabase não configurado");
-    const { data, error } = await supabase.auth.signInWithOAuth({ 
-      provider: 'google',
-      options: {
-        redirectTo: window.location.origin,
-        skipBrowserRedirect: true
-      }
-    });
-    
-    if (error) throw error;
-    
-    if (data?.url) {
-      window.location.href = data.url;
-    }
-  };
-
   const logout = async () => {
     if (supabase) {
       await supabase.auth.signOut();
@@ -149,7 +131,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       isConfigured: !!supabase,
       login, 
       register, 
-      loginGoogle, 
       logout,
       resetPassword,
       setStudentAuth
