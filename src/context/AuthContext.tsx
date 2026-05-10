@@ -7,15 +7,20 @@ interface AuthState {
   loading: boolean;
   role: 'admin' | 'student' | null;
   studentCode?: string;
+  isAnonymous: boolean;
 }
 
 interface AuthContextType extends AuthState {
   isConfigured: boolean;
   login: (email: string, pass: string) => Promise<any>;
   register: (email: string, pass: string, name?: string) => Promise<any>;
+  loginAnonymous: () => Promise<any>;
+  linkEmail: (email: string, pass: string) => Promise<any>;
+  updatePassword: (newPass: string) => Promise<any>;
   logout: () => Promise<void>;
   resetPassword: (email: string) => Promise<void>;
   setStudentAuth: (code: string) => void;
+  isRecovering: boolean;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -25,6 +30,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [loading, setLoading] = useState(true);
   const [role, setRole] = useState<'admin' | 'student' | null>(null);
   const [studentCode, setStudentCode] = useState<string | undefined>(undefined);
+  const [isRecovering, setIsRecovering] = useState(false);
+  const [isAnonymous, setIsAnonymous] = useState(false);
 
   useEffect(() => {
     // Restore session from localStorage for initial state
@@ -49,6 +56,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     // Get initial session
     supabase.auth.getSession().then(({ data: { session } }) => {
       setUser(session?.user ?? null);
+      setIsAnonymous(session?.user?.is_anonymous ?? false);
       if (session?.user) {
         setRole('admin');
       } else if (role !== 'student') {
@@ -62,8 +70,14 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     });
 
     // Listen for auth changes
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
       setUser(session?.user ?? null);
+      setIsAnonymous(session?.user?.is_anonymous ?? false);
+      
+      if (event === 'PASSWORD_RECOVERY') {
+        setIsRecovering(true);
+      }
+
       if (session?.user) {
         setRole('admin');
       } else {
@@ -101,6 +115,32 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     });
   };
 
+  const loginAnonymous = async () => {
+    if (!supabase) throw new Error("Supabase não configurado");
+    const { data, error } = await supabase.auth.signInAnonymously();
+    if (error) throw error;
+    return data;
+  };
+
+  const linkEmail = async (email: string, pass: string) => {
+    if (!supabase) throw new Error("Supabase não configurado");
+    const { data: emailData, error: emailError } = await supabase.auth.updateUser({ email });
+    if (emailError) throw emailError;
+    
+    const { data: passData, error: passError } = await supabase.auth.updateUser({ password: pass });
+    if (passError) throw passError;
+    
+    return { emailData, passData };
+  };
+
+  const updatePassword = async (newPass: string) => {
+    if (!supabase) throw new Error("Supabase não configurado");
+    const { data, error } = await supabase.auth.updateUser({ password: newPass });
+    if (error) throw error;
+    setIsRecovering(false);
+    return data;
+  };
+
   const logout = async () => {
     if (supabase) {
       await supabase.auth.signOut();
@@ -112,7 +152,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const resetPassword = async (email: string) => {
     if (!supabase) throw new Error("Supabase não configurado");
-    const { error } = await supabase.auth.resetPasswordForEmail(email);
+    const { error } = await supabase.auth.resetPasswordForEmail(email, {
+      redirectTo: `${window.location.origin}/login`,
+    });
     if (error) throw error;
   };
 
@@ -128,12 +170,17 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       loading, 
       role, 
       studentCode, 
+      isAnonymous,
       isConfigured: !!supabase,
       login, 
       register, 
+      loginAnonymous,
+      linkEmail,
+      updatePassword,
       logout,
       resetPassword,
-      setStudentAuth
+      setStudentAuth,
+      isRecovering
     }}>
       {children}
     </AuthContext.Provider>

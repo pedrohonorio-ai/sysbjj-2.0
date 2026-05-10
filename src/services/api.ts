@@ -34,7 +34,10 @@ export const api = {
    */
   async fetchData(collection: string, userId: string) {
     const response = await fetch(`/api/data/${collection}?userId=${userId}`);
-    if (!response.ok) throw new Error(`Erro ao buscar ${collection} da API`);
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => ({}));
+      throw new Error(errorData.error || `Erro ao buscar ${collection} da API (${response.status})`);
+    }
     return await response.json();
   },
 
@@ -47,7 +50,10 @@ export const api = {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ ...data, userId })
     });
-    if (!response.ok) throw new Error(`Erro ao salvar ${collection} na API`);
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => ({}));
+      throw new Error(errorData.error || `Erro ao salvar ${collection} na API (${response.status})`);
+    }
     return await response.json();
   },
 

@@ -1,6 +1,6 @@
 
 import React, { useState, useEffect } from 'react';
-import { Shield, Lock, User, Key, ArrowRight, Instagram, Mail, Fingerprint, History, ShieldCheck } from 'lucide-react';
+import { Shield, Lock, User, Key, ArrowRight, Instagram, Mail, Fingerprint, History, ShieldCheck, Users } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { useTranslation } from '../contexts/LanguageContext';
 import { useProfile } from '../contexts/ProfileContext';
@@ -11,13 +11,14 @@ const Login: React.FC = () => {
   const { t } = useTranslation();
   const { profile } = useProfile();
   const { logAction, addLedgerEntry } = useData();
-  const { login, register, resetPassword, setStudentAuth, isConfigured } = useAuth();
+  const { login, register, loginAnonymous, resetPassword, updatePassword, isRecovering, setStudentAuth, isConfigured } = useAuth();
   const [activeTab, setActiveTab ] = useState<'admin' | 'student'>('admin');
-  const [mode, setMode] = useState<'login' | 'register' | 'forgot'>('login');
+  const [mode, setMode] = useState<'login' | 'register' | 'forgot' | 'update_pass'>('login');
   
   // Form States
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [newPassword, setNewPassword] = useState('');
   const [name, setName] = useState('');
   const [studentCodeInput, setStudentCodeInput] = useState('');
   
@@ -25,6 +26,12 @@ const Login: React.FC = () => {
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
   const [cooldown, setCooldown] = useState(0);
+
+  useEffect(() => {
+    if (isRecovering) {
+      setMode('update_pass');
+    }
+  }, [isRecovering]);
 
   const [currentTime, setCurrentTime] = useState(new Date());
 
@@ -87,18 +94,47 @@ const Login: React.FC = () => {
         await resetPassword(email);
         setSuccess('E-mail de recuperação enviado!');
         setTimeout(() => setMode('login'), 3000);
+      } else if (mode === 'update_pass') {
+        if (newPassword.length < 6) throw new Error('A nova senha deve ter pelo menos 6 caracteres');
+        await updatePassword(newPassword);
+        setSuccess('Senha Master atualizada com sucesso!');
+        setTimeout(() => setMode('login'), 3000);
       }
     } catch (err: any) {
       console.error(err);
       const errorMessage = err.message || '';
-      if (errorMessage === 'Invalid login credentials') {
+      const errorCode = err.code || '';
+      
+      if (errorMessage.includes('Invalid login credentials') || errorCode === 'invalid_credentials') {
         setError('E-mail ou senha incorretos. Verifique suas credenciais.');
+      } else if (errorMessage.includes('User already registered') || errorCode === 'user_already_exists' || (err.status === 400 && errorMessage.toLowerCase().includes('already registered'))) {
+        setError('Este e-mail já está cadastrado no sistema. Por favor, faça login.');
+        setMode('login');
+      } else if (errorMessage.toLowerCase().includes('email not confirmed')) {
+        setError('E-mail ainda não confirmado. Verifique sua caixa de entrada.');
+      } else if (errorMessage.toLowerCase().includes('email rate limit exceeded')) {
+        setError('O limite de e-mails do Supabase foi atingido (Plano Free: 3/hora).');
+        setCooldown(60);
       } else if (errorMessage.includes('after 50 seconds') || errorMessage.includes('too many requests')) {
         setError('Acesso bloqueado temporariamente por excesso de tentativas. Aguarde 60 segundos.');
         setCooldown(60);
       } else {
         setError(errorMessage || 'Erro na autenticação');
       }
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleGuestLogin = async () => {
+    setLoading(true);
+    setError('');
+    try {
+      await loginAnonymous();
+      // AuthProvider handles navigation via state change
+    } catch (err: any) {
+      console.error('Guest Login Error:', err);
+      setError('Falha ao iniciar acesso como convidado. Tente novamente.');
     } finally {
       setLoading(false);
     }
@@ -252,11 +288,68 @@ const Login: React.FC = () => {
                   </div>
                 )}
 
+                {mode === 'update_pass' && (
+                  <div className="space-y-4">
+                    <div className="p-4 bg-blue-500/10 border border-blue-500/20 rounded-2xl">
+                      <p className="text-[10px] font-black text-blue-500 uppercase tracking-widest text-center leading-relaxed">
+                        Crie sua nova Senha Master para retomar o controle do Dojo.
+                      </p>
+                    </div>
+                    <div className="space-y-2">
+                      <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest ml-2">Nova Senha Master</label>
+                      <div className="relative">
+                        <Lock className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-500" size={18} />
+                        <input 
+                          type="password" 
+                          required
+                          value={newPassword}
+                          onChange={(e) => setNewPassword(e.target.value)}
+                          placeholder="Mínimo 6 caracteres"
+                          className="w-full bg-slate-950/80 border border-white/10 rounded-2xl py-4 pl-12 pr-4 text-white font-bold text-xs focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all"
+                        />
+                      </div>
+                    </div>
+                  </div>
+                )}
+
                 {error && (
                   <div className="space-y-4">
                     <div className="p-4 bg-red-500/10 border border-red-500/20 rounded-xl text-red-500 text-[10px] font-black uppercase text-center leading-relaxed">
                       {error}
                     </div>
+                    {error.includes('limite de e-mails') && (
+                      <div className="p-5 bg-amber-500/10 border border-amber-500/20 rounded-2xl space-y-4 shadow-xl">
+                        <div className="flex items-center gap-3">
+                           <div className="p-2 bg-amber-500/20 rounded-xl">
+                             <Shield size={16} className="text-amber-500 animate-pulse" />
+                           </div>
+                           <h3 className="text-xs font-black text-amber-500 uppercase tracking-widest leading-none">Alerta de Sistema Master</h3>
+                        </div>
+                        
+                        <p className="text-[10px] text-slate-300 font-bold uppercase leading-relaxed tracking-wider">
+                          O Supabase limita o envio de e-mails no plano gratuito. Para continuar sua evolução sem interrupções, sugerimos:
+                        </p>
+
+                        <div className="space-y-3">
+                          <button 
+                            type="button"
+                            onClick={handleGuestLogin}
+                            className="w-full bg-amber-500 hover:bg-amber-400 text-black font-black py-3 rounded-xl transition-all shadow-lg flex items-center justify-center gap-2 uppercase text-[10px] tracking-widest"
+                          >
+                            <Users size={14} /> Entrar Agora como Convidado
+                          </button>
+
+                          <div className="p-3 bg-black/40 rounded-xl border border-white/5">
+                            <p className="text-[8px] font-black text-slate-500 uppercase tracking-[0.2em] mb-2">Instruções para Admin:</p>
+                            <ol className="text-[8px] text-slate-400 font-bold space-y-1.5 uppercase list-decimal list-inside">
+                              <li>Acesse seu painel Supabase.</li>
+                              <li>Vá em <span className="text-white">Authentication</span> &gt; <span className="text-white">Email Templates</span>.</li>
+                              <li>Desative <span className="text-white">"Confirm Email"</span> para ignorar validações.</li>
+                            </ol>
+                          </div>
+                        </div>
+                      </div>
+                    )}
                   </div>
                 )}
                 {success && <div className="p-4 bg-emerald-500/10 border border-emerald-500/20 rounded-xl text-emerald-500 text-[10px] font-black uppercase text-center">{success}</div>}
@@ -266,9 +359,21 @@ const Login: React.FC = () => {
                   disabled={loading || cooldown > 0}
                   className="w-full bg-blue-600 hover:bg-blue-500 disabled:opacity-50 text-white font-black py-4 rounded-2xl transition-all shadow-xl shadow-blue-600/20 flex items-center justify-center gap-3 group uppercase text-xs tracking-widest"
                 >
-                  {loading ? 'Processando Bloco...' : cooldown > 0 ? `Aguarde ${cooldown}s` : mode === 'login' ? 'Validar Acesso Master' : mode === 'register' ? 'Gerar Novo Nó' : 'Resetar Credenciais'}
+                  {loading ? 'Processando Bloco...' : cooldown > 0 ? `Aguarde ${cooldown}s` : mode === 'login' ? 'Validar Acesso Master' : mode === 'register' ? 'Gerar Novo Nó' : mode === 'forgot' ? 'Resetar Credenciais' : 'Confirmar Nova Senha Master'}
                   {!loading && cooldown === 0 && <ArrowRight size={18} className="group-hover:translate-x-1 transition-transform" />}
                 </button>
+
+                {mode === 'login' && (
+                  <button 
+                    type="button"
+                    onClick={handleGuestLogin}
+                    disabled={loading || cooldown > 0}
+                    className="w-full bg-white/5 text-white hover:bg-white/10 disabled:opacity-50 font-black py-4 rounded-2xl transition-all shadow-xl flex items-center justify-center gap-3 group uppercase text-xs tracking-widest border border-white/10"
+                  >
+                    <Users size={18} className="text-blue-500" />
+                    {cooldown > 0 ? `Aguarde (${cooldown}s)` : 'Testar como Convidado'}
+                  </button>
+                )}
 
                 <div className="flex flex-col gap-3 mt-4">
                   {mode === 'login' && (

@@ -2,6 +2,25 @@ import express from "express";
 import { createServer as createViteServer } from "vite";
 import path from "path";
 import { fileURLToPath } from "url";
+import * as dotenv from "dotenv";
+
+// Load environment variables from .env file
+dotenv.config();
+
+console.log("OS SENSEI! Verificando Ambiente...");
+console.log("DATABASE_URL configurada:", !!process.env.DATABASE_URL);
+console.log("DIRECT_URL configurada:", !!process.env.DIRECT_URL);
+
+if (!process.env.DATABASE_URL) {
+  console.error("OS SENSEI! ALERTA CRÍTICO: DATABASE_URL não encontrada no ambiente.");
+} else {
+  const urlProto = process.env.DATABASE_URL.split(':')[0];
+  console.log(`OS SENSEI! Protocolo detectado: ${urlProto}`);
+  if (process.env.DATABASE_URL.includes("[YOUR-PASSWORD]")) {
+    console.warn("OS SENSEI! ALERTA: A senha do banco ainda não foi configurada no .env ou nas configurações.");
+  }
+}
+
 import prisma from "./prisma/client";
 
 const __filename = fileURLToPath(import.meta.url);
@@ -22,13 +41,30 @@ async function startServer() {
   // DB Diagnostic
   app.get("/api/test-db", async (req, res) => {
     try {
+      const dbUrl = process.env.DATABASE_URL || "";
+      const hasPassword = !dbUrl.includes("[YOUR-PASSWORD]");
+      const startsWithProto = dbUrl.startsWith("postgresql://") || dbUrl.startsWith("postgres://");
+
+      if (!dbUrl) {
+        return res.status(500).json({ status: "error", message: "DATABASE_URL está vazia ou não foi definida." });
+      }
+
+      if (!startsWithProto) {
+        return res.status(500).json({ status: "error", message: "DATABASE_URL deve começar com postgresql:// ou postgres://" });
+      }
+
       await prisma.$connect();
       res.json({ status: "connected", message: "OSS! O sistema está online e conectado ao PostgreSQL (Supabase)." });
     } catch (error: any) {
       console.error("Erro de conexão DB:", error);
       res.status(500).json({ 
         status: "error", 
-        message: "Falha ao conectar no banco. Lembre-se de trocar [YOUR-PASSWORD] no arquivo .env (Dashboard Supabase > Project Settings > Database)",
+        message: "Falha ao conectar no banco.",
+        troubleshooting: [
+          "Verifique se trocou [YOUR-PASSWORD] pela senha real.",
+          "Confirme se a variável DATABASE_URL está no menu Settings > Secrets.",
+          "Verifique se o IP do servidor está liberado no Supabase (ou use o Pooler se estiver usando Vercel/Cloud Run)."
+        ],
         error: error.message 
       });
     } finally {
@@ -61,8 +97,11 @@ async function startServer() {
         case 'profile': data = await prisma.professorProfile.findUnique({ where: { userId: uid } }); break;
         default: return res.status(404).json({ error: "Collection not found" });
       }
-      res.json(data);
+      
+      // JSON BigInt handling applied to GET as well to prevent "Do not know how to serialize a BigInt"
+      res.json(JSON.parse(JSON.stringify(data, (key, value) => typeof value === 'bigint' ? value.toString() : value)));
     } catch (error: any) {
+      console.error(`OS SENSEI! Erro no GET /api/data/${collection}:`, error);
       res.status(500).json({ error: error.message });
     }
   });
@@ -214,7 +253,7 @@ async function startServer() {
   } else {
     const distPath = path.join(process.cwd(), 'dist');
     app.use(express.static(distPath));
-    app.get('*', (req, res) => {
+    app.get('*all', (req, res) => {
       res.sendFile(path.join(distPath, 'index.html'));
     });
   }

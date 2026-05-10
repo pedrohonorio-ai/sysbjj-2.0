@@ -234,7 +234,7 @@ const BottomNav = ({ onLogout, isMasterAdmin }: { onLogout: () => void, isMaster
   );
 };
 
-const Header = ({ toggleSidebar, auth, onLogout }: { toggleSidebar: () => void, auth: { role: 'admin' | 'student' | null, email?: string }, onLogout: () => void }) => {
+const Header = ({ toggleSidebar, auth, onLogout }: { toggleSidebar: () => void, auth: { role: 'admin' | 'student' | null, email?: string, isAnonymous: boolean }, onLogout: () => void }) => {
   const { setTheme, resolvedTheme } = useTheme();
   const { t } = useTranslation();
   const { profile } = useProfile();
@@ -339,7 +339,12 @@ const Header = ({ toggleSidebar, auth, onLogout }: { toggleSidebar: () => void, 
         </button>
         
         <div className="hidden xl:flex flex-col">
-          <h2 className="text-xs font-black text-slate-900 dark:text-white uppercase tracking-[0.2em]">{profile.academyName}</h2>
+          <div className="flex items-center gap-2">
+            <h2 className="text-xs font-black text-slate-900 dark:text-white uppercase tracking-[0.2em]">{profile.academyName}</h2>
+            {auth.isAnonymous && (
+              <span className="px-2 py-0.5 bg-amber-500/10 border border-amber-500/20 rounded-md text-[7px] font-black text-amber-600 uppercase tracking-widest">Modo Demo</span>
+            )}
+          </div>
           <div className="flex items-center gap-2 mt-1">
             <span className="w-1.5 h-1.5 rounded-full bg-green-500 animate-pulse" />
             <span className="text-[8px] font-black text-slate-400 uppercase tracking-widest">Sincronização Master Ativa</span>
@@ -391,7 +396,7 @@ const App: React.FC = () => {
   const navigate = useNavigate();
   const { profile } = useProfile();
   const { logAction } = useData();
-  const { user, role, studentCode, loading, logout } = useAuth();
+  const { user, role, studentCode, loading, logout, isAnonymous } = useAuth();
   
   // Track Online Status
   useEffect(() => {
@@ -493,7 +498,7 @@ const App: React.FC = () => {
         ${(isPortal || role === 'student' || !isAdmin) 
           ? 'pl-0' 
           : (sidebarOpen ? 'lg:pl-72' : 'lg:pl-0')}`}>
-        {showHeader && <Header toggleSidebar={() => setSidebarOpen(!sidebarOpen)} auth={{ role, email: user?.email }} onLogout={handleLogout} />}
+        {showHeader && <Header toggleSidebar={() => setSidebarOpen(!sidebarOpen)} auth={{ role, email: user?.email, isAnonymous }} onLogout={handleLogout} />}
         <main className={`p-4 sm:p-8 lg:p-12 pt-24 lg:pt-32 flex-1 w-full ${isPortal ? 'max-w-full' : 'max-w-[1920px]'} mx-auto overflow-x-hidden pb-32 lg:pb-12 relative group`}>
           {/* Version Tracking for Sync Verification */}
           <div className="fixed bottom-6 right-6 pointer-events-none opacity-0 group-hover:opacity-30 transition-opacity z-[100]">
