@@ -22,6 +22,16 @@ export default defineConfig(({ mode }) => {
     } else {
       console.log('\x1b[32m%s\x1b[0m', '✅ GEMINI_API_KEY detected and injected into the build.');
     }
+
+    const supabaseUrl = env.VITE_SUPABASE_URL || process.env.VITE_SUPABASE_URL;
+    const supabaseKey = env.VITE_SUPABASE_ANON_KEY || process.env.VITE_SUPABASE_ANON_KEY;
+
+    if (supabaseUrl && supabaseKey) {
+      console.log('\x1b[32m%s\x1b[0m', '✅ Supabase configuration detected during build.');
+    } else {
+      console.error('\x1b[31m%s\x1b[0m', '❌ CRITICAL ERROR: Supabase configuration NOT detected! Build will result in a white screen.');
+      console.log('Ensure VITE_SUPABASE_URL and VITE_SUPABASE_ANON_KEY are set in settings or .env');
+    }
     
     return {
       server: {
@@ -40,7 +50,9 @@ export default defineConfig(({ mode }) => {
         'process.env.GEMINI_API_KEY': JSON.stringify(geminiKey),
         'process.env.API_KEY': JSON.stringify(geminiKey),
         'process.env.VITE_GEMINI_API_KEY': JSON.stringify(geminiKey),
-        'import.meta.env.VITE_GEMINI_API_KEY': JSON.stringify(geminiKey)
+        'import.meta.env.VITE_GEMINI_API_KEY': JSON.stringify(geminiKey),
+        'import.meta.env.VITE_SUPABASE_URL': JSON.stringify(supabaseUrl || ''),
+        'import.meta.env.VITE_SUPABASE_ANON_KEY': JSON.stringify(supabaseKey || '')
       },
       resolve: {
         alias: {

@@ -8,7 +8,7 @@ import { compressImage } from '../services/imageUtils';
 import { INITIAL_STUDENTS, INITIAL_SCHEDULES, INITIAL_PLANS } from '../services/academyInitializer';
 import { api } from '../services/api';
 
-enum OperationType {
+export enum OperationType {
   CREATE = 'create',
   UPDATE = 'update',
   DELETE = 'delete',
@@ -24,21 +24,74 @@ interface FirestoreErrorInfo {
   authInfo: any;
 }
 
-const handleApiError = (error: unknown, operationType: OperationType, path: string | null, setNotifications?: React.Dispatch<React.SetStateAction<any[]>>) => {
+export const handleApiError = (error: any, operationType: OperationType, path: string | null, setNotifications?: React.Dispatch<React.SetStateAction<any[]>>, setDbStatus?: React.Dispatch<React.SetStateAction<any>>) => {
+  let errorMessage = error instanceof Error ? error.message : String(error);
+  let troubleshooting = error.troubleshooting || [];
+  let senseiTip = error.sensei_tip;
+
+  // Handle common network/fetch errors
+  if (errorMessage === "Failed to fetch") {
+    errorMessage = "Não foi possível conectar ao servidor (Failed to fetch).";
+    troubleshooting = [
+      "O servidor pode estar reiniciando após uma alteração no código.",
+      "Verifique se você configurou corretamente a DATABASE_URL no menu Settings > Secrets.",
+      "Aguarde 10 segundos e tente recarregar a página."
+    ];
+    senseiTip = "OSS! Esse erro geralmente indica que o servidor backend não conseguiu iniciar devido a uma configuração de banco de dados inválida.";
+  }
+
   const errInfo = {
-    error: error instanceof Error ? error.message : String(error),
+    error: errorMessage,
     operationType,
-    path
+    path,
+    troubleshooting,
+    sensei_tip: senseiTip
   };
   console.error('API Error: ', JSON.stringify(errInfo));
   
+  if (setDbStatus) {
+    setDbStatus({ 
+      connected: false, 
+      error: errInfo.error, 
+      troubleshooting: errInfo.troubleshooting 
+    });
+  }
+
   if (setNotifications) {
+    const errorId = `ERR-${Date.now()}`;
+    
+    // Main Error Notification
     setNotifications(prev => [{
-      id: `ERR-${Date.now()}`,
-      message: `Erro na Evolução (${operationType}): Conexão com Supabase instável.`,
+      id: errorId,
+      message: `OS SENSEI! Erro: ${errInfo.error}`,
       type: 'warning',
       timestamp: Date.now()
     }, ...prev]);
+
+    // Troubleshooting notifications if available
+    if (errInfo.troubleshooting && Array.isArray(errInfo.troubleshooting)) {
+      errInfo.troubleshooting.forEach((step: string, index: number) => {
+        setTimeout(() => {
+          setNotifications(prev => [{
+            id: `${errorId}-step-${index}`,
+            message: `OSS! Dica: ${step}`,
+            type: 'info',
+            timestamp: Date.now()
+          }, ...prev]);
+        }, (index + 1) * 300);
+      });
+    }
+
+    if (errInfo.sensei_tip) {
+      setTimeout(() => {
+        setNotifications(prev => [{
+          id: `${errorId}-tip`,
+          message: `SENSEI: ${errInfo.sensei_tip}`,
+          type: 'info',
+          timestamp: Date.now()
+        }, ...prev]);
+      }, 2000);
+    }
   }
 };
 
@@ -61,6 +114,8 @@ interface DataContextType {
   presence: { email: string; lastSeen: number; role: string; userAgent: string; id: string }[];
   attendance: AttendanceRecord[];
   notifications: { id: string; message: string; type: 'info' | 'success' | 'warning'; timestamp: number }[];
+  dbStatus: { connected: boolean; error: string | null; troubleshooting?: string[]; isDemoMode?: boolean };
+  setDemoMode: (enabled: boolean) => void;
   logAction: (action: string, details: string, category: SystemLog['category']) => void;
   verifyAuditIntegrity: () => boolean;
   verifyLedgerIntegrity: () => boolean;
@@ -257,6 +312,11 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   const [attendance, setAttendance] = useState<AttendanceRecord[]>([]);
   const [presence, setPresence] = useState<{ email: string; lastSeen: number; role: string; userAgent: string; id: string }[]>([]);
   const [notifications, setNotifications] = useState<{ id: string; message: string; type: 'info' | 'success' | 'warning'; timestamp: number }[]>([]);
+  const [dbStatus, setDbStatus] = useState<{ connected: boolean; error: string | null, troubleshooting?: string[], isDemoMode?: boolean }>({ 
+    connected: true, 
+    error: null,
+    isDemoMode: localStorage.getItem('oss_demo_mode') === 'true'
+  });
   const lastHashRef = React.useRef<string>('0');
 
   const isAuthenticated = !!user || (authRole === 'student' && !!studentCode);
@@ -265,7 +325,7 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
    * Sincronização Principal com Supabase/Prisma
    */
   useEffect(() => {
-    if (!isAuthenticated || !user?.id) return;
+    if (!isAuthenticated || !user?.id || dbStatus.isDemoMode) return;
 
     const fetchAllData = async () => {
       try {
@@ -309,6 +369,8 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         if (productsData.length > 0) setProducts(productsData);
         if (subscriptionPlansData.length > 0) setPlans(subscriptionPlansData);
         if (ordersData.length > 0) setOrders(ordersData);
+        
+        setDbStatus({ connected: true, error: null });
 
         // Auto-initialization for empty accounts
         if (studentsData.length === 0) {
@@ -321,7 +383,7 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
            setStudents(refreshedStudents);
         }
       } catch (error) {
-        handleApiError(error, OperationType.LIST, 'all', setNotifications);
+        handleApiError(error, OperationType.LIST, 'all', setNotifications, setDbStatus);
       }
     };
 
@@ -394,10 +456,10 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     setLogs(prev => [newLog, ...prev]);
     
     // API Sync
-    if (user?.id) {
-       api.saveData('logs', user.id, newLog).catch(err => handleApiError(err, OperationType.CREATE, 'logs'));
+    if (user?.id && !dbStatus.isDemoMode) {
+       api.saveData('logs', user.id, newLog).catch(err => handleApiError(err, OperationType.CREATE, 'logs', setNotifications, setDbStatus));
     }
-  }, [user?.id, user?.email]);
+  }, [user?.id, user?.email, dbStatus.isDemoMode]);
 
   const verifyAuditIntegrity = useCallback(() => {
     if (logs.length <= 1) return true;
@@ -468,8 +530,8 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       // Optimistic Update
       setStudents(prev => [...prev, newStudent]);
       
-      if (user?.id) {
-        await api.saveData('students', user.id, newStudent).catch(err => handleApiError(err, OperationType.CREATE, 'students'));
+      if (user?.id && !dbStatus.isDemoMode) {
+        await api.saveData('students', user.id, newStudent).catch(err => handleApiError(err, OperationType.CREATE, 'students', setNotifications, setDbStatus));
       }
       
       logAction('Novo Cadastro', `Alunos ${student.name} cadastrado`, 'User');
@@ -477,7 +539,7 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       console.error("Critical error adding student:", err);
       throw err; // Re-throw to be caught by UI
     }
-  }, [logAction]);
+  }, [logAction, dbStatus.isDemoMode]);
 
   const updateStudent = useCallback(async (id: string, updates: Partial<Student>) => {
     // Compress photo if exists in updates
@@ -489,21 +551,21 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     // Optimistic Update
     setStudents(prev => prev.map(s => s.id === id ? { ...s, ...finalUpdates } : s));
     
-    if (user?.id) {
-      await api.saveData('students', user.id, { ...finalUpdates, id }).catch(err => handleApiError(err, OperationType.UPDATE, `students/${id}`));
+    if (user?.id && !dbStatus.isDemoMode) {
+      await api.saveData('students', user.id, { ...finalUpdates, id }).catch(err => handleApiError(err, OperationType.UPDATE, `students/${id}`, setNotifications, setDbStatus));
     }
     logAction('Atualização de Cadastro', `Dados do aluno ID ${id} atualizados`, 'User');
-  }, [logAction, user?.id]);
+  }, [logAction, user?.id, dbStatus.isDemoMode]);
 
   const deleteStudent = useCallback((id: string) => {
     // Optimistic Update
     setStudents(prev => prev.filter(s => s.id !== id));
     
-    if (user?.id) {
-      api.deleteData('students', id, user.id).catch(err => handleApiError(err, OperationType.DELETE, `students/${id}`));
+    if (user?.id && !dbStatus.isDemoMode) {
+      api.deleteData('students', id, user.id).catch(err => handleApiError(err, OperationType.DELETE, `students/${id}`, setNotifications, setDbStatus));
     }
     logAction('Exclusão de Cadastro', `Aluno ID ${id} removido do sistema`, 'Security');
-  }, [logAction, user?.id]);
+  }, [logAction, user?.id, dbStatus.isDemoMode]);
 
   const addPayment = (payment: Omit<Payment, 'id'>) => {
     const id = `PAY-${Date.now()}`;
@@ -512,8 +574,8 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     // Optimistic Update
     setPayments(prev => [newPayment, ...prev]);
     
-    if (user?.id) {
-       api.saveData('payments', user.id, newPayment).catch(err => handleApiError(err, OperationType.CREATE, 'payments'));
+    if (user?.id && !dbStatus.isDemoMode) {
+       api.saveData('payments', user.id, newPayment).catch(err => handleApiError(err, OperationType.CREATE, 'payments', setNotifications, setDbStatus));
     }
 
     logAction('Pagamento Registrado', `Mensalidade de ${payment.name} no valor de R$ ${payment.amount}`, 'Financial');
@@ -541,8 +603,8 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     // Optimistic Update
     setReceipts(prev => [newReceipt, ...prev]);
     
-    if (user?.id) {
-       api.saveData('receipts', user.id, newReceipt).catch(err => handleApiError(err, OperationType.CREATE, 'receipts'));
+    if (user?.id && !dbStatus.isDemoMode) {
+       api.saveData('receipts', user.id, newReceipt).catch(err => handleApiError(err, OperationType.CREATE, 'receipts', setNotifications, setDbStatus));
     }
 
     logAction('Comprovante Enviado', `Aluno ${receipt.studentName} enviou comprovante de R$ ${receipt.amount}`, 'Financial');
@@ -561,8 +623,8 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     // Optimistic Update
     setReceipts(prev => prev.map(r => r.id === id ? { ...r, status: 'Approved' } : r));
     
-    if (user?.id) {
-       api.saveData('receipts', user.id, { ...receipt, status: 'Approved' }).catch(err => handleApiError(err, OperationType.UPDATE, `receipts/${id}`));
+    if (user?.id && !dbStatus.isDemoMode) {
+       api.saveData('receipts', user.id, { ...receipt, status: 'Approved' }).catch(err => handleApiError(err, OperationType.UPDATE, `receipts/${id}`, setNotifications, setDbStatus));
     }
 
     logAction('Comprovante Aprovado', `Comprovante ID ${id} aprovado pelo administrador`, 'Financial');
@@ -593,7 +655,7 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     setReceipts(prev => prev.map(r => r.id === id ? { ...r, status: 'Rejected' } : r));
     
     if (user?.id && receipt) {
-       api.saveData('receipts', user.id, { ...receipt, status: 'Rejected' }).catch(err => handleApiError(err, OperationType.UPDATE, `receipts/${id}`));
+       api.saveData('receipts', user.id, { ...receipt, status: 'Rejected' }).catch(err => handleApiError(err, OperationType.UPDATE, `receipts/${id}`, setNotifications, setDbStatus));
     }
 
     logAction('Comprovante Rejeitado', `Comprovante ID ${id} rejeitado pelo administrador`, 'Security');
@@ -619,7 +681,7 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     setLedger(prev => [newEntry, ...prev]);
 
     if (user?.id) {
-       api.saveData('ledger', user.id, newEntry).catch(err => handleApiError(err, OperationType.CREATE, 'ledger'));
+       api.saveData('ledger', user.id, newEntry).catch(err => handleApiError(err, OperationType.CREATE, 'ledger', setNotifications, setDbStatus));
     }
 
     logAction('Movimentação Ledger', `Nova entrada no ledger: ${entry.description}`, 'Financial');
@@ -665,11 +727,11 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     setStudents(updatedStudents);
 
     // Persist to Cloud via API
-    if (user?.id) {
+    if (user?.id && !dbStatus.isDemoMode) {
        for (const id of studentIds) {
           const student = updatedStudents.find(s => s.id === id);
           if (student) {
-             api.saveData('students', user.id, student).catch(err => handleApiError(err, OperationType.UPDATE, `students/${id}`));
+             api.saveData('students', user.id, student).catch(err => handleApiError(err, OperationType.UPDATE, `students/${id}`, setNotifications, setDbStatus));
           }
        }
     }
@@ -697,8 +759,8 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     // Optimistic Update
     setStudents(prev => prev.map(s => s.id === studentId ? { ...s, ...updates } : s));
     
-    if (user?.id) {
-       api.saveData('students', user.id, { ...updates, id: studentId }).catch(err => handleApiError(err, OperationType.UPDATE, `students/${studentId}`));
+    if (user?.id && !dbStatus.isDemoMode) {
+       api.saveData('students', user.id, { ...updates, id: studentId }).catch(err => handleApiError(err, OperationType.UPDATE, `students/${studentId}`, setNotifications, setDbStatus));
     }
 
     setNotifications(prev => [{
@@ -719,7 +781,7 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     setSchedules(prev => [...prev, newSchedule].sort((a, b) => a.time.localeCompare(b.time)));
     
     if (user?.id) {
-       api.saveData('schedules', user.id, newSchedule).catch(err => handleApiError(err, OperationType.CREATE, 'schedules'));
+       api.saveData('schedules', user.id, newSchedule).catch(err => handleApiError(err, OperationType.CREATE, 'schedules', setNotifications, setDbStatus));
     }
     
     logAction('Novo Horário', `Aula de ${schedule.title} adicionada ao cronograma`, 'System');
@@ -730,7 +792,7 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     setSchedules(prev => prev.map(s => s.id === id ? { ...s, ...updates } : s).sort((a, b) => a.time.localeCompare(b.time)));
     
     if (user?.id) {
-       api.saveData('schedules', user.id, { ...updates, id }).catch(err => handleApiError(err, OperationType.UPDATE, `schedules/${id}`));
+       api.saveData('schedules', user.id, { ...updates, id }).catch(err => handleApiError(err, OperationType.UPDATE, `schedules/${id}`, setNotifications, setDbStatus));
     }
     logAction('Horário Atualizado', `Aula ID ${id} modificada`, 'System');
   };
@@ -740,7 +802,7 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     setSchedules(prev => prev.filter(s => s.id !== id));
     
     if (user?.id) {
-       api.deleteData('schedules', id, user.id).catch(err => handleApiError(err, OperationType.DELETE, `schedules/${id}`));
+       api.deleteData('schedules', id, user.id).catch(err => handleApiError(err, OperationType.DELETE, `schedules/${id}`, setNotifications, setDbStatus));
     }
     logAction('Horário Removido', `Aula ID ${id} excluída`, 'Security');
   };
@@ -760,7 +822,7 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     setStudents(prev => prev.map(s => s.id === studentId ? { ...s, ...updates } : s));
 
     if (user?.id) {
-       api.saveData('students', user.id, { ...updates, id: studentId }).catch(err => handleApiError(err, OperationType.UPDATE, `students/${studentId}`));
+       api.saveData('students', user.id, { ...updates, id: studentId }).catch(err => handleApiError(err, OperationType.UPDATE, `students/${studentId}`, setNotifications, setDbStatus));
     }
 
     logAction('Graduação Aprovada', `Aluno ${student.name} graduado de ${oldBelt} para ${newBelt}`, 'Security');
@@ -802,7 +864,7 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     setExtraRevenue(prev => [newRev, ...prev]);
     
     if (user?.id) {
-       api.saveData('extra_revenue', user.id, newRev).catch(err => handleApiError(err, OperationType.CREATE, 'extra_revenue'));
+       api.saveData('extra_revenue', user.id, newRev).catch(err => handleApiError(err, OperationType.CREATE, 'extra_revenue', setNotifications, setDbStatus));
     }
     
     logAction('Venda Extra', `Venda de ${rev.description} no valor de R$ ${rev.amount}`, 'Financial');
@@ -823,7 +885,7 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     setExtraRevenue(prev => prev.map(r => r.id === id ? { ...r, ...updates } : r));
     
     if (user?.id) {
-      api.saveData('extra_revenue', user.id, { ...updates, id }).catch(err => handleApiError(err, OperationType.UPDATE, `extra_revenue/${id}`));
+      api.saveData('extra_revenue', user.id, { ...updates, id }).catch(err => handleApiError(err, OperationType.UPDATE, `extra_revenue/${id}`, setNotifications, setDbStatus));
     }
     logAction('Venda Atualizada', `Venda ID ${id} modificada`, 'Financial');
   };
@@ -833,7 +895,7 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     setExtraRevenue(prev => prev.filter(r => r.id !== id));
     
     if (user?.id) {
-       api.deleteData('extra_revenue', id, user.id).catch(err => handleApiError(err, OperationType.DELETE, `extra_revenue/${id}`));
+       api.deleteData('extra_revenue', id, user.id).catch(err => handleApiError(err, OperationType.DELETE, `extra_revenue/${id}`, setNotifications, setDbStatus));
     }
     logAction('Venda Removida', `Venda ID ${id} removida pelo administrador`, 'Security');
   };
@@ -844,21 +906,21 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     setOrders(prev => [newOrder, ...prev]);
 
     if (user?.id) {
-       api.saveData('orders', user.id, newOrder).catch(err => handleApiError(err, OperationType.CREATE, 'orders'));
+       api.saveData('orders', user.id, newOrder).catch(err => handleApiError(err, OperationType.CREATE, 'orders', setNotifications, setDbStatus));
     }
   };
 
   const updateOrder = (id: string, updates: Partial<KimonoOrder>) => {
     setOrders(prev => prev.map(o => o.id === id ? { ...o, ...updates } : o));
     if (user?.id) {
-       api.saveData('orders', user.id, { ...updates, id }).catch(err => handleApiError(err, OperationType.UPDATE, `orders/${id}`));
+       api.saveData('orders', user.id, { ...updates, id }).catch(err => handleApiError(err, OperationType.UPDATE, `orders/${id}`, setNotifications, setDbStatus));
     }
   };
 
   const deleteOrder = (id: string) => {
     setOrders(prev => prev.filter(o => o.id !== id));
     if (user?.id) {
-       api.deleteData('orders', id, user.id).catch(err => handleApiError(err, OperationType.DELETE, `orders/${id}`));
+       api.deleteData('orders', id, user.id).catch(err => handleApiError(err, OperationType.DELETE, `orders/${id}`, setNotifications, setDbStatus));
     }
   };
 
@@ -868,7 +930,7 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     setLessonPlans(prev => [newPlan, ...prev]);
     
     if (user?.id) {
-      api.saveData('lesson_plans', user.id, newPlan).catch(err => handleApiError(err, OperationType.CREATE, 'lesson_plans'));
+      api.saveData('lesson_plans', user.id, newPlan).catch(err => handleApiError(err, OperationType.CREATE, 'lesson_plans', setNotifications, setDbStatus));
     }
     logAction('Novo Plano de Aula', `QTD: ${plan.title} criado`, 'System');
   };
@@ -876,7 +938,7 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   const updateLessonPlan = (id: string, updates: Partial<LessonPlan>) => {
     setLessonPlans(prev => prev.map(p => p.id === id ? { ...p, ...updates } : p));
     if (user?.id) {
-      api.saveData('lesson_plans', user.id, { ...updates, id }).catch(err => handleApiError(err, OperationType.UPDATE, `lesson_plans/${id}`));
+      api.saveData('lesson_plans', user.id, { ...updates, id }).catch(err => handleApiError(err, OperationType.UPDATE, `lesson_plans/${id}`, setNotifications, setDbStatus));
     }
     logAction('Plano Atualizado', `QTD ID ${id} modificado`, 'System');
   };
@@ -884,7 +946,7 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   const deleteLessonPlan = (id: string) => {
     setLessonPlans(prev => prev.filter(p => p.id !== id));
     if (user?.id) {
-      api.deleteData('lesson_plans', id, user.id).catch(err => handleApiError(err, OperationType.DELETE, `lesson_plans/${id}`));
+      api.deleteData('lesson_plans', id, user.id).catch(err => handleApiError(err, OperationType.DELETE, `lesson_plans/${id}`, setNotifications, setDbStatus));
     }
     logAction('Plano Removido', `QTD ID ${id} excluído`, 'Security');
   };
@@ -895,7 +957,7 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     setTechniques(prev => [...prev, newTech]);
     
     if (user?.id) {
-      api.saveData('techniques', user.id, newTech).catch(err => handleApiError(err, OperationType.CREATE, 'techniques'));
+      api.saveData('techniques', user.id, newTech).catch(err => handleApiError(err, OperationType.CREATE, 'techniques', setNotifications, setDbStatus));
     }
     logAction('Nova Técnica', `Técnica ${tech.name} adicionada à biblioteca`, 'System');
   };
@@ -903,7 +965,7 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   const updateTechnique = (id: string, updates: Partial<LibraryTechnique>) => {
     setTechniques(prev => prev.map(t => t.id === id ? { ...t, ...updates } : t));
     if (user?.id) {
-      api.saveData('techniques', user.id, { ...updates, id }).catch(err => handleApiError(err, OperationType.UPDATE, `techniques/${id}`));
+      api.saveData('techniques', user.id, { ...updates, id }).catch(err => handleApiError(err, OperationType.UPDATE, `techniques/${id}`, setNotifications, setDbStatus));
     }
     logAction('Técnica Atualizada', `Técnica ID ${id} modificada`, 'System');
   };
@@ -911,7 +973,7 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   const deleteTechnique = (id: string) => {
     setTechniques(prev => prev.filter(t => t.id !== id));
     if (user?.id) {
-      api.deleteData('techniques', id, user.id).catch(err => handleApiError(err, OperationType.DELETE, `techniques/${id}`));
+      api.deleteData('techniques', id, user.id).catch(err => handleApiError(err, OperationType.DELETE, `techniques/${id}`, setNotifications, setDbStatus));
     }
     logAction('Técnica Removida', `Técnica ID ${id} excluída da biblioteca`, 'Security');
   };
@@ -922,21 +984,21 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     setProducts(prev => [...prev, newProduct]);
 
     if (user?.id) {
-       api.saveData('products', user.id, newProduct).catch(err => handleApiError(err, OperationType.CREATE, 'products'));
+       api.saveData('products', user.id, newProduct).catch(err => handleApiError(err, OperationType.CREATE, 'products', setNotifications, setDbStatus));
     }
   };
 
   const updateProduct = (id: string, updates: Partial<Product>) => {
     setProducts(prev => prev.map(p => p.id === id ? { ...p, ...updates } : p));
     if (user?.id) {
-       api.saveData('products', user.id, { ...updates, id }).catch(err => handleApiError(err, OperationType.UPDATE, `products/${id}`));
+       api.saveData('products', user.id, { ...updates, id }).catch(err => handleApiError(err, OperationType.UPDATE, `products/${id}`, setNotifications, setDbStatus));
     }
   };
 
   const deleteProduct = (id: string) => {
     setProducts(prev => prev.filter(p => p.id !== id));
     if (user?.id) {
-       api.deleteData('products', id, user.id).catch(err => handleApiError(err, OperationType.DELETE, `products/${id}`));
+       api.deleteData('products', id, user.id).catch(err => handleApiError(err, OperationType.DELETE, `products/${id}`, setNotifications, setDbStatus));
     }
   };
 
@@ -946,21 +1008,21 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     setPlans(prev => [...prev, newPlan]);
 
     if (user?.id) {
-       api.saveData('plans', user.id, newPlan).catch(err => handleApiError(err, OperationType.CREATE, 'plans'));
+       api.saveData('plans', user.id, newPlan).catch(err => handleApiError(err, OperationType.CREATE, 'plans', setNotifications, setDbStatus));
     }
   };
 
   const updatePlan = (id: string, updates: Partial<Plan>) => {
     setPlans(prev => prev.map(p => p.id === id ? { ...p, ...updates } : p));
     if (user?.id) {
-       api.saveData('plans', user.id, { ...updates, id }).catch(err => handleApiError(err, OperationType.UPDATE, `plans/${id}`));
+       api.saveData('plans', user.id, { ...updates, id }).catch(err => handleApiError(err, OperationType.UPDATE, `plans/${id}`, setNotifications, setDbStatus));
     }
   };
 
   const deletePlan = (id: string) => {
     setPlans(prev => prev.filter(p => p.id !== id));
     if (user?.id) {
-       api.deleteData('plans', id, user.id).catch(err => handleApiError(err, OperationType.DELETE, `plans/${id}`));
+       api.deleteData('plans', id, user.id).catch(err => handleApiError(err, OperationType.DELETE, `plans/${id}`, setNotifications, setDbStatus));
     }
   };
 
@@ -1011,9 +1073,22 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     }
   };
 
+  const setDemoMode = useCallback((enabled: boolean) => {
+    localStorage.setItem('oss_demo_mode', enabled ? 'true' : 'false');
+    setDbStatus(prev => ({ ...prev, isDemoMode: enabled }));
+    if (enabled) {
+      setNotifications(prev => [{
+        id: `DEMO-${Date.now()}`,
+        message: "MODO DEMONSTRAÇÃO ATIVADO: Os dados serão salvos apenas localmente.",
+        type: 'info',
+        timestamp: Date.now()
+      }, ...prev]);
+    }
+  }, []);
+
   return (
     <DataContext.Provider value={{ 
-      students, payments, schedules, gallery, extraRevenue, orders, lessonPlans, techniques, products, plans, receipts, ledger, professorRules, setProfessorRules, logs, attendance, presence, notifications,
+      students, payments, schedules, gallery, extraRevenue, orders, lessonPlans, techniques, products, plans, receipts, ledger, professorRules, setProfessorRules, logs, attendance, presence, notifications, dbStatus, setDemoMode,
       logAction, verifyAuditIntegrity, addStudent, updateStudent, deleteStudent, addPayment, addReceipt, approveReceipt, rejectReceipt, addLedgerEntry, clearNotification, recordAttendance, completeRuleLesson,
       addSchedule, updateSchedule, deleteSchedule,
       addGalleryImage,

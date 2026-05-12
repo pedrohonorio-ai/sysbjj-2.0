@@ -105,11 +105,11 @@ createRoot(document.getElementById('root')!).render(
         <ThemeProvider>
           <LanguageProvider>
             <AuthProvider>
-              <ProfileProvider>
-                <DataProvider>
+              <DataProvider>
+                <ProfileProvider>
                   <App />
-                </DataProvider>
-              </ProfileProvider>
+                </ProfileProvider>
+              </DataProvider>
             </AuthProvider>
           </LanguageProvider>
         </ThemeProvider>

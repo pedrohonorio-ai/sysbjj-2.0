@@ -34,9 +34,21 @@ export const api = {
    */
   async fetchData(collection: string, userId: string) {
     const response = await fetch(`/api/data/${collection}?userId=${userId}`);
+    
+    // Safety check for HTML responses in API routes
+    const contentType = response.headers.get('content-type');
+    if (contentType && contentType.includes('text/html')) {
+      const text = await response.text();
+      console.error(`API Error: Recebeu HTML ao buscar ${collection}. Primeiros 100 caracteres:`, text.substring(0, 100));
+      throw new Error(`O servidor retornou uma página HTML em vez de dados JSON. Isso geralmente indica erro de rota ou falta de conexão com banco.`);
+    }
+
     if (!response.ok) {
       const errorData = await response.json().catch(() => ({}));
-      throw new Error(errorData.error || `Erro ao buscar ${collection} da API (${response.status})`);
+      const error = new Error(errorData.error || `Erro ao buscar ${collection} da API (${response.status})`) as any;
+      if (errorData.troubleshooting) error.troubleshooting = errorData.troubleshooting;
+      if (errorData.sensei_tip) error.sensei_tip = errorData.sensei_tip;
+      throw error;
     }
     return await response.json();
   },
@@ -50,9 +62,20 @@ export const api = {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ ...data, userId })
     });
+
+    const contentType = response.headers.get('content-type');
+    if (contentType && contentType.includes('text/html')) {
+      const text = await response.text();
+      console.error(`API Error: Recebeu HTML ao salvar ${collection}. Primeiros 100 caracteres:`, text.substring(0, 100));
+      throw new Error(`O servidor retornou uma página HTML em vez de dados JSON ao tentar salvar.`);
+    }
+
     if (!response.ok) {
       const errorData = await response.json().catch(() => ({}));
-      throw new Error(errorData.error || `Erro ao salvar ${collection} na API (${response.status})`);
+      const error = new Error(errorData.error || `Erro ao salvar ${collection} na API (${response.status})`) as any;
+      if (errorData.troubleshooting) error.troubleshooting = errorData.troubleshooting;
+      if (errorData.sensei_tip) error.sensei_tip = errorData.sensei_tip;
+      throw error;
     }
     return await response.json();
   },

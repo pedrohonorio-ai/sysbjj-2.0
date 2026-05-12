@@ -70,31 +70,38 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     });
 
     // Listen for auth changes
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
-      setUser(session?.user ?? null);
-      setIsAnonymous(session?.user?.is_anonymous ?? false);
-      
-      if (event === 'PASSWORD_RECOVERY') {
-        setIsRecovering(true);
-      }
-
-      if (session?.user) {
-        setRole('admin');
-      } else {
-        // If no session, check if we are in student mode
-        const saved = localStorage.getItem('oss_auth');
-        const parsed = saved ? JSON.parse(saved) : null;
-        if (parsed?.role === 'student') {
-          setRole('student');
-          setStudentCode(parsed.studentCode);
-        } else {
-          setRole(null);
+    let subscription: { unsubscribe: () => void } | null = null;
+    
+    if (supabase) {
+      const { data } = supabase.auth.onAuthStateChange((event, session) => {
+        setUser(session?.user ?? null);
+        setIsAnonymous(session?.user?.is_anonymous ?? false);
+        
+        if (event === 'PASSWORD_RECOVERY') {
+          setIsRecovering(true);
         }
-      }
-      setLoading(false);
-    });
 
-    return () => subscription.unsubscribe();
+        if (session?.user) {
+          setRole('admin');
+        } else {
+          // If no session, check if we are in student mode
+          const saved = localStorage.getItem('oss_auth');
+          const parsed = saved ? JSON.parse(saved) : null;
+          if (parsed?.role === 'student') {
+            setRole('student');
+            setStudentCode(parsed.studentCode);
+          } else {
+            setRole(null);
+          }
+        }
+        setLoading(false);
+      });
+      subscription = data.subscription;
+    }
+
+    return () => {
+      if (subscription) subscription.unsubscribe();
+    };
   }, []);
 
   const login = async (email: string, pass: string) => {

@@ -21,6 +21,7 @@ import SystemAudit from './pages/SystemAudit';
 import LanguageSelection from './pages/LanguageSelection';
 import Login from './pages/Login';
 import NotificationCenter from './components/NotificationCenter';
+import DatabaseWarning from './components/DatabaseWarning';
 import { useTranslation } from './contexts/LanguageContext';
 import { useTheme } from './contexts/ThemeContext';
 import { useProfile } from './contexts/ProfileContext';
@@ -399,8 +400,10 @@ const App: React.FC = () => {
   const { user, role, studentCode, loading, logout, isAnonymous } = useAuth();
   
   // Track Online Status
+  const { dbStatus } = useData();
+
   useEffect(() => {
-    if (role === 'admin' && user?.email && user?.id) {
+    if (role === 'admin' && user?.email && user?.id && !dbStatus.isDemoMode) {
       const deviceId = localStorage.getItem('oss_device_id') || Math.random().toString(36).substring(2, 15);
       if (!localStorage.getItem('oss_device_id')) localStorage.setItem('oss_device_id', deviceId);
 
@@ -494,6 +497,7 @@ const App: React.FC = () => {
         }
       `}</style>
       {(isAdmin && !isPortal) && <Sidebar isOpen={sidebarOpen} toggle={() => setSidebarOpen(!sidebarOpen)} onLogout={handleLogout} isMasterAdmin={isMasterAdmin} />}
+      <DatabaseWarning />
       <div className={`flex-1 flex flex-col w-full min-h-screen transition-all duration-500 ease-[cubic-bezier(0.2,0.8,0.2,1)]
         ${(isPortal || role === 'student' || !isAdmin) 
           ? 'pl-0' 

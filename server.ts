@@ -4,8 +4,22 @@ import path from "path";
 import { fileURLToPath } from "url";
 import * as dotenv from "dotenv";
 
+// GLOBAL ERROR HANDLERS - MUST BE AT TOP
+process.on('uncaughtException', (err) => {
+  console.error("OS SENSEI! UNCAUGHT EXCEPTION:", err);
+});
+
+process.on('unhandledRejection', (reason, promise) => {
+  console.error("OS SENSEI! UNHANDLED REJECTION:", reason);
+});
+
 // Load environment variables from .env file
-dotenv.config();
+dotenv.config({ override: true });
+
+// Sanitize DB URL for boot logging
+if (process.env.DATABASE_URL) {
+  process.env.DATABASE_URL = process.env.DATABASE_URL.replace(/['"]/g, '').trim();
+}
 
 console.log("OS SENSEI! Verificando Ambiente...");
 console.log("DATABASE_URL configurada:", !!process.env.DATABASE_URL);
@@ -14,24 +28,43 @@ console.log("DIRECT_URL configurada:", !!process.env.DIRECT_URL);
 if (!process.env.DATABASE_URL) {
   console.error("OS SENSEI! ALERTA CRÍTICO: DATABASE_URL não encontrada no ambiente.");
 } else {
-  const urlProto = process.env.DATABASE_URL.split(':')[0];
-  console.log(`OS SENSEI! Protocolo detectado: ${urlProto}`);
-  if (process.env.DATABASE_URL.includes("[YOUR-PASSWORD]")) {
-    console.warn("OS SENSEI! ALERTA: A senha do banco ainda não foi configurada no .env ou nas configurações.");
+  const rawUrl = process.env.DATABASE_URL;
+  const urlProto = rawUrl.substring(0, 15);
+  console.log(`OS SENSEI! DATABASE_URL prefixo: ${urlProto}`);
+  
+  if (!rawUrl.startsWith('postgresql://') && !rawUrl.startsWith('postgres://')) {
+    console.error("OS SENSEI! ERRO: DATABASE_URL não começa com postgresql:// ou postgres://");
+  }
+  
+  if (rawUrl.includes("[YOUR-PASSWORD]")) {
+    console.warn("OS SENSEI! ALERTA: A senha do banco ainda não foi configurada! Substitua [YOUR-PASSWORD] no .env.");
   }
 }
 
-import prisma from "./prisma/client";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
 async function startServer() {
+  console.log("OS SENSEI! Iniciando startServer...");
   const app = express();
   const PORT = 3000;
+  let prisma: any;
 
   // Body parser
   app.use(express.json());
+
+  // Initialization middleware - must be above all API routes
+  app.use((req, res, next) => {
+    if (req.path.startsWith("/api") && !prisma) {
+      // Except for health check and test-db
+      const exempt = ["/api/health", "/api/test-db"].includes(req.path);
+      if (exempt) return next();
+      
+      return res.status(503).json({ error: "O sistema está inicializando os serviços de banco de dados. Por favor, aguarde alguns segundos e tente novamente." });
+    }
+    next();
+  });
 
   // API routes
   app.get("/api/health", (req, res) => {
@@ -41,12 +74,28 @@ async function startServer() {
   // DB Diagnostic
   app.get("/api/test-db", async (req, res) => {
     try {
+      if (!prisma) {
+        return res.status(503).json({ 
+          status: "initializing", 
+          message: "O motor Prisma ainda está aquecendo. Aguarde alguns segundos." 
+        });
+      }
+
       const dbUrl = process.env.DATABASE_URL || "";
       const hasPassword = !dbUrl.includes("[YOUR-PASSWORD]");
       const startsWithProto = dbUrl.startsWith("postgresql://") || dbUrl.startsWith("postgres://");
+      const isHttps = dbUrl.startsWith("https://");
 
       if (!dbUrl) {
         return res.status(500).json({ status: "error", message: "DATABASE_URL está vazia ou não foi definida." });
+      }
+
+      if (isHttps) {
+        return res.status(500).json({ 
+          status: "error", 
+          message: "DATABASE_URL detectada como HTTPS. Você provavelmente colou a URL do Projeto Supabase (API) em vez da String de Conexão do Banco de Dados.",
+          action: "Vá no Supabase > Settings > Database > Connection String > Selecione 'URI' e copie a URL que começa com 'postgresql://'."
+        });
       }
 
       if (!startsWithProto) {
@@ -71,6 +120,56 @@ async function startServer() {
       await prisma.$disconnect();
     }
   });
+
+  // Central error handler for API routes
+  const handleApiError = (res: any, error: any, collection: string) => {
+    console.error(`OS SENSEI! Erro na API [${collection}]:`, error);
+    
+    const dbUrl = process.env.DATABASE_URL || "";
+    const isHttps = dbUrl.includes("ERR_HTTPS_URL_PROVIDED");
+    const isGenericInvalid = dbUrl.includes("ERR_INVALID_OR_EMPTY_URL");
+    const hasPlaceholder = dbUrl.includes("[YOUR-PASSWORD]");
+
+    let customMessage = error.message;
+    let troubleshooting = [];
+
+    if (isHttps) {
+      customMessage = "OSS! Erro de Configuração: URL do Supabase incorreta (HTTPS).";
+      troubleshooting.push("Você provavelmente colou a URL da API ou do Dashboard do Supabase.");
+      troubleshooting.push("O Prisma precisa da 'String de Conexão' (URI).");
+      troubleshooting.push("No Supabase: Vá em Settings > Database > Connection String. Selecione 'URI' e copie o link que começa com 'postgresql://'.");
+      troubleshooting.push("Certifique-se de substituir [YOUR-PASSWORD] pela sua senha real na URL.");
+    } else if (hasPlaceholder) {
+      customMessage = "OSS! Senha do banco não configurada.";
+      troubleshooting.push("A sua DATABASE_URL contém '[YOUR-PASSWORD]'.");
+      troubleshooting.push("Você deve substituir esse texto pela senha real que você criou ao configurar o projeto no Supabase.");
+      troubleshooting.push("Vá no menu 'Settings' > 'Secrets' aqui no AI Studio e atualize o valor da DATABASE_URL.");
+    } else if (isGenericInvalid) {
+      customMessage = "OSS! DATABASE_URL ausente ou inválida.";
+      troubleshooting.push("Verifique se a variável DATABASE_URL está definida corretamente no menu Settings > Secrets.");
+      troubleshooting.push("Ela deve seguir o formato: postgresql://postgres.USER:PASSWORD@HOST:5432/postgres");
+    } else if (error.message && error.message.includes("Authentication failed against database server")) {
+      customMessage = "OSS! Erro de Autenticação: Senha ou Usuário incorretos.";
+      troubleshooting.push("A conexão foi estabelecida, mas o banco rejeitou sua senha.");
+      troubleshooting.push("1. Verifique se a senha na DATABASE_URL é a mesma que você definiu no Supabase.");
+      troubleshooting.push("2. Se sua senha tem símbolos como @, #, !, você deve usar 'URL Encoding' (ex: @ vira %40).");
+      troubleshooting.push("3. Se o erro persistir, tente redefined a senha no painel do Supabase para algo apenas com letras e números.");
+    } else if (error.message && error.message.includes("Can't reach database server at")) {
+      customMessage = "OSS! Não foi possível alcançar o servidor do banco de dados.";
+      troubleshooting.push("O endereço do banco está correto, mas o servidor não responde.");
+      troubleshooting.push("1. Verifique se o seu projeto no Supabase está ATIVO (não pausado).");
+      troubleshooting.push("2. Verifique se a sua conexão de internet permite conexões na porta 5432 ou 6543.");
+      troubleshooting.push("3. DICA DE SENSEI: Se estiver em uma rede corporativa, o firewall pode estar bloqueando o banco.");
+      troubleshooting.push("4. Tente usar o 'Modo Demo' no topo da tela para testar as funcionalidades sem banco de dados.");
+    }
+
+    res.status(500).json({ 
+      error: customMessage,
+      collection,
+      troubleshooting: troubleshooting.length > 0 ? troubleshooting : undefined,
+      sensei_tip: "OSS SENSEI! Para o sistema funcionar, o 'cinto de segurança' (DATABASE_URL) deve estar bem apertado com a String de Conexão (URI) correta do Supabase."
+    });
+  };
 
   // Generic Get Route for User Collections
   app.get("/api/data/:collection", async (req, res) => {
@@ -101,8 +200,7 @@ async function startServer() {
       // JSON BigInt handling applied to GET as well to prevent "Do not know how to serialize a BigInt"
       res.json(JSON.parse(JSON.stringify(data, (key, value) => typeof value === 'bigint' ? value.toString() : value)));
     } catch (error: any) {
-      console.error(`OS SENSEI! Erro no GET /api/data/${collection}:`, error);
-      res.status(500).json({ error: error.message });
+      handleApiError(res, error, collection);
     }
   });
 
@@ -211,8 +309,7 @@ async function startServer() {
       // JSON BigInt handling
       res.json(JSON.parse(JSON.stringify(result, (key, value) => typeof value === 'bigint' ? value.toString() : value)));
     } catch (error: any) {
-      console.error(`Error in POST /api/data/${collection}:`, error);
-      res.status(500).json({ error: error.message });
+      handleApiError(res, error, collection);
     }
   });
 
@@ -239,28 +336,59 @@ async function startServer() {
       }
       res.json({ success: true, count: result.count });
     } catch (error: any) {
-      res.status(500).json({ error: error.message });
+      handleApiError(res, error, collection);
     }
   });
 
+  // API Routes ended. Final 404 for API.
+  // Using a middleware for catch-all API to avoid path-to-regexp string issues in Express 5
+  app.use((req, res, next) => {
+    if (req.path.startsWith("/api")) {
+      return res.status(404).json({ error: `API route not found: ${req.method} ${req.url}` });
+    }
+    next();
+  });
+
+  // Start listening immediately
+  app.listen(PORT, "0.0.0.0", () => {
+    console.log(`OS SENSEI! Servidor ouvindo na porta ${PORT}`);
+    console.log(`URL Local: http://localhost:${PORT}`);
+  });
+
+  // Lazy load prisma to avoid boot hang
+  console.log("OS SENSEI! Carregando Prisma...");
+  try {
+    const prismaModule = await import("./prisma/client");
+    prisma = prismaModule.default;
+    console.log("OS SENSEI! Prisma Carregado com sucesso.");
+  } catch (err) {
+    console.error("OS SENSEI! Erro ao carregar Prisma:", err);
+  }
+
   // Vite middleware for development
   if (process.env.NODE_ENV !== "production") {
+    console.log("OS SENSEI! Iniciando Vite...");
     const vite = await createViteServer({
       server: { middlewareMode: true },
       appType: "spa",
     });
     app.use(vite.middlewares);
+    console.log("OS SENSEI! Vite pronto.");
   } else {
     const distPath = path.join(process.cwd(), 'dist');
     app.use(express.static(distPath));
-    app.get('*all', (req, res) => {
-      res.sendFile(path.join(distPath, 'index.html'));
+    
+    // SPA Fallback: Use a middleware that serves index.html for non-API requests
+    app.use((req, res, next) => {
+      if (req.method === 'GET' && !req.path.startsWith('/api')) {
+        res.sendFile(path.join(distPath, 'index.html'));
+      } else {
+        next();
+      }
     });
   }
-
-  app.listen(PORT, "0.0.0.0", () => {
-    console.log(`Sensei! Server running on http://localhost:${PORT}`);
-  });
 }
 
-startServer();
+startServer().catch(err => {
+  console.error("OS SENSEI! ERRO FATAL NO STARTUP:", err);
+});

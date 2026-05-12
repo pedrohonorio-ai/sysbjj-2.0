@@ -25,8 +25,12 @@ const DEFAULT_PROFILE: ProfessorProfile = {
 
 const ProfileContext = createContext<ProfileContextType | undefined>(undefined);
 
+import { handleApiError, OperationType, useData } from './DataContext';
+
 export const ProfileProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
   const { user } = useAuth();
+  const { setNotifications, setDbStatus, dbStatus } = useData() as any; // Safe cast as we know the structure
+  
   const [profile, setProfile] = useState<ProfessorProfile>(() => {
     const saved = localStorage.getItem('oss_profile');
     return saved ? JSON.parse(saved) : DEFAULT_PROFILE;
@@ -34,7 +38,7 @@ export const ProfileProvider: React.FC<{ children: ReactNode }> = ({ children })
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
-    if (!user?.id) {
+    if (!user?.id || dbStatus?.isDemoMode) {
       setIsLoading(false);
       return;
     }
@@ -50,22 +54,24 @@ export const ProfileProvider: React.FC<{ children: ReactNode }> = ({ children })
            await api.saveData('profile', user.id, profile);
         }
       } catch (error) {
-        console.error("Profile sync error:", error);
+        handleApiError(error, OperationType.GET, 'profile', setNotifications, setDbStatus);
       } finally {
         setIsLoading(false);
       }
     };
 
     fetchProfile();
-  }, [user?.id]);
+  }, [user?.id, dbStatus?.isDemoMode]);
 
   const updateProfile = async (updates: Partial<ProfessorProfile>) => {
     const newProfile = { ...profile, ...updates };
     setProfile(newProfile);
     localStorage.setItem('oss_profile', JSON.stringify(newProfile));
 
-    if (user?.id) {
-      await api.saveData('profile', user.id, newProfile);
+    if (user?.id && !dbStatus?.isDemoMode) {
+      await api.saveData('profile', user.id, newProfile).catch(error => {
+        handleApiError(error, OperationType.UPDATE, 'profile', setNotifications, setDbStatus);
+      });
     }
   };
 
