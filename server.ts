@@ -73,7 +73,7 @@ async function startServer() {
 
   // Diagnostic route
   apiRouter.get("/routes", (req, res) => {
-    const routes = apiRouter.stack
+    const routes = (apiRouter.stack as any[])
       .filter(r => r.route)
       .map(r => `${Object.keys(r.route.methods).join(',').toUpperCase()} ${r.route.path}`);
     res.json({ mounted_at: "/api", routes });
@@ -273,12 +273,6 @@ async function startServer() {
   // Mount API Router
   app.use("/api", apiRouter);
 
-  // START LISTENING
-  app.listen(PORT, "0.0.0.0", () => {
-    console.log(`🥋 OSS SENSEI! Dojo Cloud ouvindo na porta ${PORT}`);
-    console.log(`URL Local: http://localhost:${PORT}`);
-  });
-
   // Vite middleware for development
   if (process.env.NODE_ENV !== "production") {
     console.log("OS SENSEI! Iniciando Vite...");
@@ -293,14 +287,18 @@ async function startServer() {
     app.use(express.static(distPath));
     
     // SPA Fallback: Use a middleware that serves index.html for non-API requests
-    app.get('*', (req, res, next) => {
-      if (!req.path.startsWith('/api')) {
-        res.sendFile(path.join(distPath, 'index.html'));
-      } else {
-        next();
-      }
+    app.use((req, res, next) => {
+      if (req.path.startsWith('/api')) return next();
+      res.sendFile(path.join(distPath, 'index.html'));
     });
   }
+
+  // START LISTENING
+  app.listen(PORT, "0.0.0.0", () => {
+    console.log(`🥋 OSS SENSEI! Dojo Cloud ouvindo na porta ${PORT}`);
+    console.log(`URL Local: http://localhost:${PORT}`);
+    console.log(`Ambiente: ${process.env.NODE_ENV || 'development'}`);
+  });
 }
 
 startServer().catch(err => {
