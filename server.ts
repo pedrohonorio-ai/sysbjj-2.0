@@ -1,5 +1,6 @@
 import "./init-env"; // 🥋 OSS SENSEI: Deve ser o PRIMEIRO import
 import express from "express";
+import cors from "cors";
 import { createServer as createViteServer } from "vite";
 import path from "path";
 import { fileURLToPath } from "url";
@@ -35,6 +36,20 @@ async function startServer() {
 
   // Body parser
   app.use(express.json());
+
+  // 🥋 OSS SENSEI: Configuração de CORS para Enterprise
+  app.use(cors({
+    origin: [
+      "http://localhost:3000",
+      "http://localhost:5173",
+      "https://ais-dev-3yqtpuxc7uqrlkhqyjx4ag-460257395159.us-west2.run.app", // Dev URL
+      /\.vercel\.app$/, // Permite subdomínios da Vercel
+      /.*ais-dev.*\.run\.app$/ // Permite o ambiente de dev atual
+    ],
+    methods: ["GET", "POST", "DELETE", "OPTIONS"],
+    credentials: true,
+    allowedHeaders: ["Content-Type", "Authorization"]
+  }));
 
   // 🥋 OSS SENSEI: Middleware de Log para Depuração de Rotas
   app.use((req, res, next) => {

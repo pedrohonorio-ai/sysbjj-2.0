@@ -4,6 +4,8 @@ import { AlertTriangle, ExternalLink, HelpCircle } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { useData } from '../contexts/DataContext';
 
+import { api } from '../services/api';
+
 const DatabaseWarning: React.FC = () => {
   const { dbStatus, setDemoMode } = useData();
   const [testStatus, setTestStatus] = React.useState<'idle' | 'testing' | 'success' | 'error'>('idle');
@@ -12,9 +14,8 @@ const DatabaseWarning: React.FC = () => {
   const runTest = async () => {
     setTestStatus('testing');
     try {
-      const res = await fetch('/api/health-db');
-      const data = await res.json();
-      if (res.ok && data.status === 'connected') {
+      const data = await api.testDbConnection();
+      if (data.status === 'connected') {
         setTestStatus('success');
         setTestMessage(data.info || data.message || "OSS! Conexão restabelecida.");
         setTimeout(() => window.location.reload(), 2000);
