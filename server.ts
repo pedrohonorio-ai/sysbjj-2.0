@@ -38,14 +38,26 @@ async function startServer() {
 
   // 🥋 OSS SENSEI: Middleware de Log para Depuração de Rotas
   app.use((req, res, next) => {
+    // Log detalhado para diagnosticar 404
     if (req.path.startsWith("/api")) {
-      console.log(`[API REQUEST] ${new Date().toISOString()} - ${req.method} ${req.url}`);
+      console.log(`🥋 [API REQUEST] ${new Date().toISOString()} - ${req.method} ${req.url} (Path: ${req.path})`);
+    } else {
+       // Log de ativos para ver se o favicon ou fontes estão causando barulho
+       if (!req.path.includes("node_modules") && !req.path.includes("@vite")) {
+         console.log(`🥋 [ASSET REQUEST] ${req.method} ${req.path}`);
+       }
     }
     next();
   });
 
   // API Router
   const apiRouter = express.Router();
+
+  // Middleware para garantir que o Router está operando corretamente
+  apiRouter.use((req, res, next) => {
+    console.log(`🥋 [ROUTER DEBUG] Request matching: ${req.method} ${req.path}`);
+    next();
+  });
 
   // Initialization middleware for the entire router
   apiRouter.use((req, res, next) => {
@@ -57,6 +69,14 @@ async function startServer() {
       return res.status(503).json({ error: "O sistema está inicializando. Por favor, aguarde alguns segundos." });
     }
     next();
+  });
+
+  // Diagnostic route
+  apiRouter.get("/routes", (req, res) => {
+    const routes = apiRouter.stack
+      .filter(r => r.route)
+      .map(r => `${Object.keys(r.route.methods).join(',').toUpperCase()} ${r.route.path}`);
+    res.json({ mounted_at: "/api", routes });
   });
 
   // Health and Diagnostic Routes
@@ -102,6 +122,9 @@ async function startServer() {
     try {
       let data;
       const uid = String(userId);
+      const anyPrisma = prisma as any;
+
+      // Usar switch para coleções conhecidas, ou fallback para qualquer tabela do prisma
       switch(collection) {
         case 'students': data = await prisma.student.findMany({ where: { userId: uid }, orderBy: { joinedAt: 'desc' } }); break;
         case 'payments': data = await prisma.payment.findMany({ where: { userId: uid }, orderBy: { timestamp: 'desc' }, take: 200 }); break;
@@ -110,14 +133,13 @@ async function startServer() {
         case 'logs': data = await prisma.systemLog.findMany({ where: { userId: uid }, orderBy: { timestamp: 'desc' }, take: 100 }); break;
         case 'ledger': data = await prisma.transactionLedger.findMany({ where: { userId: uid }, orderBy: { timestamp: 'desc' }, take: 200 }); break;
         case 'receipts': data = await prisma.paymentReceipt.findMany({ where: { userId: uid }, orderBy: { timestamp: 'desc' } }); break;
-        case 'extra_revenue': data = await prisma.extraRevenue.findMany({ where: { userId: uid } }); break;
-        case 'lesson_plans': data = await prisma.lessonPlan.findMany({ where: { userId: uid } }); break;
-        case 'techniques': data = await prisma.libraryTechnique.findMany({ where: { userId: uid } }); break;
-        case 'products': data = await prisma.product.findMany({ where: { userId: uid } }); break;
-        case 'plans': data = await prisma.plan.findMany({ where: { userId: uid } }); break;
-        case 'orders': data = await prisma.kimonoOrder.findMany({ where: { userId: uid } }); break;
         case 'profile': data = await prisma.professorProfile.findUnique({ where: { userId: uid } }); break;
-        default: return res.status(404).json({ error: `Coleção não encontrada: ${collection}` });
+        default: 
+          if (anyPrisma[collection]) {
+            data = await anyPrisma[collection].findMany({ where: { userId: uid } });
+          } else {
+            return res.status(404).json({ error: `Coleção não encontrada no Dojo: ${collection}` });
+          }
       }
       res.json(JSON.parse(JSON.stringify(data, (k, v) => typeof v === 'bigint' ? v.toString() : v)));
     } catch (error: any) {
@@ -241,7 +263,11 @@ async function startServer() {
 
   // API 404 catch-all (inside the router!)
   apiRouter.use((req, res) => {
-    res.status(404).json({ error: `API Route not found: ${req.method} ${req.originalUrl}` });
+    console.warn(`🥋 [API 404] ${req.method} ${req.originalUrl} - Não casou em nenhuma rota do apiRouter.`);
+    res.status(404).json({ 
+      error: `API Route not found: ${req.method} ${req.originalUrl}`,
+      tip: "OSS! Verifique se o endpoint existe no server.ts e se o prefixo /api está correto."
+    });
   });
 
   // Mount API Router
@@ -252,9 +278,6 @@ async function startServer() {
     console.log(`🥋 OSS SENSEI! Dojo Cloud ouvindo na porta ${PORT}`);
     console.log(`URL Local: http://localhost:${PORT}`);
   });
-
-  // Lazy load/init prisma is handled by the singleton import
-  console.log("OS SENSEI! Prisma Singleton pronto.");
 
   // Vite middleware for development
   if (process.env.NODE_ENV !== "production") {
@@ -270,8 +293,8 @@ async function startServer() {
     app.use(express.static(distPath));
     
     // SPA Fallback: Use a middleware that serves index.html for non-API requests
-    app.use((req, res, next) => {
-      if (req.method === 'GET' && !req.path.startsWith('/api')) {
+    app.get('*', (req, res, next) => {
+      if (!req.path.startsWith('/api')) {
         res.sendFile(path.join(distPath, 'index.html'));
       } else {
         next();
