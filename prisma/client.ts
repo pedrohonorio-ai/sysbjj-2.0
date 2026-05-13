@@ -13,12 +13,19 @@ const cleanUrl = (url: string) => {
   // Remove prefixos como "DATABASE_URL =" ou "URL:"
   cleaned = cleaned.replace(/^(DATABASE_URL|URL|DIRECT_URL|DATABASE|DATABASE_URI)\s*[:=]\s*/i, "");
   
-  // Remove '=' ou ':' iniciais orfãos
-  while (cleaned.startsWith('=') || cleaned.startsWith(':')) {
+  // Remove '=' ou ':' iniciais orfãos ou espaços extras
+  while (cleaned.startsWith('=') || cleaned.startsWith(':') || cleaned.startsWith(' ')) {
     cleaned = cleaned.substring(1).trim();
   }
 
-  // 🥋 Autocorreção de protocolo: Se começa com postgresql:5432 ou algo similar sem //
+  // Se a string começar com algo que parece um host do supabase sem protocolo (ex: aws-0-us-west-1.pooler.supabase.com)
+  if (!cleaned.includes("://") && (cleaned.includes("supabase.com") || cleaned.includes("supabase.co") || cleaned.includes("@"))) {
+    // Tenta detectar se é uma URI faltando o esquema
+    console.warn("🥋 OSS SENSEI: Injetando esquema postgresql:// em URL detectada sem protocolo.");
+    cleaned = `postgresql://${cleaned}`;
+  }
+
+  // 🥋 Autocorreção de protocolo: Se começa com protocolo de banco sem //
   if ((cleaned.startsWith('postgresql:') || cleaned.startsWith('postgres:')) && !cleaned.includes('://')) {
     console.warn("🥋 OSS SENSEI: Corrigindo protocolo malformado (faltando //)");
     cleaned = cleaned.replace(/^(postgresql|postgres):/i, "$1://");
@@ -33,7 +40,7 @@ let finalDirectUrl = cleanUrl(process.env.DIRECT_URL || "");
 // 🚨 VALIDATION GATE
 if (!finalUrl) {
   console.error("❌ OSS SENSEI: DATABASE_URL Ausente!");
-  finalUrl = "postgresql://unconfigured:check_secrets@localhost:5432/postgres?error=missing";
+  finalUrl = "postgresql://unconfigured:check_secrets@supabase.com:6543/postgres?error=missing";
 }
 
 if (!finalUrl.startsWith('postgresql://') && !finalUrl.startsWith('postgres://')) {
@@ -41,7 +48,7 @@ if (!finalUrl.startsWith('postgresql://') && !finalUrl.startsWith('postgres://')
   console.error("👉 A URL deve começar com 'postgresql://'. Verifique se você não copiou o link do dashboard (HTTP) ou o nome da variável em vez do valor.");
   
   // 🛡️ EMERGENCY FALLBACK - Previne que o Prisma quebre o processo de boot totalmente
-  finalUrl = "postgresql://unconfigured:check_secrets@localhost:5432/postgres?error=inv_prot";
+  finalUrl = "postgresql://unconfigured:check_secrets@supabase.com:6543/postgres?error=inv_prot";
 }
 
 if (finalUrl.includes("[YOUR-PASSWORD]")) {
@@ -64,18 +71,34 @@ if (!finalDirectUrl.startsWith('postgresql://') && !finalDirectUrl.startsWith('p
 }
 
 // 🥋 Autocorreção: Injeção de pgbouncer se estiver no Supabase
-if (finalUrl.includes("supabase.com")) {
+if (finalUrl.includes("supabase.com") || finalUrl.includes("supabase.co")) {
   if (finalUrl.includes(":6543") && !finalUrl.includes("pgbouncer=")) {
     const separator = finalUrl.includes("?") ? "&" : "?";
     finalUrl = `${finalUrl}${separator}pgbouncer=true&connection_limit=1`;
+    console.log("🚀 OSS SENSEI: Auto-configurando pooler (pgbouncer=true, limit=1)");
   }
 }
 
 // 🔥 CRITICAL: Overwrite definitivo no process.env para que o Prisma não pegue valores errados
+const dbUrlForLog = finalUrl || "";
+console.log("------------------------------------------------------------------");
+console.log("🥋 OSS SENSEI - DIAGNÓSTICO DE RUNTIME:");
+console.log({
+  hasDbUrl: !!dbUrlForLog,
+  startsWith: dbUrlForLog.startsWith("postgresql://"),
+  hasPooler: dbUrlForLog.includes("pooler"),
+  has6543: dbUrlForLog.includes(":6543"),
+  atCount: (dbUrlForLog.match(/@/g) || []).length,
+  quoteCount: (dbUrlForLog.match(/"/g) || []).length,
+  spaceAtEnd: dbUrlForLog.endsWith(" "),
+  totalLength: dbUrlForLog.length
+});
+console.log("------------------------------------------------------------------");
+
 process.env.DATABASE_URL = finalUrl;
 process.env.DIRECT_URL = finalDirectUrl;
 
-const isSupabaseDirect = finalUrl.includes(".supabase.co") && finalUrl.includes(":5432");
+const isSupabaseDirect = (finalUrl.includes(".supabase.co") || finalUrl.includes(".supabase.com")) && finalUrl.includes(":5432");
 const statusMsg = finalUrl.includes(":6543") ? "POOLER/6543" : (isSupabaseDirect ? "DIRETA/5432 ⚠️" : "CONFIGURADA");
 console.log(`📡 Dojo Status: ${statusMsg}`);
 
@@ -88,12 +111,9 @@ const globalForPrisma = globalThis as unknown as {
   prisma: PrismaClient | undefined;
 };
 
-// 🥋 OSS SENSEI: Configurações do Cliente
+// 🥋 OSS SENSEI: Configurações do Cliente recomendadas para produção
 const prismaOptions: any = {
-  log: [
-    { emit: 'stdout', level: 'error' },
-    { emit: 'stdout', level: 'warn' },
-  ],
+  log: ["error", "warn"],
   datasources: {
     db: { url: finalUrl }
   },

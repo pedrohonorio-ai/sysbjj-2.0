@@ -6,11 +6,29 @@ dotenv.config({ override: true });
 const cleanupEnv = (key: string) => {
   const val = process.env[key];
   if (val) {
-    let cleaned = val.replace(/['"]/g, '').trim();
-    // 🥋 OSS SENSEI: Remove prefixo comum de erro usando regex case-insensitive
-    cleaned = cleaned.replace(/^(DATABASE_URL|URL|DIRECT_URL|DATABASE)\s*=\s*/i, "");
-    // Remove '=' inicial se sobrar
-    if (cleaned.startsWith('=')) cleaned = cleaned.substring(1).trim();
+    // 🥋 OSS SENSEI: Extra-safe cleaning
+    let cleaned = val.trim();
+    
+    // Remove aspas que podem vir do sistema de segredos
+    cleaned = cleaned.replace(/^['"]|['"]$/g, '');
+    
+    // Remove prefixo comum de erro usando regex case-insensitive
+    cleaned = cleaned.replace(/^(DATABASE_URL|URL|DIRECT_URL|DATABASE|DATABASE_URI)\s*[:=]\s*/i, "");
+    
+    // Remove '=' ou ':' iniciais orfãos ou espaços extras
+    while (cleaned.startsWith('=') || cleaned.startsWith(':') || cleaned.startsWith(' ')) {
+      cleaned = cleaned.substring(1).trim();
+    }
+    
+    // Auto-detection of unencoded symbols in password for diagnostics
+    const passMatch = cleaned.match(/:\/\/.*?:(.*?)(@|$)/);
+    if (passMatch && passMatch[1]) {
+       const password = passMatch[1];
+       if (/[@#$!%&*:]/.test(password)) {
+          console.warn(`🥋 OSS ALERTA: Detectado símbolo [${password.match(/[@#$!%&*:]/)?.[0]}] não codificado na senha da ${key}.`);
+          console.warn(`💡 DICA: Use URL Encoding (ex: @ vira %40).`);
+       }
+    }
     
     process.env[key] = cleaned;
     return cleaned;

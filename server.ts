@@ -109,9 +109,20 @@ async function startServer() {
     const hasPlaceholder = dbUrl.includes("[YOUR-PASSWORD]");
     const isPort5432 = dbUrl.includes(":5432") && !dbUrl.includes(":6543");
 
-    // Proactive detection of unencoded symbols in password
-    const passwordPart = dbUrl.includes('@') ? dbUrl.split('@')[0].split(':').pop() : "";
-    const hasUnencodedSymbols = passwordPart && /[@#$!%&*]/.test(passwordPart);
+    // 🥋 OSS SENSEI: Proactive detection and encoding suggestion
+    let passwordPart = "";
+    let userPart = "";
+    let hostPart = "";
+    const authMatch = dbUrl.match(/:\/\/(.*?):(.*?)@(.*?)$/);
+    if (authMatch) {
+      userPart = authMatch[1];
+      passwordPart = authMatch[2];
+      hostPart = authMatch[3];
+    }
+    
+    const hasUnencodedSymbols = passwordPart && /[@#$!%&*:]/.test(passwordPart);
+    const encodedPassword = encodeURIComponent(passwordPart);
+    const suggestedUrl = authMatch ? `postgresql://${userPart}:${encodedPassword}@${hostPart}` : "";
 
     let customMessage = error.message;
     let troubleshooting = [];
@@ -130,11 +141,16 @@ async function startServer() {
     } else if (error.message && (error.message.includes("Authentication failed") || error.message.includes("Invalid database password") || error.message.includes("P1017") || error.message.includes("credentials for 'postgres' are not valid"))) {
       customMessage = "OSS! Falha de Autenticação: Senha incorreta ou formato inválido.";
       troubleshooting.push("⚠️ DICA DE OURO: Se sua senha tem símbolos (@, #, !, :), você PRECISA usar URL Encoding.");
-      if (hasUnencodedSymbols) {
-        troubleshooting.push("🥋 ATENÇÃO: Detectamos símbolos não codificados na sua senha atual.");
+      if (hasUnencodedSymbols && suggestedUrl) {
+        troubleshooting.push(`🥋 ALERTA SENSEI: Sua senha contém símbolos não codificados.`);
+        troubleshooting.push(`👉 TENTE USAR ESTA URL NO MENU SECRETS:`);
+        troubleshooting.push(`${suggestedUrl.substring(0, 40)}... (veja log completo no terminal)`);
+        console.log("------------------------------------------------------------------");
+        console.log("🥋 SUGGESTED DATABASE_URL (COPY THIS TO SECRETS):");
+        console.log(suggestedUrl);
+        console.log("------------------------------------------------------------------");
       }
-      troubleshooting.push("Exemplo: 'MinhaSenha@123' deve ser escrita como 'MinhaSenha%40123' na DATABASE_URL.");
-      troubleshooting.push("No Supabase, você pode resetar a senha do projeto em Settings > Database.");
+      troubleshooting.push("No Supabase Dashboard, vá em Settings > Database para resetar sua senha se necessário.");
       troubleshooting.push("Certifique-se de que não há espaços extras antes ou depois da URL no menu Secrets.");
     } else if (error.message && (error.message.includes("Can't reach database server") || error.message.includes("Timed out") || error.message.includes("P1001") || error.message.includes("P1003"))) {
       customMessage = "OSS! Não foi possível alcançar o servidor do banco.";
@@ -175,27 +191,29 @@ async function startServer() {
     // Mascara a senha para segurança: postgres://USER:PASSWORD@HOST:PORT/DB
     const maskedUrl = rawUrl.replace(/(:\/\/)([^:]+):([^@]+)(@)/, "$1$2:****$4");
     
+    const diagnosticInfo = {
+      url_preview: maskedUrl.substring(0, 70) + "...",
+      is_pooler: rawUrl.includes(':6543'),
+      has_pgbouncer: rawUrl.includes('pgbouncer=true'),
+      has_unencoded_at: (rawUrl.match(/@/g) || []).length > 1,
+      length: rawUrl.length,
+      protocol_ok: rawUrl.startsWith('postgresql://') || rawUrl.startsWith('postgres://')
+    };
+
     try {
       await prisma.$queryRaw`SELECT 1`;
       res.json({ 
         status: "connected", 
         timestamp: new Date().toISOString(),
         info: "OSS! Banco de dados respondendo corretamente.",
-        diagnostic: {
-          url_preview: maskedUrl.substring(0, 60) + "...",
-          is_pooler: rawUrl.includes(':6543'),
-          has_pgbouncer: rawUrl.includes('pgbouncer=true')
-        }
+        diagnostic: diagnosticInfo
       });
     } catch (error: any) {
       console.error("❌ FALHA NO TESTE DE CONEXÃO DB:", error.message);
       res.status(500).json({ 
         status: "error", 
         message: error.message,
-        diagnostic: {
-          url_preview: maskedUrl.substring(0, 60) + "...",
-          error_code: error.code || 'UNKNOWN'
-        },
+        diagnostic: diagnosticInfo,
         suggestion: "OSS! Verifique se a DATABASE_URL está correta no menu Settings > Secrets. Se sua senha tem símbolos, use URL Encoding."
       });
     }

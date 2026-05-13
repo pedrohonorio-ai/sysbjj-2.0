@@ -3,9 +3,8 @@ generator client {
 }
 
 datasource db {
-  provider  = "postgresql"
-  url       = env("DATABASE_URL")
-  directUrl = env("DIRECT_URL")
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
 }
 
 // OS SENSEI: Definindo modelos principais para a evolução do sistema
@@ -14,22 +13,96 @@ model Student {
   id               String   @id @default(cuid())
   userId           String   // Referência ao UID do Supabase Auth
   name             String
+  nickname         String?
   email            String?
   phone            String?
   birthDate        String?
+  gender           String?
+  cpf              String?
+  rg               String?
+  weight           Float?
+  height           Float?
+  category         String?
+  weightClass      String?
+  federationId     String?
+  lastPromotionDate String?
+  status           String   @default("Active")
   belt             String   @default("Branca")
   degrees          Int      @default(0)
+  stripes          Int      @default(0)
   photoUrl         String?
   monthlyValue     Float    @default(0)
+  dueDay           Int      @default(10)
   active           Boolean  @default(true)
+  isKid            Boolean  @default(false)
+  isInstructor     Boolean  @default(false)
+  behaviorScore    Int      @default(0)
+  rewardPoints     Int      @default(0)
+  rulesKnowledge   Int      @default(0)
+  securityAuditStatus String?
   lastPaymentDate  String?
   attendanceCount  Int      @default(0)
   currentStreak    Int      @default(0)
   lastSeen         BigInt?
   observations     String?
+  photo            String?   // Alias ou campo alternativo usado no frontend
+  isReadyForPromotion Boolean @default(false)
+  planId           String?
+  portalAccessCode String?
+  graduationNotes  String?
+  pros             String?
+  cons             String?
+  emergencyContact String?
+  emergencyPhone   String?
+  medicalConditions String?
+  address          String?
+  city             String?
+  state            String?
+  zipCode          String?
+  bloodType        String?
+  responsiblePerson String?
+  responsibleEmail String?
+  responsiblePhone String?
+  responsibleCpf   String?
+  civilStatus      String?
+  occupation       String?
+  nationality      String?
+  rgIssuer         String?
+  lgpdConsent      Boolean  @default(false)
+  contractUrl      String?
+  billingPaused    Boolean  @default(false)
+  isCompetitor     Boolean  @default(false)
+  isWaitlist       Boolean  @default(false)
+  waitlistRank     Int?
+  technicalNotes   String?
+  medicalCertificateUrl String?
+  medicalCertificateDate String?
+  medicalCertificateExpiration String?
+  liabilityWaiverAccepted Boolean @default(false)
+  liabilityWaiverDate String?
+  classId          String?
+  lastAttendanceDate String?
   joinedAt         DateTime @default(now())
   updatedAt        DateTime @updatedAt
-  attendanceHistory Json?   // Histórico de chamadas
+  
+  // Campos Complexos como JSON para flexibilidade
+  attendanceHistory Json?
+  history           Json?
+  techniques        Json?
+  goals             Json?
+  feedbacks         Json?
+  homeWorkoutHistory Json?
+  completedRuleLessons Json?
+  customIndicators  Json?
+  positionVideos    Json?
+  milestones        Json?
+  examRequirements  Json?
+  graduationHistory Json?
+  technicalMetrics  Json?
+  performanceRatings Json?
+  sparringLogs      Json?
+  competitions      Json?
+  documents         Json?
 
   @@index([userId])
 }
@@ -43,6 +116,7 @@ model Payment {
   date        String
   method      String
   status      String   @default("Paid")
+  reference   String?  // Referência adicional (mês/ano)
   timestamp   DateTime @default(now())
 
   @@index([userId])
@@ -57,6 +131,7 @@ model ClassSchedule {
   instructor  String
   category    String
   days        String[]
+  notes       String?
   active      Boolean  @default(true)
 
   @@index([userId])
@@ -123,16 +198,22 @@ model ExtraRevenue {
 }
 
 model LessonPlan {
-  id         String   @id @default(cuid())
-  userId     String
-  title      String
-  objective  String
-  warmup     String
-  technique  String
-  sparring   String
-  beltLevel  String?
-  category   String?
-  active     Boolean  @default(true)
+  id               String   @id @default(cuid())
+  userId           String
+  date             String?
+  title            String
+  objective        String?
+  warmup           String?
+  technique        String?  // Pode ser descrição ou JSON de IDs de técnicas
+  techniques       Json?    // Lista de técnicas detalhadas
+  specificTraining String?
+  sparring         String?
+  notes            String?
+  beltLevel        String?
+  category         String?
+  isPublished      Boolean  @default(false)
+  ruleFocus        String?
+  active           Boolean  @default(true)
 
   @@index([userId])
 }
@@ -145,6 +226,8 @@ model LibraryTechnique {
   beltLevel   String
   description String
   videoUrl    String?
+  difficulty  Int?     // 1-5
+  tags        String[]
 
   @@index([userId])
 }
@@ -161,15 +244,20 @@ model Product {
 }
 
 model KimonoOrder {
-  id        String   @id @default(cuid())
-  userId    String
-  studentId String
+  id          String   @id @default(cuid())
+  userId      String
+  studentId   String
   studentName String
-  item      String
-  size      String
-  amount    Float
-  status    String   @default("Pending")
-  timestamp DateTime @default(now())
+  item        String
+  size        String
+  color       String?
+  type        String?  // 'Kimono' | 'Rash Guard' | 'Faixa' | 'Outros'
+  amount      Float?
+  price       Float?
+  paid        Boolean  @default(false)
+  status      String   @default("Pending")
+  date        String?
+  timestamp   DateTime @default(now())
 
   @@index([userId])
 }
@@ -178,8 +266,9 @@ model Presence {
   id        String   @id @default(cuid())
   userId    String
   email     String
+  role      String?
   lastSeen  BigInt
-  userAgent String
+  userAgent String?
   deviceId  String
 
   @@unique([email, deviceId])
@@ -187,18 +276,26 @@ model Presence {
 }
 
 model ProfessorProfile {
-  id               String   @id @default(cuid())
-  userId           String   @unique
-  name             String
-  academyName      String
-  belt             String
-  stripes          Int
-  specialization   String?
-  pixKey           String?
-  pixName          String?
-  pixCity          String?
-  logoUrl          String?
+  id                 String   @id @default(cuid())
+  userId             String   @unique
+  name               String
+  academyName        String
+  belt               String
+  stripes            Int
+  specialization     String?
+  avatarUrl          String?
+  pixKey             String?
+  pixName            String?
+  pixCity            String?
+  graduationRules    String?
+  customCriteria     Json?    // GraduationCriterion[]
+  logoUrl            String?
   backgroundImageUrl String?
+  technicalFocus     String?
+  technicalFocusDescription String?
+  latitude           Float?
+  longitude          Float?
+  geofenceRadius     Float?
 
   @@index([userId])
 }
