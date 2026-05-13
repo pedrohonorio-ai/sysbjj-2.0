@@ -11,7 +11,7 @@ const Login: React.FC = () => {
   const { t } = useTranslation();
   const { profile } = useProfile();
   const { logAction, addLedgerEntry } = useData();
-  const { login, register, loginAnonymous, resetPassword, updatePassword, isRecovering, setStudentAuth, isConfigured } = useAuth();
+  const { login, register, loginAnonymous, loginDemo, resetPassword, updatePassword, isRecovering, setStudentAuth, isConfigured } = useAuth();
   const [activeTab, setActiveTab ] = useState<'admin' | 'student'>('admin');
   const [mode, setMode] = useState<'login' | 'register' | 'forgot' | 'update_pass'>('login');
   
@@ -179,10 +179,22 @@ const Login: React.FC = () => {
           <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-transparent via-blue-500 to-transparent opacity-50" />
           
           {!isConfigured && activeTab === 'admin' && (
-            <div className="mb-6 p-4 bg-amber-500/10 border border-amber-500/20 rounded-2xl">
-              <p className="text-[10px] font-black text-amber-500 uppercase tracking-widest text-center leading-relaxed">
-                Supabase não configurado. Adicione VITE_SUPABASE_URL e VITE_SUPABASE_ANON_KEY no menu de configurações do AI Studio.
+            <div className="mb-6 p-6 bg-blue-500/10 border border-blue-500/20 rounded-[2rem] space-y-4">
+              <p className="text-[10px] font-black text-blue-500 uppercase tracking-widest text-center leading-relaxed">
+                Supabase não configurado. Use o Modo de Demonstração para testar as funcionalidades offline.
               </p>
+              <button 
+                onClick={loginDemo}
+                className="w-full bg-blue-600 hover:bg-blue-500 text-white font-black py-4 rounded-2xl transition-all shadow-xl flex items-center justify-center gap-3 group uppercase text-xs tracking-widest"
+              >
+                Ativar Modo Demo Offline
+                <ArrowRight size={18} className="group-hover:translate-x-1 transition-transform" />
+              </button>
+              <div className="pt-2 text-center">
+                <p className="text-[8px] font-bold text-slate-500 uppercase tracking-widest">
+                  Para o modo cloud: Settings &gt; Secrets &gt; VITE_SUPABASE_URL
+                </p>
+              </div>
             </div>
           )}
 

@@ -15,6 +15,7 @@ interface AuthContextType extends AuthState {
   login: (email: string, pass: string) => Promise<any>;
   register: (email: string, pass: string, name?: string) => Promise<any>;
   loginAnonymous: () => Promise<any>;
+  loginDemo: () => void;
   linkEmail: (email: string, pass: string) => Promise<any>;
   updatePassword: (newPass: string) => Promise<any>;
   logout: () => Promise<void>;
@@ -129,6 +130,33 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     return data;
   };
 
+  const loginDemo = () => {
+    localStorage.setItem('oss_demo_mode', 'true');
+    localStorage.setItem('oss_auth', JSON.stringify({ 
+      isLoggedIn: true, 
+      role: 'admin', 
+      isDemo: true,
+      email: 'demo@sysbjj.com'
+    }));
+    
+    // Create a mock user object compatible with Supabase User type
+    const mockUser: any = {
+      id: 'demo-user-id',
+      email: 'demo@sysbjj.com',
+      role: 'authenticated',
+      app_metadata: {},
+      user_metadata: { full_name: 'Professor Demo' },
+      created_at: new Date().toISOString(),
+      is_anonymous: true
+    };
+    
+    setUser(mockUser);
+    setRole('admin');
+    setIsAnonymous(true);
+    // Force reload or state update?
+    window.location.reload(); 
+  };
+
   const linkEmail = async (email: string, pass: string) => {
     if (!supabase) throw new Error("Supabase não configurado");
     const { data: emailData, error: emailError } = await supabase.auth.updateUser({ email });
@@ -153,6 +181,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       await supabase.auth.signOut();
     }
     localStorage.removeItem('oss_auth');
+    localStorage.removeItem('oss_demo_mode');
     setRole(null);
     setStudentCode(undefined);
   };
@@ -182,6 +211,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       login, 
       register, 
       loginAnonymous,
+      loginDemo,
       linkEmail,
       updatePassword,
       logout,

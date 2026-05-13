@@ -12,11 +12,11 @@ const DatabaseWarning: React.FC = () => {
   const runTest = async () => {
     setTestStatus('testing');
     try {
-      const res = await fetch('/api/test-db');
+      const res = await fetch('/api/health-db');
       const data = await res.json();
       if (res.ok && data.status === 'connected') {
         setTestStatus('success');
-        setTestMessage(data.message);
+        setTestMessage(data.info || data.message || "OSS! Conexão restabelecida.");
         setTimeout(() => window.location.reload(), 2000);
       } else {
         setTestStatus('error');
@@ -87,14 +87,15 @@ const DatabaseWarning: React.FC = () => {
                     </div>
                     
                     <div className="bg-amber-100 dark:bg-amber-950/40 p-4 rounded-2xl border border-amber-300 dark:border-amber-800/50">
-                      <p className="text-[10px] font-black uppercase text-amber-800 dark:text-amber-300 mb-2">Dica Pro: Sua senha tem @ ou #?</p>
-                      <p className="text-[11px] text-amber-700 dark:text-amber-400 font-medium">
-                        Se a sua senha no Supabase tiver caracteres especiais, o Prisma pode se perder. Use a codificação abaixo:
-                      </p>
-                      <div className="mt-2 flex flex-wrap gap-2">
+                      <p className="text-[10px] font-black uppercase text-amber-800 dark:text-amber-300 mb-2">Atenção à DATABASE_URL:</p>
+                      <ul className="text-[11px] text-amber-700 dark:text-amber-400 font-medium list-disc list-inside space-y-1">
+                        <li>Use a **Porta 6543** (Transaction Pooler).</li>
+                        <li>Adicione **?pgbouncer=true** ao final da URL.</li>
+                        <li>Codifique caracteres especiais na senha (@ → %40).</li>
+                      </ul>
+                      <div className="mt-3 flex flex-wrap gap-2">
                         <code className="px-2 py-1 bg-white/50 dark:bg-black/30 rounded text-[10px] font-mono">@ → %40</code>
                         <code className="px-2 py-1 bg-white/50 dark:bg-black/30 rounded text-[10px] font-mono"># → %23</code>
-                        <code className="px-2 py-1 bg-white/50 dark:bg-black/30 rounded text-[10px] font-mono">: → %3A</code>
                         <code className="px-2 py-1 bg-white/50 dark:bg-black/30 rounded text-[10px] font-mono">! → %21</code>
                       </div>
                     </div>

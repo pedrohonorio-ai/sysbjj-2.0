@@ -1,46 +1,18 @@
+import "./init-env"; // 🥋 OSS SENSEI: Deve ser o PRIMEIRO import
 import express from "express";
 import { createServer as createViteServer } from "vite";
 import path from "path";
 import { fileURLToPath } from "url";
-import * as dotenv from "dotenv";
+import { prisma } from "./prisma/client";
 
-// GLOBAL ERROR HANDLERS - MUST BE AT TOP
+// GLOBAL ERROR HANDLERS
 process.on('uncaughtException', (err) => {
-  console.error("OS SENSEI! UNCAUGHT EXCEPTION:", err);
+  console.error("🥋 OS SENSEI! UNCAUGHT EXCEPTION:", err);
 });
 
-process.on('unhandledRejection', (reason, promise) => {
-  console.error("OS SENSEI! UNHANDLED REJECTION:", reason);
+process.on('unhandledRejection', (reason) => {
+  console.error("🥋 OS SENSEI! UNHANDLED REJECTION:", reason);
 });
-
-// Load environment variables from .env file
-dotenv.config({ override: true });
-
-// Sanitize DB URL for boot logging
-if (process.env.DATABASE_URL) {
-  process.env.DATABASE_URL = process.env.DATABASE_URL.replace(/['"]/g, '').trim();
-}
-
-console.log("OS SENSEI! Verificando Ambiente...");
-console.log("DATABASE_URL configurada:", !!process.env.DATABASE_URL);
-console.log("DIRECT_URL configurada:", !!process.env.DIRECT_URL);
-
-if (!process.env.DATABASE_URL) {
-  console.error("OS SENSEI! ALERTA CRÍTICO: DATABASE_URL não encontrada no ambiente.");
-} else {
-  const rawUrl = process.env.DATABASE_URL;
-  const urlProto = rawUrl.substring(0, 15);
-  console.log(`OS SENSEI! DATABASE_URL prefixo: ${urlProto}`);
-  
-  if (!rawUrl.startsWith('postgresql://') && !rawUrl.startsWith('postgres://')) {
-    console.error("OS SENSEI! ERRO: DATABASE_URL não começa com postgresql:// ou postgres://");
-  }
-  
-  if (rawUrl.includes("[YOUR-PASSWORD]")) {
-    console.warn("OS SENSEI! ALERTA: A senha do banco ainda não foi configurada! Substitua [YOUR-PASSWORD] no .env.");
-  }
-}
-
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -49,7 +21,6 @@ async function startServer() {
   console.log("OS SENSEI! Iniciando startServer...");
   const app = express();
   const PORT = 3000;
-  let prisma: any;
 
   // Body parser
   app.use(express.json());
@@ -82,42 +53,49 @@ async function startServer() {
       }
 
       const dbUrl = process.env.DATABASE_URL || "";
-      const hasPassword = !dbUrl.includes("[YOUR-PASSWORD]");
-      const startsWithProto = dbUrl.startsWith("postgresql://") || dbUrl.startsWith("postgres://");
       const isHttps = dbUrl.startsWith("https://");
+      const isPooler = dbUrl.includes(":6543");
+      const isLocalhost = dbUrl.includes("localhost:5432");
 
-      if (!dbUrl) {
-        return res.status(500).json({ status: "error", message: "DATABASE_URL está vazia ou não foi definida." });
+      if (!dbUrl || isLocalhost) {
+        return res.status(500).json({ 
+          status: "error", 
+          message: "OSS! DATABASE_URL não configurada ou inválida nos Segredos (Secrets).",
+          suggestion: "Vá em Settings > Secrets e adicione DATABASE_URL com a URI do Supabase."
+        });
       }
 
       if (isHttps) {
         return res.status(500).json({ 
           status: "error", 
-          message: "DATABASE_URL detectada como HTTPS. Você provavelmente colou a URL do Projeto Supabase (API) em vez da String de Conexão do Banco de Dados.",
-          action: "Vá no Supabase > Settings > Database > Connection String > Selecione 'URI' e copie a URL que começa com 'postgresql://'."
+          message: "OSS! URL detectada como HTTPS. O Prisma exige protocolo postgresql://",
+          action: "Vá no Supabase > Settings > Database > URI (Connection String)"
         });
       }
 
-      if (!startsWithProto) {
-        return res.status(500).json({ status: "error", message: "DATABASE_URL deve começar com postgresql:// ou postgres://" });
-      }
-
+      console.log("🥋 OSS! Testando conexão com o DB...");
       await prisma.$connect();
-      res.json({ status: "connected", message: "OSS! O sistema está online e conectado ao PostgreSQL (Supabase)." });
+      res.json({ 
+        status: "connected", 
+        message: "OSS! Sistema online e conectado ao Dojo Cloud (Supabase).",
+        details: { pooler: isPooler, protocol: dbUrl.split('://')[0] }
+      });
     } catch (error: any) {
       console.error("Erro de conexão DB:", error);
+      
+      const troubleshooting = [
+        "1. Verifique se trocou [YOUR-PASSWORD] pela senha real.",
+        "2. IMPORTANTE: Use URL Encoding para símbolos (@ = %40, # = %23, ! = %21).",
+        "3. Estabilidade: Tente usar a porta 6543 (Transaction Pooler).",
+        "4. Supabase Status: Verifique se o projeto não está pausado por inatividade."
+      ];
+
       res.status(500).json({ 
         status: "error", 
         message: "Falha ao conectar no banco.",
-        troubleshooting: [
-          "Verifique se trocou [YOUR-PASSWORD] pela senha real.",
-          "Confirme se a variável DATABASE_URL está no menu Settings > Secrets.",
-          "Verifique se o IP do servidor está liberado no Supabase (ou use o Pooler se estiver usando Vercel/Cloud Run)."
-        ],
+        troubleshooting,
         error: error.message 
       });
-    } finally {
-      await prisma.$disconnect();
     }
   });
 
@@ -126,50 +104,102 @@ async function startServer() {
     console.error(`OS SENSEI! Erro na API [${collection}]:`, error);
     
     const dbUrl = process.env.DATABASE_URL || "";
-    const isHttps = dbUrl.includes("ERR_HTTPS_URL_PROVIDED");
-    const isGenericInvalid = dbUrl.includes("ERR_INVALID_OR_EMPTY_URL");
+    const isHttps = dbUrl.startsWith("https://");
+    const isLocalhostFallback = dbUrl.includes("localhost:5432");
     const hasPlaceholder = dbUrl.includes("[YOUR-PASSWORD]");
+    const isPort5432 = dbUrl.includes(":5432") && !dbUrl.includes(":6543");
+
+    // Proactive detection of unencoded symbols in password
+    const passwordPart = dbUrl.includes('@') ? dbUrl.split('@')[0].split(':').pop() : "";
+    const hasUnencodedSymbols = passwordPart && /[@#$!%&*]/.test(passwordPart);
 
     let customMessage = error.message;
     let troubleshooting = [];
+    let senseiTip = "OSS SENSEI! O 'cinto de segurança' (DATABASE_URL) deve estar bem apertado.";
 
     if (isHttps) {
       customMessage = "OSS! Erro de Configuração: URL do Supabase incorreta (HTTPS).";
-      troubleshooting.push("Você provavelmente colou a URL da API ou do Dashboard do Supabase.");
-      troubleshooting.push("O Prisma precisa da 'String de Conexão' (URI).");
-      troubleshooting.push("No Supabase: Vá em Settings > Database > Connection String. Selecione 'URI' e copie o link que começa com 'postgresql://'.");
-      troubleshooting.push("Certifique-se de substituir [YOUR-PASSWORD] pela sua senha real na URL.");
+      troubleshooting.push("Use a 'String de Conexão' (URI) que começa com 'postgresql://'.");
     } else if (hasPlaceholder) {
       customMessage = "OSS! Senha do banco não configurada.";
-      troubleshooting.push("A sua DATABASE_URL contém '[YOUR-PASSWORD]'.");
-      troubleshooting.push("Você deve substituir esse texto pela senha real que você criou ao configurar o projeto no Supabase.");
-      troubleshooting.push("Vá no menu 'Settings' > 'Secrets' aqui no AI Studio e atualize o valor da DATABASE_URL.");
-    } else if (isGenericInvalid) {
-      customMessage = "OSS! DATABASE_URL ausente ou inválida.";
-      troubleshooting.push("Verifique se a variável DATABASE_URL está definida corretamente no menu Settings > Secrets.");
-      troubleshooting.push("Ela deve seguir o formato: postgresql://postgres.USER:PASSWORD@HOST:5432/postgres");
-    } else if (error.message && error.message.includes("Authentication failed against database server")) {
-      customMessage = "OSS! Erro de Autenticação: Senha ou Usuário incorretos.";
-      troubleshooting.push("A conexão foi estabelecida, mas o banco rejeitou sua senha.");
-      troubleshooting.push("1. Verifique se a senha na DATABASE_URL é a mesma que você definiu no Supabase.");
-      troubleshooting.push("2. Se sua senha tem símbolos como @, #, !, você deve usar 'URL Encoding' (ex: @ vira %40).");
-      troubleshooting.push("3. Se o erro persistir, tente redefined a senha no painel do Supabase para algo apenas com letras e números.");
-    } else if (error.message && error.message.includes("Can't reach database server at")) {
-      customMessage = "OSS! Não foi possível alcançar o servidor do banco de dados.";
-      troubleshooting.push("O endereço do banco está correto, mas o servidor não responde.");
-      troubleshooting.push("1. Verifique se o seu projeto no Supabase está ATIVO (não pausado).");
-      troubleshooting.push("2. Verifique se a sua conexão de internet permite conexões na porta 5432 ou 6543.");
-      troubleshooting.push("3. DICA DE SENSEI: Se estiver em uma rede corporativa, o firewall pode estar bloqueando o banco.");
-      troubleshooting.push("4. Tente usar o 'Modo Demo' no topo da tela para testar as funcionalidades sem banco de dados.");
+      troubleshooting.push("Substitua [YOUR-PASSWORD] pela senha real no menu Settings > Secrets.");
+    } else if (isLocalhostFallback) {
+      customMessage = "OSS! O sistema está em modo REVISÃO (DATABASE_URL inválida).";
+      troubleshooting.push("A URL do banco detectada é inválida ou aponta para localhost.");
+      troubleshooting.push("Isso acontece quando você não configurou os Segredos (Secrets) corretamente.");
+    } else if (error.message && (error.message.includes("Authentication failed") || error.message.includes("Invalid database password") || error.message.includes("P1017") || error.message.includes("credentials for 'postgres' are not valid"))) {
+      customMessage = "OSS! Falha de Autenticação: Senha incorreta ou formato inválido.";
+      troubleshooting.push("⚠️ DICA DE OURO: Se sua senha tem símbolos (@, #, !, :), você PRECISA usar URL Encoding.");
+      if (hasUnencodedSymbols) {
+        troubleshooting.push("🥋 ATENÇÃO: Detectamos símbolos não codificados na sua senha atual.");
+      }
+      troubleshooting.push("Exemplo: 'MinhaSenha@123' deve ser escrita como 'MinhaSenha%40123' na DATABASE_URL.");
+      troubleshooting.push("No Supabase, você pode resetar a senha do projeto em Settings > Database.");
+      troubleshooting.push("Certifique-se de que não há espaços extras antes ou depois da URL no menu Secrets.");
+    } else if (error.message && (error.message.includes("Can't reach database server") || error.message.includes("Timed out") || error.message.includes("P1001") || error.message.includes("P1003"))) {
+      customMessage = "OSS! Não foi possível alcançar o servidor do banco.";
+      if (isPort5432) {
+        troubleshooting.push("Aviso: Você está usando a porta 5432 (direta).");
+        troubleshooting.push("Para maior estabilidade, use a porta 6543 (Pooler) com pgbouncer=true.");
+      }
+      if (dbUrl.includes("localhost:5432")) {
+        troubleshooting.push("CUIDADO: O sistema está tentando conectar no localhost.");
+        troubleshooting.push("Isso acontece se a DATABASE_URL for inválida ou não começar com 'postgresql://'.");
+        troubleshooting.push("Verifique os Segredos (Secrets) no AI Studio.");
+      }
+      troubleshooting.push("Verifique se o projeto no Supabase não foi 'Pausado' por inatividade.");
+      troubleshooting.push("Confirme se o IP da aplicação não está bloqueado no Supabase.");
     }
 
     res.status(500).json({ 
       error: customMessage,
-      collection,
-      troubleshooting: troubleshooting.length > 0 ? troubleshooting : undefined,
-      sensei_tip: "OSS SENSEI! Para o sistema funcionar, o 'cinto de segurança' (DATABASE_URL) deve estar bem apertado com a String de Conexão (URI) correta do Supabase."
+      operationType: collection === "batch" ? "list" : "write", 
+      path: collection,
+      troubleshooting: troubleshooting.length > 0 ? troubleshooting : ["Tente recarregar a página ou use o Modo Demo no topo."],
+      sensei_tip: senseiTip,
+      diagnostic: {
+        code: error.code || 'P-INIT',
+        has_symbols: hasUnencodedSymbols
+      }
     });
   };
+
+  // Health Check Route
+  app.get("/api/health", (req, res) => {
+    res.json({ status: "ok" });
+  });
+
+  // DB Diagnostic Route
+  app.get("/api/health-db", async (req, res) => {
+    const rawUrl = process.env.DATABASE_URL || "";
+    // Mascara a senha para segurança: postgres://USER:PASSWORD@HOST:PORT/DB
+    const maskedUrl = rawUrl.replace(/(:\/\/)([^:]+):([^@]+)(@)/, "$1$2:****$4");
+    
+    try {
+      await prisma.$queryRaw`SELECT 1`;
+      res.json({ 
+        status: "connected", 
+        timestamp: new Date().toISOString(),
+        info: "OSS! Banco de dados respondendo corretamente.",
+        diagnostic: {
+          url_preview: maskedUrl.substring(0, 60) + "...",
+          is_pooler: rawUrl.includes(':6543'),
+          has_pgbouncer: rawUrl.includes('pgbouncer=true')
+        }
+      });
+    } catch (error: any) {
+      console.error("❌ FALHA NO TESTE DE CONEXÃO DB:", error.message);
+      res.status(500).json({ 
+        status: "error", 
+        message: error.message,
+        diagnostic: {
+          url_preview: maskedUrl.substring(0, 60) + "...",
+          error_code: error.code || 'UNKNOWN'
+        },
+        suggestion: "OSS! Verifique se a DATABASE_URL está correta no menu Settings > Secrets. Se sua senha tem símbolos, use URL Encoding."
+      });
+    }
+  });
 
   // Generic Get Route for User Collections
   app.get("/api/data/:collection", async (req, res) => {
@@ -201,6 +231,45 @@ async function startServer() {
       res.json(JSON.parse(JSON.stringify(data, (key, value) => typeof value === 'bigint' ? value.toString() : value)));
     } catch (error: any) {
       handleApiError(res, error, collection);
+    }
+  });
+
+  // Batch Get Route to prevent platform rate-limiting from parallel fetches
+  app.get("/api/batch", async (req, res) => {
+    const { userId, collections } = req.query;
+    if (!userId) return res.status(400).json({ error: "userId is required" });
+    if (!collections || typeof collections !== 'string') return res.status(400).json({ error: "collections query param is required as comma-separated string" });
+
+    const collectionList = collections.split(',');
+    const results: Record<string, any> = {};
+    const uid = String(userId);
+
+    try {
+      // Execute all prisma calls in parallel on the server (which is fine)
+      await Promise.all(collectionList.map(async (collection) => {
+        let data;
+        switch(collection) {
+          case 'students': data = await prisma.student.findMany({ where: { userId: uid }, orderBy: { joinedAt: 'desc' } }); break;
+          case 'payments': data = await prisma.payment.findMany({ where: { userId: uid }, orderBy: { timestamp: 'desc' }, take: 100 }); break;
+          case 'schedules': data = await prisma.classSchedule.findMany({ where: { userId: uid } }); break;
+          case 'logs': data = await prisma.systemLog.findMany({ where: { userId: uid }, orderBy: { timestamp: 'desc' }, take: 50 }); break;
+          case 'ledger': data = await prisma.transactionLedger.findMany({ where: { userId: uid }, orderBy: { timestamp: 'desc' }, take: 100 }); break;
+          case 'receipts': data = await prisma.paymentReceipt.findMany({ where: { userId: uid }, orderBy: { timestamp: 'desc' } }); break;
+          case 'extra_revenue': data = await prisma.extraRevenue.findMany({ where: { userId: uid } }); break;
+          case 'lesson_plans': data = await prisma.lessonPlan.findMany({ where: { userId: uid } }); break;
+          case 'techniques': data = await prisma.libraryTechnique.findMany({ where: { userId: uid } }); break;
+          case 'products': data = await prisma.product.findMany({ where: { userId: uid } }); break;
+          case 'plans': data = await prisma.plan.findMany({ where: { userId: uid } }); break;
+          case 'orders': data = await prisma.kimonoOrder.findMany({ where: { userId: uid } }); break;
+          case 'profile': data = await prisma.professorProfile.findUnique({ where: { userId: uid } }); break;
+          default: data = { error: "Collection not found" };
+        }
+        results[collection] = data;
+      }));
+
+      res.json(JSON.parse(JSON.stringify(results, (key, value) => typeof value === 'bigint' ? value.toString() : value)));
+    } catch (error: any) {
+      handleApiError(res, error, "batch");
     }
   });
 
@@ -350,20 +419,17 @@ async function startServer() {
   });
 
   // Start listening immediately
+  const dbUrl = process.env.DATABASE_URL || "";
+  const maskedStartUrl = dbUrl.replace(/(:\/\/)([^:]+):([^@]+)(@)/, "$1$2:****$4");
+  console.log(`🥋 OSS SENSEI: Iniciando com DATABASE_URL=${maskedStartUrl.substring(0, 60)}...`);
+
   app.listen(PORT, "0.0.0.0", () => {
     console.log(`OS SENSEI! Servidor ouvindo na porta ${PORT}`);
     console.log(`URL Local: http://localhost:${PORT}`);
   });
 
-  // Lazy load prisma to avoid boot hang
-  console.log("OS SENSEI! Carregando Prisma...");
-  try {
-    const prismaModule = await import("./prisma/client");
-    prisma = prismaModule.default;
-    console.log("OS SENSEI! Prisma Carregado com sucesso.");
-  } catch (err) {
-    console.error("OS SENSEI! Erro ao carregar Prisma:", err);
-  }
+  // Lazy load/init prisma is handled by the singleton import
+  console.log("OS SENSEI! Prisma Singleton pronto.");
 
   // Vite middleware for development
   if (process.env.NODE_ENV !== "production") {

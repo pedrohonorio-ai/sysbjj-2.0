@@ -25,19 +25,20 @@ interface FirestoreErrorInfo {
 }
 
 export const handleApiError = (error: any, operationType: OperationType, path: string | null, setNotifications?: React.Dispatch<React.SetStateAction<any[]>>, setDbStatus?: React.Dispatch<React.SetStateAction<any>>) => {
-  let errorMessage = error instanceof Error ? error.message : String(error);
+  let errorMessage = error.message || String(error);
   let troubleshooting = error.troubleshooting || [];
   let senseiTip = error.sensei_tip;
 
   // Handle common network/fetch errors
-  if (errorMessage === "Failed to fetch") {
-    errorMessage = "Não foi possível conectar ao servidor (Failed to fetch).";
+  if (errorMessage === "Failed to fetch" || errorMessage.includes("NetworkError")) {
+    errorMessage = "Não foi possível conectar ao servidor (Servidor Offline).";
     troubleshooting = [
       "O servidor pode estar reiniciando após uma alteração no código.",
       "Verifique se você configurou corretamente a DATABASE_URL no menu Settings > Secrets.",
+      "Se sua senha tiver símbolos (@, #, !), use URL Encoding (%40, %23, %21).",
       "Aguarde 10 segundos e tente recarregar a página."
     ];
-    senseiTip = "OSS! Esse erro geralmente indica que o servidor backend não conseguiu iniciar devido a uma configuração de banco de dados inválida.";
+    senseiTip = "OSS! Esse erro acontece se o backend falhar ao iniciar por causa da String de Conexão.";
   }
 
   const errInfo = {
@@ -329,51 +330,31 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
 
     const fetchAllData = async () => {
       try {
-        const [
-          studentsData,
-          paymentsData,
-          schedulesData,
-          logsData,
-          ledgerData,
-          receiptsData,
-          revData,
-          plansData,
-          techniquesData,
-          productsData,
-          subscriptionPlansData,
-          ordersData
-        ] = await Promise.all([
-          api.fetchData('students', user.id),
-          api.fetchData('payments', user.id),
-          api.fetchData('schedules', user.id),
-          api.fetchData('logs', user.id),
-          api.fetchData('ledger', user.id),
-          api.fetchData('receipts', user.id),
-          api.fetchData('extra_revenue', user.id),
-          api.fetchData('lesson_plans', user.id),
-          api.fetchData('techniques', user.id),
-          api.fetchData('products', user.id),
-          api.fetchData('plans', user.id),
-          api.fetchData('orders', user.id)
-        ]);
+        const collections = [
+          'students', 'payments', 'schedules', 'logs', 'ledger', 
+          'receipts', 'extra_revenue', 'lesson_plans', 'techniques', 
+          'products', 'plans', 'orders'
+        ];
+        
+        const batchResults = await api.fetchBatchData(collections, user.id);
 
-        setStudents(studentsData);
-        setPayments(paymentsData);
-        if (schedulesData.length > 0) setSchedules(schedulesData);
-        setLogs(logsData);
-        setLedger(ledgerData);
-        setReceipts(receiptsData);
-        if (revData.length > 0) setExtraRevenue(revData);
-        if (plansData.length > 0) setLessonPlans(plansData);
-        if (techniquesData.length > 0) setTechniques(techniquesData);
-        if (productsData.length > 0) setProducts(productsData);
-        if (subscriptionPlansData.length > 0) setPlans(subscriptionPlansData);
-        if (ordersData.length > 0) setOrders(ordersData);
+        if (batchResults.students) setStudents(batchResults.students);
+        if (batchResults.payments) setPayments(batchResults.payments);
+        if (batchResults.schedules && batchResults.schedules.length > 0) setSchedules(batchResults.schedules);
+        if (batchResults.logs) setLogs(batchResults.logs);
+        if (batchResults.ledger) setLedger(batchResults.ledger);
+        if (batchResults.receipts) setReceipts(batchResults.receipts);
+        if (batchResults.extra_revenue && batchResults.extra_revenue.length > 0) setExtraRevenue(batchResults.extra_revenue);
+        if (batchResults.lesson_plans && batchResults.lesson_plans.length > 0) setLessonPlans(batchResults.lesson_plans);
+        if (batchResults.techniques && batchResults.techniques.length > 0) setTechniques(batchResults.techniques);
+        if (batchResults.products && batchResults.products.length > 0) setProducts(batchResults.products);
+        if (batchResults.plans && batchResults.plans.length > 0) setPlans(batchResults.plans);
+        if (batchResults.orders && batchResults.orders.length > 0) setOrders(batchResults.orders);
         
         setDbStatus({ connected: true, error: null });
 
         // Auto-initialization for empty accounts
-        if (studentsData.length === 0) {
+        if (!batchResults.students || batchResults.students.length === 0) {
            console.log("Oss! Iniciando dados padrão para novo Sensei...");
            for (const s of INITIAL_STUDENTS) {
              const id = `STU-${Date.now()}-${Math.random().toString(36).substr(2, 5)}`;
