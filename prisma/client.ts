@@ -8,12 +8,17 @@ const rawUrl = process.env.DATABASE_URL || "";
 // 🥋 Limpeza Proativa Extra-Forte
 const cleanUrl = (url: string) => {
   if (!url) return "";
-  let cleaned = url.replace(/['"]/g, '').trim();
+  let cleaned = url.trim();
   
-  // Remove prefixos como "DATABASE_URL =" ou "URL:"
-  cleaned = cleaned.replace(/^(DATABASE_URL|URL|DIRECT_URL|DATABASE|DATABASE_URI)\s*[:=]\s*/i, "");
+  // Proactive cleaning until stable
+  for (let i = 0; i < 3; i++) {
+    // Remove prefixos como "DATABASE_URL =" ou "URL:"
+    cleaned = cleaned.replace(/^(DATABASE_URL|URL|DIRECT_URL|DATABASE|DATABASE_URI)\s*[:=]\s*/i, "").trim();
+    // Remove aspas
+    cleaned = cleaned.replace(/^['"]|['"]$/g, '').trim();
+  }
   
-  // Remove '=' ou ':' iniciais orfãos ou espaços extras
+  // Remove '=' ou ':' iniciais orfãos
   while (cleaned.startsWith('=') || cleaned.startsWith(':') || cleaned.startsWith(' ')) {
     cleaned = cleaned.substring(1).trim();
   }

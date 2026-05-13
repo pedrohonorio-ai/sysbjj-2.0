@@ -9,13 +9,15 @@ const cleanupEnv = (key: string) => {
     // 🥋 OSS SENSEI: Extra-safe cleaning
     let cleaned = val.trim();
     
-    // Remove aspas que podem vir do sistema de segredos
-    cleaned = cleaned.replace(/^['"]|['"]$/g, '');
+    // Proactive cleaning until stable
+    for (let i = 0; i < 3; i++) {
+      // Remove prefixos como "DATABASE_URL =" ou "URL:"
+      cleaned = cleaned.replace(/^(DATABASE_URL|URL|DIRECT_URL|DATABASE|DATABASE_URI)\s*[:=]\s*/i, "").trim();
+      // Remove aspas
+      cleaned = cleaned.replace(/^['"]|['"]$/g, '').trim();
+    }
     
-    // Remove prefixo comum de erro usando regex case-insensitive
-    cleaned = cleaned.replace(/^(DATABASE_URL|URL|DIRECT_URL|DATABASE|DATABASE_URI)\s*[:=]\s*/i, "");
-    
-    // Remove '=' ou ':' iniciais orfãos ou espaços extras
+    // Remove '=' ou ':' iniciais orfãos
     while (cleaned.startsWith('=') || cleaned.startsWith(':') || cleaned.startsWith(' ')) {
       cleaned = cleaned.substring(1).trim();
     }
