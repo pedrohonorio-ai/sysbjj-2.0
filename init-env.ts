@@ -9,27 +9,16 @@ const cleanupEnv = (key: string) => {
     // 🥋 OSS SENSEI: Extra-safe cleaning
     let cleaned = val.trim();
     
-    // Proactive cleaning until stable
+    // Remove invisible characters
+    cleaned = cleaned.replace(/[\u200B-\u200D\uFEFF]/g, "");
+    
     for (let i = 0; i < 3; i++) {
-      // Remove prefixos como "DATABASE_URL =" ou "URL:"
-      cleaned = cleaned.replace(/^(DATABASE_URL|URL|DIRECT_URL|DATABASE|DATABASE_URI)\s*[:=]\s*/i, "").trim();
-      // Remove aspas
-      cleaned = cleaned.replace(/^['"]|['"]$/g, '').trim();
+      cleaned = cleaned.replace(/^(DATABASE_URL|URL|DIRECT_URL|DATABASE|DATABASE_URI|SUPABASE_DATABASE_URL|SUPABASE_DB_URL)\s*[:=]\s*/i, "").trim();
+      cleaned = cleaned.replace(/^['"`]|['"`]$/g, '').trim();
     }
     
-    // Remove '=' ou ':' iniciais orfãos
     while (cleaned.startsWith('=') || cleaned.startsWith(':') || cleaned.startsWith(' ')) {
       cleaned = cleaned.substring(1).trim();
-    }
-    
-    // Auto-detection of unencoded symbols in password for diagnostics
-    const passMatch = cleaned.match(/:\/\/.*?:(.*?)(@|$)/);
-    if (passMatch && passMatch[1]) {
-       const password = passMatch[1];
-       if (/[@#$!%&*:]/.test(password)) {
-          console.warn(`🥋 OSS ALERTA: Detectado símbolo [${password.match(/[@#$!%&*:]/)?.[0]}] não codificado na senha da ${key}.`);
-          console.warn(`💡 DICA: Use URL Encoding (ex: @ vira %40).`);
-       }
     }
     
     process.env[key] = cleaned;
@@ -38,8 +27,8 @@ const cleanupEnv = (key: string) => {
   return "";
 };
 
-const dbUrl = cleanupEnv('DATABASE_URL');
-const directUrl = cleanupEnv('DIRECT_URL');
+const dbUrl = cleanupEnv('DATABASE_URL') || cleanupEnv('SUPABASE_DATABASE_URL') || cleanupEnv('SUPABASE_DB_URL');
+const directUrl = cleanupEnv('DIRECT_URL') || dbUrl;
 
 const ensureProtocol = (url: string) => {
   if (!url) return "";

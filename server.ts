@@ -23,14 +23,43 @@ async function startServer() {
   const app = express();
   const PORT = 3000;
 
-  // Central error handler for API routes
+  // Helper para serialização segura de BigInt
+  const serializeData = (data: any) => {
+    return JSON.parse(JSON.stringify(data, (k, v) => 
+      typeof v === 'bigint' 
+        ? (Number(v) <= Number.MAX_SAFE_INTEGER ? Number(v) : v.toString()) 
+        : v
+    ));
+  };
+
+  // 🥋 Diagnostic for debugging
+  console.log('🥋 DATABASE_URL:', process.env.DATABASE_URL?.replace(/:[^:@]+@/, ':****@'));
   const handleApiError = (res: any, error: any, collection: string) => {
-    console.error(`OS SENSEI! Erro na API [${collection}]:`, error);
-    res.status(500).json({ 
-      error: error.message,
-      operationType: collection === "batch" ? "list" : "write", 
+    console.error(`🥋 🚨 OS SENSEI! Erro Crítico na API [${collection}]:`, error);
+    
+    // Extrair mensagem de erro do Prisma se possível
+    let message = error.message;
+    let status = 500;
+
+    // 🥋 Tratamento Especializado Prisma (Enterprise Mode)
+    if (message.includes("supabase.com:6543") && !message.includes("pooler.supabase.com")) {
+      status = 503;
+      message = "🚨 OSS SENSEI! Erro de Configuração: Você está usando o host genérico 'supabase.com'. Substitua por '[PROJECT-REF].pooler.supabase.com' no menu Settings > Secrets.";
+    } else if (error.name === 'PrismaClientInitializationError' || error.name === 'PrismaClientConnectorError') {
+      status = 503;
+      message = "O Dojo Cloud (Banco de Dados) está temporariamente indisponível. Verifique a DATABASE_URL.";
+    } else if (error.code === 'P2002') {
+      message = `Erro de Unicidade: Já existe um registro com estes dados em ${collection}.`;
+    } else if (error.code === 'P2025') {
+      message = `Registro não encontrado em ${collection}.`;
+    }
+    
+    res.status(status).json({ 
+      error: message || "Erro interno no Dojo",
+      code: error.code,
+      operationType: ["batch", "students", "payments"].includes(collection) ? "list" : "write", 
       path: collection,
-      sensei_tip: "OSS! Verifique a conexão com o Dojo Cloud (Supabase) no menu Secrets."
+      sensei_tip: "OSS! Verifique se todos os campos obrigatórios foram enviados e se a DATABASE_URL está correta."
     });
   };
 
@@ -39,17 +68,61 @@ async function startServer() {
 
   // 🥋 OSS SENSEI: Configuração de CORS para Enterprise
   app.use(cors({
-    origin: [
-      "http://localhost:3000",
-      "http://localhost:5173",
-      "https://ais-dev-3yqtpuxc7uqrlkhqyjx4ag-460257395159.us-west2.run.app", // Dev URL
-      /\.vercel\.app$/, // Permite subdomínios da Vercel
-      /.*ais-dev.*\.run\.app$/ // Permite o ambiente de dev atual
-    ],
-    methods: ["GET", "POST", "DELETE", "OPTIONS"],
+    origin: (origin, callback) => {
+      // Permite requests sem origin (como ferramentas de teste ou server-to-server)
+      if (!origin) return callback(null, true);
+      
+      const allowedOrigins = [
+        "http://localhost:3000",
+        "http://localhost:5173",
+        "https://sysbjj-2-0.vercel.app",
+        "https://sysbjj.online"
+      ];
+
+      const isAllowed = !origin || 
+                       allowedOrigins.includes(origin) || 
+                       origin.includes("ais-dev") ||
+                       origin.includes("ais-pre") ||
+                       origin.includes(".run.app") ||
+                       origin.includes(".vercel.app") ||
+                       origin.includes("onrender.com");
+
+      if (isAllowed) {
+        callback(null, true);
+      } else {
+        console.warn(`🥋 [CORS BLOCKED] Origin: ${origin}`);
+        callback(null, false); // No ambiente enterprise, somos restritos, mas flexíveis se necessário
+      }
+    },
+    methods: ["GET", "POST", "DELETE", "OPTIONS", "PUT", "PATCH"],
     credentials: true,
-    allowedHeaders: ["Content-Type", "Authorization"]
+    allowedHeaders: ["Content-Type", "Authorization", "X-Requested-With"]
   }));
+
+  // 🥋 OSS SENSEI: Rota de Health Check baseada em Padrão Cloud (Render/Railway)
+  app.get("/health", (req, res) => {
+    res.json({ 
+      status: "ok", 
+      message: "🥋 OSS! Dojo Backend online.", 
+      timestamp: new Date().toISOString() 
+    });
+  });
+
+  // 🥋 OSS SENSEI: Rota de Health DB (User Connectivity Test)
+  app.get("/api/health-db", async (req, res) => {
+    try {
+      await prisma.$queryRaw`SELECT 1`;
+      return res.status(200).json({
+        status: "ok",
+        database: "connected"
+      });
+    } catch (err: any) {
+      return res.status(500).json({
+        status: "error",
+        message: err.message
+      });
+    }
+  });
 
   // 🥋 OSS SENSEI: Middleware de Log para Depuração de Rotas
   app.use((req, res, next) => {
@@ -99,24 +172,6 @@ async function startServer() {
     res.json({ status: "ok", timestamp: new Date().toISOString(), platform: "Supabase + Prisma + Express" });
   });
 
-  apiRouter.get("/health-db", async (req, res) => {
-    const rawUrl = process.env.DATABASE_URL || "";
-    const maskedUrl = rawUrl.replace(/(:\/\/)([^:]+):([^@]+)(@)/, "$1$2:****$4");
-    
-    try {
-      if (!prisma) throw new Error("Motor Prisma em aquecimento.");
-      await prisma.$queryRaw`SELECT 1`;
-      res.json({ 
-        status: "connected", 
-        timestamp: new Date().toISOString(),
-        info: "OSS! Dojo cloud conectado.",
-        url_preview: maskedUrl.substring(0, 50) + "..."
-      });
-    } catch (error: any) {
-      res.status(500).json({ status: "error", message: error.message });
-    }
-  });
-
   // Legacy diagnostic route for backward compatibility with some components
   apiRouter.get("/test-db", async (req, res) => {
     try {
@@ -156,7 +211,7 @@ async function startServer() {
             return res.status(404).json({ error: `Coleção não encontrada no Dojo: ${collection}` });
           }
       }
-      res.json(JSON.parse(JSON.stringify(data, (k, v) => typeof v === 'bigint' ? v.toString() : v)));
+      res.json(serializeData(data));
     } catch (error: any) {
       handleApiError(res, error, collection);
     }
@@ -174,27 +229,39 @@ async function startServer() {
 
     try {
       await Promise.all(collectionList.map(async (collection) => {
-        let data;
-        switch(collection) {
-          case 'students': data = await prisma.student.findMany({ where: { userId: uid }, orderBy: { joinedAt: 'desc' } }); break;
-          case 'payments': data = await prisma.payment.findMany({ where: { userId: uid }, orderBy: { timestamp: 'desc' }, take: 50 }); break;
-          case 'schedules': data = await prisma.classSchedule.findMany({ where: { userId: uid } }); break;
-          case 'logs': data = await prisma.systemLog.findMany({ where: { userId: uid }, orderBy: { timestamp: 'desc' }, take: 50 }); break;
-          case 'ledger': data = await prisma.transactionLedger.findMany({ where: { userId: uid }, orderBy: { timestamp: 'desc' }, take: 50 }); break;
-          case 'receipts': data = await prisma.paymentReceipt.findMany({ where: { userId: uid }, orderBy: { timestamp: 'desc' } }); break;
-          case 'extra_revenue': data = await prisma.extraRevenue.findMany({ where: { userId: uid } }); break;
-          case 'batch_presence': 
-            // Para UI de Presença/Dashboard
-            const presences = await prisma.presence.findMany({ where: { userId: uid } });
-            data = presences;
-            break;
-          case 'profile': data = await prisma.professorProfile.findUnique({ where: { userId: uid } }); break;
-          default: data = [];
+        try {
+          let data;
+          switch(collection) {
+            case 'students': data = await prisma.student.findMany({ where: { userId: uid }, orderBy: { joinedAt: 'desc' } }); break;
+            case 'payments': data = await prisma.payment.findMany({ where: { userId: uid }, orderBy: { timestamp: 'desc' }, take: 50 }); break;
+            case 'schedules': data = await prisma.classSchedule.findMany({ where: { userId: uid } }); break;
+            case 'logs': data = await prisma.systemLog.findMany({ where: { userId: uid }, orderBy: { timestamp: 'desc' }, take: 50 }); break;
+            case 'ledger': data = await prisma.transactionLedger.findMany({ where: { userId: uid }, orderBy: { timestamp: 'desc' }, take: 50 }); break;
+            case 'receipts': data = await prisma.paymentReceipt.findMany({ where: { userId: uid }, orderBy: { timestamp: 'desc' } }); break;
+            case 'extra_revenue': data = await prisma.extraRevenue.findMany({ where: { userId: uid } }); break;
+            case 'lesson_plans': data = await prisma.lessonPlan.findMany({ where: { userId: uid } }); break;
+            case 'techniques': data = await prisma.libraryTechnique.findMany({ where: { userId: uid } }); break;
+            case 'products': data = await prisma.product.findMany({ where: { userId: uid } }); break;
+            case 'plans': data = await prisma.plan.findMany({ where: { userId: uid } }); break;
+            case 'orders': data = await prisma.kimonoOrder.findMany({ where: { userId: uid } }); break;
+            case 'batch_presence': data = await prisma.presence.findMany({ where: { userId: uid } }); break;
+            case 'profile': data = await prisma.professorProfile.findUnique({ where: { userId: uid } }); break;
+            default: 
+              const anyPrisma = prisma as any;
+              if (anyPrisma[collection]) {
+                data = await anyPrisma[collection].findMany({ where: { userId: uid }, take: 100 });
+              } else {
+                data = [];
+              }
+          }
+          results[collection] = data;
+        } catch (e) {
+          console.error(`🥋 [BATCH ERROR] Falha na coleção ${collection}:`, e);
+          results[collection] = []; // Resiliência: retorna vazio em vez de quebrar o lote
         }
-        results[collection] = data;
       }));
 
-      res.json(JSON.parse(JSON.stringify(results, (k, v) => typeof v === 'bigint' ? v.toString() : v)));
+      res.json(serializeData(results));
     } catch (error: any) {
       handleApiError(res, error, "batch");
     }
@@ -219,9 +286,24 @@ async function startServer() {
           break;
         case 'presence':
           result = await prisma.presence.upsert({
-            where: { email_deviceId: { email: data.email, deviceId: data.deviceId } },
-            create: { ...data, userId: uid, lastSeen: BigInt(data.lastSeen || Date.now()) },
-            update: { ...data, userId: uid, lastSeen: BigInt(data.lastSeen || Date.now()) }
+            where: { 
+              email_deviceId: { 
+                email: String(data.email || ''), 
+                deviceId: String(data.deviceId || 'default-device') 
+              } 
+            },
+            create: { 
+              ...data, 
+              userId: uid, 
+              email: String(data.email || ''),
+              deviceId: String(data.deviceId || 'default-device'),
+              lastSeen: BigInt(Math.floor(Number(data.lastSeen || Date.now()))) 
+            },
+            update: { 
+              ...data, 
+              userId: uid, 
+              lastSeen: BigInt(Math.floor(Number(data.lastSeen || Date.now()))) 
+            }
           });
           break;
         case 'logs':
@@ -231,10 +313,12 @@ async function startServer() {
           result = await prisma.transactionLedger.create({ data: { ...data, userId: uid, timestamp: BigInt(data.timestamp || Date.now()) } });
           break;
         case 'profile':
+          // Remove ID se vier do frontend para não conflitar com o CUID
+          const { id: profileId, ...profileData } = data;
           result = await prisma.professorProfile.upsert({
             where: { userId: uid },
-            update: { ...data, userId: uid },
-            create: { ...data, userId: uid }
+            update: { ...profileData, userId: uid },
+            create: { ...profileData, userId: uid }
           });
           break;
         // Adicionar outros cases conforme necessário para as tabelas principais
@@ -251,7 +335,7 @@ async function startServer() {
              return res.status(404).json({ error: `Coleção não suportada para gravação: ${collection}` });
           }
       }
-      res.json(JSON.parse(JSON.stringify(result, (k, v) => typeof v === 'bigint' ? v.toString() : v)));
+      res.json(serializeData(result));
     } catch (error: any) {
       handleApiError(res, error, collection);
     }

@@ -91,7 +91,19 @@ class EnterpriseApi {
         clearTimeout(timeoutId);
 
         if (!response.ok) {
-          throw new Error(`HTTP Error: ${response.status}`);
+          let errorInfo = `HTTP Error: ${response.status}`;
+          try {
+            const errorData = await response.json();
+            if (errorData.error) errorInfo = errorData.error;
+            // Preserva metadados do erro se existirem
+            const error = new Error(errorInfo) as any;
+            error.status = response.status;
+            error.troubleshooting = errorData.troubleshooting;
+            error.sensei_tip = errorData.sensei_tip;
+            throw error;
+          } catch (e) {
+            throw new Error(errorInfo);
+          }
         }
 
         const data = await response.json();
