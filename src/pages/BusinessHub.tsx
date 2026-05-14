@@ -1,18 +1,42 @@
 
-import React, { useState } from 'react';
-import { ShoppingBag, TrendingUp, DollarSign, Package, Plus, Star, Zap, ShieldCheck, ArrowUpRight, Search, Filter, ShoppingCart, Tag } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import { ShoppingBag, TrendingUp, DollarSign, Package, Plus, Star, Zap, ShieldCheck, ArrowUpRight, Search, Filter, ShoppingCart, Tag, BarChart3, PieChart, Users, Target, Activity, RefreshCw } from 'lucide-react';
 import { useTranslation } from '../contexts/LanguageContext';
 import { useData } from '../contexts/DataContext';
 import { motion, AnimatePresence } from 'motion/react';
 import { ExtraRevenueCategory } from '../types';
+import { api } from '../services/api';
+import { useAuth } from '../context/AuthContext';
 
 const BusinessHub: React.FC = () => {
   const { t } = useTranslation();
+  const { user } = useAuth();
   const { products, plans, ledger, addProduct, addPlan, addExtraRevenue, orders, updateOrder, deleteOrder, addOrder, students } = useData();
   const [activeTab, setActiveTab] = useState<'shop' | 'plans' | 'orders' | 'reports'>('shop');
   const [searchTerm, setSearchTerm] = useState('');
   const [showQuickSale, setShowQuickSale] = useState(false);
   const [selectedProduct, setSelectedProduct] = useState<any>(null);
+  const [biData, setBiData] = useState<any>(null);
+  const [loadingBi, setLoadingBi] = useState(false);
+
+  useEffect(() => {
+    if (activeTab === 'reports' && user?.id) {
+      loadBi();
+    }
+  }, [activeTab, user?.id]);
+
+  const loadBi = async () => {
+    if (!user?.id) return;
+    setLoadingBi(true);
+    try {
+      const res = await api.fetchBI(user.id);
+      if (res && res.data) setBiData(res.data);
+    } catch (e) {
+      console.error("🥋 [BI ERROR]:", e);
+    } finally {
+      setLoadingBi(false);
+    }
+  };
 
   const filteredProducts = products.filter(p => 
     p.name.toLowerCase().includes(searchTerm.toLowerCase())
@@ -357,42 +381,140 @@ const BusinessHub: React.FC = () => {
             exit={{ opacity: 0, y: -20 }}
             className="space-y-8"
           >
-            <div className="p-12 bg-white dark:bg-slate-900 rounded-[3rem] border border-slate-200 dark:border-white/5 shadow-xl">
-               <div className="flex items-center justify-between mb-12">
-                 <h2 className="text-xl font-black text-slate-900 dark:text-white uppercase tracking-tighter flex items-center gap-3">
-                   <TrendingUp size={24} className="text-blue-600" />
-                   Fluxo de Caixa - Vendas Extras
-                 </h2>
-                 <div className="flex gap-2">
-                    <button className="px-4 py-2 bg-slate-100 dark:bg-white/5 rounded-xl text-[9px] font-black uppercase tracking-widest">Exportar PDF</button>
-                    <button className="px-4 py-2 bg-slate-100 dark:bg-white/5 rounded-xl text-[9px] font-black uppercase tracking-widest">Excel</button>
-                 </div>
-               </div>
+            {loadingBi ? (
+              <div className="py-32 flex flex-col items-center justify-center bg-white dark:bg-slate-900 rounded-[3rem] border border-slate-200 dark:border-white/5">
+                <RefreshCw size={48} className="text-blue-600 animate-spin mb-6" />
+                <p className="font-black text-slate-400 uppercase tracking-widest text-[10px]">Analisando o Dojo com o Mestre...</p>
+              </div>
+            ) : biData ? (
+              <div className="space-y-8">
+                {/* Dashboard Summary Cards */}
+                <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
+                  <div className="p-6 bg-slate-900 rounded-3xl text-white shadow-xl">
+                    <p className="text-[8px] font-black uppercase tracking-widest opacity-60 mb-2">Churn Rate Est.</p>
+                    <h3 className="text-2xl font-black italic text-rose-400">{biData.churnRate}</h3>
+                  </div>
+                  <div className="p-6 bg-slate-900 rounded-3xl text-white shadow-xl">
+                    <p className="text-[8px] font-black uppercase tracking-widest opacity-60 mb-2">Ticket Médio</p>
+                    <h3 className="text-2xl font-black italic">R$ {biData.avgTicket}</h3>
+                  </div>
+                  <div className="p-6 bg-blue-600 rounded-3xl text-white shadow-xl">
+                    <p className="text-[8px] font-black uppercase tracking-widest opacity-70 mb-2">Receita Potencial</p>
+                    <h3 className="text-2xl font-black italic">R$ {biData.summary.monthlyRevenueGoal.toLocaleString()}</h3>
+                  </div>
+                  <div className="p-6 bg-emerald-600 rounded-3xl text-white shadow-xl">
+                    <p className="text-[8px] font-black uppercase tracking-widest opacity-70 mb-2">Lucro Líquido</p>
+                    <h3 className="text-2xl font-black italic">R$ {biData.summary.netProfit.toLocaleString()}</h3>
+                  </div>
+                </div>
 
-               <div className="space-y-4">
-                 {ledger.filter(e => e.type === 'ExtraRevenue').length === 0 ? (
-                   <p className="text-center py-20 text-slate-400 font-bold uppercase tracking-widest text-[10px]">Nenhuma venda extra registrada recentemente.</p>
-                 ) : (
-                   ledger.filter(e => e.type === 'ExtraRevenue').map(entry => (
-                     <div key={entry.id} className="flex items-center justify-between p-6 bg-slate-50 dark:bg-white/5 rounded-2xl border border-transparent hover:border-blue-500/20 transition-all">
-                       <div className="flex items-center gap-6">
-                         <div className="w-12 h-12 bg-blue-100 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 rounded-xl flex items-center justify-center font-black">
-                           {entry.description[0]}
-                         </div>
-                         <div>
-                            <h4 className="text-sm font-black text-slate-900 dark:text-white uppercase tracking-tight">{entry.description}</h4>
-                            <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mt-0.5">{new Date(entry.timestamp).toLocaleDateString()}</p>
-                         </div>
-                       </div>
-                       <div className="text-right">
-                          <p className="text-lg font-black text-slate-900 dark:text-white italic">R$ {entry.amount.toLocaleString()}</p>
-                          <span className="text-[8px] font-black text-emerald-500 uppercase tracking-[0.2em]">Liquidado</span>
-                       </div>
+                <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+                  {/* Student Belt Distribution */}
+                  <div className="lg:col-span-1 p-8 bg-white dark:bg-slate-900 rounded-[2.5rem] border border-slate-200 dark:border-white/5 shadow-xl">
+                    <h3 className="text-sm font-black text-slate-900 dark:text-white uppercase tracking-widest mb-8 flex items-center gap-3">
+                      <BarChart3 size={18} className="text-blue-600" />
+                      Graduação do Tatame
+                    </h3>
+                    <div className="space-y-4">
+                      {Object.entries(biData.students.beltDistribution).map(([belt, count]: [any, any]) => (
+                        <div key={belt} className="group">
+                          <div className="flex justify-between items-center mb-2">
+                             <span className="text-[10px] font-black text-slate-500 uppercase tracking-widest">{belt}</span>
+                             <span className="text-[10px] font-black text-slate-900 dark:text-white">{count}</span>
+                          </div>
+                          <div className="h-1.5 w-full bg-slate-100 dark:bg-white/5 rounded-full overflow-hidden">
+                             <motion.div 
+                               initial={{ width: 0 }}
+                               animate={{ width: `${(count / biData.students.total) * 100}%` }}
+                               className="h-full bg-blue-600 rounded-full"
+                             />
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+
+                  {/* Financial Breakdown */}
+                  <div className="lg:col-span-2 p-8 bg-white dark:bg-slate-900 rounded-[2.5rem] border border-slate-200 dark:border-white/5 shadow-xl">
+                     <div className="flex items-center justify-between mb-8">
+                        <h3 className="text-sm font-black text-slate-900 dark:text-white uppercase tracking-widest flex items-center gap-3">
+                          <PieChart size={18} className="text-blue-600" />
+                          Composição de Receitas
+                        </h3>
+                        <button onClick={loadBi} className="p-2 text-slate-400 hover:text-blue-600 transition-colors">
+                           <RefreshCw size={16} />
+                        </button>
                      </div>
-                   ))
-                 )}
-               </div>
-            </div>
+                     <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                        <div className="space-y-4">
+                           <div className="p-4 bg-slate-50 dark:bg-white/5 rounded-2xl border-l-4 border-blue-500">
+                             <p className="text-[8px] font-black text-slate-400 uppercase tracking-widest">Matrículas e Mensalidades</p>
+                             <p className="text-xl font-black text-slate-900 dark:text-white italic">R$ {biData.finances.breakdown.studentPayments.toLocaleString()}</p>
+                           </div>
+                           <div className="p-4 bg-slate-50 dark:bg-white/5 rounded-2xl border-l-4 border-purple-500">
+                             <p className="text-[8px] font-black text-slate-400 uppercase tracking-widest">Vendas da Loja (Ledger)</p>
+                             <p className="text-xl font-black text-slate-900 dark:text-white italic">R$ {biData.finances.breakdown.ledgerIncomes.toLocaleString()}</p>
+                           </div>
+                           <div className="p-4 bg-slate-50 dark:bg-white/5 rounded-2xl border-l-4 border-amber-500">
+                             <p className="text-[8px] font-black text-slate-400 uppercase tracking-widest">Receitas Extras</p>
+                             <p className="text-xl font-black text-slate-900 dark:text-white italic">R$ {biData.finances.breakdown.extraIncomes.toLocaleString()}</p>
+                           </div>
+                        </div>
+                        <div className="flex flex-col justify-center items-center p-8 bg-slate-950 rounded-[2rem] text-center border border-white/5 relative overflow-hidden group">
+                           <div className="absolute inset-0 bg-blue-600/5 opacity-0 group-hover:opacity-100 transition-opacity" />
+                           <TrendingUp size={48} className="text-blue-500 mb-4" />
+                           <h4 className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">Status de Lucratividade</h4>
+                           <p className="text-2xl font-black text-white italic uppercase tracking-tighter">
+                             {biData.summary.netProfit > 0 ? 'Superávit Operacional' : 'Déficit Analítico'}
+                           </p>
+                           <p className="mt-4 text-[9px] font-bold text-slate-500 uppercase tracking-widest">Garantindo a Evolução Sustentável</p>
+                        </div>
+                     </div>
+                  </div>
+                </div>
+
+                {/* Performance Table */}
+                <div className="p-8 bg-white dark:bg-slate-900 rounded-[2.5rem] border border-slate-200 dark:border-white/5 shadow-xl">
+                  <h3 className="text-sm font-black text-slate-900 dark:text-white uppercase tracking-widest mb-8 flex items-center gap-3">
+                    <Activity size={18} className="text-blue-600" />
+                    Transações Consolidadas (Sync Sensei)
+                  </h3>
+                  <div className="overflow-x-auto">
+                    <table className="w-full text-left">
+                      <thead>
+                        <tr className="border-b border-slate-100 dark:border-white/5">
+                          <th className="pb-4 text-[9px] font-black text-slate-400 uppercase tracking-widest">Categoria</th>
+                          <th className="pb-4 text-[9px] font-black text-slate-400 uppercase tracking-widest text-right">Resultado Líquido</th>
+                          <th className="pb-4 text-[9px] font-black text-slate-400 uppercase tracking-widest text-right">Impacto</th>
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-slate-50 dark:divide-white/5">
+                        {Object.entries(biData.finances.byCategory).map(([cat, amount]: [any, any]) => (
+                          <tr key={cat} className="group hover:bg-slate-50 dark:hover:bg-white/5 transition-all">
+                            <td className="py-4 font-black text-[10px] text-slate-600 dark:text-slate-300 uppercase tracking-widest">{cat}</td>
+                            <td className={`py-4 text-sm font-black text-right italic ${amount >= 0 ? 'text-emerald-500' : 'text-rose-500'}`}>
+                              {amount >= 0 ? '+' : '-'} R$ {Math.abs(amount).toLocaleString()}
+                            </td>
+                            <td className="py-4 text-right">
+                               <div className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-md bg-slate-100 dark:bg-white/5 border border-slate-200 dark:border-white/10">
+                                  <ShieldCheck size={8} className="text-blue-500" />
+                                  <span className="text-[7px] font-black text-slate-400 uppercase tracking-widest">Validado</span>
+                               </div>
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+              </div>
+            ) : (
+              <div className="py-32 text-center bg-white dark:bg-slate-900 rounded-[3rem] border-2 border-dashed border-slate-200 dark:border-white/5">
+                <Target size={48} className="text-slate-200 mx-auto mb-6" />
+                <h3 className="text-xl font-black text-slate-900 dark:text-white uppercase tracking-tighter">Nenhum Dado de BI Disponível</h3>
+                <p className="mt-2 text-slate-400 max-w-xs mx-auto text-sm">Registre alunos, mensalidades e vendas para gerar inteligência comercial.</p>
+              </div>
+            )}
           </motion.div>
         )}
       </AnimatePresence>

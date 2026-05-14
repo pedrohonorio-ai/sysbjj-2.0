@@ -27,7 +27,7 @@ const cleanupEnv = (key: string) => {
   return "";
 };
 
-const dbUrl = cleanupEnv('DATABASE_URL') || cleanupEnv('SUPABASE_DATABASE_URL') || cleanupEnv('SUPABASE_DB_URL');
+const dbUrl = cleanupEnv('DATABASE_URL') || cleanupEnv('POSTGRES_URL') || cleanupEnv('POSTGRES_PRISMA_URL') || cleanupEnv('SUPABASE_DATABASE_URL') || cleanupEnv('SUPABASE_DB_URL');
 const directUrl = cleanupEnv('DIRECT_URL') || dbUrl;
 
 const ensureProtocol = (url: string) => {
@@ -60,7 +60,7 @@ if (finalDbUrl) {
     
     // Masked log for safety
     const masked = finalDbUrl.replace(/:([^@]+)@/, ':****@');
-    console.log(`📡 Dojo Status: ${masked.substring(0, 45)}...`);
+    console.log(`📡 Dojo Status [INIT]: ${masked.substring(0, 45)}...`);
     
     if (isDirect) {
       console.warn("🥋 OSS SENSEI! Aviso: Você está usando a conexão direta (5432).");

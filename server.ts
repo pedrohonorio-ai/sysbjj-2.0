@@ -5,6 +5,12 @@ import { createServer as createViteServer } from "vite";
 import path from "path";
 import { fileURLToPath } from "url";
 import { prisma } from "./prisma/client";
+import healthHandler from "./api/health";
+import healthDbHandler from "./api/health-db";
+import healthDbRlsHandler from "./api/health-db-rls";
+import biHandler from "./api/bi";
+import batchHandler from "./api/batch";
+import { dataHandler, serializeData } from "./api/data";
 
 // GLOBAL ERROR HANDLERS
 process.on('uncaughtException', (err) => {
@@ -33,7 +39,10 @@ async function startServer() {
   };
 
   // 🥋 Diagnostic for debugging
-  console.log('🥋 DATABASE_URL:', process.env.DATABASE_URL?.replace(/:[^:@]+@/, ':****@'));
+  const dbUrl = process.env.DATABASE_URL || "";
+  const masked = dbUrl.replace(/:([^@]+)@/, ':****@');
+  console.log('🥋 [SENSEI STATUS] DATABASE_URL Final:', masked);
+  
   const handleApiError = (res: any, error: any, collection: string) => {
     console.error(`🥋 🚨 OS SENSEI! Erro Crítico na API [${collection}]:`, error);
     
@@ -42,9 +51,9 @@ async function startServer() {
     let status = 500;
 
     // 🥋 Tratamento Especializado Prisma (Enterprise Mode)
-    if (message.includes("supabase.com:6543") && !message.includes("pooler.supabase.com")) {
+    if (dbUrl === "INVALID_PLACEHOLDER_ERROR" || (message.includes("supabase.com:6543") && !message.includes("pooler.supabase.com"))) {
       status = 503;
-      message = "🚨 OSS SENSEI! Erro de Configuração: Você está usando o host genérico 'supabase.com'. Substitua por '[PROJECT-REF].pooler.supabase.com' no menu Settings > Secrets.";
+      message = "🚨 OSS SENSEI! Erro de Configuração Crítico: Você está usando o host genérico 'supabase.com'. Você PRECISA substituir por '[PROJECT-REF].pooler.supabase.com' (porta 6543) no menu Settings > Secrets ou no Dashboard do Vercel.";
     } else if (error.name === 'PrismaClientInitializationError' || error.name === 'PrismaClientConnectorError') {
       status = 503;
       message = "O Dojo Cloud (Banco de Dados) está temporariamente indisponível. Verifique a DATABASE_URL.";
@@ -99,30 +108,12 @@ async function startServer() {
     allowedHeaders: ["Content-Type", "Authorization", "X-Requested-With"]
   }));
 
-  // 🥋 OSS SENSEI: Rota de Health Check baseada em Padrão Cloud (Render/Railway)
-  app.get("/health", (req, res) => {
-    res.json({ 
-      status: "ok", 
-      message: "🥋 OSS! Dojo Backend online.", 
-      timestamp: new Date().toISOString() 
-    });
-  });
-
-  // 🥋 OSS SENSEI: Rota de Health DB (User Connectivity Test)
-  app.get("/api/health-db", async (req, res) => {
-    try {
-      await prisma.$queryRaw`SELECT 1`;
-      return res.status(200).json({
-        status: "ok",
-        database: "connected"
-      });
-    } catch (err: any) {
-      return res.status(500).json({
-        status: "error",
-        message: err.message
-      });
-    }
-  });
+  // 🥋 OSS SENSEI: Handlers Modulares (Vercel Ready)
+  app.get("/health", healthHandler);
+  app.get("/api/health", healthHandler);
+  app.get("/api/health-db", healthDbHandler);
+  app.get("/api/health-db-rls", healthDbRlsHandler);
+  app.get("/api/bi", biHandler);
 
   // 🥋 OSS SENSEI: Middleware de Log para Depuração de Rotas
   app.use((req, res, next) => {
@@ -183,163 +174,10 @@ async function startServer() {
     }
   });
 
-  // Generic Get Route
-  apiRouter.get("/data/:collection", async (req, res) => {
-    const { userId } = req.query;
-    const { collection } = req.params;
-    if (!userId) return res.status(400).json({ error: "userId is required" });
-
-    try {
-      let data;
-      const uid = String(userId);
-      const anyPrisma = prisma as any;
-
-      // Usar switch para coleções conhecidas, ou fallback para qualquer tabela do prisma
-      switch(collection) {
-        case 'students': data = await prisma.student.findMany({ where: { userId: uid }, orderBy: { joinedAt: 'desc' } }); break;
-        case 'payments': data = await prisma.payment.findMany({ where: { userId: uid }, orderBy: { timestamp: 'desc' }, take: 200 }); break;
-        case 'schedules': data = await prisma.classSchedule.findMany({ where: { userId: uid } }); break;
-        case 'presence': data = await prisma.presence.findMany({ where: { userId: uid } }); break;
-        case 'logs': data = await prisma.systemLog.findMany({ where: { userId: uid }, orderBy: { timestamp: 'desc' }, take: 100 }); break;
-        case 'ledger': data = await prisma.transactionLedger.findMany({ where: { userId: uid }, orderBy: { timestamp: 'desc' }, take: 200 }); break;
-        case 'receipts': data = await prisma.paymentReceipt.findMany({ where: { userId: uid }, orderBy: { timestamp: 'desc' } }); break;
-        case 'profile': data = await prisma.professorProfile.findUnique({ where: { userId: uid } }); break;
-        default: 
-          if (anyPrisma[collection]) {
-            data = await anyPrisma[collection].findMany({ where: { userId: uid } });
-          } else {
-            return res.status(404).json({ error: `Coleção não encontrada no Dojo: ${collection}` });
-          }
-      }
-      res.json(serializeData(data));
-    } catch (error: any) {
-      handleApiError(res, error, collection);
-    }
-  });
-
-  // Batch Route
-  apiRouter.get("/batch", async (req, res) => {
-    const { userId, collections } = req.query;
-    if (!userId) return res.status(400).json({ error: "userId is required" });
-    if (!collections || typeof collections !== 'string') return res.status(400).json({ error: "collections list required" });
-
-    const collectionList = collections.split(',');
-    const results: Record<string, any> = {};
-    const uid = String(userId);
-
-    try {
-      await Promise.all(collectionList.map(async (collection) => {
-        try {
-          let data;
-          switch(collection) {
-            case 'students': data = await prisma.student.findMany({ where: { userId: uid }, orderBy: { joinedAt: 'desc' } }); break;
-            case 'payments': data = await prisma.payment.findMany({ where: { userId: uid }, orderBy: { timestamp: 'desc' }, take: 50 }); break;
-            case 'schedules': data = await prisma.classSchedule.findMany({ where: { userId: uid } }); break;
-            case 'logs': data = await prisma.systemLog.findMany({ where: { userId: uid }, orderBy: { timestamp: 'desc' }, take: 50 }); break;
-            case 'ledger': data = await prisma.transactionLedger.findMany({ where: { userId: uid }, orderBy: { timestamp: 'desc' }, take: 50 }); break;
-            case 'receipts': data = await prisma.paymentReceipt.findMany({ where: { userId: uid }, orderBy: { timestamp: 'desc' } }); break;
-            case 'extra_revenue': data = await prisma.extraRevenue.findMany({ where: { userId: uid } }); break;
-            case 'lesson_plans': data = await prisma.lessonPlan.findMany({ where: { userId: uid } }); break;
-            case 'techniques': data = await prisma.libraryTechnique.findMany({ where: { userId: uid } }); break;
-            case 'products': data = await prisma.product.findMany({ where: { userId: uid } }); break;
-            case 'plans': data = await prisma.plan.findMany({ where: { userId: uid } }); break;
-            case 'orders': data = await prisma.kimonoOrder.findMany({ where: { userId: uid } }); break;
-            case 'batch_presence': data = await prisma.presence.findMany({ where: { userId: uid } }); break;
-            case 'profile': data = await prisma.professorProfile.findUnique({ where: { userId: uid } }); break;
-            default: 
-              const anyPrisma = prisma as any;
-              if (anyPrisma[collection]) {
-                data = await anyPrisma[collection].findMany({ where: { userId: uid }, take: 100 });
-              } else {
-                data = [];
-              }
-          }
-          results[collection] = data;
-        } catch (e) {
-          console.error(`🥋 [BATCH ERROR] Falha na coleção ${collection}:`, e);
-          results[collection] = []; // Resiliência: retorna vazio em vez de quebrar o lote
-        }
-      }));
-
-      res.json(serializeData(results));
-    } catch (error: any) {
-      handleApiError(res, error, "batch");
-    }
-  });
-
-  // POST Upsert Route
-  apiRouter.post("/data/:collection", async (req, res) => {
-    const { collection } = req.params;
-    const { userId, ...data } = req.body;
-    if (!userId) return res.status(400).json({ error: "userId is required" });
-
-    try {
-      let result;
-      const uid = String(userId);
-      switch(collection) {
-        case 'students':
-          result = await prisma.student.upsert({
-            where: { id: data.id || 'new-stu' },
-            update: { ...data, userId: uid },
-            create: { ...data, id: data.id || undefined, userId: uid }
-          });
-          break;
-        case 'presence':
-          result = await prisma.presence.upsert({
-            where: { 
-              email_deviceId: { 
-                email: String(data.email || ''), 
-                deviceId: String(data.deviceId || 'default-device') 
-              } 
-            },
-            create: { 
-              ...data, 
-              userId: uid, 
-              email: String(data.email || ''),
-              deviceId: String(data.deviceId || 'default-device'),
-              lastSeen: BigInt(Math.floor(Number(data.lastSeen || Date.now()))) 
-            },
-            update: { 
-              ...data, 
-              userId: uid, 
-              lastSeen: BigInt(Math.floor(Number(data.lastSeen || Date.now()))) 
-            }
-          });
-          break;
-        case 'logs':
-          result = await prisma.systemLog.create({ data: { ...data, userId: uid, timestamp: BigInt(data.timestamp || Date.now()) } });
-          break;
-        case 'ledger':
-          result = await prisma.transactionLedger.create({ data: { ...data, userId: uid, timestamp: BigInt(data.timestamp || Date.now()) } });
-          break;
-        case 'profile':
-          // Remove ID se vier do frontend para não conflitar com o CUID
-          const { id: profileId, ...profileData } = data;
-          result = await prisma.professorProfile.upsert({
-            where: { userId: uid },
-            update: { ...profileData, userId: uid },
-            create: { ...profileData, userId: uid }
-          });
-          break;
-        // Adicionar outros cases conforme necessário para as tabelas principais
-        default:
-          // Fallback genérico para tabelas que usam ID padrão
-          const anyPrisma = prisma as any;
-          if (anyPrisma[collection]) {
-             result = await anyPrisma[collection].upsert({
-                where: { id: data.id || 'new' },
-                create: { ...data, userId: uid },
-                update: { ...data, userId: uid }
-             });
-          } else {
-             return res.status(404).json({ error: `Coleção não suportada para gravação: ${collection}` });
-          }
-      }
-      res.json(serializeData(result));
-    } catch (error: any) {
-      handleApiError(res, error, collection);
-    }
-  });
+  // Batch and Data Routes
+  apiRouter.get("/batch", batchHandler);
+  apiRouter.get("/data/:collection", dataHandler);
+  apiRouter.post("/data/:collection", dataHandler);
 
   // DELETE Route
   apiRouter.delete("/data/:collection/:id", async (req, res) => {
