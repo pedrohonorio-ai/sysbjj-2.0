@@ -2,18 +2,6 @@ import { Request, Response } from 'express';
 import { prisma } from '../prisma/client';
 
 export default async function healthDbRlsHandler(req: Request, res: Response) {
-  // 🥋 SENSEI AUTHENTICATION: Proteção do Dojo
-  const senseiKey = req.headers['x-sensei-key'] || req.query.key;
-  const expectedKey = process.env.SENSEI_HEALTH_KEY || "oss-master-2024";
-
-  if (senseiKey !== expectedKey) {
-    return res.status(403).json({
-      status: "blocked",
-      message: "🥋 Apenas o Sensei pode auditar o Tatame Digital.",
-      tip: "Envie a 'x-sensei-key' correta no Header."
-    });
-  }
-
   const testUserId = (req.query.userId || req.headers['x-test-user-id']) as string;
 
   try {

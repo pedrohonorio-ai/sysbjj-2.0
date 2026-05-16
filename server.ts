@@ -92,13 +92,13 @@ async function startServer() {
 
   // 🥋 OSS SENSEI: Middleware de Log para Depuração de Rotas
   app.use((req, res, next) => {
-    // Log detalhado para diagnosticar 404
+    // Log apenas para API e erros críticos
     if (req.path.startsWith("/api")) {
-      console.log(`🥋 [API REQUEST] ${new Date().toISOString()} - ${req.method} ${req.url} (Path: ${req.path})`);
-    } else {
-       // Log de ativos para ver se o favicon ou fontes estão causando barulho
+      console.log(`🥋 [API] ${req.method} ${req.path}`);
+    } else if (process.env.NODE_ENV !== "production") {
+       // Log de ativos apenas em dev
        if (!req.path.includes("node_modules") && !req.path.includes("@vite")) {
-         console.log(`🥋 [ASSET REQUEST] ${req.method} ${req.path}`);
+         console.log(`🥋 [DEV ASSET] ${req.method} ${req.path}`);
        }
     }
     next();

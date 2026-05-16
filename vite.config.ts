@@ -27,7 +27,9 @@ export default defineConfig(({ command, mode }) => {
       server: {
         port: 3000,
         host: '0.0.0.0',
-        hmr: mode === 'development'
+        hmr: mode === 'development' ? {
+          overlay: true
+        } : false
       },
       plugins: [react(), tailwindcss()],
       build: {
@@ -36,6 +38,7 @@ export default defineConfig(({ command, mode }) => {
         target: 'es2020',
         sourcemap: false,
         minify: 'esbuild',
+        assetsDir: 'assets',
         chunkSizeWarningLimit: 1000,
         rollupOptions: {
           output: {
@@ -52,6 +55,7 @@ export default defineConfig(({ command, mode }) => {
         'process.env.API_KEY': JSON.stringify(geminiKey),
         'process.env.VITE_GEMINI_API_KEY': JSON.stringify(geminiKey),
         'import.meta.env.VITE_GEMINI_API_KEY': JSON.stringify(geminiKey),
+        'process.env.NODE_ENV': JSON.stringify(mode),
         '__DEV__': mode === 'development'
       },
       resolve: {

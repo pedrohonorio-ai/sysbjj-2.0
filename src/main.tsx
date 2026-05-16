@@ -9,6 +9,36 @@ import { ProfileProvider } from './contexts/ProfileContext';
 import { DataProvider } from './contexts/DataContext';
 import { AuthProvider } from './context/AuthContext';
 
+// 🥋 OSS SENSEI: Global Production Guard
+// Limpa ruídos de WebSocket e HMR em produção antes de iniciar o React
+if (process.env.NODE_ENV === 'production' || window.location.hostname !== 'localhost') {
+  // 1. Silencia logs do Vite que tentam se conectar ao HMR desabilitado
+  const originalWarn = console.warn;
+  const originalError = console.error;
+  
+  console.warn = (...args) => {
+    if (typeof args[0] === 'string' && (args[0].includes('[vite]') || args[0].includes('WebSocket'))) return;
+    originalWarn.apply(console, args);
+  };
+  
+  console.error = (...args) => {
+    if (typeof args[0] === 'string' && (args[0].includes('[vite]') || args[0].includes('WebSocket'))) return;
+    originalError.apply(console, args);
+  };
+
+  // 2. Intercepta erros de rede/websocket globais
+  window.addEventListener('error', (e) => {
+    if (e.message?.includes('WebSocket') || e.target instanceof WebSocket) {
+      e.stopImmediatePropagation();
+      e.preventDefault();
+    }
+  }, true);
+
+  // 3. Shield contra injeções de WebSocket (apenas silenciamos, não sobrescrevemos mais para evitar o erro de read-only)
+  // Em vez de substituir, usamos o listener de erro que já está configurado acima (passo 2)
+  // para capturar e silenciar quaisquer falhas de conexão originadas pelo client do Vite.
+}
+
   const ErrorFallback = ({ error }: { error: Error }) => (
   <div style={{ 
     padding: '40px', 
