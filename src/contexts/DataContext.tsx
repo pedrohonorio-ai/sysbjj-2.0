@@ -17,7 +17,7 @@ export enum OperationType {
   WRITE = 'write',
 }
 
-interface FirestoreErrorInfo {
+interface ApiErrorInfo {
   error: string;
   operationType: OperationType;
   path: string | null;
@@ -41,7 +41,7 @@ export const handleApiError = (error: any, operationType: OperationType, path: s
     senseiTip = "OSS! Esse erro acontece se o backend falhar ao iniciar por causa da String de Conexão (DATABASE_URL).";
   }
 
-  const errInfo = {
+  const errInfo: ApiErrorInfo = {
     error: errorMessage,
     operationType,
     path,
