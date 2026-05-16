@@ -27,7 +27,7 @@ export default defineConfig(({ command, mode }) => {
       server: {
         port: 3000,
         host: '0.0.0.0',
-        hmr: command === 'serve'
+        hmr: mode === 'development'
       },
       plugins: [react(), tailwindcss()],
       build: {
@@ -51,7 +51,8 @@ export default defineConfig(({ command, mode }) => {
         'process.env.GEMINI_API_KEY': JSON.stringify(geminiKey),
         'process.env.API_KEY': JSON.stringify(geminiKey),
         'process.env.VITE_GEMINI_API_KEY': JSON.stringify(geminiKey),
-        'import.meta.env.VITE_GEMINI_API_KEY': JSON.stringify(geminiKey)
+        'import.meta.env.VITE_GEMINI_API_KEY': JSON.stringify(geminiKey),
+        '__DEV__': mode === 'development'
       },
       resolve: {
         alias: {

@@ -405,6 +405,36 @@ const App: React.FC = () => {
   const { dbStatus } = useData();
 
   useEffect(() => {
+    // 🥋 OSS SENSEI: Silenciando avisos de WebSocket em Produção
+    // Isso evita o flood de logs do client do Vite quando o HMR está desabilitado no config.
+    if (process.env.NODE_ENV === 'production' || window.location.hostname !== 'localhost') {
+      const originalError = console.error;
+      const originalWarn = console.warn;
+
+      console.error = (...args: any[]) => {
+        const msg = args[0] && typeof args[0] === 'string' ? args[0] : '';
+        if (msg.includes('[vite] failed to connect') || msg.includes('WebSocket')) return;
+        originalError.apply(console, args);
+      };
+
+      console.warn = (...args: any[]) => {
+        const msg = args[0] && typeof args[0] === 'string' ? args[0] : '';
+        if (msg.includes('[vite]') || msg.includes('WebSocket')) return;
+        originalWarn.apply(console, args);
+      };
+
+      const handleWsError = (e: any) => {
+        if (e?.target instanceof WebSocket || (e?.message && e.message.includes('WebSocket'))) {
+          // Silêncio absoluto do Sensei
+        }
+      };
+
+      window.addEventListener('error', handleWsError, true);
+      return () => window.removeEventListener('error', handleWsError, true);
+    }
+  }, []);
+
+  useEffect(() => {
     if (role === 'admin' && user?.email && user?.id && !dbStatus.isDemoMode) {
       const deviceId = localStorage.getItem('oss_device_id') || Math.random().toString(36).substring(2, 15);
       if (!localStorage.getItem('oss_device_id')) localStorage.setItem('oss_device_id', deviceId);
