@@ -28,7 +28,15 @@ const Settings: React.FC = () => {
   const [claimSuccess, setClaimSuccess] = useState(false);
   const [claimError, setClaimError] = useState('');
   
-  const authData = JSON.parse(localStorage.getItem('oss_auth') || '{}');
+  const getAuthData = () => {
+    try {
+      const saved = localStorage.getItem('oss_auth');
+      return saved ? JSON.parse(saved) : {};
+    } catch (e) {
+      return {};
+    }
+  };
+  const authData = getAuthData();
   const isDashfireAdmin = authData.email?.toLowerCase() === 'dashfire@gmail.com';
   
   const isAnonymous = user?.is_anonymous;
@@ -44,11 +52,7 @@ const Settings: React.FC = () => {
     } catch (err: any) {
       console.error('Claim account error:', err);
       const errorMessage = err.message || '';
-      if (errorMessage.toLowerCase().includes('email rate limit exceeded')) {
-        setClaimError('Limite de envio de e-mail excedido. Aguarde alguns minutos antes de tentar novamente.');
-      } else {
-        setClaimError(errorMessage || 'Falha ao vincular conta. Tente outro e-mail.');
-      }
+      setClaimError(errorMessage || 'Falha ao vincular conta. Tente outro e-mail.');
     } finally {
       setClaimLoading(false);
     }

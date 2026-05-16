@@ -32,8 +32,14 @@ export const ProfileProvider: React.FC<{ children: ReactNode }> = ({ children })
   const { setNotifications, setDbStatus, dbStatus } = useData() as any; // Safe cast as we know the structure
   
   const [profile, setProfile] = useState<ProfessorProfile>(() => {
-    const saved = localStorage.getItem('oss_profile');
-    return saved ? JSON.parse(saved) : DEFAULT_PROFILE;
+    try {
+      const saved = localStorage.getItem('oss_profile');
+      if (!saved) return DEFAULT_PROFILE;
+      return JSON.parse(saved);
+    } catch (e) {
+      console.warn("🥋 OSS SENSEI: Perfil local corrompido, usando padrão.");
+      return DEFAULT_PROFILE;
+    }
   });
   const [isLoading, setIsLoading] = useState(true);
 

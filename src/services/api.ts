@@ -19,7 +19,7 @@ export const api = {
   },
 
   /**
-   * Testa a conexão com o Banco de Dados PostgreSQL (Supabase) via Prisma
+   * Testa a conexão com o Banco de Dados PostgreSQL (Neon) via Prisma
    */
   async testDbConnection() {
     try {

@@ -5,10 +5,12 @@ import { createServer as createViteServer } from "vite";
 import path from "path";
 import { fileURLToPath } from "url";
 import { prisma } from "./prisma/client";
+import { handleApiError } from "./api/utils";
 import healthHandler from "./api/health";
 import healthDbHandler from "./api/health-db";
 import healthDbRlsHandler from "./api/health-db-rls";
 import biHandler from "./api/bi";
+import { loginHandler, registerHandler } from "./api/auth";
 import batchHandler from "./api/batch";
 import { dataHandler, serializeData } from "./api/data";
 
@@ -43,34 +45,7 @@ async function startServer() {
   const masked = dbUrl.replace(/:([^@]+)@/, ':****@');
   console.log('🥋 [SENSEI STATUS] DATABASE_URL Final:', masked);
   
-  const handleApiError = (res: any, error: any, collection: string) => {
-    console.error(`🥋 🚨 OS SENSEI! Erro Crítico na API [${collection}]:`, error);
-    
-    // Extrair mensagem de erro do Prisma se possível
-    let message = error.message;
-    let status = 500;
-
-    // 🥋 Tratamento Especializado Prisma (Enterprise Mode)
-    if (dbUrl === "INVALID_PLACEHOLDER_ERROR" || (message.includes("supabase.com:6543") && !message.includes("pooler.supabase.com"))) {
-      status = 503;
-      message = "🚨 OSS SENSEI! Erro de Configuração Crítico: Você está usando o host genérico 'supabase.com'. Você PRECISA substituir por '[PROJECT-REF].pooler.supabase.com' (porta 6543) no menu Settings > Secrets ou no Dashboard do Vercel.";
-    } else if (error.name === 'PrismaClientInitializationError' || error.name === 'PrismaClientConnectorError') {
-      status = 503;
-      message = "O Dojo Cloud (Banco de Dados) está temporariamente indisponível. Verifique a DATABASE_URL.";
-    } else if (error.code === 'P2002') {
-      message = `Erro de Unicidade: Já existe um registro com estes dados em ${collection}.`;
-    } else if (error.code === 'P2025') {
-      message = `Registro não encontrado em ${collection}.`;
-    }
-    
-    res.status(status).json({ 
-      error: message || "Erro interno no Dojo",
-      code: error.code,
-      operationType: ["batch", "students", "payments"].includes(collection) ? "list" : "write", 
-      path: collection,
-      sensei_tip: "OSS! Verifique se todos os campos obrigatórios foram enviados e se a DATABASE_URL está correta."
-    });
-  };
+  // 🥋 handleApiError removido (usando src/api/utils.ts)
 
   // Body parser
   app.use(express.json());
@@ -160,8 +135,12 @@ async function startServer() {
 
   // Health and Diagnostic Routes
   apiRouter.get("/health", (req, res) => {
-    res.json({ status: "ok", timestamp: new Date().toISOString(), platform: "Supabase + Prisma + Express" });
+    res.json({ status: "ok", timestamp: new Date().toISOString(), platform: "Neon + Prisma + Express" });
   });
+
+  // Auth Routes
+  apiRouter.post("/auth/login", loginHandler);
+  apiRouter.post("/auth/register", registerHandler);
 
   // Legacy diagnostic route for backward compatibility with some components
   apiRouter.get("/test-db", async (req, res) => {

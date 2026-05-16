@@ -38,7 +38,7 @@ export const handleApiError = (error: any, operationType: OperationType, path: s
       "Se sua senha tiver símbolos (@, #, !), use URL Encoding (%40, %23, %21).",
       "Aguarde 10 segundos e tente recarregar a página."
     ];
-    senseiTip = "OSS! Esse erro acontece se o backend falhar ao iniciar por causa da String de Conexão.";
+    senseiTip = "OSS! Esse erro acontece se o backend falhar ao iniciar por causa da String de Conexão (DATABASE_URL).";
   }
 
   const errInfo = {
@@ -323,7 +323,7 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   const isAuthenticated = !!user || (authRole === 'student' && !!studentCode);
 
   /**
-   * Sincronização Principal com Supabase/Prisma
+   * Sincronização Principal com o Banco de Dados (Neon/Prisma)
    */
   useEffect(() => {
     if (!isAuthenticated || !user?.id || dbStatus.isDemoMode) return;

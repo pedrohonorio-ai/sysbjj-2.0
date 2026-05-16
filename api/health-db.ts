@@ -11,8 +11,7 @@ export default async function healthDbHandler(req: Request, res: Response) {
 
   const dbUrl = process.env.DATABASE_URL || "";
   const source = getSource();
-  const isValidHost = dbUrl.includes("pooler.supabase.com") || dbUrl.includes(":6543");
-  const isPlaceholder = dbUrl.includes("supabase.com") && !dbUrl.includes("pooler.supabase.com");
+  const isNeon = dbUrl.includes("neon.tech");
 
   try {
     // 🥋 Test connectivity
@@ -25,10 +24,8 @@ export default async function healthDbHandler(req: Request, res: Response) {
         origin: source,
         used_variable: detectedKey,
         host: dbUrl.split('@')[1]?.split(':')[0] || "unknown",
-        port_detected: dbUrl.includes(':6543') ? 6543 : (dbUrl.includes(':5432') ? 5432 : "default"),
-        pooler_mode: isValidHost,
         vercel_controlled: !!process.env.VERCEL,
-        supabase_integration: !!process.env.SUPABASE_SERVICE_ROLE_KEY || !!process.env.VITE_SUPABASE_URL
+        neon_integration: isNeon
       },
       sensei_message: "OSS! Infraestrutura auditada e operando em máxima eficiência."
     });
@@ -41,14 +38,9 @@ export default async function healthDbHandler(req: Request, res: Response) {
       message: err.message,
       audit: {
         origin: source,
-        used_variable: detectedKey,
-        is_placeholder_detected: isPlaceholder,
-        critical_warning: isPlaceholder ? "PLACEHOLDER DETECTED: supabase.com is NOT a valid production host." : "Connection failed.",
-        vercel_fix_needed: (source.includes("VERCEL") && isPlaceholder)
+        used_variable: detectedKey
       },
-      tip: isPlaceholder 
-        ? "🥋 SENSEI: Sua DATABASE_URL no Vercel/Secrets contém 'supabase.com'. Você DEVE usar o host completo do Pooler (ex: aws-1-us-west-1.pooler.supabase.com)."
-        : "OSS! Verifique se o IP do servidor está liberado no Firewall do Supabase ou se a senha está correta."
+      tip: "OSS! Verifique se a string de conexão (DATABASE_URL) está correta nos Secrets/Environment."
     });
   }
 }

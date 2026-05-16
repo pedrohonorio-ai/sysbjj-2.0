@@ -112,8 +112,8 @@ const Login: React.FC = () => {
         setMode('login');
       } else if (errorMessage.toLowerCase().includes('email not confirmed')) {
         setError('E-mail ainda não confirmado. Verifique sua caixa de entrada.');
-      } else if (errorMessage.toLowerCase().includes('email rate limit exceeded')) {
-        setError('O limite de e-mails do Supabase foi atingido (Plano Free: 3/hora).');
+      } else if (errorMessage.toLowerCase().includes('rate limit')) {
+        setError('O limite de requisições foi atingido. Aguarde alguns minutos.');
         setCooldown(60);
       } else if (errorMessage.includes('after 50 seconds') || errorMessage.includes('too many requests')) {
         setError('Acesso bloqueado temporariamente por excesso de tentativas. Aguarde 60 segundos.');
@@ -178,26 +178,6 @@ const Login: React.FC = () => {
           {/* Subtle Blockchain Line */}
           <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-transparent via-blue-500 to-transparent opacity-50" />
           
-          {!isConfigured && activeTab === 'admin' && (
-            <div className="mb-6 p-6 bg-blue-500/10 border border-blue-500/20 rounded-[2rem] space-y-4">
-              <p className="text-[10px] font-black text-blue-500 uppercase tracking-widest text-center leading-relaxed">
-                Supabase não configurado. Use o Modo de Demonstração para testar as funcionalidades offline.
-              </p>
-              <button 
-                onClick={loginDemo}
-                className="w-full bg-blue-600 hover:bg-blue-500 text-white font-black py-4 rounded-2xl transition-all shadow-xl flex items-center justify-center gap-3 group uppercase text-xs tracking-widest"
-              >
-                Ativar Modo Demo Offline
-                <ArrowRight size={18} className="group-hover:translate-x-1 transition-transform" />
-              </button>
-              <div className="pt-2 text-center">
-                <p className="text-[8px] font-bold text-slate-500 uppercase tracking-widest">
-                  Para o modo cloud: Settings &gt; Secrets &gt; VITE_SUPABASE_URL
-                </p>
-              </div>
-            </div>
-          )}
-
           <div className="flex flex-col items-center mb-8">
             <motion.div 
               whileHover={{ rotate: 5, scale: 1.05 }}
@@ -329,39 +309,6 @@ const Login: React.FC = () => {
                     <div className="p-4 bg-red-500/10 border border-red-500/20 rounded-xl text-red-500 text-[10px] font-black uppercase text-center leading-relaxed">
                       {error}
                     </div>
-                    {error.includes('limite de e-mails') && (
-                      <div className="p-5 bg-amber-500/10 border border-amber-500/20 rounded-2xl space-y-4 shadow-xl">
-                        <div className="flex items-center gap-3">
-                           <div className="p-2 bg-amber-500/20 rounded-xl">
-                             <Shield size={16} className="text-amber-500 animate-pulse" />
-                           </div>
-                           <h3 className="text-xs font-black text-amber-500 uppercase tracking-widest leading-none">Alerta de Sistema Master</h3>
-                        </div>
-                        
-                        <p className="text-[10px] text-slate-300 font-bold uppercase leading-relaxed tracking-wider">
-                          O Supabase limita o envio de e-mails no plano gratuito. Para continuar sua evolução sem interrupções, sugerimos:
-                        </p>
-
-                        <div className="space-y-3">
-                          <button 
-                            type="button"
-                            onClick={handleGuestLogin}
-                            className="w-full bg-amber-500 hover:bg-amber-400 text-black font-black py-3 rounded-xl transition-all shadow-lg flex items-center justify-center gap-2 uppercase text-[10px] tracking-widest"
-                          >
-                            <Users size={14} /> Entrar Agora como Convidado
-                          </button>
-
-                          <div className="p-3 bg-black/40 rounded-xl border border-white/5">
-                            <p className="text-[8px] font-black text-slate-500 uppercase tracking-[0.2em] mb-2">Instruções para Admin:</p>
-                            <ol className="text-[8px] text-slate-400 font-bold space-y-1.5 uppercase list-decimal list-inside">
-                              <li>Acesse seu painel Supabase.</li>
-                              <li>Vá em <span className="text-white">Authentication</span> &gt; <span className="text-white">Email Templates</span>.</li>
-                              <li>Desative <span className="text-white">"Confirm Email"</span> para ignorar validações.</li>
-                            </ol>
-                          </div>
-                        </div>
-                      </div>
-                    )}
                   </div>
                 )}
                 {success && <div className="p-4 bg-emerald-500/10 border border-emerald-500/20 rounded-xl text-emerald-500 text-[10px] font-black uppercase text-center">{success}</div>}

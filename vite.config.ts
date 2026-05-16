@@ -7,7 +7,7 @@ import tailwindcss from '@tailwindcss/vite';
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
-export default defineConfig(({ mode }) => {
+export default defineConfig(({ command, mode }) => {
     const env = loadEnv(mode, '.', '');
     const geminiKey = env.GEMINI_API_KEY || 
                     env.API_KEY || 
@@ -23,20 +23,11 @@ export default defineConfig(({ mode }) => {
       console.log('\x1b[32m%s\x1b[0m', '✅ GEMINI_API_KEY detected and injected into the build.');
     }
 
-    const supabaseUrl = env.VITE_SUPABASE_URL || process.env.VITE_SUPABASE_URL;
-    const supabaseKey = env.VITE_SUPABASE_ANON_KEY || process.env.VITE_SUPABASE_ANON_KEY;
-
-    if (supabaseUrl && supabaseKey) {
-      console.log('\x1b[32m%s\x1b[0m', '✅ Supabase configuration detected during build.');
-    } else {
-      console.error('\x1b[31m%s\x1b[0m', '❌ CRITICAL ERROR: Supabase configuration NOT detected! Build will result in a white screen.');
-      console.log('Ensure VITE_SUPABASE_URL and VITE_SUPABASE_ANON_KEY are set in settings or .env');
-    }
-    
     return {
       server: {
         port: 3000,
         host: '0.0.0.0',
+        hmr: command === 'serve'
       },
       plugins: [react(), tailwindcss()],
       build: {
@@ -45,14 +36,22 @@ export default defineConfig(({ mode }) => {
         target: 'es2020',
         sourcemap: false,
         minify: 'esbuild',
+        chunkSizeWarningLimit: 1000,
+        rollupOptions: {
+          output: {
+            manualChunks: {
+              'vendor-react': ['react', 'react-dom', 'react-router-dom'],
+              'vendor-ui': ['lucide-react', 'motion/react', 'recharts'],
+              'vendor-utils': ['jspdf', 'date-fns'],
+            }
+          }
+        }
       },
       define: {
         'process.env.GEMINI_API_KEY': JSON.stringify(geminiKey),
         'process.env.API_KEY': JSON.stringify(geminiKey),
         'process.env.VITE_GEMINI_API_KEY': JSON.stringify(geminiKey),
-        'import.meta.env.VITE_GEMINI_API_KEY': JSON.stringify(geminiKey),
-        'import.meta.env.VITE_SUPABASE_URL': JSON.stringify(supabaseUrl || ''),
-        'import.meta.env.VITE_SUPABASE_ANON_KEY': JSON.stringify(supabaseKey || '')
+        'import.meta.env.VITE_GEMINI_API_KEY': JSON.stringify(geminiKey)
       },
       resolve: {
         alias: {

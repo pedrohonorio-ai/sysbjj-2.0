@@ -67,7 +67,7 @@ const DatabaseWarning: React.FC = () => {
                     dbStatus.isDemoMode ? 'text-blue-700 dark:text-blue-400' : 'text-amber-700 dark:text-amber-400'
                   }`}>
                     {dbStatus.isDemoMode 
-                      ? "O sistema está operando apenas com dados locais (LocalStorage). As alterações NÃO serão enviadas para o Supabase." 
+                      ? "O sistema está operando apenas com dados locais (LocalStorage). As alterações NÃO serão enviadas para o Banco de Dados Cloud." 
                       : (dbStatus.error || "A conexão com o banco de dados falhou.")
                     }
                   </p>
@@ -90,8 +90,7 @@ const DatabaseWarning: React.FC = () => {
                     <div className="bg-amber-100 dark:bg-amber-950/40 p-4 rounded-2xl border border-amber-300 dark:border-amber-800/50">
                       <p className="text-[10px] font-black uppercase text-amber-800 dark:text-amber-300 mb-2">Atenção à DATABASE_URL:</p>
                       <ul className="text-[11px] text-amber-700 dark:text-amber-400 font-medium list-disc list-inside space-y-1">
-                        <li>Use a **Porta 6543** (Transaction Pooler).</li>
-                        <li>Adicione **?pgbouncer=true** ao final da URL.</li>
+                        <li>Garanta que a String de Conexão (DATABASE_URL) esteja correta.</li>
                         <li>Codifique caracteres especiais na senha (@ → %40).</li>
                       </ul>
                       <div className="mt-3 flex flex-wrap gap-2">

@@ -1,25 +1,27 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, lazy, Suspense } from 'react';
 import { Routes, Route, Link, useLocation, useNavigate, Navigate } from 'react-router-dom';
 import { Menu, X, Bell, Sun, Moon, Search, Shield, LogOut, Clock, CheckCircle2, Instagram, ChevronRight, ShieldCheck, Lock, ArrowUpRight, CalendarCheck, Timer, Monitor, Activity, Users } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { NAVIGATION_ITEMS, BELT_COLORS, MASTER_ADMINS } from './constants';
-import Dashboard from './pages/Dashboard';
-import Students from './pages/Students';
-import IBJJFRules from './pages/IBJJFRules';
-import BusinessHub from './pages/BusinessHub';
-import AttendancePage from './pages/Attendance';
-import AttendanceHistory from './pages/AttendanceHistory';
-import BeltSystem from './pages/BeltSystem';
-import Finances from './pages/Finances';
-import FightTimer from './pages/FightTimer';
-import Settings from './pages/Settings';
-import StudentPortal from './pages/StudentPortal';
-import CurriculumHub from './pages/CurriculumHub';
-import PerformanceAnalytics from './pages/PerformanceAnalytics';
-import ExhibitionMode from './pages/ExhibitionMode';
-import SystemAudit from './pages/SystemAudit';
-import LanguageSelection from './pages/LanguageSelection';
-import Login from './pages/Login';
+
+const Dashboard = lazy(() => import('./pages/Dashboard'));
+const Students = lazy(() => import('./pages/Students'));
+const IBJJFRules = lazy(() => import('./pages/IBJJFRules'));
+const BusinessHub = lazy(() => import('./pages/BusinessHub'));
+const AttendancePage = lazy(() => import('./pages/Attendance'));
+const AttendanceHistory = lazy(() => import('./pages/AttendanceHistory'));
+const BeltSystem = lazy(() => import('./pages/BeltSystem'));
+const Finances = lazy(() => import('./pages/Finances'));
+const FightTimer = lazy(() => import('./pages/FightTimer'));
+const Settings = lazy(() => import('./pages/Settings'));
+const StudentPortal = lazy(() => import('./pages/StudentPortal'));
+const CurriculumHub = lazy(() => import('./pages/CurriculumHub'));
+const PerformanceAnalytics = lazy(() => import('./pages/PerformanceAnalytics'));
+const ExhibitionMode = lazy(() => import('./pages/ExhibitionMode'));
+const SystemAudit = lazy(() => import('./pages/SystemAudit'));
+const LanguageSelection = lazy(() => import('./pages/LanguageSelection'));
+const Login = lazy(() => import('./pages/Login'));
+
 import NotificationCenter from './components/NotificationCenter';
 import DatabaseWarning from './components/DatabaseWarning';
 import { useTranslation } from './contexts/LanguageContext';
@@ -459,14 +461,29 @@ const App: React.FC = () => {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-slate-950 flex items-center justify-center">
-        <div className="w-12 h-12 border-4 border-blue-600 border-t-transparent rounded-full animate-spin" />
+      <div className="min-h-screen bg-slate-950 flex flex-col items-center justify-center gap-6">
+        <div className="relative">
+          <div className="w-16 h-16 border-4 border-blue-600/20 border-t-blue-600 rounded-full animate-spin" />
+          <ShieldCheck size={24} className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 text-blue-500" />
+        </div>
+        <div className="flex flex-col items-center gap-2">
+          <h2 className="text-white font-black text-[10px] tracking-[0.4em] uppercase">OSS SENSEI</h2>
+          <p className="text-slate-500 text-[8px] font-bold tracking-[0.2em] uppercase">Sincronizando tatame...</p>
+        </div>
       </div>
     );
   }
 
   if (!role) {
-    return <Login />; // onLogin is now handled by AuthContext
+    return (
+      <Suspense fallback={
+        <div className="min-h-screen bg-slate-950 flex items-center justify-center">
+          <div className="w-12 h-12 border-4 border-blue-600/20 border-t-blue-600 rounded-full animate-spin" />
+        </div>
+      }>
+        <Login />
+      </Suspense>
+    );
   }
 
   const isPortal = location.pathname.startsWith('/portal/');
@@ -509,38 +526,44 @@ const App: React.FC = () => {
             <span className="text-[10px] font-mono font-black text-slate-400 bg-white/50 dark:bg-slate-900/50 backdrop-blur-sm px-3 py-1.5 rounded-lg border border-slate-200 dark:border-slate-800 tracking-tighter">SYSBJJ-V2.1.2</span>
           </div>
           <div className="page-transition" key={location.pathname}>
-            <Routes>
-              {role === 'admin' ? (
-                <>
-                  <Route path="/" element={<Dashboard />} />
-                  <Route path="/dashboard" element={<Dashboard />} />
-                  <Route path="/students" element={<Students />} />
-                  <Route path="/teaching-hub" element={<CurriculumHub />} />
-                  <Route path="/performance" element={<PerformanceAnalytics />} />
-                  <Route path="/ibjjf-rules" element={<IBJJFRules />} />
-                  <Route path="/business" element={<BusinessHub />} />
-                  <Route path="/attendance" element={<AttendancePage />} />
-                  <Route path="/finances" element={<Finances />} />
-                  <Route path="/history" element={<AttendanceHistory />} />
-                  <Route path="/promotions" element={<BeltSystem />} />
-                  <Route path="/language" element={<LanguageSelection />} />
-                  <Route path="/timer" element={<FightTimer />} />
-                  
-                  {/* Governança Master - Restrito */}
-                  <Route path="/settings" element={isMasterAdmin ? <Settings /> : <Navigate to="/dashboard" />} />
-                  <Route path="/audit" element={isMasterAdmin ? <SystemAudit /> : <Navigate to="/dashboard" />} />
-                  
-                  <Route path="/exhibition" element={<ExhibitionMode />} />
-                  <Route path="/portal/:code" element={<StudentPortal />} />
-                  <Route path="*" element={<Navigate to="/dashboard" />} />
-                </>
-              ) : (
-                <>
-                  <Route path="/portal/:code" element={<StudentPortal />} />
-                  <Route path="*" element={<Navigate to={`/portal/${studentCode}`} />} />
-                </>
-              )}
-            </Routes>
+            <Suspense fallback={
+              <div className="flex items-center justify-center py-20">
+                <div className="w-10 h-10 border-2 border-blue-600/20 border-t-blue-600 rounded-full animate-spin" />
+              </div>
+            }>
+              <Routes>
+                {role === 'admin' ? (
+                  <>
+                    <Route path="/" element={<Dashboard />} />
+                    <Route path="/dashboard" element={<Dashboard />} />
+                    <Route path="/students" element={<Students />} />
+                    <Route path="/teaching-hub" element={<CurriculumHub />} />
+                    <Route path="/performance" element={<PerformanceAnalytics />} />
+                    <Route path="/ibjjf-rules" element={<IBJJFRules />} />
+                    <Route path="/business" element={<BusinessHub />} />
+                    <Route path="/attendance" element={<AttendancePage />} />
+                    <Route path="/finances" element={<Finances />} />
+                    <Route path="/history" element={<AttendanceHistory />} />
+                    <Route path="/promotions" element={<BeltSystem />} />
+                    <Route path="/language" element={<LanguageSelection />} />
+                    <Route path="/timer" element={<FightTimer />} />
+                    
+                    {/* Governança Master - Restrito */}
+                    <Route path="/settings" element={isMasterAdmin ? <Settings /> : <Navigate to="/dashboard" />} />
+                    <Route path="/audit" element={isMasterAdmin ? <SystemAudit /> : <Navigate to="/dashboard" />} />
+                    
+                    <Route path="/exhibition" element={<ExhibitionMode />} />
+                    <Route path="/portal/:code" element={<StudentPortal />} />
+                    <Route path="*" element={<Navigate to="/dashboard" />} />
+                  </>
+                ) : (
+                  <>
+                    <Route path="/portal/:code" element={<StudentPortal />} />
+                    <Route path="*" element={<Navigate to={`/portal/${studentCode}`} />} />
+                  </>
+                )}
+              </Routes>
+            </Suspense>
           </div>
         </main>
 

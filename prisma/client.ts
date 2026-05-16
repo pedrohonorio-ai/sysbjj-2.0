@@ -20,31 +20,47 @@ const cleanUrl = (url: string) => {
   let cleaned = url.trim();
 
   // 🥋 OSS SENSEI: Extreme Cleaning (Invisible chars, prefix junk)
-  cleaned = cleaned.replace(/[\u200B-\u200D\uFEFF]/g, "");
+  // Remove zero-width spaces and other non-printable characters that often come from copy-paste
+  cleaned = cleaned.replace(/[\u200B-\u200D\uFEFF\u00A0\u180E\u202F\u205F\u3000]/g, "");
 
   // Repeat cleaning a few times for nested junk
   for (let i = 0; i < 5; i++) {
+    // Remove "export " prefix
+    cleaned = cleaned.replace(/^export\s+/i, "").trim();
+
+    // Remove common variable name assignments if pasted accidentally
     cleaned = cleaned
       .replace(
-        /^(export\s+)?(DATABASE_URL|URL|DIRECT_URL|DATABASE|DATABASE_URI|SUPABASE_DATABASE_URL|SUPABASE_DB_URL)\s*[:=]\s*/i,
+        /^(DATABASE_URL|URL|DIRECT_URL|DATABASE|DATABASE_URI|POSTGRES_URL|POSTGRES_PRISMA_URL)\s*[:=]\s*/i,
         ""
       )
-      .replace(/^export\s+/i, "")
       .trim();
 
+    // Remove surrounding quotes (single, double, or backticks)
     cleaned = cleaned.replace(/^['"`]|['"`]$/g, "").trim();
+    
+    // Remove trailing semicolon if present
+    cleaned = cleaned.replace(/;$/, "").trim();
   }
 
+  // Handle accidental double prefixing (e.g. "DATABASE_URL=DATABASE_URL=...")
   while (cleaned.startsWith("=") || cleaned.startsWith(":") || cleaned.startsWith(" ")) {
     cleaned = cleaned.substring(1).trim();
   }
 
   // 🥋 OSS SENSEI: Protocol Enforcement
+  // Handle case where user might have "postgresql://DATABASE_URL=..."
+  if (cleaned.includes("DATABASE_URL=")) {
+      cleaned = cleaned.replace(/DATABASE_URL=/g, "");
+  }
+
+  // If no protocol is present, but we have @ (indicates user:pass@host), assume postgresql
   if (!cleaned.includes("://") && cleaned.includes("@")) {
     cleaned = `postgresql://${cleaned}`;
   }
 
-  if ((cleaned.startsWith("postgresql:") || cleaned.startsWith("postgres:")) && !cleaned.includes("://")) {
+  // Fix common typo: postgresql: instead of postgresql://
+  if ((cleaned.toLowerCase().startsWith("postgresql:") || cleaned.toLowerCase().startsWith("postgres:")) && !cleaned.includes("://")) {
     cleaned = cleaned.replace(/^(postgresql|postgres):/i, "$1://");
   }
 
@@ -64,8 +80,6 @@ export const { key: detectedKey, value: rawDbUrl } = getRawSecret([
   "DATABASE_URL",
   "POSTGRES_URL",
   "POSTGRES_PRISMA_URL",
-  "SUPABASE_DATABASE_URL",
-  "SUPABASE_DB_URL",
   "POSTGRES_URL_NON_POOLING",
   "DIRECT_URL"
 ]);
@@ -77,85 +91,72 @@ let finalDirectUrl = cleanUrl(rawDirectUrl) || finalUrl;
 
 // 🚨 FINAL SENSEI VALIDATION (Zero tolerance for placeholders!)
 const isInvalidHost = (url: string) => {
-    if (!url) return false;
+    if (!url || url.length < 15) return true; 
     const low = url.toLowerCase();
-    // Rejeita explicitamente host genérico 'supabase.com' sem o pooler ou host direto
-    return low.includes("supabase.com") && !low.includes("pooler.supabase.com") && !low.includes("db.");
+    
+    // Neon URLs start with postgresql:// or postgres:// and contain neon.tech
+    const isNeon = low.includes("neon.tech");
+
+    if (!isNeon) {
+        // If it doesn't look like Neon, we check if it has a generic protocol
+        if (!low.startsWith("postgresql://") && !low.startsWith("postgres://")) return true;
+    }
+    
+    // Check for obvious placeholders
+    if (
+        low.includes("your-password") || 
+        low.includes("[your-password]") || 
+        low.includes("[password]") || 
+        low.includes("your_password") ||
+        low.includes("sua_senha") ||
+        low.includes("sua-senha") ||
+        low.includes("ep-xxx") // Neon placeholder
+    ) {
+        return true;
+    }
+
+    try {
+        const u = new URL(url);
+        return false;
+    } catch (e) {
+        // If not a valid URL yet, check broad patterns
+        return low.includes("neon.tech") && low.length < 40;
+    }
 };
 
-if (isInvalidHost(finalUrl)) {
-  const errorMsg = `❌ ERRO CRÍTICO [ORIGEM: ${source} | KEY: ${detectedKey}]: Host 'supabase.com' detectado. Este é um placeholder inválido! Substitua pelo host correto (ex: [PROJECT-REF].pooler.supabase.com:6543) nos Secrets.`;
-  console.error(errorMsg);
-  if (source === "VERCEL_ENV") {
-      console.error("⚠️ ENV CONTROLRED BY VERCEL - MUST FIX IN DASHBOARD (Integration or Project Settings)");
+const dummyUrl = "postgresql://invalid_user:invalid_pass@invalid_host:5432/invalid_db?connect_timeout=1";
+const isConfigValid = !isInvalidHost(finalUrl);
+const finalUrlToUse = isConfigValid ? finalUrl : dummyUrl;
+
+if (!isConfigValid) {
+  let reason = "DATABASE_URL ausente ou inválida";
+  const low = (finalUrl || "").toLowerCase();
+  
+  if (low.includes("ep-xxx")) {
+      reason = "🚨 PLACEHOLDER DETECTADO Neon: Substitua 'ep-xxx...' pela sua URL real do Neon.";
   }
-  // No Enterprise Mode, não deixamos o sistema rodar com configuração podre
-  process.env.DATABASE_URL = "INVALID_PLACEHOLDER_ERROR"; 
+  
+  console.error(`❌ ERRO CRÍTICO [ORIGEM: ${source}]: ${reason}`);
 }
 
-if (finalUrl.includes("YOUR-PASSWORD") || finalUrl.includes("[PASSWORD]")) {
-  const errorMsg = `❌ ERRO CRÍTICO [ORIGEM: ${source}]: '[PASSWORD]' ou 'YOUR-PASSWORD' detectado na DATABASE_URL! Atualize seus Secrets.`;
-  console.error(errorMsg);
-  throw new Error(errorMsg);
-}
-
-// 🔥 Performance & Stability Tuning
-const isPooler = finalUrl.includes("pooler.supabase.com") || finalUrl.includes(":6543");
-
-if (isPooler) {
-    if (!finalUrl.includes("pgbouncer=")) {
-        const sep = finalUrl.includes("?") ? "&" : "?";
-        finalUrl = `${finalUrl}${sep}pgbouncer=true`;
-    }
-    if (!finalUrl.includes("connection_limit=")) {
-        const sep = finalUrl.includes("?") ? "&" : "?";
-        finalUrl = `${finalUrl}${sep}connection_limit=1`;
-    }
-}
-
-// Apply back to environment for standard Prisma usage and migration tools
-process.env.DATABASE_URL = finalUrl;
-process.env.DIRECT_URL = finalDirectUrl;
+// Apply back to environment
+process.env.DATABASE_URL = finalUrlToUse;
+process.env.DIRECT_URL = finalDirectUrl || finalUrlToUse;
 
 const globalForPrisma = globalThis as any;
 
-export const prisma =
-  new PrismaClient({
+const prismaInstance = globalForPrisma.prisma || new PrismaClient({
     datasources: {
       db: {
-        url: finalUrl
+        url: finalUrlToUse
       }
     },
     log: ["error", "warn"]
   });
 
-// 🥋 Global persistence ONLY in dev
 if (process.env.NODE_ENV !== "production") {
-  globalForPrisma.prisma = prisma;
+  globalForPrisma.prisma = prismaInstance;
 }
 
-// 🥋 Informação de inicialização
-(async () => {
-  const masked = finalUrl.replace(/:([^@]+)@/, ':****@');
-  console.log(`🥋 [DB INIT] Origem Detectada: ${source}`);
-  console.log(`📡 [DB INIT] Variável Utilizada: ${detectedKey}`);
-  
-  if (!finalUrl || finalUrl === "INVALID_PLACEHOLDER_ERROR") {
-      console.error("❌ [DB INIT] DATABASE_URL não configurada ou inválida. O Dojo está em modo degradado.");
-      return;
-  }
-
-  console.log(`📡 [DB INIT] Configurando conexão para: ${masked.substring(0, 70)}...`);
-  
-  try {
-    await prisma.$connect();
-    console.log("✅ [DB INIT] Conexão estabelecida com sucesso.");
-  } catch (e: any) {
-    console.error("❌ [DB INIT] FALHA NA CONEXÃO:", e.message);
-    if (e.message.includes("Can't reach database server")) {
-        console.error("💡 SENSEI TIP: O host parece estar offline ou bloqueado pelo Firewall do Supabase.");
-    }
-  }
-})();
-
+export const prisma = prismaInstance;
 export default prisma;

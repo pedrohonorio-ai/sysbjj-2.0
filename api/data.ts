@@ -1,5 +1,6 @@
 import { Request, Response } from 'express';
 import { prisma } from '../prisma/client';
+import { handleApiError } from './utils';
 
 export const serializeData = (data: any) => {
   return JSON.parse(JSON.stringify(data, (k, v) => 
@@ -81,7 +82,6 @@ export async function dataHandler(req: Request, res: Response) {
       return res.json(serializeData(result));
     }
   } catch (error: any) {
-    console.error(`🥋 [DATA API ERROR] ${collection}:`, error);
-    return res.status(500).json({ error: error.message, collection });
+    handleApiError(res, error, collection);
   }
 }
