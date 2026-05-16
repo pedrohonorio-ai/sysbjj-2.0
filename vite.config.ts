@@ -27,7 +27,7 @@ export default defineConfig(({ command, mode }) => {
       server: {
         port: 3000,
         host: '0.0.0.0',
-        hmr: mode === 'development' ? {
+        hmr: command === 'serve' && mode === 'development' ? {
           overlay: true
         } : false
       },
