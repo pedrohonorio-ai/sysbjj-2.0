@@ -21,10 +21,6 @@ interface AuthContextType extends AuthState {
   isConfigured: boolean;
   login: (email: string, pass: string) => Promise<any>;
   register: (email: string, pass: string, name?: string) => Promise<any>;
-  loginAnonymous: () => Promise<any>;
-  loginDemo: () => void;
-  linkEmail: (email: string, pass: string) => Promise<any>;
-  updatePassword: (newPass: string) => Promise<any>;
   logout: () => Promise<void>;
   resetPassword: (email: string) => Promise<void>;
   setStudentAuth: (code: string) => void;
@@ -141,58 +137,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   };
 
-  const loginAnonymous = async () => {
-    const mockUser: User = {
-      id: 'anon-' + Math.random().toString(36).substr(2, 9),
-      email: 'convidado@sysbjj.com',
-      role: 'admin',
-      is_anonymous: true
-    };
-    setUser(mockUser);
-    setRole('admin');
-    setIsAnonymous(true);
-    localStorage.setItem('oss_auth', JSON.stringify({ 
-      isLoggedIn: true, 
-      role: 'admin', 
-      isAnonymous: true,
-      userId: mockUser.id 
-    }));
-    return mockUser;
-  };
-
-  const loginDemo = () => {
-    localStorage.setItem('oss_demo_mode', 'true');
-    const mockUser: User = {
-      id: 'demo-user-id',
-      email: 'demo@sysbjj.com',
-      name: 'Professor Demo',
-      role: 'admin',
-      is_anonymous: true
-    };
-    
-    setUser(mockUser);
-    setRole('admin');
-    setIsAnonymous(true);
-    localStorage.setItem('oss_auth', JSON.stringify({ 
-      isLoggedIn: true, 
-      role: 'admin', 
-      isDemo: true,
-      email: 'demo@sysbjj.com',
-      userId: mockUser.id
-    }));
-    
-    window.location.reload(); 
-  };
-
-  const linkEmail = async (email: string, pass: string) => {
-    return { success: true };
-  };
-
-  const updatePassword = async (newPass: string) => {
-    setIsRecovering(false);
-    return { success: true };
-  };
-
   const logout = async () => {
     localStorage.removeItem('oss_auth');
     localStorage.removeItem('oss_demo_mode');
@@ -223,10 +167,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       isConfigured: true, // Always configured now!
       login, 
       register, 
-      loginAnonymous,
-      loginDemo,
-      linkEmail,
-      updatePassword,
       logout,
       resetPassword,
       setStudentAuth,

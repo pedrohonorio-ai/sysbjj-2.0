@@ -11,7 +11,7 @@ const Login: React.FC = () => {
   const { t } = useTranslation();
   const { profile } = useProfile();
   const { logAction, addLedgerEntry } = useData();
-  const { login, register, loginAnonymous, loginDemo, resetPassword, updatePassword, isRecovering, setStudentAuth, isConfigured } = useAuth();
+  const { login, register, resetPassword, setStudentAuth, isRecovering } = useAuth();
   const [activeTab, setActiveTab ] = useState<'admin' | 'student'>('admin');
   const [mode, setMode] = useState<'login' | 'register' | 'forgot' | 'update_pass'>('login');
   
@@ -95,9 +95,7 @@ const Login: React.FC = () => {
         setSuccess('E-mail de recuperação enviado!');
         setTimeout(() => setMode('login'), 3000);
       } else if (mode === 'update_pass') {
-        if (newPassword.length < 6) throw new Error('A nova senha deve ter pelo menos 6 caracteres');
-        await updatePassword(newPassword);
-        setSuccess('Senha Master atualizada com sucesso!');
+        setSuccess('Funcionalidade de troca de senha em implementação para o novo backend.');
         setTimeout(() => setMode('login'), 3000);
       }
     } catch (err: any) {
@@ -121,20 +119,6 @@ const Login: React.FC = () => {
       } else {
         setError(errorMessage || 'Erro na autenticação');
       }
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const handleGuestLogin = async () => {
-    setLoading(true);
-    setError('');
-    try {
-      await loginAnonymous();
-      // AuthProvider handles navigation via state change
-    } catch (err: any) {
-      console.error('Guest Login Error:', err);
-      setError('Falha ao iniciar acesso como convidado. Tente novamente.');
     } finally {
       setLoading(false);
     }
@@ -313,7 +297,7 @@ const Login: React.FC = () => {
                 )}
                 {success && <div className="p-4 bg-emerald-500/10 border border-emerald-500/20 rounded-xl text-emerald-500 text-[10px] font-black uppercase text-center">{success}</div>}
 
-                <button 
+                  <button 
                   type="submit" 
                   disabled={loading || cooldown > 0}
                   className="w-full bg-blue-600 hover:bg-blue-500 disabled:opacity-50 text-white font-black py-4 rounded-2xl transition-all shadow-xl shadow-blue-600/20 flex items-center justify-center gap-3 group uppercase text-xs tracking-widest"
@@ -321,18 +305,6 @@ const Login: React.FC = () => {
                   {loading ? 'Processando Bloco...' : cooldown > 0 ? `Aguarde ${cooldown}s` : mode === 'login' ? 'Validar Acesso Master' : mode === 'register' ? 'Gerar Novo Nó' : mode === 'forgot' ? 'Resetar Credenciais' : 'Confirmar Nova Senha Master'}
                   {!loading && cooldown === 0 && <ArrowRight size={18} className="group-hover:translate-x-1 transition-transform" />}
                 </button>
-
-                {mode === 'login' && (
-                  <button 
-                    type="button"
-                    onClick={handleGuestLogin}
-                    disabled={loading || cooldown > 0}
-                    className="w-full bg-white/5 text-white hover:bg-white/10 disabled:opacity-50 font-black py-4 rounded-2xl transition-all shadow-xl flex items-center justify-center gap-3 group uppercase text-xs tracking-widest border border-white/10"
-                  >
-                    <Users size={18} className="text-blue-500" />
-                    {cooldown > 0 ? `Aguarde (${cooldown}s)` : 'Testar como Convidado'}
-                  </button>
-                )}
 
                 <div className="flex flex-col gap-3 mt-4">
                   {mode === 'login' && (
