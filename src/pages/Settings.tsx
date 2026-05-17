@@ -21,12 +21,7 @@ const Settings: React.FC = () => {
   const { language, setLanguage, t } = useTranslation();
   const { profile, updateProfile } = useProfile();
   const { exportData, importData } = useData();
-  const { user, linkEmail } = useAuth();
-  
-  const [claimData, setClaimData] = useState({ email: '', password: '' });
-  const [claimLoading, setClaimLoading] = useState(false);
-  const [claimSuccess, setClaimSuccess] = useState(false);
-  const [claimError, setClaimError] = useState('');
+  const { user } = useAuth();
   
   const getAuthData = () => {
     try {
@@ -38,25 +33,6 @@ const Settings: React.FC = () => {
   };
   const authData = getAuthData();
   const isDashfireAdmin = authData.email?.toLowerCase() === 'dashfire@gmail.com';
-  
-  const isAnonymous = user?.is_anonymous;
-
-  const handleClaimAccount = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setClaimLoading(true);
-    setClaimError('');
-    try {
-      await linkEmail(claimData.email, claimData.password);
-      setClaimSuccess(true);
-      setTimeout(() => setClaimSuccess(false), 5000);
-    } catch (err: any) {
-      console.error('Claim account error:', err);
-      const errorMessage = err.message || '';
-      setClaimError(errorMessage || 'Falha ao vincular conta. Tente outro e-mail.');
-    } finally {
-      setClaimLoading(false);
-    }
-  };
   
   const [formData, setFormData] = useState({
     ...profile,
@@ -639,85 +615,6 @@ const Settings: React.FC = () => {
                 </div>
               </div>
             </div>
-          </div>
-        </div>
-      )}
-
-      {isAnonymous && (
-        <div className="bg-gradient-to-br from-blue-600 to-indigo-700 rounded-[2rem] sm:rounded-[2.5rem] p-8 sm:p-12 text-white shadow-2xl relative overflow-hidden group">
-          <div className="absolute inset-0 bg-[url('https://www.transparenttextures.com/patterns/carbon-fibre.png')] opacity-10" />
-          <div className="relative z-10 grid grid-cols-1 md:grid-cols-2 gap-8 items-center">
-            <div>
-              <div className="inline-flex items-center gap-2 px-3 py-1 bg-white/20 backdrop-blur-md rounded-full text-[10px] font-black uppercase tracking-widest mb-4">
-                <Shield size={12} /> Acesso Temporário
-              </div>
-              <h2 className="text-3xl font-black uppercase tracking-tighter leading-none mb-4">
-                Torne-se um Profissional Permanente
-              </h2>
-              <p className="text-blue-100 font-bold uppercase text-[10px] tracking-widest leading-relaxed mb-6 italic">
-                Você está usando uma conta de convidado. Para garantir que seus dados, alunos e finanças nunca sejam perdidos ao limpar o navegador, vincule agora um e-mail e senha.
-              </p>
-              <div className="flex flex-wrap gap-4">
-                <div className="flex items-center gap-2 text-[10px] font-black uppercase tracking-widest">
-                  <div className="w-2 h-2 bg-green-400 rounded-full animate-pulse" /> Sincronização em Tempo Real
-                </div>
-                <div className="flex items-center gap-2 text-[10px] font-black uppercase tracking-widest">
-                  <div className="w-2 h-2 bg-green-400 rounded-full animate-pulse" /> Acesso em Múltiplos Dispositivos
-                </div>
-              </div>
-            </div>
-
-            <form onSubmit={handleClaimAccount} className="bg-white/10 backdrop-blur-3xl p-8 rounded-[2rem] border border-white/10 space-y-4">
-              <div className="space-y-2">
-                <label className="text-[10px] font-black text-blue-200 uppercase tracking-widest ml-1">E-mail para Profissional</label>
-                <div className="relative">
-                  <Mail className="absolute left-4 top-1/2 -translate-y-1/2 text-blue-300" size={18} />
-                  <input 
-                    type="email" 
-                    required
-                    value={claimData.email}
-                    onChange={e => setClaimData({...claimData, email: e.target.value})}
-                    placeholder="seu@email.com"
-                    className="w-full pl-12 pr-6 py-4 bg-white/5 border border-white/10 rounded-2xl focus:ring-2 focus:ring-white outline-none text-white font-bold placeholder:text-blue-300/50 transition-all text-sm" 
-                  />
-                </div>
-              </div>
-              
-              <div className="space-y-2">
-                <label className="text-[10px] font-black text-blue-200 uppercase tracking-widest ml-1">Senha Mestra</label>
-                <div className="relative">
-                  <Shield className="absolute left-4 top-1/2 -translate-y-1/2 text-blue-300" size={18} />
-                  <input 
-                    type="password" 
-                    required
-                    value={claimData.password}
-                    onChange={e => setClaimData({...claimData, password: e.target.value})}
-                    placeholder="Mínimo 6 caracteres"
-                    className="w-full pl-12 pr-6 py-4 bg-white/5 border border-white/10 rounded-2xl focus:ring-2 focus:ring-white outline-none text-white font-bold placeholder:text-blue-300/50 transition-all text-sm" 
-                  />
-                </div>
-              </div>
-
-              {claimError && (
-                <div className="p-3 bg-red-500/20 border border-red-500/30 rounded-xl text-red-200 text-[10px] font-bold uppercase text-center">
-                  {claimError}
-                </div>
-              )}
-
-              {claimSuccess && (
-                <div className="p-3 bg-green-500/20 border border-green-500/30 rounded-xl text-green-200 text-[10px] font-bold uppercase text-center">
-                  Conta Vinculada! Verifique seu e-mail para confirmação.
-                </div>
-              )}
-
-              <button 
-                type="submit"
-                disabled={claimLoading}
-                className="w-full bg-white text-blue-700 hover:bg-blue-50 disabled:opacity-50 font-black py-4 rounded-xl transition-all shadow-xl uppercase text-xs tracking-widest flex items-center justify-center gap-2"
-              >
-                {claimLoading ? 'Processando...' : 'Finalizar Registro OSS'}
-              </button>
-            </form>
           </div>
         </div>
       )}

@@ -75,6 +75,13 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         body: JSON.stringify({ email, password: pass })
       });
 
+      const contentType = response.headers.get('content-type');
+      if (!contentType || !contentType.includes('application/json')) {
+        const text = await response.text();
+        console.error('🥋 [AUTH LOGIN FAIL] Resposta não-JSON:', text.substring(0, 100));
+        throw new Error('O servidor de autenticação respondeu em um formato inválido. Tente novamente.');
+      }
+
       const result = await response.json();
 
       if (!response.ok) {
@@ -109,6 +116,13 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ email, password: pass, name })
       });
+
+      const contentType = response.headers.get('content-type');
+      if (!contentType || !contentType.includes('application/json')) {
+        const text = await response.text();
+        console.error('🥋 [AUTH REGISTER FAIL] Resposta não-JSON:', text.substring(0, 100));
+        throw new Error('O servidor de registro respondeu em um formato inválido. Tente novamente.');
+      }
 
       const result = await response.json();
 

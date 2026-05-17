@@ -1,5 +1,5 @@
 import { Request, Response } from 'express';
-import bcrypt from 'bcryptjs';
+import * as bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
 import { prisma } from '../prisma/client';
 import { handleApiError } from './utils';
@@ -16,12 +16,18 @@ const generateToken = (user: any) => {
 
 export const registerHandler = async (req: Request, res: Response) => {
   const { email, password, name } = req.body;
+  console.log(`🥋 [AUTH REGISTER] Iniciando para: ${email}`);
 
   if (!email || !password) {
     return res.status(400).json({ error: 'Email e senha são obrigatórios' });
   }
 
   try {
+    if (!prisma) {
+      console.error("🥋 [AUTH REGISTER FAIL]: Prisma client initialization failed or is null");
+      throw new Error("Sistema de dados não inicializado");
+    }
+
     const existingUser = await prisma.user.findUnique({
       where: { email }
     });
@@ -56,12 +62,18 @@ export const registerHandler = async (req: Request, res: Response) => {
 
 export const loginHandler = async (req: Request, res: Response) => {
   const { email, password } = req.body;
+  console.log(`🥋 [AUTH LOGIN] Tentativa para: ${email}`);
 
   if (!email || !password) {
     return res.status(400).json({ error: 'Email e senha são obrigatórios' });
   }
 
   try {
+    if (!prisma) {
+        console.error("🥋 [AUTH LOGIN FAIL]: Prisma client initialization failed or is null");
+        throw new Error("Sistema de dados não inicializado");
+    }
+
     const user = await prisma.user.findUnique({
       where: { email }
     });

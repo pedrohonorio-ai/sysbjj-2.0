@@ -96,9 +96,13 @@ const isInvalidHost = (url: string) => {
     
     // Neon URLs start with postgresql:// or postgres:// and contain neon.tech
     const isNeon = low.includes("neon.tech");
-
+    
+    // If it has a valid protocol and seems to have a host, it's likely fine
+    if (low.startsWith("postgresql://") || low.startsWith("postgres://")) {
+        if (low.length > 25) return false; // Probably OK
+    }
+    
     if (!isNeon) {
-        // If it doesn't look like Neon, we check if it has a generic protocol
         if (!low.startsWith("postgresql://") && !low.startsWith("postgres://")) return true;
     }
     

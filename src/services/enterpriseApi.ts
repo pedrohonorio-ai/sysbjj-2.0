@@ -110,18 +110,32 @@ class EnterpriseApi {
 
         if (!response.ok) {
           let errorInfo = `HTTP Error: ${response.status}`;
-          try {
-            const errorData = await response.json();
-            if (errorData.error) errorInfo = errorData.error;
-            // Preserva metadados do erro se existirem
-            const error = new Error(errorInfo) as any;
-            error.status = response.status;
-            error.troubleshooting = errorData.troubleshooting;
-            error.sensei_tip = errorData.sensei_tip;
-            throw error;
-          } catch (e) {
-            throw new Error(errorInfo);
+          const contentType = response.headers.get('content-type');
+          
+          if (contentType && contentType.includes('application/json')) {
+            try {
+              const errorData = await response.json();
+              if (errorData.error) errorInfo = errorData.error;
+              // Preserva metadados do erro se existirem
+              const error = new Error(errorInfo) as any;
+              error.status = response.status;
+              error.troubleshooting = errorData.troubleshooting;
+              error.sensei_tip = errorData.sensei_tip;
+              throw error;
+            } catch (e) {
+              throw new Error(errorInfo);
+            }
+          } else {
+            // Se não for JSON, provavelmente é um erro do servidor Vercel ou Fallback HTML
+            const text = await response.text();
+            console.error('🥋 [NON-JSON ERROR]', text.substring(0, 200));
+            throw new Error(`Erro inesperado do servidor (${response.status}). Verifique sua conexão.`);
           }
+        }
+
+        const contentType = response.headers.get('content-type');
+        if (!contentType || !contentType.includes('application/json')) {
+           throw new Error("Resposta inválida do servidor. Esperado JSON.");
         }
 
         const data = await response.json();

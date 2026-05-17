@@ -21,7 +21,8 @@ interface ApiErrorInfo {
   error: string;
   operationType: OperationType;
   path: string | null;
-  authInfo: any;
+  troubleshooting?: string[];
+  sensei_tip?: string;
 }
 
 export const handleApiError = (error: any, operationType: OperationType, path: string | null, setNotifications?: React.Dispatch<React.SetStateAction<any[]>>, setDbStatus?: React.Dispatch<React.SetStateAction<any>>) => {

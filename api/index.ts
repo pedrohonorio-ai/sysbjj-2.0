@@ -67,5 +67,22 @@ protectedRouter.delete("/data/:collection/:id", async (req: any, res: any) => {
 
 app.use("/api", protectedRouter);
 
+// --- GLOBAL ERROR HANDLER (OSS SENSEI) ---
+// Garante que o servidor NUNCA envie HTML em caso de erro na API
+app.use((err: any, req: express.Request, res: express.Response, _next: express.NextFunction) => {
+    console.error("🥋 [SERVER ERROR]:", err);
+    
+    // Status code padrão 500 se não estiver definido
+    const statusCode = err.status || err.statusCode || 500;
+    
+    res.status(statusCode).json({
+        success: false,
+        error: err.message || "Erro interno no tatame",
+        sensei_tip: "Desculpe Sensei, o servidor tropeçou num tatame solto. Tente novamente em instantes.",
+        path: req.path,
+        timestamp: new Date().toISOString()
+    });
+});
+
 // Export for Vercel
 export default app;

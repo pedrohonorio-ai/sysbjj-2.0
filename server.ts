@@ -11,9 +11,9 @@ import healthDbHandler from "./api/health-db";
 import healthDbRlsHandler from "./api/health-db-rls";
 import biHandler from "./api/bi";
 import { loginHandler, registerHandler } from "./api/auth";
-import { authenticate } from "./api/authMiddleware";
+import { authenticate, AuthRequest } from "./api/authMiddleware";
 import batchHandler from "./api/batch";
-import { dataHandler, serializeData } from "./api/data";
+import { dataHandler } from "./api/data";
 
 // GLOBAL ERROR HANDLERS
 process.on('uncaughtException', (err) => {
@@ -132,7 +132,7 @@ async function startServer() {
   apiRouter.post("/data/:collection", dataHandler as any);
 
   // DELETE Route
-  apiRouter.delete("/data/:collection/:id", async (req: any, res: Response) => {
+  apiRouter.delete("/data/:collection/:id", async (req: any, res: express.Response) => {
     const { collection, id } = req.params;
     const userId = req.user?.id;
     if (!userId) return res.status(401).json({ error: "Unauthorized" });
