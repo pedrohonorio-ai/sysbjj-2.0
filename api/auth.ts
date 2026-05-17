@@ -25,9 +25,14 @@ export const registerHandler = async (req: Request, res: Response) => {
   try {
     if (!prisma) {
       console.error("🥋 [AUTH REGISTER FAIL]: Prisma client initialization failed or is null");
-      throw new Error("Sistema de dados não inicializado");
+      return res.status(503).json({ 
+          success: false, 
+          error: "O sistema de dados não foi inicializado corretamente.",
+          sensei_tip: "Verifique se a DATABASE_URL está configurada corretamente no Vercel."
+      });
     }
 
+    console.log(`🥋 [AUTH REGISTER] Verificando se usuário existe: ${email}`);
     const existingUser = await prisma.user.findUnique({
       where: { email }
     });
@@ -36,8 +41,10 @@ export const registerHandler = async (req: Request, res: Response) => {
       return res.status(400).json({ error: 'Este e-mail já está cadastrado.' });
     }
 
+    console.log(`🥋 [AUTH REGISTER] Gerando hash da senha...`);
     const hashedPassword = await bcrypt.hash(password, 10);
 
+    console.log(`🥋 [AUTH REGISTER] Criando usuário no banco...`);
     const user = await prisma.user.create({
       data: {
         email,
@@ -47,6 +54,7 @@ export const registerHandler = async (req: Request, res: Response) => {
       }
     });
 
+    console.log(`🥋 [AUTH REGISTER] Usuário criado com sucesso: ${user.id}`);
     // Remove password before sending
     const { password: _, ...userWithoutPassword } = user;
     const token = generateToken(user);
@@ -56,7 +64,12 @@ export const registerHandler = async (req: Request, res: Response) => {
       token
     });
   } catch (error: any) {
-    handleApiError(res, error, 'auth/register');
+    console.error("🥋 [AUTH REGISTER CRASH]:", error);
+    res.status(500).json({
+        success: false,
+        error: error.message || "Erro inesperado no registro",
+        stack: process.env.NODE_ENV !== "production" ? error.stack : undefined
+    });
   }
 };
 
@@ -71,23 +84,32 @@ export const loginHandler = async (req: Request, res: Response) => {
   try {
     if (!prisma) {
         console.error("🥋 [AUTH LOGIN FAIL]: Prisma client initialization failed or is null");
-        throw new Error("Sistema de dados não inicializado");
+        return res.status(503).json({ 
+            success: false, 
+            error: "O sistema de dados não foi inicializado corretamente.",
+            sensei_tip: "Verifique se a DATABASE_URL está configurada corretamente no Vercel."
+        });
     }
 
+    console.log(`🥋 [AUTH LOGIN] Buscando usuário: ${email}`);
     const user = await prisma.user.findUnique({
       where: { email }
     });
 
     if (!user) {
+      console.log(`🥋 [AUTH LOGIN] Usuário não encontrado: ${email}`);
       return res.status(401).json({ error: 'Credenciais inválidas.' });
     }
 
+    console.log(`🥋 [AUTH LOGIN] Comparando senhas...`);
     const validPassword = await bcrypt.compare(password, user.password);
 
     if (!validPassword) {
+      console.log(`🥋 [AUTH LOGIN] Senha incorreta para: ${email}`);
       return res.status(401).json({ error: 'Credenciais inválidas.' });
     }
 
+    console.log(`🥋 [AUTH LOGIN] Sucesso: ${user.id}`);
     // Remove password before sending
     const { password: _, ...userWithoutPassword } = user;
     const token = generateToken(user);
@@ -97,6 +119,11 @@ export const loginHandler = async (req: Request, res: Response) => {
       token
     });
   } catch (error: any) {
-    handleApiError(res, error, 'auth/login');
+    console.error("🥋 [AUTH LOGIN CRASH]:", error);
+    res.status(500).json({
+        success: false,
+        error: error.message || "Erro inesperado no login",
+        stack: process.env.NODE_ENV !== "production" ? error.stack : undefined
+    });
   }
 };

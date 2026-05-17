@@ -149,17 +149,30 @@ process.env.DIRECT_URL = finalDirectUrl || finalUrlToUse;
 
 const globalForPrisma = globalThis as any;
 
-const prismaInstance = globalForPrisma.prisma || new PrismaClient({
-    datasources: {
-      db: {
-        url: finalUrlToUse
-      }
-    },
-    log: ["error", "warn"]
-  });
+let prismaInstance: PrismaClient;
 
-if (process.env.NODE_ENV !== "production") {
-  globalForPrisma.prisma = prismaInstance;
+try {
+  console.log(`🥋 [PRISMA SENSEI] Inicializando cliente (Origem: ${source})...`);
+  
+  const maskedUrl = finalUrlToUse.replace(/:([^@]+)@/, ":****@");
+  console.log(`🥋 [PRISMA SENSEI] Usando URL: ${maskedUrl}`);
+
+  prismaInstance = globalForPrisma.prisma || new PrismaClient({
+      datasources: {
+        db: {
+          url: finalUrlToUse
+        }
+      },
+      log: ["error", "warn"]
+    });
+
+  if (process.env.NODE_ENV !== "production") {
+    globalForPrisma.prisma = prismaInstance;
+  }
+} catch (err: any) {
+  console.error("🥋 [PRISMA CRITICAL FAIL]: Falha ao instanciar PrismaClient:", err);
+  // Re-throw if in production to fail fast, or provide null if we want to handle it in middleware
+  throw err;
 }
 
 export const prisma = prismaInstance;

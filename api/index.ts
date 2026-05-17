@@ -30,7 +30,12 @@ app.post("/api/auth/register", registerHandler);
 // Initialization middleware
 app.use((req, res, next) => {
     if (!prisma) {
-        return res.status(503).json({ error: "O sistema está inicializando. Por favor, aguarde alguns segundos." });
+        console.error("🥋 [SERVER INIT FAIL]: Prisma client is null/undefined in middleware");
+        return res.status(503).json({ 
+            error: "O sistema está inicializando. Por favor, aguarde alguns segundos.",
+            sensei_tip: "Se este erro persistir, verifique a conexão com o banco de dados Neon.",
+            timestamp: new Date().toISOString()
+        });
     }
     next();
 });
