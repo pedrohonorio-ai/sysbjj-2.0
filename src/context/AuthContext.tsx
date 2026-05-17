@@ -42,7 +42,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     try {
       return JSON.parse(data);
     } catch (e) {
-      console.warn("🥋 OSS SENSEI: Falha ao parsear dados locais.");
+      if (import.meta.env.DEV) console.warn("🥋 OSS SENSEI: Falha ao parsear dados locais.");
       return null;
     }
   };
@@ -92,7 +92,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         isLoggedIn: true, 
         role: 'admin', 
         email,
-        userId: loggedUser.id 
+        userId: loggedUser.id,
+        token: result.token
       }));
       
       return { data: { user: loggedUser }, error: null };
@@ -127,7 +128,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         role: 'admin', 
         email,
         name,
-        userId: newUser.id 
+        userId: newUser.id,
+        token: result.token
       }));
       return { data: { user: newUser }, error: null };
     } catch (error: any) {

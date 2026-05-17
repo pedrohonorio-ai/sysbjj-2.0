@@ -1,10 +1,11 @@
-import { Request, Response } from 'express';
+import { Response } from 'express';
 import { prisma } from '../prisma/client';
 import { serializeData } from './data';
+import { AuthRequest } from './authMiddleware';
 
-export default async function biHandler(req: Request, res: Response) {
-  const userId = req.query.userId as string;
-  if (!userId) return res.status(400).json({ error: "userId is required for BI" });
+export default async function biHandler(req: AuthRequest, res: Response) {
+  const userId = req.user?.id;
+  if (!userId) return res.status(401).json({ error: "Sessão expirada" });
 
   try {
     const [students, ledger, extraRevenue, payments] = await Promise.all([

@@ -69,6 +69,21 @@ class EnterpriseApi {
     const controller = new AbortController();
     const timeoutId = setTimeout(() => controller.abort(), timeout);
 
+    // OSS SENSEI: Injeta Token JWT se existir no LocalStorage
+    const authData = localStorage.getItem('oss_auth');
+    let token = '';
+    if (authData) {
+      try {
+        const parsed = JSON.parse(authData);
+        token = parsed.token || '';
+      } catch (e) {}
+    }
+
+    const headers = {
+      ...options.headers,
+      ...(token ? { 'Authorization': `Bearer ${token}` } : {})
+    };
+
     let lastError: any;
     
     // 🥋 Lógica de Retry com Exponential Backoff
@@ -87,6 +102,7 @@ class EnterpriseApi {
 
         const response = await fetch(url, {
           ...fetchOptions,
+          headers,
           signal: controller.signal
         });
 
@@ -124,9 +140,9 @@ class EnterpriseApi {
         
         // Se for abortado por timeout, não adianta tentar de novo imediatamente sem esperar
         if (error.name === 'AbortError') {
-          console.warn(`🥋 [TIMEOUT] Tentativa ${attempt + 1} falhou.`);
+          if (import.meta.env.DEV) console.warn(`🥋 [TIMEOUT] Tentativa ${attempt + 1} falhou.`);
         } else {
-          console.warn(`🥋 [API FAIL] Tentativa ${attempt + 1}:`, error.message);
+          if (import.meta.env.DEV) console.warn(`🥋 [API FAIL] Tentativa ${attempt + 1}:`, error.message);
         }
 
         if (attempt < retry - 1) {

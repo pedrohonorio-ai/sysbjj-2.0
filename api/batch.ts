@@ -1,9 +1,12 @@
-import { Request, Response } from 'express';
+import { Response } from 'express';
 import { prisma } from '../prisma/client';
+import { AuthRequest } from './authMiddleware';
 
-export default async function batchHandler(req: Request, res: Response) {
-  const { userId, collections } = req.query;
-  if (!userId) return res.status(400).json({ error: "userId is required" });
+export default async function batchHandler(req: AuthRequest, res: Response) {
+  const { collections } = req.query;
+  const userId = req.user?.id;
+  
+  if (!userId) return res.status(401).json({ error: "Sessão expirada" });
   if (!collections || typeof collections !== 'string') return res.status(400).json({ error: "collections list required" });
 
   const collectionList = collections.split(',');

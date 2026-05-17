@@ -1,7 +1,18 @@
 import { Request, Response } from 'express';
 import bcrypt from 'bcryptjs';
+import jwt from 'jsonwebtoken';
 import { prisma } from '../prisma/client';
 import { handleApiError } from './utils';
+
+const JWT_SECRET = process.env.JWT_SECRET || 'sysbjj-enterprise-oss-secret-2024';
+
+const generateToken = (user: any) => {
+  return jwt.sign(
+    { id: user.id, email: user.email, role: user.role },
+    JWT_SECRET,
+    { expiresIn: '7d' }
+  );
+};
 
 export const registerHandler = async (req: Request, res: Response) => {
   const { email, password, name } = req.body;
@@ -32,7 +43,12 @@ export const registerHandler = async (req: Request, res: Response) => {
 
     // Remove password before sending
     const { password: _, ...userWithoutPassword } = user;
-    res.status(201).json({ user: userWithoutPassword });
+    const token = generateToken(user);
+
+    res.status(201).json({ 
+      user: userWithoutPassword,
+      token
+    });
   } catch (error: any) {
     handleApiError(res, error, 'auth/register');
   }
@@ -62,7 +78,12 @@ export const loginHandler = async (req: Request, res: Response) => {
 
     // Remove password before sending
     const { password: _, ...userWithoutPassword } = user;
-    res.json({ user: userWithoutPassword });
+    const token = generateToken(user);
+
+    res.json({ 
+      user: userWithoutPassword,
+      token
+    });
   } catch (error: any) {
     handleApiError(res, error, 'auth/login');
   }

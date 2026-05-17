@@ -11,6 +11,7 @@ import healthDbHandler from "./api/health-db";
 import healthDbRlsHandler from "./api/health-db-rls";
 import biHandler from "./api/bi";
 import { loginHandler, registerHandler } from "./api/auth";
+import { authenticate } from "./api/authMiddleware";
 import batchHandler from "./api/batch";
 import { dataHandler, serializeData } from "./api/data";
 
@@ -88,9 +89,6 @@ async function startServer() {
   // 🥋 OSS SENSEI: Handlers Modulares (Vercel Ready)
   app.get("/health", healthHandler);
   app.get("/api/health", healthHandler);
-  app.get("/api/health-db", healthDbHandler);
-  app.get("/api/health-db-rls", healthDbRlsHandler);
-  app.get("/api/bi", biHandler);
 
   // Middleware de Log
   app.use((req, res, next) => {
@@ -134,36 +132,28 @@ async function startServer() {
     res.json({ mounted_at: "/api", routes });
   });
 
-  // Health and Diagnostic Routes
-  apiRouter.get("/health", (req, res) => {
-    res.json({ status: "ok", timestamp: new Date().toISOString(), platform: "Neon + Prisma + Express" });
-  });
-
   // Auth Routes
   apiRouter.post("/auth/login", loginHandler);
   apiRouter.post("/auth/register", registerHandler);
 
-  // Legacy diagnostic route for backward compatibility with some components
-  apiRouter.get("/test-db", async (req, res) => {
-    try {
-      if (!prisma) return res.status(503).json({ status: "initializing" });
-      await prisma.$connect();
-      res.json({ status: "connected", message: "OSS! Sistema online." });
-    } catch (error: any) {
-      res.status(500).json({ status: "error", message: error.message });
-    }
-  });
+  // Protected Routes - OSS! Acesso apenas com Cinto Preto (JWT)
+  apiRouter.use(authenticate as any);
+
+  // Health and Diagnostic Routes (Protected)
+  apiRouter.get("/health-db", healthDbHandler as any);
+  apiRouter.get("/health-db-rls", healthDbRlsHandler as any);
+  apiRouter.get("/bi", biHandler as any);
 
   // Batch and Data Routes
-  apiRouter.get("/batch", batchHandler);
-  apiRouter.get("/data/:collection", dataHandler);
-  apiRouter.post("/data/:collection", dataHandler);
+  apiRouter.get("/batch", batchHandler as any);
+  apiRouter.get("/data/:collection", dataHandler as any);
+  apiRouter.post("/data/:collection", dataHandler as any);
 
   // DELETE Route
-  apiRouter.delete("/data/:collection/:id", async (req, res) => {
+  apiRouter.delete("/data/:collection/:id", async (req: any, res: Response) => {
     const { collection, id } = req.params;
-    const { userId } = req.query;
-    if (!userId) return res.status(400).json({ error: "userId is required" });
+    const userId = req.user?.id;
+    if (!userId) return res.status(401).json({ error: "Unauthorized" });
 
     try {
       const anyPrisma = prisma as any;

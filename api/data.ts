@@ -1,6 +1,7 @@
-import { Request, Response } from 'express';
+import { Response } from 'express';
 import { prisma } from '../prisma/client';
 import { handleApiError } from './utils';
+import { AuthRequest } from './authMiddleware';
 
 export const serializeData = (data: any) => {
   return JSON.parse(JSON.stringify(data, (k, v) => 
@@ -10,11 +11,19 @@ export const serializeData = (data: any) => {
   ));
 };
 
-export async function dataHandler(req: Request, res: Response) {
+export async function dataHandler(req: AuthRequest, res: Response) {
   const { collection } = req.params;
-  const userId = req.query.userId || req.body.userId;
   
-  if (!userId) return res.status(400).json({ error: "userId is required" });
+  // OSS SENSEI: SEGURANÇA MÁXIMA - ID extraído do Token, nunca do Body/Query
+  const userId = req.user?.id;
+  
+  if (!userId) {
+    return res.status(401).json({ 
+      error: "Sessão inválida",
+      sensei_tip: "O Tatame está fechado para este usuário. Reconecte-se." 
+    });
+  }
+
   const uid = String(userId);
   const anyPrisma = prisma as any;
 

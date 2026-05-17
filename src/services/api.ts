@@ -32,34 +32,34 @@ export const api = {
   /**
    * Busca dados de uma coleção vinculada ao Sensei (userId)
    */
-  async fetchData(collection: string, userId: string) {
+  async fetchData(collection: string, _userId: string) {
     if (typeof window !== 'undefined' && localStorage.getItem('oss_demo_mode') === 'true') {
       return [];
     }
-    return await enterpriseApi.fetchWithEnterprise(`/api/data/${collection}?userId=${userId}`);
+    return await enterpriseApi.fetchWithEnterprise(`/api/data/${collection}`);
   },
 
   /**
    * Busca múltiplas coleções em uma única requisição para evitar rate limiting
    */
-  async fetchBatchData(collections: string[], userId: string) {
+  async fetchBatchData(collections: string[], _userId: string) {
     if (typeof window !== 'undefined' && localStorage.getItem('oss_demo_mode') === 'true') {
       return {};
     }
-    return await enterpriseApi.fetchWithEnterprise(`/api/batch?userId=${userId}&collections=${collections.join(',')}`);
+    return await enterpriseApi.fetchWithEnterprise(`/api/batch?collections=${collections.join(',')}`);
   },
 
   /**
    * Salva ou atualiza um item em uma coleção
    */
-  async saveData(collection: string, userId: string, data: any) {
+  async saveData(collection: string, _userId: string, data: any) {
     if (typeof window !== 'undefined' && localStorage.getItem('oss_demo_mode') === 'true') {
       return { status: 'demo_ok' };
     }
     return await enterpriseApi.fetchWithEnterprise(`/api/data/${collection}`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ ...data, userId }),
+      body: JSON.stringify(data),
       useCache: false // Escrita não usa cache de leitura
     });
   },
@@ -67,11 +67,11 @@ export const api = {
   /**
    * Busca relatório de BI consolidado (Inteligência Sensei)
    */
-  async fetchBI(userId: string) {
+  async fetchBI(_userId: string) {
     if (typeof window !== 'undefined' && localStorage.getItem('oss_demo_mode') === 'true') {
       return { status: 'demo' };
     }
-    return await enterpriseApi.fetchWithEnterprise(`/api/bi?userId=${userId}`, {
+    return await enterpriseApi.fetchWithEnterprise(`/api/bi`, {
       retry: 2,
       useCache: false // BI deve ser sempre fresco
     });
@@ -80,11 +80,11 @@ export const api = {
   /**
    * Remove um item de uma coleção
    */
-  async deleteData(collection: string, id: string, userId: string) {
+  async deleteData(collection: string, id: string, _userId: string) {
     if (typeof window !== 'undefined' && localStorage.getItem('oss_demo_mode') === 'true') {
       return { status: 'demo_ok' };
     }
-    return await enterpriseApi.fetchWithEnterprise(`/api/data/${collection}/${id}?userId=${userId}`, {
+    return await enterpriseApi.fetchWithEnterprise(`/api/data/${collection}/${id}`, {
       method: 'DELETE',
       useCache: false
     });

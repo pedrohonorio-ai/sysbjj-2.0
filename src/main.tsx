@@ -27,16 +27,22 @@ if (process.env.NODE_ENV === 'production' || window.location.hostname !== 'local
   };
 
   // 2. Intercepta erros de rede/websocket globais
-  window.addEventListener('error', (e) => {
-    if (e.message?.includes('WebSocket') || e.target instanceof WebSocket) {
+  window.addEventListener('error', (e: any) => {
+    if (e.message?.includes('WebSocket') || e.target instanceof WebSocket || (e.error && e.error.message?.includes('WebSocket'))) {
       e.stopImmediatePropagation();
       e.preventDefault();
     }
   }, true);
 
-  // 3. Shield contra injeções de WebSocket (apenas silenciamos, não sobrescrevemos mais para evitar o erro de read-only)
-  // Em vez de substituir, usamos o listener de erro que já está configurado acima (passo 2)
-  // para capturar e silenciar quaisquer falhas de conexão originadas pelo client do Vite.
+  // 3. Intercepta Rejeições Não Tratadas (comum em erros de WebSocket fechado prematuramente)
+  window.addEventListener('unhandledrejection', (event) => {
+    const reason = event.reason;
+    const message = typeof reason === 'string' ? reason : (reason?.message || '');
+    if (message.includes('WebSocket')) {
+      event.preventDefault();
+      event.stopPropagation();
+    }
+  }, true);
 }
 
   const ErrorFallback = ({ error }: { error: Error }) => (
