@@ -1,13 +1,13 @@
 import React, { StrictMode } from 'react';
 import { createRoot } from 'react-dom/client';
 import { BrowserRouter } from 'react-router-dom';
-import App from './App.tsx';
+import App from './App.js';
 import './index.css';
-import { ThemeProvider } from './contexts/ThemeContext';
-import { LanguageProvider } from './contexts/LanguageContext';
-import { ProfileProvider } from './contexts/ProfileContext';
-import { DataProvider } from './contexts/DataContext';
-import { AuthProvider } from './context/AuthContext';
+import { ThemeProvider } from './contexts/ThemeContext.js';
+import { LanguageProvider } from './contexts/LanguageContext.js';
+import { ProfileProvider } from './contexts/ProfileContext.js';
+import { DataProvider } from './contexts/DataContext.js';
+import { AuthProvider } from './context/AuthContext.js';
 
 // 🥋 OSS SENSEI: Global Production Guard
 // Limpa ruídos de WebSocket e HMR em produção antes de iniciar o React

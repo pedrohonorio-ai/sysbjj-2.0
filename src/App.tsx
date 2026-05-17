@@ -4,32 +4,32 @@ import { Menu, X, Bell, Sun, Moon, Search, Shield, LogOut, Clock, CheckCircle2, 
 import { motion, AnimatePresence } from 'motion/react';
 import { NAVIGATION_ITEMS, BELT_COLORS, MASTER_ADMINS } from './constants';
 
-const Dashboard = lazy(() => import('./pages/Dashboard'));
-const Students = lazy(() => import('./pages/Students'));
-const IBJJFRules = lazy(() => import('./pages/IBJJFRules'));
-const BusinessHub = lazy(() => import('./pages/BusinessHub'));
-const AttendancePage = lazy(() => import('./pages/Attendance'));
-const AttendanceHistory = lazy(() => import('./pages/AttendanceHistory'));
-const BeltSystem = lazy(() => import('./pages/BeltSystem'));
-const Finances = lazy(() => import('./pages/Finances'));
-const FightTimer = lazy(() => import('./pages/FightTimer'));
-const Settings = lazy(() => import('./pages/Settings'));
-const StudentPortal = lazy(() => import('./pages/StudentPortal'));
-const CurriculumHub = lazy(() => import('./pages/CurriculumHub'));
-const PerformanceAnalytics = lazy(() => import('./pages/PerformanceAnalytics'));
-const ExhibitionMode = lazy(() => import('./pages/ExhibitionMode'));
-const SystemAudit = lazy(() => import('./pages/SystemAudit'));
-const LanguageSelection = lazy(() => import('./pages/LanguageSelection'));
-const Login = lazy(() => import('./pages/Login'));
+const Dashboard = lazy(() => import('./pages/Dashboard.js'));
+const Students = lazy(() => import('./pages/Students.js'));
+const IBJJFRules = lazy(() => import('./pages/IBJJFRules.js'));
+const BusinessHub = lazy(() => import('./pages/BusinessHub.js'));
+const AttendancePage = lazy(() => import('./pages/Attendance.js'));
+const AttendanceHistory = lazy(() => import('./pages/AttendanceHistory.js'));
+const BeltSystem = lazy(() => import('./pages/BeltSystem.js'));
+const Finances = lazy(() => import('./pages/Finances.js'));
+const FightTimer = lazy(() => import('./pages/FightTimer.js'));
+const Settings = lazy(() => import('./pages/Settings.js'));
+const StudentPortal = lazy(() => import('./pages/StudentPortal.js'));
+const CurriculumHub = lazy(() => import('./pages/CurriculumHub.js'));
+const PerformanceAnalytics = lazy(() => import('./pages/PerformanceAnalytics.js'));
+const ExhibitionMode = lazy(() => import('./pages/ExhibitionMode.js'));
+const SystemAudit = lazy(() => import('./pages/SystemAudit.js'));
+const LanguageSelection = lazy(() => import('./pages/LanguageSelection.js'));
+const Login = lazy(() => import('./pages/Login.js'));
 
-import NotificationCenter from './components/NotificationCenter';
-import DatabaseWarning from './components/DatabaseWarning';
-import { useTranslation } from './contexts/LanguageContext';
-import { useTheme } from './contexts/ThemeContext';
-import { useProfile } from './contexts/ProfileContext';
-import { useData } from './contexts/DataContext';
-import { useAuth } from './context/AuthContext';
-import { api } from './services/api';
+import NotificationCenter from './components/NotificationCenter.js';
+import DatabaseWarning from './components/DatabaseWarning.js';
+import { useTranslation } from './contexts/LanguageContext.js';
+import { useTheme } from './contexts/ThemeContext.js';
+import { useProfile } from './contexts/ProfileContext.js';
+import { useData } from './contexts/DataContext.js';
+import { useAuth } from './context/AuthContext.js';
+import { api } from './services/api.js';
 
 const Sidebar = ({ isOpen, toggle, onLogout, isMasterAdmin }: { isOpen: boolean, toggle: () => void, onLogout: () => void, isMasterAdmin: boolean }) => {
   const location = useLocation();

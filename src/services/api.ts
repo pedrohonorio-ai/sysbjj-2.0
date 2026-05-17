@@ -1,4 +1,4 @@
-import { enterpriseApi } from './enterpriseApi';
+import { enterpriseApi } from './enterpriseApi.js';
 
 /**
  * 🥋 API Service for SYSBJJ 2.0 (ENTERPRISE EDITION)

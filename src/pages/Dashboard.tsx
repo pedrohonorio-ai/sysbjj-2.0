@@ -3,11 +3,11 @@ import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { motion } from 'motion/react';
 import { Users, Calendar, TrendingUp, DollarSign, Award, ArrowUpRight, ArrowDownRight, Clock, ShieldCheck, Activity, Cake, History, CloudSun, Timer } from 'lucide-react';
-import { useTranslation } from '../contexts/LanguageContext';
-import { useData } from '../contexts/DataContext';
-import { useProfile } from '../contexts/ProfileContext';
+import { useTranslation } from '../contexts/LanguageContext.js';
+import { useData } from '../contexts/DataContext.js';
+import { useProfile } from '../contexts/ProfileContext.js';
 import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
-import VerificationBadge from '../components/ui/VerificationBadge';
+import VerificationBadge from '../components/ui/VerificationBadge.js';
 
 const Dashboard: React.FC = () => {
   const { t } = useTranslation();

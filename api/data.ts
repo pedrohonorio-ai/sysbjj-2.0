@@ -1,7 +1,7 @@
 import { Response } from 'express';
-import { prisma } from '../prisma/client';
-import { handleApiError } from './utils';
-import { AuthRequest } from './authMiddleware';
+import { prisma } from '../src/server/prisma.js';
+import { handleApiError } from './utils.js';
+import { AuthRequest } from './authMiddleware.js';
 
 export const serializeData = (data: any) => {
   return JSON.parse(JSON.stringify(data, (k, v) => 

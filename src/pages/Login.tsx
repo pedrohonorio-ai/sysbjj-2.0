@@ -2,10 +2,10 @@
 import React, { useState, useEffect } from 'react';
 import { Shield, Lock, User, Key, ArrowRight, Instagram, Mail, Fingerprint, History, ShieldCheck, Users } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
-import { useTranslation } from '../contexts/LanguageContext';
-import { useProfile } from '../contexts/ProfileContext';
-import { useData } from '../contexts/DataContext';
-import { useAuth } from '../context/AuthContext';
+import { useTranslation } from '../contexts/LanguageContext.js';
+import { useProfile } from '../contexts/ProfileContext.js';
+import { useData } from '../contexts/DataContext.js';
+import { useAuth } from '../context/AuthContext.js';
 
 const Login: React.FC = () => {
   const { t } = useTranslation();

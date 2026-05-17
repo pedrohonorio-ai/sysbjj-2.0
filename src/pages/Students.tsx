@@ -41,14 +41,14 @@ import {
   UserCheck
 } from 'lucide-react';
 import Webcam from 'react-webcam';
-import { Student, StudentStatus, BeltColor, KidsBeltColor, Gender, CBJJCategory } from '../types';
-import { BELT_COLORS, IBJJF_BELT_RULES } from '../constants';
-import { IBJJF_LESSONS } from '../constants/rulesData';
-import { useTranslation } from '../contexts/LanguageContext';
-import { useData } from '../contexts/DataContext';
-import { useProfile } from '../contexts/ProfileContext';
-import { calculateCBJJCategory, calculateWeightClass } from '../services/cbjj';
-import { compressImage } from '../services/imageUtils';
+import { Student, StudentStatus, BeltColor, KidsBeltColor, Gender, CBJJCategory } from '../types.js';
+import { BELT_COLORS, IBJJF_BELT_RULES } from '../constants.js';
+import { IBJJF_LESSONS } from '../constants/rulesData.js';
+import { useTranslation } from '../contexts/LanguageContext.js';
+import { useData } from '../contexts/DataContext.js';
+import { useProfile } from '../contexts/ProfileContext.js';
+import { calculateCBJJCategory, calculateWeightClass } from '../services/cbjj.js';
+import { compressImage } from '../services/imageUtils.js';
 
 const formatCPF = (value: string) => {
   return value

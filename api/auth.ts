@@ -1,8 +1,8 @@
 import { Request, Response } from 'express';
 import * as bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
-import { prisma } from '../prisma/client';
-import { handleApiError } from './utils';
+import { prisma } from '../src/server/prisma.js';
+import { handleApiError } from './utils.js';
 
 const JWT_SECRET = process.env.JWT_SECRET || 'sysbjj-enterprise-oss-secret-2024';
 
@@ -24,11 +24,11 @@ export const registerHandler = async (req: Request, res: Response) => {
 
   try {
     if (!prisma) {
-      console.error("🥋 [AUTH REGISTER FAIL]: Prisma client initialization failed or is null");
+      console.error("🥋 [AUTH REGISTER FAIL]: Prisma client is null");
       return res.status(503).json({ 
           success: false, 
           error: "O sistema de dados não foi inicializado corretamente.",
-          sensei_tip: "Verifique se a DATABASE_URL está configurada corretamente no Vercel."
+          sensei_tip: "Sensei, verifique as variáveis de ambiente no Vercel."
       });
     }
 
@@ -83,11 +83,11 @@ export const loginHandler = async (req: Request, res: Response) => {
 
   try {
     if (!prisma) {
-        console.error("🥋 [AUTH LOGIN FAIL]: Prisma client initialization failed or is null");
+        console.error("🥋 [AUTH LOGIN FAIL]: Prisma client is null");
         return res.status(503).json({ 
             success: false, 
             error: "O sistema de dados não foi inicializado corretamente.",
-            sensei_tip: "Verifique se a DATABASE_URL está configurada corretamente no Vercel."
+            sensei_tip: "Sensei, o banco de dados não respondeu."
         });
     }
 

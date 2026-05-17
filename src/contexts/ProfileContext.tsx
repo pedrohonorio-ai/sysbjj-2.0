@@ -1,8 +1,8 @@
 
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
-import { ProfessorProfile, BeltColor } from '../types';
-import { useAuth } from '../context/AuthContext';
-import { api } from '../services/api';
+import { ProfessorProfile, BeltColor } from '../types.js';
+import { useAuth } from '../context/AuthContext.js';
+import { api } from '../services/api.js';
 
 interface ProfileContextType {
   profile: ProfessorProfile;
@@ -25,7 +25,7 @@ const DEFAULT_PROFILE: ProfessorProfile = {
 
 const ProfileContext = createContext<ProfileContextType | undefined>(undefined);
 
-import { handleApiError, OperationType, useData } from './DataContext';
+import { handleApiError, OperationType, useData } from './DataContext.js';
 
 export const ProfileProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
   const { user } = useAuth();

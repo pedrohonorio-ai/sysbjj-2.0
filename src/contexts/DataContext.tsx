@@ -1,12 +1,12 @@
 
 import React, { createContext, useContext, useState, useEffect, ReactNode, useCallback } from 'react';
-import { Student, Payment, ClassSchedule, GalleryImage, ExtraRevenue, KimonoOrder, LessonPlan, LibraryTechnique, TechniqueCategory, BeltColor, Product, Plan, PaymentReceipt, TransactionLedger, SystemLog, AttendanceRecord, ExtraRevenueCategory, GraduationCriterion } from '../types';
+import { Student, Payment, ClassSchedule, GalleryImage, ExtraRevenue, KimonoOrder, LessonPlan, LibraryTechnique, TechniqueCategory, BeltColor, Product, Plan, PaymentReceipt, TransactionLedger, SystemLog, AttendanceRecord, ExtraRevenueCategory, GraduationCriterion } from '../types.js';
 import CryptoJS from 'crypto-js';
-import { IBJJF_LESSONS } from '../constants/rulesData';
-import { useAuth } from '../context/AuthContext';
-import { compressImage } from '../services/imageUtils';
-import { INITIAL_STUDENTS, INITIAL_SCHEDULES, INITIAL_PLANS } from '../services/academyInitializer';
-import { api } from '../services/api';
+import { IBJJF_LESSONS } from '../constants/rulesData.js';
+import { useAuth } from '../context/AuthContext.js';
+import { compressImage } from '../services/imageUtils.js';
+import { INITIAL_STUDENTS, INITIAL_SCHEDULES, INITIAL_PLANS } from '../services/academyInitializer.js';
+import { api } from '../services/api.js';
 
 export enum OperationType {
   CREATE = 'create',

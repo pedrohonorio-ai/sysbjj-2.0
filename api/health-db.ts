@@ -1,5 +1,5 @@
 import { Request, Response } from 'express';
-import { prisma, detectedKey } from '../prisma/client';
+import { prisma } from '../src/server/prisma.js';
 
 export default async function healthDbHandler(req: Request, res: Response) {
   const getSource = () => {
@@ -22,7 +22,7 @@ export default async function healthDbHandler(req: Request, res: Response) {
       database: "connected",
       audit: {
         origin: source,
-        used_variable: detectedKey,
+        used_variable: 'DATABASE_URL',
         host: dbUrl.split('@')[1]?.split(':')[0] || "unknown",
         vercel_controlled: !!process.env.VERCEL,
         neon_integration: isNeon
@@ -38,7 +38,7 @@ export default async function healthDbHandler(req: Request, res: Response) {
       message: err.message,
       audit: {
         origin: source,
-        used_variable: detectedKey
+        used_variable: 'DATABASE_URL'
       },
       tip: "OSS! Verifique se a string de conexão (DATABASE_URL) está correta nos Secrets/Environment."
     });

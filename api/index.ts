@@ -1,14 +1,14 @@
 import express from "express";
 import cors from "cors";
-import { prisma } from "../prisma/client";
-import healthHandler from "./health";
-import healthDbHandler from "./health-db";
-import healthDbRlsHandler from "./health-db-rls";
-import biHandler from "./bi";
-import { loginHandler, registerHandler } from "./auth";
-import { authenticate } from "./authMiddleware";
-import batchHandler from "./batch";
-import { dataHandler, serializeData } from "./data";
+import { prisma } from "../src/server/prisma.js";
+import healthHandler from "./health.js";
+import healthDbHandler from "./health-db.js";
+import healthDbRlsHandler from "./health-db-rls.js";
+import biHandler from "./bi.js";
+import { loginHandler, registerHandler } from "./auth.js";
+import { authenticate } from "./authMiddleware.js";
+import batchHandler from "./batch.js";
+import { dataHandler } from "./data.js";
 
 const app = express();
 
@@ -39,8 +39,13 @@ app.use((req, res, next) => {
     next();
 });
 
-// Public Routes
-app.get("/api/health", healthHandler);
+app.get("/api/health", (_, res) => {
+  res.json({
+    success: true,
+    status: "OSS",
+    timestamp: new Date().toISOString()
+  })
+})
 app.post("/api/auth/login", loginHandler);
 app.post("/api/auth/register", registerHandler);
 

@@ -4,13 +4,9 @@
   "version": "2.0.0",
   "type": "module",
   "scripts": {
-    "dev": "tsx server.ts",
-    "oss:dev": "npm install && npx prisma generate && tsx server.ts",
-    "build": "npx prisma generate && NODE_ENV=production vite build && tsx build-server.ts",
-    "db:generate": "prisma generate",
-    "db:push": "prisma db push",
+    "dev": "vite",
+    "build": "vite build",
     "postinstall": "prisma generate",
-    "start": "NODE_ENV=production node dist/server.js",
     "lint": "tsc --noEmit"
   },
   "dependencies": {

@@ -1,6 +1,6 @@
 import { Response } from 'express';
-import { prisma } from '../prisma/client';
-import { AuthRequest } from './authMiddleware';
+import { prisma } from '../src/server/prisma.js';
+import { AuthRequest } from './authMiddleware.js';
 
 export default async function batchHandler(req: AuthRequest, res: Response) {
   const { collections } = req.query;

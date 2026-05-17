@@ -1,11 +1,10 @@
 @import url('https://rsms.me/inter/inter.css');
-@import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300..700&family=JetBrains+Mono:wght@400;500;700&display=swap');
 @import "tailwindcss";
 
 @theme {
   --font-sans: "Inter", sans-serif;
-  --font-display: "Space Grotesk", system-ui;
-  --font-mono: "JetBrains Mono", ui-monospace;
+  --font-display: "Inter", sans-serif;
+  --font-mono: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
   
   --color-bjj-blue: #0051FF;
   --color-bjj-gold: #FFB800;
