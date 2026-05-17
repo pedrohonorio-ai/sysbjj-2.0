@@ -6,7 +6,6 @@ export interface User {
   email: string;
   name?: string;
   role: 'admin' | 'student';
-  is_anonymous?: boolean;
 }
 
 interface AuthState {
@@ -14,7 +13,6 @@ interface AuthState {
   loading: boolean;
   role: 'admin' | 'student' | null;
   studentCode?: string;
-  isAnonymous: boolean;
 }
 
 interface AuthContextType extends AuthState {
@@ -35,7 +33,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [role, setRole] = useState<'admin' | 'student' | null>(null);
   const [studentCode, setStudentCode] = useState<string | undefined>(undefined);
   const [isRecovering, setIsRecovering] = useState(false);
-  const [isAnonymous, setIsAnonymous] = useState(false);
 
   const safeParse = (data: string | null) => {
     if (!data) return null;
@@ -165,7 +162,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       loading, 
       role, 
       studentCode, 
-      isAnonymous,
       isConfigured: true, // Always configured now!
       login, 
       register, 
