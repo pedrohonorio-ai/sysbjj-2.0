@@ -28,7 +28,8 @@ export default defineConfig(({ command, mode }) => {
         port: 3000,
         host: '0.0.0.0',
         hmr: command === 'serve' && mode === 'development' ? {
-          overlay: true
+          overlay: true,
+          timeout: 30000,
         } : false
       },
       plugins: [react(), tailwindcss()],
@@ -38,6 +39,8 @@ export default defineConfig(({ command, mode }) => {
         target: 'es2020',
         sourcemap: false,
         minify: 'esbuild',
+        cssMinify: true,
+        reportCompressedSize: false,
         assetsDir: 'assets',
         chunkSizeWarningLimit: 1000,
         rollupOptions: {

@@ -77,7 +77,9 @@ class EnterpriseApi {
         if (!navigator.onLine && useCache) {
           const cachedData = this.getCache(url);
           if (cachedData) {
+            if (import.meta.env.DEV) {
             console.log(`🥋 [OFFLINE] Usando cache para: ${path}`);
+          }
             clearTimeout(timeoutId);
             return cachedData;
           }
@@ -138,7 +140,9 @@ class EnterpriseApi {
     if (useCache) {
       const cachedData = this.getCache(url);
       if (cachedData) {
-        console.log(`🥋 [FALLBACK] Erro na API, servindo cache para: ${path}`);
+        if (import.meta.env.DEV) {
+          console.log(`🥋 [FALLBACK] Erro na API, servindo cache para: ${path}`);
+        }
         return cachedData;
       }
     }

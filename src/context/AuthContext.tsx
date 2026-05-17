@@ -202,7 +202,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   };
 
   const resetPassword = async (email: string) => {
-    console.log("Reset password requested for", email);
+    if (import.meta.env.DEV) {
+      console.log("Reset password requested for", email);
+    }
   };
 
   const setStudentAuth = (code: string) => {

@@ -355,7 +355,9 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
 
         // Auto-initialization for empty accounts
         if (!batchResults.students || batchResults.students.length === 0) {
-           console.log("Oss! Iniciando dados padrão para novo Sensei...");
+           if (import.meta.env.DEV) {
+        console.log("Oss! Iniciando dados padrão para novo Sensei...");
+      }
            for (const s of INITIAL_STUDENTS) {
              const id = `STU-${Date.now()}-${Math.random().toString(36).substr(2, 5)}`;
              await api.saveData('students', user.id, { ...s, id });

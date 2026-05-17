@@ -41,9 +41,11 @@ async function startServer() {
   };
 
   // 🥋 Diagnostic for debugging
-  const dbUrl = process.env.DATABASE_URL || "";
-  const masked = dbUrl.replace(/:([^@]+)@/, ':****@');
-  console.log('🥋 [SENSEI STATUS] DATABASE_URL Final:', masked);
+  if (process.env.NODE_ENV !== "production") {
+    const dbUrl = process.env.DATABASE_URL || "";
+    const masked = dbUrl.replace(/:([^@]+)@/, ':****@');
+    console.log('🥋 [SENSEI STATUS] DATABASE_URL Final:', masked);
+  }
   
   // 🥋 handleApiError removido (usando src/api/utils.ts)
 
@@ -90,16 +92,13 @@ async function startServer() {
   app.get("/api/health-db-rls", healthDbRlsHandler);
   app.get("/api/bi", biHandler);
 
-  // 🥋 OSS SENSEI: Middleware de Log para Depuração de Rotas
+  // Middleware de Log
   app.use((req, res, next) => {
-    // Log apenas para API e erros críticos
     if (req.path.startsWith("/api")) {
-      console.log(`🥋 [API] ${req.method} ${req.path}`);
-    } else if (process.env.NODE_ENV !== "production") {
-       // Log de ativos apenas em dev
-       if (!req.path.includes("node_modules") && !req.path.includes("@vite")) {
-         console.log(`🥋 [DEV ASSET] ${req.method} ${req.path}`);
-       }
+      // Registrar erros de API ou logs essenciais apenas em prod
+      if (process.env.NODE_ENV !== "production") {
+        console.log(`🥋 [API] ${req.method} ${req.path}`);
+      }
     }
     next();
   });
@@ -107,11 +106,13 @@ async function startServer() {
   // API Router
   const apiRouter = express.Router();
 
-  // Middleware para garantir que o Router está operando corretamente
-  apiRouter.use((req, res, next) => {
-    console.log(`🥋 [ROUTER DEBUG] Request matching: ${req.method} ${req.path}`);
-    next();
-  });
+  // Middleware para de Router (somente dev)
+  if (process.env.NODE_ENV !== "production") {
+    apiRouter.use((req, res, next) => {
+      // console.log(`🥋 [ROUTER DEBUG] Request matching: ${req.method} ${req.path}`);
+      next();
+    });
+  }
 
   // Initialization middleware for the entire router
   apiRouter.use((req, res, next) => {
@@ -179,7 +180,9 @@ async function startServer() {
 
   // API 404 catch-all (inside the router!)
   apiRouter.use((req, res) => {
-    console.warn(`🥋 [API 404] ${req.method} ${req.originalUrl} - Não casou em nenhuma rota do apiRouter.`);
+    if (process.env.NODE_ENV !== "production") {
+      console.warn(`🥋 [API 404] ${req.method} ${req.originalUrl} - Não casou em nenhuma rota do apiRouter.`);
+    }
     res.status(404).json({ 
       error: `API Route not found: ${req.method} ${req.originalUrl}`,
       tip: "OSS! Verifique se o endpoint existe no server.ts e se o prefixo /api está correto."
