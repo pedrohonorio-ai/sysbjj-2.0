@@ -32,24 +32,6 @@ async function startServer() {
   const app = express();
   const PORT = 3000;
 
-  // Helper para serialização segura de BigInt
-  const serializeData = (data: any) => {
-    return JSON.parse(JSON.stringify(data, (k, v) => 
-      typeof v === 'bigint' 
-        ? (Number(v) <= Number.MAX_SAFE_INTEGER ? Number(v) : v.toString()) 
-        : v
-    ));
-  };
-
-  // 🥋 Diagnostic for debugging
-  if (process.env.NODE_ENV !== "production") {
-    const dbUrl = process.env.DATABASE_URL || "";
-    const masked = dbUrl.replace(/:([^@]+)@/, ':****@');
-    console.log('🥋 [SENSEI STATUS] DATABASE_URL Final:', masked);
-  }
-  
-  // 🥋 handleApiError removido (usando src/api/utils.ts)
-
   // Body parser
   app.use(express.json());
 
