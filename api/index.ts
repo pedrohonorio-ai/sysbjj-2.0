@@ -22,23 +22,27 @@ app.use(cors({
     allowedHeaders: ["Content-Type", "Authorization", "X-Requested-With"]
 }));
 
-// Public Routes
-app.get("/api/health", healthHandler);
-app.post("/api/auth/login", loginHandler);
-app.post("/api/auth/register", registerHandler);
-
-// Initialization middleware
+// 🥋 [OSS SENSEI] Initialization middleware - PROTEGE TODAS AS ROTAS API
 app.use((req, res, next) => {
+    // Health check simples não precisa de banco
+    if (req.path === "/api/health") return next();
+
     if (!prisma) {
-        console.error("🥋 [SERVER INIT FAIL]: Prisma client is null/undefined in middleware");
+        console.error(`🥋 [SERVER INIT FAIL]: Prisma is NULL. Path: ${req.path}`);
         return res.status(503).json({ 
-            error: "O sistema está inicializando. Por favor, aguarde alguns segundos.",
-            sensei_tip: "Se este erro persistir, verifique a conexão com o banco de dados Neon.",
+            success: false,
+            error: "O sistema de dados (Prisma) não pôde ser inicializado.",
+            sensei_tip: "Sensei, verifique a DATABASE_URL nas variáveis de ambiente do Vercel.",
             timestamp: new Date().toISOString()
         });
     }
     next();
 });
+
+// Public Routes
+app.get("/api/health", healthHandler);
+app.post("/api/auth/login", loginHandler);
+app.post("/api/auth/register", registerHandler);
 
 // Protected Router
 const protectedRouter = express.Router() as any;

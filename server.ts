@@ -97,11 +97,12 @@ async function startServer() {
   // Initialization middleware for the entire router
   apiRouter.use((req, res, next) => {
     if (!prisma) {
-      // Except for health checks
-      const exempt = ["/health", "/health-db", "/test-db"].includes(req.path);
-      if (exempt) return next();
-      
-      return res.status(503).json({ error: "O sistema está inicializando. Por favor, aguarde alguns segundos." });
+      console.error(`🥋 [SERVER.TS INIT FAIL]: Prisma is NULL. Path: ${req.path}`);
+      return res.status(503).json({ 
+        success: false,
+        error: "O sistema de dados (Prisma) não pôde ser inicializado.",
+        sensei_tip: "Sensei, o banco de dados não respondeu ao chamado. Verifique o DATABASE_URL."
+      });
     }
     next();
   });

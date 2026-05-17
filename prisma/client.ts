@@ -149,7 +149,7 @@ process.env.DIRECT_URL = finalDirectUrl || finalUrlToUse;
 
 const globalForPrisma = globalThis as any;
 
-let prismaInstance: PrismaClient;
+let prismaInstance: PrismaClient | null = null;
 
 try {
   console.log(`🥋 [PRISMA SENSEI] Inicializando cliente (Origem: ${source})...`);
@@ -157,7 +157,10 @@ try {
   const maskedUrl = finalUrlToUse.replace(/:([^@]+)@/, ":****@");
   console.log(`🥋 [PRISMA SENSEI] Usando URL: ${maskedUrl}`);
 
-  prismaInstance = globalForPrisma.prisma || new PrismaClient({
+  if (globalForPrisma.prisma) {
+    prismaInstance = globalForPrisma.prisma;
+  } else {
+    prismaInstance = new PrismaClient({
       datasources: {
         db: {
           url: finalUrlToUse
@@ -166,13 +169,15 @@ try {
       log: ["error", "warn"]
     });
 
-  if (process.env.NODE_ENV !== "production") {
-    globalForPrisma.prisma = prismaInstance;
+    if (process.env.NODE_ENV !== "production") {
+      globalForPrisma.prisma = prismaInstance;
+    }
   }
 } catch (err: any) {
   console.error("🥋 [PRISMA CRITICAL FAIL]: Falha ao instanciar PrismaClient:", err);
-  // Re-throw if in production to fail fast, or provide null if we want to handle it in middleware
-  throw err;
+  // Sensei: No ambiente serverless, não damos throw aqui para evitar FUNCTION_INVOCATION_FAILED.
+  // Deixamos o middleware lidar com o estado nulo.
+  prismaInstance = null;
 }
 
 export const prisma = prismaInstance;
