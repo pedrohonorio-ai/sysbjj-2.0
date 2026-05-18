@@ -1,5 +1,5 @@
 import { Request, Response } from 'express';
-import { prisma } from '../src/lib/prisma.js';
+import { prisma } from '../prisma/client.js';
 
 export default async function healthDbRlsHandler(req: Request, res: Response) {
   try {

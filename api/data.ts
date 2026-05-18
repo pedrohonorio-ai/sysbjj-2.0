@@ -1,5 +1,5 @@
 import { Response } from 'express';
-import { prisma } from '../src/lib/prisma.js';
+import { prisma } from '../prisma/client.js';
 import { handleApiError } from './utils.js';
 import { AuthRequest } from './authMiddleware.js';
 

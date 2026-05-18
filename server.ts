@@ -4,7 +4,7 @@ import cors from "cors";
 import { createServer as createViteServer } from "vite";
 import path from "path";
 import { fileURLToPath } from "url";
-import { prisma } from "./src/lib/prisma.js";
+import { prisma } from "./prisma/client.js";
 import { handleApiError } from "./api/utils.js";
 import healthHandler from "./api/health.js";
 import healthDbHandler from "./api/health-db.js";
