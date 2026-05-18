@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { CreditCard, DollarSign, ArrowUpRight, ArrowDownLeft, Search, Filter, Calendar, Users, ShieldCheck, Download, AlertCircle, TrendingUp, Wallet, Receipt, Trash2, CheckCircle2, Plus, X, BarChart3 } from 'lucide-react';
 import { useData } from '../contexts/DataContext.js';
+import { StudentStatus } from '../types.js';
 import { format, startOfMonth, endOfMonth, eachDayOfInterval, isSameDay } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import VerificationBadge from '../components/ui/VerificationBadge.js';
@@ -39,9 +40,26 @@ const Finances: React.FC = () => {
   };
 
   const chartData = getChartData();
-  const totalBalance = ledger.reduce((acc, curr) => acc + (curr.type === 'Income' || curr.type === 'StudentPayment' || curr.type === 'ExtraRevenue' ? curr.amount : -curr.amount), 0);
-  const monthIncome = ledger.filter(l => ['Income', 'StudentPayment', 'ExtraRevenue'].includes(l.type)).reduce((acc, curr) => acc + curr.amount, 0);
-  const monthExpense = ledger.filter(l => l.type === 'Expense').reduce((acc, curr) => acc + curr.amount, 0);
+  const now = new Date();
+  const startOfThisMonth = startOfMonth(now);
+  const startOfLastMonth = startOfMonth(new Date(now.getFullYear(), now.getMonth() - 1, 1));
+  const endOfLastMonth = endOfMonth(startOfLastMonth);
+
+  const currentMonthLedger = ledger.filter(l => new Date(l.timestamp) >= startOfThisMonth);
+  const monthIncome = currentMonthLedger.filter(l => ['Income', 'StudentPayment', 'ExtraRevenue'].includes(l.type)).reduce((acc, curr) => acc + curr.amount, 0);
+  const monthExpense = currentMonthLedger.filter(l => l.type === 'Expense').reduce((acc, curr) => acc + curr.amount, 0);
+
+  const prevMonthLedger = ledger.filter(l => {
+    const d = new Date(l.timestamp);
+    return d >= startOfLastMonth && d <= endOfLastMonth;
+  });
+  const prevMonthIncome = prevMonthLedger.filter(l => ['Income', 'StudentPayment', 'ExtraRevenue'].includes(l.type)).reduce((acc, curr) => acc + curr.amount, 0);
+  const prevMonthExpense = prevMonthLedger.filter(l => l.type === 'Expense').reduce((acc, curr) => acc + curr.amount, 0);
+
+  const incomeGrowth = prevMonthIncome > 0 ? ((monthIncome - prevMonthIncome) / prevMonthIncome) * 100 : (monthIncome > 0 ? 100 : 0);
+  const expenseGrowth = prevMonthExpense > 0 ? ((monthExpense - prevMonthExpense) / prevMonthExpense) * 100 : (monthExpense > 0 ? 100 : 0);
+
+  const totalBalance = ledger.reduce((acc, curr) => acc + (['Income', 'StudentPayment', 'ExtraRevenue'].includes(curr.type) ? curr.amount : -curr.amount), 0);
 
   const runVerification = () => {
     setIsVerifying(true);
@@ -61,8 +79,14 @@ const Finances: React.FC = () => {
     return matchesSearch && matchesFilter;
   });
 
+  const overdueStudentsFiltered = students.filter(s => s.status === StudentStatus.OVERDUE);
+  const overdueAmount = overdueStudentsFiltered.reduce((acc, s) => acc + (s.monthlyValue || 0), 0);
+  const overdueCount = overdueStudentsFiltered.length;
+  const totalStudentsCount = students.length;
+  const overduePercentage = totalStudentsCount > 0 ? (overdueCount / totalStudentsCount) * 100 : 0;
+
   return (
-    <div className="space-y-8 pb-20">
+    <div className="space-y-8 pb-20 px-4 sm:px-6">
       <header className="flex flex-col md:flex-row md:items-center justify-between gap-6">
         <div>
           <h1 className="text-3xl font-black text-slate-900 dark:text-white uppercase tracking-tighter italic">Gestão <span className="text-blue-600">Financeira</span></h1>
@@ -83,10 +107,10 @@ const Finances: React.FC = () => {
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
         {[
-          { label: 'Saldo Total', value: totalBalance, icon: <Wallet className="text-blue-600" />, trend: '+12.5%', color: 'text-blue-600' },
-          { label: 'Receita Mensal', value: monthIncome, icon: <ArrowUpRight className="text-emerald-500" />, trend: '+5.2%', color: 'text-emerald-600' },
-          { label: 'Despesas', value: monthExpense, icon: <ArrowDownLeft className="text-rose-500" />, trend: '-2.1%', color: 'text-rose-600' },
-          { label: 'Aproveitamento', value: monthIncome > 0 ? Math.round(((monthIncome - monthExpense) / monthIncome) * 100) : 0, isPercent: true, icon: <TrendingUp className="text-amber-500" />, trend: 'Meta 95%', color: 'text-amber-600' },
+          { label: 'Saldo Total', value: totalBalance, icon: <Wallet className="text-blue-600" />, trend: 'Acumulado', color: 'text-blue-600' },
+          { label: 'Receita Mensal', value: monthIncome, icon: <ArrowUpRight className="text-emerald-500" />, trend: `${incomeGrowth >= 0 ? '+' : ''}${incomeGrowth.toFixed(1)}%`, color: 'text-emerald-600' },
+          { label: 'Despesas', value: monthExpense, icon: <ArrowDownLeft className="text-rose-500" />, trend: `${expenseGrowth >= 0 ? '+' : ''}${expenseGrowth.toFixed(1)}%`, color: 'text-rose-600' },
+          { label: 'Aproveitamento', value: monthIncome > 0 ? Math.round(((monthIncome - monthExpense) / monthIncome) * 100) : 0, isPercent: true, icon: <TrendingUp className="text-amber-500" />, trend: 'Margem', color: 'text-amber-600' },
         ].map((stat, idx) => (
           <div key={idx} className="bg-white dark:bg-slate-900 p-6 rounded-3xl border border-slate-200 dark:border-white/5 shadow-xl relative overflow-hidden group">
             <div className="absolute top-0 right-0 w-24 h-24 bg-blue-600/5 rounded-full -mr-12 -mt-12 blur-2xl group-hover:bg-blue-600/10 transition-colors" />
@@ -331,16 +355,16 @@ const Finances: React.FC = () => {
                 <div className="space-y-4">
                    <div className="flex items-center justify-between">
                       <span className="text-[10px] font-bold text-slate-400 uppercase">Mensalidades em Atraso</span>
-                      <span className="text-lg font-black text-rose-500 italic">R$ 1.450,00</span>
+                      <span className="text-lg font-black text-rose-500 italic">R$ {overdueAmount.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</span>
                    </div>
                    <div className="w-full bg-white/5 h-2 rounded-full overflow-hidden">
                       <motion.div 
                         initial={{ width: 0 }}
-                        animate={{ width: '15%' }}
+                        animate={{ width: `${overduePercentage}%` }}
                         className="h-full bg-rose-500"
                       />
                    </div>
-                   <p className="text-[10px] text-slate-500 font-medium">8 alunos pendentes. Recomendamos o envio de avisos automáticos via WhatsApp.</p>
+                   <p className="text-[10px] text-slate-500 font-medium">{overdueCount} alunos pendentes. Recomendamos o envio de avisos automáticos via WhatsApp.</p>
                 </div>
                 <button className="w-full py-4 border border-white/10 rounded-2xl font-black uppercase tracking-widest text-[10px] hover:bg-white/5 transition-all">
                    Visualizar Inadimplentes

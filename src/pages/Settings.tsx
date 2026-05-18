@@ -32,7 +32,8 @@ const Settings: React.FC = () => {
     }
   };
   const authData = getAuthData();
-  const isDashfireAdmin = authData.email?.toLowerCase() === 'dashfire@gmail.com';
+  const isAdmin = user?.role === 'admin' || authData.role === 'admin';
+  const isDashfireAdmin = isAdmin;
   
   const [formData, setFormData] = useState({
     ...profile,

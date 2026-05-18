@@ -3012,7 +3012,7 @@ const Students: React.FC = () => {
                           deleteStudent(student.id);
                         }
                       }}
-                      className="p-2 bg-white/10 backdrop-blur-md rounded-full text-slate-100 opacity-0 group-hover:opacity-100 hover:bg-red-500 transition-all"
+                      className="p-2 bg-slate-900/40 lg:bg-white/10 backdrop-blur-md rounded-full text-slate-100 opacity-100 lg:opacity-0 lg:group-hover:opacity-100 hover:bg-red-500 transition-all shadow-lg"
                     >
                       <Trash2 size={14} />
                     </button>

@@ -19,7 +19,7 @@ import {
   TrendingUp
 } from 'lucide-react';
 
-export const MASTER_ADMINS = ['pedro.honorio@gm.rio'];
+export const MASTER_ADMINS = ['pedro.honorio@gm.rio', 'dashfire@gmail.com'];
 
 export const NAVIGATION_ITEMS = [
   { id: 'dashboard', label: 'Painel', icon: <LayoutDashboard size={20} className="text-blue-500" /> },

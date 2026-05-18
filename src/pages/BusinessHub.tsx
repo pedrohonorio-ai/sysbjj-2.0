@@ -1,6 +1,6 @@
 
 import React, { useState, useEffect } from 'react';
-import { ShoppingBag, TrendingUp, DollarSign, Package, Plus, Star, Zap, ShieldCheck, ArrowUpRight, Search, Filter, ShoppingCart, Tag, BarChart3, PieChart, Users, Target, Activity, RefreshCw } from 'lucide-react';
+import { ShoppingBag, TrendingUp, DollarSign, Package, Plus, Star, Zap, ShieldCheck, ArrowUpRight, Search, Filter, ShoppingCart, Tag, BarChart3, PieChart, Users, Target, Activity, RefreshCw, X } from 'lucide-react';
 import { useTranslation } from '../contexts/LanguageContext.js';
 import { useData } from '../contexts/DataContext.js';
 import { motion, AnimatePresence } from 'motion/react';
@@ -11,7 +11,7 @@ import { useAuth } from '../context/AuthContext.js';
 const BusinessHub: React.FC = () => {
   const { t } = useTranslation();
   const { user } = useAuth();
-  const { products, plans, ledger, addProduct, addPlan, addExtraRevenue, orders, updateOrder, deleteOrder, addOrder, students } = useData();
+  const { products, plans, ledger, addProduct, addPlan, addExtraRevenue, orders, updateOrder, deleteOrder, addOrder, students, deleteProduct } = useData();
   const [activeTab, setActiveTab] = useState<'shop' | 'plans' | 'orders' | 'reports'>('shop');
   const [searchTerm, setSearchTerm] = useState('');
   const [showQuickSale, setShowQuickSale] = useState(false);
@@ -174,15 +174,28 @@ const BusinessHub: React.FC = () => {
                       <h3 className="text-lg font-black text-slate-900 dark:text-white uppercase tracking-tight truncate">{product.name}</h3>
                       <div className="flex items-center justify-between pt-4">
                         <span className="text-2xl font-black text-slate-900 dark:text-white uppercase tracking-tighter italic">R$ {product.price.toLocaleString()}</span>
-                        <button 
-                          onClick={() => {
-                            setSelectedProduct(product);
-                            setShowQuickSale(true);
-                          }}
-                          className="w-10 h-10 bg-slate-900 dark:bg-white text-white dark:text-slate-900 rounded-xl flex items-center justify-center hover:bg-blue-600 hover:text-white transition-all shadow-lg"
-                        >
-                          <Plus size={20} />
-                        </button>
+                        <div className="flex gap-2">
+                          <button
+                            onClick={() => {
+                              if (window.confirm(t('common.deleteConfirm'))) {
+                                deleteProduct(product.id);
+                              }
+                            }}
+                            className="w-10 h-10 bg-red-50 dark:bg-red-900/10 text-red-600 rounded-xl flex items-center justify-center hover:bg-red-600 hover:text-white transition-all shadow-lg border border-red-100 dark:border-red-900/20"
+                            title={t('common.delete')}
+                          >
+                            <X size={18} />
+                          </button>
+                          <button 
+                            onClick={() => {
+                              setSelectedProduct(product);
+                              setShowQuickSale(true);
+                            }}
+                            className="w-10 h-10 bg-slate-900 dark:bg-white text-white dark:text-slate-900 rounded-xl flex items-center justify-center hover:bg-blue-600 hover:text-white transition-all shadow-lg"
+                          >
+                            <Plus size={20} />
+                          </button>
+                        </div>
                       </div>
                     </div>
                   </motion.div>
