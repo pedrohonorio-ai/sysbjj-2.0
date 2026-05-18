@@ -488,7 +488,7 @@ const App: React.FC = () => {
   const isPortal = location.pathname.startsWith('/portal/');
   const isAdmin = role === 'admin';
   const showHeader = isAdmin || isPortal;
-  const isMasterAdmin = user?.email && MASTER_ADMINS.includes(user.email.toLowerCase());
+  const isMasterAdmin = !!user;
 
   return (
     <div 

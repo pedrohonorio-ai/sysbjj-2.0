@@ -2637,7 +2637,7 @@ const CompetitorSelectorModal = ({ onClose }: { onClose: () => void }) => {
 
 const Students: React.FC = () => {
   const { t } = useTranslation();
-  const { students, schedules } = useData();
+  const { students, schedules, deleteStudent } = useData();
   const { profile } = useProfile();
   const [searchTerm, setSearchTerm] = useState('');
   const [classFilter, setClassFilter] = useState('');
@@ -2965,7 +2965,21 @@ const Students: React.FC = () => {
                         <p className="text-[7px] uppercase font-bold text-slate-400 mt-0.5 tracking-widest">{t('students.totalClasses')}</p>
                       </td>
                       <td className="px-8 py-4 text-right">
-                        <MoreVertical size={18} className="text-slate-400 group-hover:text-blue-600 transition-colors ml-auto" />
+                        <div className="flex items-center justify-end gap-2">
+                          <button 
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              if(confirm(t('students.deleteConfirm'))) {
+                                deleteStudent(student.id);
+                              }
+                            }}
+                            className="p-2 text-slate-400 hover:text-red-500 transition-colors"
+                            title={t('students.deleteTitle')}
+                          >
+                            <Trash2 size={16} />
+                          </button>
+                          <MoreVertical size={18} className="text-slate-400 group-hover:text-blue-600 transition-colors" />
+                        </div>
                       </td>
                     </motion.tr>
                   ))}
@@ -2990,6 +3004,19 @@ const Students: React.FC = () => {
                 className="bg-white dark:bg-slate-900 rounded-[2.5rem] p-6 border border-slate-200 dark:border-slate-800 shadow-xl group hover:border-blue-600 transition-all cursor-pointer flex flex-col items-center text-center space-y-4"
               >
                 <div className="relative">
+                  <div className="absolute top-4 right-4 z-10">
+                    <button 
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        if(confirm(t('students.deleteConfirm'))) {
+                          deleteStudent(student.id);
+                        }
+                      }}
+                      className="p-2 bg-white/10 backdrop-blur-md rounded-full text-slate-100 opacity-0 group-hover:opacity-100 hover:bg-red-500 transition-all"
+                    >
+                      <Trash2 size={14} />
+                    </button>
+                  </div>
                   <div className={`w-28 h-28 rounded-3xl p-1 shrink-0 ${BELT_COLORS[student.belt]?.includes('bg-white') ? 'bg-slate-200' : BELT_COLORS[student.belt]?.split(' ')[0]}`}>
                     <div className="w-full h-full rounded-2xl bg-white dark:bg-slate-800 overflow-hidden relative">
                       {student.photoUrl ? (

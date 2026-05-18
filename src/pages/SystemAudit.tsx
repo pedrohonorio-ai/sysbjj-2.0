@@ -115,7 +115,7 @@ const SystemAudit: React.FC = () => {
   const [currentPage, setCurrentPage] = useState(1);
 
   const auth = JSON.parse(localStorage.getItem('oss_auth') || '{}');
-  const isAdmin = MASTER_ADMINS.includes(auth.email?.toLowerCase());
+  const isAdmin = !!auth.user;
 
   const filteredLogs = useMemo(() => {
     const now = Date.now();

@@ -86,7 +86,7 @@ const Finances: React.FC = () => {
           { label: 'Saldo Total', value: totalBalance, icon: <Wallet className="text-blue-600" />, trend: '+12.5%', color: 'text-blue-600' },
           { label: 'Receita Mensal', value: monthIncome, icon: <ArrowUpRight className="text-emerald-500" />, trend: '+5.2%', color: 'text-emerald-600' },
           { label: 'Despesas', value: monthExpense, icon: <ArrowDownLeft className="text-rose-500" />, trend: '-2.1%', color: 'text-rose-600' },
-          { label: 'Aproveitamento', value: 94, isPercent: true, icon: <TrendingUp className="text-amber-500" />, trend: 'Meta 95%', color: 'text-amber-600' },
+          { label: 'Aproveitamento', value: monthIncome > 0 ? Math.round(((monthIncome - monthExpense) / monthIncome) * 100) : 0, isPercent: true, icon: <TrendingUp className="text-amber-500" />, trend: 'Meta 95%', color: 'text-amber-600' },
         ].map((stat, idx) => (
           <div key={idx} className="bg-white dark:bg-slate-900 p-6 rounded-3xl border border-slate-200 dark:border-white/5 shadow-xl relative overflow-hidden group">
             <div className="absolute top-0 right-0 w-24 h-24 bg-blue-600/5 rounded-full -mr-12 -mt-12 blur-2xl group-hover:bg-blue-600/10 transition-colors" />

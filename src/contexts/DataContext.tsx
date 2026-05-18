@@ -166,72 +166,9 @@ const DEFAULT_SCHEDULES: ClassSchedule[] = [
   { id: '2', time: '12:00', title: 'No-Gi Avançado', instructor: 'Sensei SYSBJJ', category: 'Adulto', days: ['Ter', 'Qui'] },
   { id: '3', time: '18:00', title: 'Kids - Branca/Amarela', instructor: 'Instrutor SYS', category: 'Kids', days: ['Seg', 'Qua', 'Sex'] }
 ];
-const DEFAULT_TECHNIQUES: LibraryTechnique[] = [
-  // FINALIZAÇÕES (SUBMISSIONS)
-  { id: 'T-001', name: 'Armlock da Guarda Fechada', category: TechniqueCategory.SUBMISSIONS, beltLevel: BeltColor.WHITE, description: 'Ataque básico de braço partindo da guarda fechada, utilizando o quadril para isolar o cotovelo.' },
-  { id: 'T-002', name: 'Triângulo da Guarda', category: TechniqueCategory.SUBMISSIONS, beltLevel: BeltColor.WHITE, description: 'Estrangulamento com as pernas isolando o braço e o pescoço do adversário.' },
-  { id: 'T-003', name: 'Mata Leão', category: TechniqueCategory.SUBMISSIONS, beltLevel: BeltColor.WHITE, description: 'Estrangulamento clássico pelas costas.' },
-  { id: 'T-004', name: 'Guilhotina', category: TechniqueCategory.SUBMISSIONS, beltLevel: BeltColor.WHITE, description: 'Estrangulamento frontal sob a axila.' },
-  { id: 'T-005', name: 'Kimura', category: TechniqueCategory.SUBMISSIONS, beltLevel: BeltColor.WHITE, description: 'Chave de ombro rotacional.' },
-  { id: 'T-006', name: 'Americana', category: TechniqueCategory.SUBMISSIONS, beltLevel: BeltColor.WHITE, description: 'Chave de ombro do controle lateral.' },
-  { id: 'T-007', name: 'Omoplata', category: TechniqueCategory.SUBMISSIONS, beltLevel: BeltColor.BLUE, description: 'Chave de ombro com as pernas.' },
-  { id: 'T-008', name: 'Ezequiel', category: TechniqueCategory.SUBMISSIONS, beltLevel: BeltColor.WHITE, description: 'Estrangulamento com a manga.' },
-  { id: 'T-009', name: 'Chave de Pé (Botinha)', category: TechniqueCategory.SUBMISSIONS, beltLevel: BeltColor.WHITE, description: 'Ataque de tornozelo básico.' },
-  { id: 'T-010', name: 'Katagatame', category: TechniqueCategory.SUBMISSIONS, beltLevel: BeltColor.BLUE, description: 'Triângulo de braço.' },
-  { id: 'T-041', name: 'Triângulo de Mão (D\'Arce)', category: TechniqueCategory.SUBMISSIONS, beltLevel: BeltColor.PURPLE, description: 'Triângulo de braço aplicado quando o oponente está de quatro apoios ou na meia guarda.' },
-  { id: 'T-042', name: 'Anaconda Choke', category: TechniqueCategory.SUBMISSIONS, beltLevel: BeltColor.PURPLE, description: 'Estrangulamento frontal girando sob o braço do oponente.' },
-  { id: 'T-043', name: 'Bolo de Rolo (Berimbolo)', category: TechniqueCategory.BACK_TAKES, beltLevel: BeltColor.PURPLE, description: 'Transição moderna para as costas saindo da De La Riva.' },
-  { id: 'T-044', name: 'Canto Choke', category: TechniqueCategory.SUBMISSIONS, beltLevel: BeltColor.PURPLE, description: 'Estrangulamento com a lapela utilizando a perna por cima do pescoço.' },
-  { id: 'T-045', name: 'Bow and Arrow Choke', category: TechniqueCategory.SUBMISSIONS, beltLevel: BeltColor.BLUE, description: 'Arco e flecha, o estrangulamento mais eficiente do BJJ com kimono.' },
-  { id: 'T-046', name: 'Heel Hook (Chave de Calcanhar)', category: TechniqueCategory.SUBMISSIONS, beltLevel: BeltColor.BROWN, description: 'Ataque rotacional de calcanhar extremamente perigoso (No-Gi).' },
-  { id: 'T-047', name: 'Kneebar (Chave de Joelho)', category: TechniqueCategory.SUBMISSIONS, beltLevel: BeltColor.BROWN, description: 'Hiperextensão do joelho.' },
-  { id: 'T-048', name: 'Chave de Pulso (Mão de Vaca)', category: TechniqueCategory.SUBMISSIONS, beltLevel: BeltColor.BLUE, description: 'Ataque rápido de punho.' },
-  
-  // PASSAGEM DE GUARDA (GUARD PASSING)
-  { id: 'T-011', name: 'Passagem de Toureando', category: TechniqueCategory.GUARD_PASSING, beltLevel: BeltColor.WHITE, description: 'Passagem dinâmica desviando das pernas.' },
-  { id: 'T-012', name: 'Passagem de Joelho Cruzado', category: TechniqueCategory.GUARD_PASSING, beltLevel: BeltColor.BLUE, description: 'Knee Slide.' },
-  { id: 'T-013', name: 'Passagem Double Under', category: TechniqueCategory.GUARD_PASSING, beltLevel: BeltColor.WHITE, description: 'Passagem por baixo abraçando as pernas.' },
-  { id: 'T-014', name: 'Passagem Leg Drag', category: TechniqueCategory.GUARD_PASSING, beltLevel: BeltColor.PURPLE, description: 'Grampeando a perna para o lado oposto.' },
-  { id: 'T-049', name: 'Passagem de Meia Guarda (Tripé)', category: TechniqueCategory.GUARD_PASSING, beltLevel: BeltColor.BLUE, description: 'Passagem clássica de pressão na meia guarda.' },
-  { id: 'T-050', name: 'Long Step Pass', category: TechniqueCategory.GUARD_PASSING, beltLevel: BeltColor.PURPLE, description: 'Passagem com passo longo cruzando a guarda aberta.' },
-  { id: 'T-051', name: 'Passagem Smash Pass', category: TechniqueCategory.GUARD_PASSING, beltLevel: BeltColor.BLUE, description: 'Amassando as pernas do oponente para um lado.' },
-
-  // RASPAGENS (SWEEPS)
-  { id: 'T-016', name: 'Raspagem de Tesoura', category: TechniqueCategory.SWEEPS, beltLevel: BeltColor.WHITE, description: 'Raspagem básica da guarda fechada.' },
-  { id: 'T-017', name: 'Raspagem de Gancho', category: TechniqueCategory.SWEEPS, beltLevel: BeltColor.WHITE, description: 'Butterfly Sweep.' },
-  { id: 'T-018', name: 'Raspagem Flower Sweep', category: TechniqueCategory.SWEEPS, beltLevel: BeltColor.WHITE, description: 'Raspagem pendular.' },
-  { id: 'T-052', name: 'Raspagem Scissor Sweep', category: TechniqueCategory.SWEEPS, beltLevel: BeltColor.WHITE, description: 'Clássica tesourinha.' },
-  { id: 'T-053', name: 'Raspagem de Dela Riva (Tomoe Nage)', category: TechniqueCategory.SWEEPS, beltLevel: BeltColor.BLUE, description: 'Capotagem da Dela Riva.' },
-  { id: 'T-054', name: 'Raspagem Kiss of the Dragon', category: TechniqueCategory.SWEEPS, beltLevel: BeltColor.PURPLE, description: 'Inversão por baixo do oponente na De La Riva invertida.' },
-  { id: 'T-055', name: 'Raspagem X-Guard (Technical Stand-up)', category: TechniqueCategory.SWEEPS, beltLevel: BeltColor.PURPLE, description: 'Levantada técnica da guarda X.' },
-
-  // QUEDAS (TAKEDOWNS)
-  { id: 'T-022', name: 'Baiana (Double Leg)', category: TechniqueCategory.TAKEDOWNS, beltLevel: BeltColor.WHITE, description: 'Queda clássica de duas pernas.' },
-  { id: 'T-023', name: 'Single Leg', category: TechniqueCategory.TAKEDOWNS, beltLevel: BeltColor.WHITE, description: 'Ataque em uma perna.' },
-  { id: 'T-056', name: 'Uchimata', category: TechniqueCategory.TAKEDOWNS, beltLevel: BeltColor.PURPLE, description: 'Projeção poderosa com a perna por dentro.' },
-  { id: 'T-057', name: 'Ippon Seoi Nage', category: TechniqueCategory.TAKEDOWNS, beltLevel: BeltColor.BLUE, description: 'Arremesso por cima do ombro clássico.' },
-  { id: 'T-058', name: 'Fireman Carry', category: TechniqueCategory.TAKEDOWNS, beltLevel: BeltColor.PURPLE, description: 'Carregada de bombeiro (Kata Garuma).' },
-
-  // POSICIONAL E ESCAPADAS
-  { id: 'T-027', name: 'Saída da Montada (Upa)', category: TechniqueCategory.ESCAPES, beltLevel: BeltColor.WHITE, description: 'Escapada básica com ponte.' },
-  { id: 'T-059', name: 'Escapada de Cotovelo (Montada)', category: TechniqueCategory.ESCAPES, beltLevel: BeltColor.WHITE, description: 'Reposição de meia guarda.' },
-  { id: 'T-060', name: 'Escapada de Quadril (100kg)', category: TechniqueCategory.ESCAPES, beltLevel: BeltColor.WHITE, description: 'Fuga essencial do controle lateral.' },
-  { id: 'T-061', name: 'Shrimping (Fuga de Quadril)', category: TechniqueCategory.WARMUP, beltLevel: BeltColor.WHITE, description: 'Movimento fundamental de sobrevivência.' },
-  { id: 'T-062', name: 'Pummeling (Esgrima)', category: TechniqueCategory.WARMUP, beltLevel: BeltColor.WHITE, description: 'Disputa de esgrima em pé ou solo.' }
-];
-
-const DEFAULT_PRODUCTS: Product[] = [
-  { id: 'P-1', name: 'Kimono Ultra Light Preto', price: 450, category: ExtraRevenueCategory.PRODUCT, stock: 15 },
-  { id: 'P-2', name: 'Faixa Pro - Todas as Cores', price: 80, category: ExtraRevenueCategory.PRODUCT, stock: 50 },
-  { id: 'P-3', name: 'Rash Guard SYSBJJ Edition', price: 180, category: ExtraRevenueCategory.PRODUCT, stock: 20 },
-  { id: 'P-4', name: 'Whey Protein Isolado 900g', price: 210, category: ExtraRevenueCategory.PRODUCT, stock: 10 }
-];
-
-const DEFAULT_PLANS: Plan[] = [
-  { id: 'PL-1', name: 'Plano Mensal', price: 280, description: 'Acesso total a todas as aulas.', benefits: ['Sem fidelidade', 'Acesso ao App', 'Treinos Livres'] },
-  { id: 'PL-2', name: 'Plano Semestral', price: 240, description: 'Economia com fidelidade de 6 meses.', benefits: ['Desconto de 15%', 'Acesso VIP', 'Aula Particular Mensal'] },
-  { id: 'PL-3', name: 'Plano Kids', price: 190, description: 'Foco técnico e educacional para crianças.', benefits: ['Ludicidade Técnica', 'Acompanhamento Escolar', 'Eventos Kids'] }
-];
+const DEFAULT_TECHNIQUES: LibraryTechnique[] = [];
+const DEFAULT_PRODUCTS: Product[] = [];
+const DEFAULT_PLANS: Plan[] = [];
 
 // Helper to compress base64 images to save LocalStorage space is now imported from lib/imageUtils
 
