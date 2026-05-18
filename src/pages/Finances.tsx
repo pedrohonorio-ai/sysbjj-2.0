@@ -1,10 +1,10 @@
 import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { CreditCard, DollarSign, ArrowUpRight, ArrowDownLeft, Search, Filter, Calendar, Users, ShieldCheck, Download, AlertCircle, TrendingUp, Wallet, Receipt, Trash2, CheckCircle2, Plus, X, BarChart3 } from 'lucide-react';
-import { useData } from '../contexts/DataContext';
+import { useData } from '../contexts/DataContext.js';
 import { format, startOfMonth, endOfMonth, eachDayOfInterval, isSameDay } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
-import VerificationBadge from '../components/ui/VerificationBadge';
+import VerificationBadge from '../components/ui/VerificationBadge.js';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, AreaChart, Area } from 'recharts';
 
 const Finances: React.FC = () => {

@@ -1,5 +1,5 @@
 
-import { BeltColor, KidsBeltColor } from '../types';
+import { BeltColor, KidsBeltColor } from '../types.js';
 
 export interface RuleQuestion {
   id: string;

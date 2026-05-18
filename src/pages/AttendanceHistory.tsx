@@ -1,7 +1,7 @@
 
 import React from 'react';
 import { Calendar, History } from 'lucide-react';
-import { useTranslation } from '../contexts/LanguageContext';
+import { useTranslation } from '../contexts/LanguageContext.js';
 
 const AttendanceHistory: React.FC = () => {
   const { t } = useTranslation();

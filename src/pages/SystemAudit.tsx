@@ -38,13 +38,13 @@ import {
   Trash2,
   Save
 } from 'lucide-react';
-import { useData } from '../contexts/DataContext';
-import { useTranslation } from '../contexts/LanguageContext';
-import { useProfile } from '../contexts/ProfileContext';
-import { SystemLog } from '../types';
+import { useData } from '../contexts/DataContext.js';
+import { useTranslation } from '../contexts/LanguageContext.js';
+import { useProfile } from '../contexts/ProfileContext.js';
+import { SystemLog } from '../types.js';
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
-import { MASTER_ADMINS, BELT_COLORS } from '../constants';
+import { MASTER_ADMINS, BELT_COLORS } from '../constants/index.js';
 import { motion, AnimatePresence } from 'motion/react';
 
 const SystemAudit: React.FC = () => {
@@ -314,7 +314,7 @@ const SystemAudit: React.FC = () => {
       log.details
     ]);
 
-    autoTable(doc, {
+    (autoTable as any)(doc, {
       startY: 50,
       head: [[t('audit.tableHeaderDate'), t('audit.tableHeaderUser'), t('audit.tableHeaderAction'), t('audit.tableHeaderCategory'), t('audit.tableHeaderDetails')]],
       body: tableData,

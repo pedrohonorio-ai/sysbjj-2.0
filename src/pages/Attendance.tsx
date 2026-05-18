@@ -4,10 +4,10 @@ import {
   Camera, X, Filter, Download, UserPlus, MapPin, 
   Scan, LayoutGrid, Tablet, Sparkles, Zap
 } from 'lucide-react';
-import { StudentStatus, ClassSchedule, Student } from '../types';
-import { useTranslation } from '../contexts/LanguageContext';
-import { useData } from '../contexts/DataContext';
-import { useProfile } from '../contexts/ProfileContext';
+import { StudentStatus, ClassSchedule, Student } from '../types.js';
+import { useTranslation } from '../contexts/LanguageContext.js';
+import { useData } from '../contexts/DataContext.js';
+import { useProfile } from '../contexts/ProfileContext.js';
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
 import { QRCodeCanvas } from 'qrcode.react';
@@ -186,7 +186,7 @@ const AttendancePage: React.FC = () => {
       attendedIds.includes(s.id) ? t('attendance.present') : t('attendance.absent')
     ]);
 
-    autoTable(doc, {
+    (autoTable as any)(doc, {
       startY: 50,
       head: [[t('common.name'), t('common.beltRank'), t('common.status')]],
       body: data,
@@ -220,7 +220,7 @@ const AttendancePage: React.FC = () => {
       return row;
     });
 
-    autoTable(doc, {
+    (autoTable as any)(doc, {
       startY: 40,
       head: [headers],
       body: data,

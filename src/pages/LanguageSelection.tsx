@@ -1,7 +1,7 @@
 
 import React from 'react';
-import { useTranslation } from '../contexts/LanguageContext';
-import { AppLanguage } from '../types';
+import { useTranslation } from '../contexts/LanguageContext.js';
+import { AppLanguage } from '../types.js';
 import { Check, Globe } from 'lucide-react';
 
 const languages = [

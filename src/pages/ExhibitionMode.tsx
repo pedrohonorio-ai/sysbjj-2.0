@@ -1,8 +1,8 @@
 
 import React, { useState, useEffect } from 'react';
 import { Monitor, Clock, Users, Trophy, Zap, Calendar, Heart, Shield, Cake, ShieldCheck } from 'lucide-react';
-import { useData } from '../contexts/DataContext';
-import { useProfile } from '../contexts/ProfileContext';
+import { useData } from '../contexts/DataContext.js';
+import { useProfile } from '../contexts/ProfileContext.js';
 import { motion, AnimatePresence } from 'motion/react';
 
 const ExhibitionMode: React.FC = () => {

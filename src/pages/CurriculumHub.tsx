@@ -6,9 +6,9 @@ import {
   Target, Flame, Zap, PlayCircle, Star, ChevronRight, Search,
   PlusCircle, BookOpenCheck, LayoutGrid, Layers
 } from 'lucide-react';
-import { useData } from '../contexts/DataContext';
-import { ClassSchedule, TechniqueCategory, BeltColor } from '../types';
-import { useTranslation } from '../contexts/LanguageContext';
+import { useData } from '../contexts/DataContext.js';
+import { ClassSchedule, TechniqueCategory, BeltColor } from '../types.js';
+import { useTranslation } from '../contexts/LanguageContext.js';
 import { motion, AnimatePresence } from 'motion/react';
 
 const CurriculumHub: React.FC = () => {

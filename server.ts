@@ -1,4 +1,4 @@
-import "./init-env"; // 🥋 OSS SENSEI: Deve ser o PRIMEIRO import
+import "./init-env.js"; // 🥋 OSS SENSEI: Deve ser o PRIMEIRO import
 import express from "express";
 import cors from "cors";
 import { createServer as createViteServer } from "vite";

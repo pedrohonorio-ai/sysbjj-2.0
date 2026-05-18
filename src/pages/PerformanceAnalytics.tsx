@@ -7,10 +7,10 @@ import {
   Flame, Monitor, Filter, BarChart3, Clock, Scale,
   Layers
 } from 'lucide-react';
-import { useData } from '../contexts/DataContext';
-import { useTranslation } from '../contexts/LanguageContext';
+import { useData } from '../contexts/DataContext.js';
+import { useTranslation } from '../contexts/LanguageContext.js';
 import { ResponsiveContainer, Radar, RadarChart, PolarGrid, PolarAngleAxis, PolarRadiusAxis, AreaChart, Area, XAxis, YAxis, Tooltip } from 'recharts';
-import { Student, SparringLog, CompetitionRecord } from '../types';
+import { Student, SparringLog, CompetitionRecord } from '../types.js';
 
 const PerformanceAnalytics: React.FC = () => {
   const { t } = useTranslation();

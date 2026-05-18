@@ -7,8 +7,8 @@ import {
   ArrowLeft, Send, Baby, Search, Filter, Hash, User, 
   Target, Zap, Clock, ShieldCheck, Weight, Flame, X, AlertCircle
 } from 'lucide-react';
-import { useTranslation } from '../contexts/LanguageContext';
-import { IBJJF_LESSONS, RuleLesson, IBJJF_COURSES, RuleCourse, RuleQuestion, IBJJF_REFERENCE } from '../constants/rulesData';
+import { useTranslation } from '../contexts/LanguageContext.js';
+import { IBJJF_LESSONS, RuleLesson, IBJJF_COURSES, RuleCourse, RuleQuestion, IBJJF_REFERENCE } from '../constants/rulesData.js';
 
 const IBJJFRules: React.FC = () => {
   const { t } = useTranslation();

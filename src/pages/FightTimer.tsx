@@ -6,7 +6,7 @@ import {
   AlertTriangle, Zap, Fullscreen, Minimize2, Info, Clock
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
-import { useTranslation } from '../contexts/LanguageContext';
+import { useTranslation } from '../contexts/LanguageContext.js';
 
 const FightTimer: React.FC = () => {
   const { t } = useTranslation();

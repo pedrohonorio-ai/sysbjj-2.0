@@ -68,8 +68,9 @@ const formatPhone = (value: string) => {
 };
 
 const CameraCapture = ({ onCapture, onClose }: { onCapture: (img: string) => void, onClose: () => void }) => {
-  const webcamRef = React.useRef<Webcam>(null);
+  const webcamRef = React.useRef<any>(null);
   const { t } = useTranslation();
+  const WebcamComponent = Webcam as any;
 
   const capture = React.useCallback(() => {
     const imageSrc = webcamRef.current?.getScreenshot();
@@ -90,7 +91,7 @@ const CameraCapture = ({ onCapture, onClose }: { onCapture: (img: string) => voi
         </div>
         <div className="p-8 space-y-6">
           <div className="relative rounded-[2rem] overflow-hidden border-4 border-slate-100 dark:border-slate-800 shadow-inner aspect-[4/3] bg-black">
-            <Webcam
+            <WebcamComponent
               audio={false}
               ref={webcamRef}
               screenshotFormat="image/jpeg"

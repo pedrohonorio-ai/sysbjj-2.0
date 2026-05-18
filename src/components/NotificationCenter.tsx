@@ -2,8 +2,8 @@
 import React from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { Bell, X, Info, CheckCircle2, AlertTriangle, Clock } from 'lucide-react';
-import { useData } from '../contexts/DataContext';
-import { useTranslation } from '../contexts/LanguageContext';
+import { useData } from '../contexts/DataContext.js';
+import { useTranslation } from '../contexts/LanguageContext.js';
 
 const NotificationCenter: React.FC = () => {
   const { notifications, clearNotification } = useData();

@@ -2,9 +2,9 @@
 import React from 'react';
 import { AlertTriangle, ExternalLink, HelpCircle } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
-import { useData } from '../contexts/DataContext';
+import { useData } from '../contexts/DataContext.js';
 
-import { api } from '../services/api';
+import { api } from '../services/api.js';
 
 const DatabaseWarning: React.FC = () => {
   const { dbStatus, setDemoMode } = useData();

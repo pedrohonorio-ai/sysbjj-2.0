@@ -12,12 +12,12 @@ import {
   Target, Dumbbell, Activity, ClipboardList, Timer, Pause, RotateCcw
 } from 'lucide-react';
 import { Html5QrcodeScanner } from 'html5-qrcode';
-import { useTranslation } from '../contexts/LanguageContext';
-import { useData } from '../contexts/DataContext';
-import { useProfile } from '../contexts/ProfileContext';
-import { StudentStatus, GalleryImage, BeltColor, KidsBeltColor } from '../types';
-import { BELT_COLORS, IBJJF_BELT_RULES } from '../constants';
-import { IBJJF_LESSONS, RuleLesson, RuleScenario, IBJJF_REFERENCE } from '../constants/rulesData';
+import { useTranslation } from '../contexts/LanguageContext.js';
+import { useData } from '../contexts/DataContext.js';
+import { useProfile } from '../contexts/ProfileContext.js';
+import { StudentStatus, GalleryImage, BeltColor, KidsBeltColor } from '../types.js';
+import { BELT_COLORS, IBJJF_BELT_RULES } from '../constants/index.js';
+import { IBJJF_LESSONS, RuleLesson, RuleScenario, IBJJF_REFERENCE } from '../constants/rulesData.js';
 import ReactMarkdown from 'react-markdown';
 
 import { 

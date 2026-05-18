@@ -1,14 +1,14 @@
 
 import React, { useState, useMemo } from 'react';
 import { Award, Star, Search, ShieldCheck, Clock, CheckCircle2, AlertCircle, TrendingUp, UserCheck, QrCode, Lock, ChevronRight, Zap, Medal, Settings2, Users, Baby, Info, Save, Plus, Trash2, Scale } from 'lucide-react';
-import { useTranslation } from '../contexts/LanguageContext';
-import { useData } from '../contexts/DataContext';
+import { useTranslation } from '../contexts/LanguageContext.js';
+import { useData } from '../contexts/DataContext.js';
 import { motion, AnimatePresence } from 'motion/react';
-import { BeltColor, KidsBeltColor, Student, GraduationCriterion } from '../types';
-import { BELT_COLORS, IBJJF_BELT_RULES, ADULT_BELTS, KIDS_BELTS } from '../constants';
-import { BELT_REQUIREMENTS, KIDS_BELT_REQUIREMENTS } from '../constants/beltRequirements';
-import { IBJJF_REFERENCE } from '../constants/rulesData';
-import VerificationBadge from '../components/ui/VerificationBadge';
+import { BeltColor, KidsBeltColor, Student, GraduationCriterion } from '../types.js';
+import { BELT_COLORS, IBJJF_BELT_RULES, ADULT_BELTS, KIDS_BELTS } from '../constants/index.js';
+import { BELT_REQUIREMENTS, KIDS_BELT_REQUIREMENTS } from '../constants/beltRequirements.js';
+import { IBJJF_REFERENCE } from '../constants/rulesData.js';
+import VerificationBadge from '../components/ui/VerificationBadge.js';
 
 const BeltSystem: React.FC = () => {
   const { t } = useTranslation();

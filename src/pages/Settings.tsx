@@ -1,13 +1,13 @@
 
 import React, { useState, useEffect } from 'react';
-import { useTranslation } from '../contexts/LanguageContext';
-import { useProfile } from '../contexts/ProfileContext';
-import { useData } from '../contexts/DataContext';
-import { useAuth } from '../context/AuthContext';
-import { AppLanguage } from '../types';
+import { useTranslation } from '../contexts/LanguageContext.js';
+import { useProfile } from '../contexts/ProfileContext.js';
+import { useData } from '../contexts/DataContext.js';
+import { useAuth } from '../context/AuthContext.js';
+import { AppLanguage } from '../types.js';
 import { Check, Globe, User, Save, Shield, Database, Download, Upload, Trash2, CreditCard, Mail, BookOpen, MapPin, Monitor, Activity, Users, TrendingUp, Trophy } from 'lucide-react';
-import { api } from '../services/api';
-import { compressImage } from '../services/imageUtils';
+import { api } from '../services/api.js';
+import { compressImage } from '../services/imageUtils.js';
 
 const languages = [
   { code: AppLanguage.PORTUGUESE_BR, name: 'Português', native: 'Português (Brasil)', flag: '🇧🇷' },

@@ -1,12 +1,12 @@
 
 import React, { useState, useEffect } from 'react';
 import { ShoppingBag, TrendingUp, DollarSign, Package, Plus, Star, Zap, ShieldCheck, ArrowUpRight, Search, Filter, ShoppingCart, Tag, BarChart3, PieChart, Users, Target, Activity, RefreshCw } from 'lucide-react';
-import { useTranslation } from '../contexts/LanguageContext';
-import { useData } from '../contexts/DataContext';
+import { useTranslation } from '../contexts/LanguageContext.js';
+import { useData } from '../contexts/DataContext.js';
 import { motion, AnimatePresence } from 'motion/react';
-import { ExtraRevenueCategory } from '../types';
-import { api } from '../services/api';
-import { useAuth } from '../context/AuthContext';
+import { ExtraRevenueCategory } from '../types.js';
+import { api } from '../services/api.js';
+import { useAuth } from '../context/AuthContext.js';
 
 const BusinessHub: React.FC = () => {
   const { t } = useTranslation();
