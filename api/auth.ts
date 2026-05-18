@@ -1,7 +1,7 @@
 import { Request, Response } from 'express';
 import * as bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
-import { prisma } from '../src/server/prisma.js';
+import { prisma } from '../src/lib/prisma.js';
 import { handleApiError } from './utils.js';
 
 const JWT_SECRET = process.env.JWT_SECRET || 'sysbjj-enterprise-oss-secret-2024';

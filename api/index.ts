@@ -1,6 +1,6 @@
 import express from "express";
 import cors from "cors";
-import { prisma } from "../src/server/prisma.js";
+import { prisma } from "../src/lib/prisma.js";
 import healthHandler from "./health.js";
 import healthDbHandler from "./health-db.js";
 import healthDbRlsHandler from "./health-db-rls.js";

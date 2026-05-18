@@ -2,7 +2,7 @@ import React, { useState, useEffect, lazy, Suspense } from 'react';
 import { Routes, Route, Link, useLocation, useNavigate, Navigate } from 'react-router-dom';
 import { Menu, X, Bell, Sun, Moon, Search, Shield, LogOut, Clock, CheckCircle2, Instagram, ChevronRight, ShieldCheck, Lock, ArrowUpRight, CalendarCheck, Timer, Monitor, Activity, Users } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
-import { NAVIGATION_ITEMS, BELT_COLORS, MASTER_ADMINS } from './constants';
+import { NAVIGATION_ITEMS, BELT_COLORS, MASTER_ADMINS } from './constants/index.js';
 
 const Dashboard = lazy(() => import('./pages/Dashboard.js'));
 const Students = lazy(() => import('./pages/Students.js'));

@@ -42,7 +42,7 @@ import {
 } from 'lucide-react';
 import Webcam from 'react-webcam';
 import { Student, StudentStatus, BeltColor, KidsBeltColor, Gender, CBJJCategory } from '../types.js';
-import { BELT_COLORS, IBJJF_BELT_RULES } from '../constants.js';
+import { BELT_COLORS, IBJJF_BELT_RULES } from '../constants/index.js';
 import { IBJJF_LESSONS } from '../constants/rulesData.js';
 import { useTranslation } from '../contexts/LanguageContext.js';
 import { useData } from '../contexts/DataContext.js';

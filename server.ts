@@ -4,16 +4,16 @@ import cors from "cors";
 import { createServer as createViteServer } from "vite";
 import path from "path";
 import { fileURLToPath } from "url";
-import { prisma } from "./prisma/client";
-import { handleApiError } from "./api/utils";
-import healthHandler from "./api/health";
-import healthDbHandler from "./api/health-db";
-import healthDbRlsHandler from "./api/health-db-rls";
-import biHandler from "./api/bi";
-import { loginHandler, registerHandler } from "./api/auth";
-import { authenticate, AuthRequest } from "./api/authMiddleware";
-import batchHandler from "./api/batch";
-import { dataHandler } from "./api/data";
+import { prisma } from "./src/lib/prisma.js";
+import { handleApiError } from "./api/utils.js";
+import healthHandler from "./api/health.js";
+import healthDbHandler from "./api/health-db.js";
+import healthDbRlsHandler from "./api/health-db-rls.js";
+import biHandler from "./api/bi.js";
+import { loginHandler, registerHandler } from "./api/auth.js";
+import { authenticate, AuthRequest } from "./api/authMiddleware.js";
+import batchHandler from "./api/batch.js";
+import { dataHandler } from "./api/data.js";
 
 // GLOBAL ERROR HANDLERS
 process.on('uncaughtException', (err) => {
