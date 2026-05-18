@@ -5,8 +5,7 @@
   "type": "module",
   "scripts": {
     "dev": "tsx server.ts",
-    "build": "vite build && tsx build-server.ts",
-    "start": "node dist/server.js",
+    "build": "prisma generate && vite build",
     "postinstall": "prisma generate",
     "lint": "tsc --noEmit"
   },
