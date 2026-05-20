@@ -1,6 +1,6 @@
 
 import React, { useState, useEffect } from 'react';
-import { ShoppingBag, TrendingUp, DollarSign, Package, Plus, Star, Zap, ShieldCheck, ArrowUpRight, Search, Filter, ShoppingCart, Tag, BarChart3, PieChart, Users, Target, Activity, RefreshCw, X } from 'lucide-react';
+import { ShoppingBag, TrendingUp, DollarSign, Package, Plus, Star, Zap, ShieldCheck, ArrowUpRight, Search, Filter, ShoppingCart, Tag, BarChart3, PieChart, Users, Target, Activity, RefreshCw, X, Trash2 } from 'lucide-react';
 import { useTranslation } from '../contexts/LanguageContext.js';
 import { useData } from '../contexts/DataContext.js';
 import { motion, AnimatePresence } from 'motion/react';
@@ -184,7 +184,7 @@ const BusinessHub: React.FC = () => {
                             className="w-10 h-10 bg-red-50 dark:bg-red-900/10 text-red-600 rounded-xl flex items-center justify-center hover:bg-red-600 hover:text-white transition-all shadow-lg border border-red-100 dark:border-red-900/20"
                             title={t('common.delete')}
                           >
-                            <X size={18} />
+                            <Trash2 size={18} />
                           </button>
                           <button 
                             onClick={() => {
@@ -312,6 +312,17 @@ const BusinessHub: React.FC = () => {
                                  <ShieldCheck size={18} />
                                </button>
                              )}
+                             <button 
+                               onClick={() => {
+                                 if (confirm('OSS! Deseja realmente excluir esta encomenda permanentemente?')) {
+                                   deleteOrder(order.id);
+                                 }
+                               }}
+                               className="w-10 h-10 bg-red-50 hover:bg-red-600 text-red-600 hover:text-white dark:bg-red-950/20 dark:hover:bg-red-900/40 rounded-xl flex items-center justify-center border border-red-100 dark:border-red-900/20 shadow-lg transition-all"
+                               title="Excluir Encomenda"
+                             >
+                               <Trash2 size={18} />
+                             </button>
                           </div>
                        </div>
                     </div>

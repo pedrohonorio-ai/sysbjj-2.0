@@ -5,9 +5,11 @@ import { useProfile } from '../contexts/ProfileContext.js';
 import { useData } from '../contexts/DataContext.js';
 import { useAuth } from '../context/AuthContext.js';
 import { AppLanguage } from '../types.js';
-import { Check, Globe, User, Save, Shield, Database, Download, Upload, Trash2, CreditCard, Mail, BookOpen, MapPin, Monitor, Activity, Users, TrendingUp, Trophy } from 'lucide-react';
+import { Check, Globe, User, Save, Shield, Database, Download, Upload, Trash2, CreditCard, Mail, BookOpen, MapPin, Monitor, Activity, Users, TrendingUp, Trophy, ShieldCheck } from 'lucide-react';
 import { api } from '../services/api.js';
 import { compressImage } from '../services/imageUtils.js';
+import PlanCard from '../components/subscription/PlanCard.js';
+import { MASTER_ADMINS } from '../constants/index.js';
 
 const languages = [
   { code: AppLanguage.PORTUGUESE_BR, name: 'Português', native: 'Português (Brasil)', flag: '🇧🇷' },
@@ -33,7 +35,7 @@ const Settings: React.FC = () => {
   };
   const authData = getAuthData();
   const isAdmin = user?.role === 'admin' || authData.role === 'admin';
-  const isDashfireAdmin = isAdmin;
+  const isDashfireAdmin = MASTER_ADMINS.includes(user?.email || '');
   
   const [formData, setFormData] = useState({
     ...profile,
@@ -51,6 +53,35 @@ const Settings: React.FC = () => {
     totalAcademies: 0,
     activeIdentities: [] as string[] 
   });
+  const [subscription, setSubscription] = useState<any>(null);
+  const [canInstall, setCanInstall] = useState(!!(window as any).deferredPrompt);
+
+  useEffect(() => {
+    const handleInstallable = () => setCanInstall(true);
+    window.addEventListener('pwa-installable', handleInstallable);
+    return () => window.removeEventListener('pwa-installable', handleInstallable);
+  }, []);
+
+  const handleInstallApp = async () => {
+    const promptEvent = (window as any).deferredPrompt;
+    if (!promptEvent) return;
+    promptEvent.prompt();
+    const { outcome } = await promptEvent.userChoice;
+    if (outcome === 'accepted') {
+      (window as any).deferredPrompt = null;
+      setCanInstall(false);
+    }
+  };
+
+  useEffect(() => {
+    const fetchSub = async () => {
+      try {
+        const res = await api.fetchSubscription();
+        if (res) setSubscription(res);
+      } catch (e) {}
+    };
+    fetchSub();
+  }, []);
 
   useEffect(() => {
     if (isDashfireAdmin) {
@@ -131,6 +162,12 @@ const Settings: React.FC = () => {
           <p className="text-slate-500 italic font-medium mt-1 text-sm">{t('settings.subtitle')}</p>
         </div>
       </div>
+
+      {subscription && (
+        <div className="px-2 sm:px-0">
+          <PlanCard subscription={subscription} />
+        </div>
+      )}
 
       <div className="bg-white dark:bg-slate-900 rounded-[2rem] sm:rounded-[2.5rem] border border-slate-200 dark:border-slate-800 shadow-sm overflow-hidden transition-all">
         <div className="p-6 sm:p-8 border-b border-slate-100 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-800/50 flex items-center justify-between">
@@ -244,6 +281,56 @@ const Settings: React.FC = () => {
                   >
                     {t('settings.removeBackground')}
                   </button>
+                </div>
+              </div>
+            </div>
+
+            {/* Custom App Launcher & Installation Setup */}
+            <div className="col-span-1 md:col-span-2 border-t border-slate-100 dark:border-slate-800 pt-6 mt-2 space-y-4">
+              <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+                <div>
+                  <h4 className="text-xs font-black uppercase tracking-wider text-slate-800 dark:text-slate-200">
+                    📲 {t('settings.appInstallation') || 'Adicionar à Área de Trabalho (Instalar App)'}
+                  </h4>
+                  <p className="text-[10px] text-slate-400 font-bold uppercase tracking-widest mt-1">
+                    Fixe o SYSBJJ na tela inicial com o seu logotipo e o nome personalizado da sua academia!
+                  </p>
+                </div>
+                {canInstall ? (
+                  <button
+                    onClick={handleInstallApp}
+                    type="button"
+                    className="flex items-center gap-2 bg-gradient-to-r from-emerald-600 to-teal-600 text-white px-5 py-3 rounded-xl font-black uppercase text-[10px] tracking-widest shadow-lg hover:scale-105 active:scale-95 transition-all"
+                  >
+                    <ShieldCheck size={14} /> Instalar Aplicativo
+                  </button>
+                ) : (
+                  <div className="bg-slate-150 dark:bg-slate-800 border border-slate-200 dark:border-slate-700/50 px-4 py-2.5 rounded-xl text-[9px] font-black uppercase tracking-widest text-slate-500 flex items-center gap-2">
+                    <span className="w-1.5 h-1.5 bg-blue-500 rounded-full animate-pulse" />
+                    Atalho Inteligente Pronto
+                  </div>
+                )}
+              </div>
+
+              {/* Step-by-Step Installation Instruction cards */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div className="bg-slate-50 dark:bg-slate-800/40 p-4 rounded-2xl border border-slate-100 dark:border-slate-850">
+                  <span className="text-[10px] font-black text-blue-500 uppercase tracking-widest">Dispositivos Apple iOS (Safari / iPhone)</span>
+                  <p className="text-[10px] text-slate-550 dark:text-slate-400 font-bold uppercase mt-2 tracking-normal leading-relaxed">
+                    1. Carregue o site no seu navegador <strong className="text-blue-500">Safari</strong> <br />
+                    2. Toque no botão de <strong className="text-slate-700 dark:text-slate-200">Compartilhar</strong> (ícone de seta pra cima) <br />
+                    3. Desça e marque <strong className="text-slate-700 dark:text-slate-200">"Adicionar à Tela de Início"</strong> <br />
+                    4. O app será fixado com o logotipo exclusivo do seu Dojo!
+                  </p>
+                </div>
+                <div className="bg-slate-50 dark:bg-slate-800/40 p-4 rounded-2xl border border-slate-100 dark:border-slate-850">
+                  <span className="text-[10px] font-black text-blue-500 uppercase tracking-widest">Dispositivos Android ou PC (Google Chrome)</span>
+                  <p className="text-[10px] text-slate-550 dark:text-slate-400 font-bold uppercase mt-2 tracking-normal leading-relaxed">
+                    1. Toque no botão verde <strong className="text-emerald-500">"Instalar Aplicativo"</strong> acima <br />
+                    2. Ou toque nos <strong className="text-slate-700 dark:text-slate-200">três pontos (...)</strong> do Chrome <br />
+                    3. Toque em <strong className="text-slate-700 dark:text-slate-200">"Instalar aplicativo"</strong> ou <strong className="text-slate-700 dark:text-slate-200">"Adicionar à tela inicial"</strong> <br />
+                    4. Confirme para acessar sua academia diretamente da área de trabalho!
+                  </p>
                 </div>
               </div>
             </div>
@@ -636,7 +723,7 @@ const Settings: React.FC = () => {
           <div className="p-6 bg-white/5 rounded-3xl border border-white/10 space-y-4">
             <div className="flex items-center justify-between">
               <span className="text-[10px] font-black text-slate-500 uppercase tracking-widest">{t('settings.directContact')}</span>
-              <span className="text-blue-400 font-bold">dashfire@gmail.com</span>
+              <span className="text-blue-400 font-bold">pedro.honorio@gm.rio</span>
             </div>
             <div className="h-px bg-white/10 w-full" />
             <div className="flex items-center justify-between">

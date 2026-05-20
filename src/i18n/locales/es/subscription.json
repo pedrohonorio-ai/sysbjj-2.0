@@ -1,0 +1,16 @@
+{
+  "title": "Suscripción & Planificación",
+  "subtitle": "Parámetros y Beneficios Corporativos",
+  "plans": {
+    "free": "Dojo Básico (Gratuito)",
+    "pro": "Pro Master Sensei (Elite)",
+    "enterprise": "Afiliación Global (Enterprise)"
+  },
+  "features": {
+    "limit": "Límite: Máximo {{count}} alumnos matriculados",
+    "students": "Alumnos Ilimitados",
+    "blockchain": "Cadenas de Bloques y Certificados Certificados",
+    "ai_coaching": "Análisis Predictivos y Soporte de Co-Coaching IA",
+    "priority_support": "Acceso prioritario canal Cinturón Rojo"
+  }
+}

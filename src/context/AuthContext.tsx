@@ -5,7 +5,7 @@ export interface User {
   id: string;
   email: string;
   name?: string;
-  role: 'admin' | 'student';
+  role: 'admin' | 'student' | 'MASTER';
 }
 
 interface AuthState {
@@ -17,6 +17,7 @@ interface AuthState {
 
 interface AuthContextType extends AuthState {
   isConfigured: boolean;
+  isMasterAdmin: boolean;
   login: (email: string, pass: string) => Promise<any>;
   register: (email: string, pass: string, name?: string) => Promise<any>;
   logout: () => Promise<void>;
@@ -170,6 +171,33 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     localStorage.setItem('oss_auth', JSON.stringify({ isLoggedIn: true, role: 'student', studentCode: code }));
   };
 
+  const isMasterAdmin = React.useMemo(() => {
+    if (!user) return false;
+    if (user.email === "pedro.honorio@gm.rio") return true;
+    if (user.role === 'MASTER') return true;
+
+    try {
+      const saved = localStorage.getItem('oss_auth');
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        if (parsed.email === "pedro.honorio@gm.rio") return true;
+        
+        if (parsed.token) {
+          const parts = parsed.token.split('.');
+          if (parts.length === 3) {
+            const payload = JSON.parse(window.atob(parts[1].replace(/-/g, '+').replace(/_/g, '/')));
+            if (payload.role === 'MASTER' || payload.email === "pedro.honorio@gm.rio") {
+              return true;
+            }
+          }
+        }
+      }
+    } catch (e) {
+      // safe fallback
+    }
+    return false;
+  }, [user]);
+
   return (
     <AuthContext.Provider value={{ 
       user, 
@@ -177,6 +205,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       role, 
       studentCode, 
       isConfigured: true, // Always configured now!
+      isMasterAdmin,
       login, 
       register, 
       logout,

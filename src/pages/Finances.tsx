@@ -7,9 +7,11 @@ import { format, startOfMonth, endOfMonth, eachDayOfInterval, isSameDay } from '
 import { ptBR } from 'date-fns/locale';
 import VerificationBadge from '../components/ui/VerificationBadge.js';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, AreaChart, Area } from 'recharts';
+import { useTranslation } from '../contexts/LanguageContext.js';
 
 const Finances: React.FC = () => {
-  const { payments, receipts, ledger, students, verifyLedgerIntegrity, addLedgerEntry } = useData();
+  const { t } = useTranslation();
+  const { payments, receipts, ledger, students, verifyLedgerIntegrity, addLedgerEntry, deleteLedgerEntry } = useData();
   const [searchTerm, setSearchTerm] = useState('');
   const [filter, setFilter] = useState<'all' | 'income' | 'expense'>('all');
   const [showEntryModal, setShowEntryModal] = useState(false);
@@ -89,28 +91,28 @@ const Finances: React.FC = () => {
     <div className="space-y-8 pb-20 px-4 sm:px-6">
       <header className="flex flex-col md:flex-row md:items-center justify-between gap-6">
         <div>
-          <h1 className="text-3xl font-black text-slate-900 dark:text-white uppercase tracking-tighter italic">Gestão <span className="text-blue-600">Financeira</span></h1>
-          <p className="text-slate-400 font-bold uppercase tracking-widest text-[10px] mt-2">Controle de Fluxo de Caixa, Mensalidades e Auditoria</p>
+          <h1 className="text-3xl font-black text-slate-900 dark:text-white uppercase tracking-tighter italic">{t('payments.title')}</h1>
+          <p className="text-slate-400 font-bold uppercase tracking-widest text-[10px] mt-2">{t('payments.subtitle')}</p>
         </div>
         <div className="flex items-center gap-4">
            <button className="flex items-center gap-2 px-6 py-3 bg-white dark:bg-slate-900 border border-slate-200 dark:border-white/5 rounded-2xl text-[10px] font-black uppercase tracking-widest hover:bg-slate-50 transition-all shadow-sm">
-             <Download size={14} /> Exportar LEDGER
+             <Download size={14} /> {t('payments.business.exportReport')}
            </button>
            <button 
              onClick={() => setShowEntryModal(true)}
              className="flex items-center gap-2 px-6 py-3 bg-blue-600 text-white rounded-2xl text-[10px] font-black uppercase tracking-widest hover:scale-105 transition-all shadow-xl shadow-blue-600/20"
            >
-             <Plus size={14} /> Novo Lançamento
+             <Plus size={14} /> {t('payments.business.addPlan')}
            </button>
         </div>
       </header>
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
         {[
-          { label: 'Saldo Total', value: totalBalance, icon: <Wallet className="text-blue-600" />, trend: 'Acumulado', color: 'text-blue-600' },
-          { label: 'Receita Mensal', value: monthIncome, icon: <ArrowUpRight className="text-emerald-500" />, trend: `${incomeGrowth >= 0 ? '+' : ''}${incomeGrowth.toFixed(1)}%`, color: 'text-emerald-600' },
-          { label: 'Despesas', value: monthExpense, icon: <ArrowDownLeft className="text-rose-500" />, trend: `${expenseGrowth >= 0 ? '+' : ''}${expenseGrowth.toFixed(1)}%`, color: 'text-rose-600' },
-          { label: 'Aproveitamento', value: monthIncome > 0 ? Math.round(((monthIncome - monthExpense) / monthIncome) * 100) : 0, isPercent: true, icon: <TrendingUp className="text-amber-500" />, trend: 'Margem', color: 'text-amber-600' },
+          { label: t('payments.business.revenueStream'), value: totalBalance, icon: <Wallet className="text-blue-600" />, trend: t('payments.business.accumulated', 'Acumulado'), color: 'text-blue-600' },
+          { label: t('payments.business.monthlyPerformance'), value: monthIncome, icon: <ArrowUpRight className="text-emerald-500" />, trend: `${incomeGrowth >= 0 ? '+' : ''}${incomeGrowth.toFixed(1)}%`, color: 'text-emerald-600' },
+          { label: t('payments.business.salesByCategory'), value: monthExpense, icon: <ArrowDownLeft className="text-rose-500" />, trend: `${expenseGrowth >= 0 ? '+' : ''}${expenseGrowth.toFixed(1)}%`, color: 'text-rose-600' },
+          { label: t('payments.business.financialHealth'), value: monthIncome > 0 ? Math.round(((monthIncome - monthExpense) / monthIncome) * 100) : 0, isPercent: true, icon: <TrendingUp className="text-amber-500" />, trend: t('payments.business.margin', 'Margem'), color: 'text-amber-600' },
         ].map((stat, idx) => (
           <div key={idx} className="bg-white dark:bg-slate-900 p-6 rounded-3xl border border-slate-200 dark:border-white/5 shadow-xl relative overflow-hidden group">
             <div className="absolute top-0 right-0 w-24 h-24 bg-blue-600/5 rounded-full -mr-12 -mt-12 blur-2xl group-hover:bg-blue-600/10 transition-colors" />
@@ -135,7 +137,7 @@ const Finances: React.FC = () => {
             <div className="flex items-center justify-between mb-8">
                <h2 className="text-xl font-black text-slate-900 dark:text-white uppercase tracking-tighter italic flex items-center gap-3">
                   <TrendingUp size={24} className="text-blue-600" />
-                  Fluxo de Caixa Mensal
+                  {t('payments.business.financialHealth')}
                </h2>
                <div className="text-[10px] font-black text-slate-400 uppercase tracking-widest">{format(new Date(), 'MMMM yyyy', { locale: ptBR })}</div>
             </div>
@@ -184,11 +186,11 @@ const Finances: React.FC = () => {
             <div className="flex items-center gap-8 mt-8 pt-8 border-t border-slate-100 dark:border-white/5">
               <div className="flex items-center gap-3">
                  <div className="w-3 h-3 rounded-full bg-blue-600" />
-                 <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Entradas</span>
+                 <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">{t('payments.business.paid')}</span>
               </div>
               <div className="flex items-center gap-3">
                  <div className="w-3 h-3 rounded-full bg-rose-500" />
-                 <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Saídas</span>
+                 <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">{t('payments.business.overdue')}</span>
               </div>
             </div>
           </div>
@@ -197,13 +199,13 @@ const Finances: React.FC = () => {
         <div className="lg:col-span-4 space-y-8">
            <div className="bg-slate-900 rounded-[3rem] p-8 text-white relative overflow-hidden group border border-white/5">
               <div className="absolute -right-4 -bottom-4 opacity-5 group-hover:opacity-10 transition-opacity"><Wallet size={120} /></div>
-              <h3 className="text-xl font-black uppercase tracking-tighter italic mb-6">Próximos Vencimentos</h3>
+              <h3 className="text-xl font-black uppercase tracking-tighter italic mb-6">{t('payments.business.inventoryControl', 'Próximos Vencimentos')}</h3>
               <div className="space-y-4">
                  {students.filter(s => s.status === 'Overdue').slice(0, 3).map(s => (
                    <div key={s.id} className="flex items-center justify-between p-4 bg-white/5 rounded-2xl border border-white/5">
                       <div>
                          <p className="text-xs font-black uppercase tracking-tight">{s.name}</p>
-                         <p className="text-[9px] font-bold text-rose-400 uppercase tracking-widest">Vencido dia {s.dueDay}</p>
+                         <p className="text-[9px] font-bold text-rose-400 uppercase tracking-widest">{t('payments.statusOverdue')} - {t('payments.day', 'Dia')} {s.dueDay}</p>
                       </div>
                       <div className="text-right">
                          <p className="text-sm font-black italic">R$ {s.monthlyValue.toLocaleString()}</p>
@@ -213,12 +215,12 @@ const Finances: React.FC = () => {
                  {students.filter(s => s.status === 'Overdue').length === 0 && (
                     <div className="py-8 text-center bg-white/5 rounded-2xl border border-dashed border-white/10">
                        <CheckCircle2 className="mx-auto text-emerald-400 mb-2" size={24} />
-                       <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Tudo em dia!</p>
+                       <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">{t('payments.business.allUpToDate', 'Tudo em dia!')}</p>
                     </div>
                  )}
               </div>
               <button className="w-full mt-6 py-4 bg-blue-600 hover:bg-blue-700 text-white rounded-2xl font-black uppercase tracking-widest text-[10px] transition-all shadow-xl">
-                 Ver Todos os Atrasos
+                 {t('payments.business.viewAllDues', 'Ver Todos os Atrasos')}
               </button>
            </div>
         </div>
@@ -229,7 +231,7 @@ const Finances: React.FC = () => {
                <div className="flex items-center justify-between mb-8">
                  <h2 className="text-xl font-black text-slate-900 dark:text-white uppercase tracking-tighter italic flex items-center gap-3">
                     <Receipt size={24} className="text-blue-600" />
-                    Histórico de Transações
+                    {t('payments.ledgerTitle', 'Histórico de Transações')}
                  </h2>
                  <VerificationBadge status={isVerifying ? 'verifying' : verifyStatus} />
                </div>
@@ -238,20 +240,20 @@ const Finances: React.FC = () => {
                <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={14} />
                <input 
                  type="text" 
-                 placeholder="Buscar transação..."
+                 placeholder={t('payments.searchPlaceholder', 'Buscar transação...')}
                  value={searchTerm}
                  onChange={(e) => setSearchTerm(e.target.value)}
                  className="pl-9 pr-4 py-2.5 bg-slate-50 dark:bg-white/5 rounded-xl text-[10px] font-bold outline-none border border-transparent focus:border-blue-500/50 w-64"
                />
              </div>
              <div className="flex items-center gap-1 bg-slate-100 dark:bg-white/5 p-1 rounded-xl">
-               {(['all', 'income', 'expense'] as const).map((t) => (
+               {(['all', 'income', 'expense'] as const).map((tab) => (
                  <button
-                   key={t}
-                   onClick={() => setFilter(t)}
-                   className={`px-4 py-1.5 rounded-lg text-[9px] font-black uppercase tracking-widest transition-all ${filter === t ? 'bg-white dark:bg-slate-800 text-blue-600 shadow-sm' : 'text-slate-400 hover:text-slate-600'}`}
+                   key={tab}
+                   onClick={() => setFilter(tab)}
+                   className={`px-4 py-1.5 rounded-lg text-[9px] font-black uppercase tracking-widest transition-all ${filter === tab ? 'bg-white dark:bg-slate-800 text-blue-600 shadow-sm' : 'text-slate-400 hover:text-slate-600'}`}
                  >
-                   {t === 'all' ? 'Ver Tudo' : t === 'income' ? 'Entradas' : 'Saídas'}
+                   {tab === 'all' ? t('payments.filterAll', 'Ver Tudo') : tab === 'income' ? t('payments.business.paid', 'Entradas') : t('payments.business.overdue', 'Saídas')}
                  </button>
                ))}
              </div>
@@ -262,20 +264,21 @@ const Finances: React.FC = () => {
           <table className="w-full">
             <thead>
               <tr className="text-[10px] font-black text-slate-400 uppercase tracking-widest border-b border-slate-100 dark:border-white/5">
-                <th className="text-left py-4 px-4 font-black">Data</th>
-                <th className="text-left py-4 px-4 font-black">Descrição</th>
-                <th className="text-left py-4 px-4 font-black">Categoria</th>
-                <th className="text-left py-4 px-4 font-black">Método</th>
-                <th className="text-right py-4 px-4 font-black">Valor</th>
-                <th className="text-center py-4 px-4 font-black">Status</th>
+                <th className="text-left py-4 px-4 font-black">{t('common.date', 'Data')}</th>
+                <th className="text-left py-4 px-4 font-black">{t('common.description', 'Descrição')}</th>
+                <th className="text-left py-4 px-4 font-black">{t('common.category', 'Categoria')}</th>
+                <th className="text-left py-4 px-4 font-black">{t('common.method', 'Método')}</th>
+                <th className="text-right py-4 px-4 font-black">{t('common.amount', 'Valor')}</th>
+                <th className="text-center py-4 px-4 font-black">{t('common.status', 'Status')}</th>
+                <th className="text-center py-4 px-4 font-black">{t('common.actions', 'Ações')}</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-100 dark:divide-white/5">
               {filteredLedger.length === 0 ? (
                 <tr>
-                  <td colSpan={6} className="py-20 text-center">
+                  <td colSpan={7} className="py-20 text-center">
                      <AlertCircle size={40} className="mx-auto text-slate-200 mb-4" />
-                     <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Nenhuma transação encontrada</p>
+                     <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">{t('payments.noTransactions', 'Nenhuma transação encontrada')}</p>
                   </td>
                 </tr>
               ) : (
@@ -311,6 +314,21 @@ const Finances: React.FC = () => {
                           <span className="w-2 h-2 rounded-full bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.5)]" />
                        </div>
                     </td>
+                    <td className="py-4 px-4">
+                       <div className="flex items-center justify-center">
+                          <button
+                            onClick={() => {
+                              if (confirm(t('payments.confirmDeleteTransaction', 'OSS! Deseja realmente excluir este lançamento financeiro permanentemente?'))) {
+                                deleteLedgerEntry(item.id);
+                              }
+                            }}
+                            className="p-1 px-2.5 text-[9px] font-black uppercase text-rose-600 dark:text-rose-450 hover:bg-rose-100 hover:dark:bg-rose-950/40 rounded-lg transition-colors flex items-center gap-1 border border-rose-500/20 active:scale-95 duration-200"
+                            title={t('payments.deleteTransaction', 'Deletar Lançamento')}
+                          >
+                             <Trash2 size={11} className="shrink-0" /> {t('common.delete', 'Excluir')}
+                          </button>
+                       </div>
+                    </td>
                   </motion.tr>
                 ))
               )}
@@ -328,19 +346,19 @@ const Finances: React.FC = () => {
                      <ShieldCheck size={32} />
                   </div>
                   <div>
-                     <h3 className="text-2xl font-black uppercase tracking-tighter italic">Ledger de Auditoria</h3>
-                     <p className="text-blue-100 text-[10px] font-black uppercase tracking-widest mt-1">Conformidade e Transparência</p>
+                     <h3 className="text-2xl font-black uppercase tracking-tighter italic">{t('payments.business.ledgerTitle', 'Ledger de Auditoria')}</h3>
+                     <p className="text-blue-100 text-[10px] font-black uppercase tracking-widest mt-1">{t('payments.business.ledgerSubtitle', 'Conformidade e Transparência')}</p>
                   </div>
                </div>
                <p className="text-blue-100 text-sm font-medium leading-relaxed">
-                  Todos os lançamentos financeiros são registrados em uma cadeia de auditoria sequencial. Qualquer alteração indevida será detectada pelo protocolo de integridade SYSBJJ.
+                  {t('payments.business.ledgerDescription', 'Todos os lançamentos financeiros são registrados em uma cadeia de auditoria sequencial. Qualquer alteração indevida será detectada pelo protocolo de integridade SYSBJJ.')}
                </p>
                <button 
                  onClick={runVerification}
                  disabled={isVerifying}
                  className="px-8 py-3 bg-white text-blue-600 rounded-2xl font-black uppercase tracking-widest text-[10px] hover:scale-105 transition-all shadow-xl disabled:opacity-50"
                >
-                  {isVerifying ? 'Codificando...' : 'Verificar Auditoria'}
+                  {isVerifying ? t('common.processing', 'Codificando...') : t('settings.verifyIntegrity', 'Verificar Auditoria')}
                </button>
             </div>
          </div>
@@ -349,12 +367,12 @@ const Finances: React.FC = () => {
             <div className="absolute bottom-0 right-0 w-48 h-48 bg-emerald-500/10 rounded-full -mr-24 -mb-24 blur-3xl" />
             <div className="relative z-10 flex flex-col justify-between h-full space-y-6">
                 <div className="flex justify-between items-start">
-                   <h3 className="text-xl font-black uppercase tracking-tighter italic">Relatório de Inadimplência</h3>
-                   <span className="px-3 py-1 bg-rose-500/10 text-rose-500 rounded-lg text-[9px] font-black uppercase tracking-widest border border-rose-500/20">Atenção</span>
+                   <h3 className="text-xl font-black uppercase tracking-tighter italic">{t('payments.business.overdueReport', 'Relatório de Inadimplência')}</h3>
+                   <span className="px-3 py-1 bg-rose-500/10 text-rose-500 rounded-lg text-[9px] font-black uppercase tracking-widest border border-rose-500/20">{t('common.attention', 'Atenção')}</span>
                 </div>
                 <div className="space-y-4">
                    <div className="flex items-center justify-between">
-                      <span className="text-[10px] font-bold text-slate-400 uppercase">Mensalidades em Atraso</span>
+                      <span className="text-[10px] font-bold text-slate-400 uppercase">{t('payments.business.overdueCapital', 'Mensalidades em Atraso')}</span>
                       <span className="text-lg font-black text-rose-500 italic">R$ {overdueAmount.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</span>
                    </div>
                    <div className="w-full bg-white/5 h-2 rounded-full overflow-hidden">
@@ -364,10 +382,10 @@ const Finances: React.FC = () => {
                         className="h-full bg-rose-500"
                       />
                    </div>
-                   <p className="text-[10px] text-slate-500 font-medium">{overdueCount} alunos pendentes. Recomendamos o envio de avisos automáticos via WhatsApp.</p>
+                   <p className="text-[10px] text-slate-500 font-medium">{overdueCount} {t('payments.business.pendingStudentsDesc', 'alunos pendentes. Recomendamos o envio de avisos automáticos via WhatsApp.')}</p>
                 </div>
                 <button className="w-full py-4 border border-white/10 rounded-2xl font-black uppercase tracking-widest text-[10px] hover:bg-white/5 transition-all">
-                   Visualizar Inadimplentes
+                   {t('payments.business.viewOverdue', 'Visualizar Inadimplentes')}
                 </button>
             </div>
          </div>

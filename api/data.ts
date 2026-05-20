@@ -52,11 +52,33 @@ export async function dataHandler(req: AuthRequest, res: Response) {
       
       switch(collection) {
         case 'students':
+          // Check limit for new students (id is null/undefined/new)
+          const isNew = !id || id === 'new-stu' || id === 'new';
+          if (isNew) {
+            const [studentCount, subscription] = await Promise.all([
+              prisma.student.count({ where: { userId: uid } }),
+              prisma.subscription.findUnique({ where: { userId: uid } })
+            ]);
+            
+            const maxStudents = subscription?.maxStudents || 20;
+            if (studentCount >= maxStudents) {
+              return res.status(403).json({
+                success: false,
+                error: "Limite do plano atingido",
+                upgrade_required: true,
+                sensei_tip: `Sensei, você atingiu o limite de ${maxStudents} alunos. Hora de subir de faixa!`
+              });
+            }
+          }
+
           result = await prisma.student.upsert({
             where: { id: id || 'new-stu' },
             create: { ...payload, userId: uid },
             update: { ...payload, userId: uid }
           });
+
+          // Trigger automatic upgrade if allowed or update state
+          import('./subscriptionService.js').then(m => m.updateSubscriptionPlan(uid));
           break;
         case 'presence':
           result = await prisma.presence.upsert({

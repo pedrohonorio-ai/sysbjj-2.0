@@ -1,6 +1,6 @@
 import React, { useState, useEffect, lazy, Suspense } from 'react';
 import { Routes, Route, Link, useLocation, useNavigate, Navigate } from 'react-router-dom';
-import { Menu, X, Bell, Sun, Moon, Search, Shield, LogOut, Clock, CheckCircle2, Instagram, ChevronRight, ShieldCheck, Lock, ArrowUpRight, CalendarCheck, Timer, Monitor, Activity, Users } from 'lucide-react';
+import { Menu, X, Bell, Sun, Moon, Search, Shield, LogOut, Clock, CheckCircle2, Instagram, ChevronRight, ShieldCheck, Lock, ArrowUpRight, CalendarCheck, Timer, Monitor, Activity, Users, Cpu, Settings as SettingsIcon } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { NAVIGATION_ITEMS, BELT_COLORS, MASTER_ADMINS } from './constants/index.js';
 
@@ -19,8 +19,10 @@ const CurriculumHub = lazy(() => import('./pages/CurriculumHub.js'));
 const PerformanceAnalytics = lazy(() => import('./pages/PerformanceAnalytics.js'));
 const ExhibitionMode = lazy(() => import('./pages/ExhibitionMode.js'));
 const SystemAudit = lazy(() => import('./pages/SystemAudit.js'));
+const MasterControlCenter = lazy(() => import('./pages/admin/MasterControlCenter.js'));
 const LanguageSelection = lazy(() => import('./pages/LanguageSelection.js'));
 const Login = lazy(() => import('./pages/Login.js'));
+const Plans = lazy(() => import('./pages/Plans.js'));
 
 import NotificationCenter from './components/NotificationCenter.js';
 import DatabaseWarning from './components/DatabaseWarning.js';
@@ -39,13 +41,45 @@ const Sidebar = ({ isOpen, toggle, onLogout, isMasterAdmin }: { isOpen: boolean,
   if (location.pathname.startsWith('/portal/')) return null;
 
   const filteredItems = NAVIGATION_ITEMS.filter(item => {
-    if (['audit', 'settings'].includes(item.id)) return isMasterAdmin;
+    if (item.id === 'audit') return isMasterAdmin;
+    if (item.id === 'plans' && !isMasterAdmin) return false;
     return true;
   });
 
   const coreItems = filteredItems.filter(item => ['dashboard', 'students', 'teaching-hub', 'performance', 'business', 'attendance', 'finances', 'timer'].includes(item.id));
   const footerItems = filteredItems.filter(item => ['promotions', 'ibjjf-rules', 'history'].includes(item.id));
-  const masterItems = filteredItems.filter(item => ['audit', 'settings'].includes(item.id));
+
+  const masterLinksList = [
+    { id: 'governance', path: '/audit?tab=overview', label: t('audit.governance', 'Governança'), icon: <ShieldCheck size={20} className="text-rose-500" /> },
+    { id: 'transactions', path: '/audit?tab=neon', label: t('audit.transactions', 'Transações Globais'), icon: <Activity size={20} className="text-emerald-500" /> },
+    { id: 'security-logs', path: '/audit?tab=logs', label: t('audit.securityLogs', 'Auditoria de Logs'), icon: <Clock size={20} className="text-cyan-500" /> },
+    { id: 'settings', path: '/settings', label: t('common.settings'), icon: <SettingsIcon size={20} className="text-slate-500" /> },
+  ];
+
+  const renderMasterLink = (item: { id: string, path: string, label: string, icon: React.ReactNode }) => {
+    const isActive = location.pathname + location.search === item.path || (location.pathname === '/audit' && item.path.startsWith('/audit') && location.search === item.path.substring(6));
+    
+    return (
+      <Link
+        key={item.id}
+        to={item.path}
+        className={`flex items-center gap-4 px-4 py-3 rounded-xl transition-all duration-300 group relative overflow-hidden ${isActive ? 'bg-slate-900 dark:bg-white text-white dark:text-slate-900 shadow-2xl' : 'text-slate-500 hover:bg-slate-50 dark:hover:bg-white/5 hover:text-slate-900 dark:hover:text-white'}`}
+        onClick={() => { if(window.innerWidth < 1024) toggle(); }}
+      >
+        <div className={`shrink-0 transition-all duration-500 ${isActive ? 'scale-110' : 'group-hover:scale-110 group-hover:-rotate-3 opacity-70'}`}>{item.icon}</div>
+        <span className={`font-black tracking-[0.15em] uppercase text-[9px] truncate transition-all duration-700 flex-1 min-w-0 ${isOpen ? 'opacity-100 translate-x-0' : 'opacity-0 -translate-x-4'}`}>
+          {item.label}
+        </span>
+        {isActive && (
+          <motion.div 
+            layoutId="active-indicator-master"
+            className="absolute left-0 w-1 h-5 bg-rose-500 dark:bg-rose-600 rounded-full ml-0.5"
+            transition={{ type: "spring", stiffness: 300, damping: 30 }}
+          />
+        )}
+      </Link>
+    );
+  };
 
   const renderNavItem = (item: any) => {
     const isActive = location.pathname === `/${item.id}` || (location.pathname === '/' && item.id === 'dashboard');
@@ -103,10 +137,17 @@ const Sidebar = ({ isOpen, toggle, onLogout, isMasterAdmin }: { isOpen: boolean,
               <motion.div 
                 initial={{ opacity: 0, x: -10 }}
                 animate={{ opacity: 1, x: 0 }}
-                className="overflow-hidden transition-all duration-700"
+                className="overflow-hidden transition-all duration-700 flex flex-col gap-1"
               >
                 <h1 className="font-display font-black leading-none tracking-tight text-slate-900 dark:text-white uppercase text-base whitespace-nowrap">{(profile.academyName || 'SYSBJJ 2.0').toUpperCase()}</h1>
-                <p className="text-[10px] text-blue-600 dark:text-blue-400 uppercase tracking-[0.3em] font-black mt-1">Academy Suite</p>
+                {isMasterAdmin ? (
+                  <div className="flex items-center gap-1 bg-gradient-to-r from-red-600 to-slate-900 border border-red-500/30 rounded px-1.5 py-0.5 shadow-lg w-fit">
+                    <span className="h-1 w-1 bg-red-500 rounded-full animate-ping" />
+                    <span className="text-[6.5px] font-black tracking-widest text-white uppercase italic whitespace-nowrap leading-none">Sensei Master</span>
+                  </div>
+                ) : (
+                  <p className="text-[10px] text-blue-600 dark:text-blue-400 uppercase tracking-[0.3em] font-black leading-none">Academy Suite</p>
+                )}
               </motion.div>
             )}
           </div>
@@ -136,14 +177,24 @@ const Sidebar = ({ isOpen, toggle, onLogout, isMasterAdmin }: { isOpen: boolean,
             </div>
           </div>
 
-          {isMasterAdmin && (
+          {isMasterAdmin ? (
             <div className={!isOpen ? 'opacity-0' : 'opacity-100 transition-opacity duration-300'}>
               <div className="mb-3 px-4 flex items-center gap-3">
-                 <span className="text-[10px] font-black text-rose-500 uppercase tracking-[0.25em] whitespace-nowrap">Governança Master</span>
+                 <span className="text-[10px] font-black text-rose-500 uppercase tracking-[0.25em] whitespace-nowrap">{t('audit.governanceMaster', 'Governança Master')}</span>
                  <div className="h-px bg-rose-500/20 flex-1" />
               </div>
               <div className="space-y-1">
-                {masterItems.map(renderNavItem)}
+                {masterLinksList.map(renderMasterLink)}
+              </div>
+            </div>
+          ) : (
+            <div className={!isOpen ? 'opacity-0' : 'opacity-100 transition-opacity duration-300'}>
+              <div className="mb-3 px-4 flex items-center gap-3">
+                 <span className="text-[10px] font-black text-slate-400 uppercase tracking-[0.25em] whitespace-nowrap">{t('common.options', 'Opções')}</span>
+                 <div className="h-px bg-slate-100 dark:bg-slate-800/50 flex-1" />
+              </div>
+              <div className="space-y-1">
+                {renderNavItem({ id: 'settings', label: t('common.settings'), icon: <SettingsIcon size={20} className="text-slate-500" /> })}
               </div>
             </div>
           )}
@@ -241,6 +292,7 @@ const Header = ({ toggleSidebar, auth, onLogout }: { toggleSidebar: () => void, 
   const { setTheme, resolvedTheme } = useTheme();
   const { t } = useTranslation();
   const { profile } = useProfile();
+  const { isMasterAdmin } = useAuth();
   const location = useLocation();
   const navigate = useNavigate();
   const [currentTime, setCurrentTime] = useState(new Date());
@@ -347,7 +399,7 @@ const Header = ({ toggleSidebar, auth, onLogout }: { toggleSidebar: () => void, 
           </div>
           <div className="flex items-center gap-2 mt-1">
             <span className="w-1.5 h-1.5 rounded-full bg-green-500 animate-pulse" />
-            <span className="text-[8px] font-black text-slate-400 uppercase tracking-widest">Sincronização Master Ativa</span>
+            <span className="text-[8px] font-black text-slate-400 uppercase tracking-widest">{t('settings.masterSyncActive', 'Sincronização Master Ativa')}</span>
           </div>
         </div>
       </div>
@@ -377,6 +429,13 @@ const Header = ({ toggleSidebar, auth, onLogout }: { toggleSidebar: () => void, 
           />
         </div>
 
+        {isMasterAdmin && (
+          <div className="hidden md:flex items-center gap-2 px-3 py-1.5 bg-gradient-to-r from-red-600 to-slate-900 border border-red-500/30 rounded-xl shadow-lg ring-1 ring-red-500/20">
+            <span className="h-1.5 w-1.5 bg-red-400 rounded-full animate-ping shrink-0" />
+            <span className="text-[8px] font-black tracking-[0.2em] text-white uppercase italic whitespace-nowrap">Sensei Master</span>
+          </div>
+        )}
+
         <NotificationCenter />
         
         <button 
@@ -391,6 +450,7 @@ const Header = ({ toggleSidebar, auth, onLogout }: { toggleSidebar: () => void, 
 };
 
 const App: React.FC = () => {
+  const { t } = useTranslation();
   const [sidebarOpen, setSidebarOpen] = useState(window.innerWidth > 1024);
   const location = useLocation();
   const navigate = useNavigate();
@@ -400,6 +460,42 @@ const App: React.FC = () => {
   
   // Track Online Status
   const { dbStatus } = useData();
+
+  // Dynamic favicon and apple-touch-icon update based on custom account branding
+  useEffect(() => {
+    if (profile?.logoUrl) {
+      let favicon = document.querySelector("link[rel='icon']");
+      if (favicon) {
+        favicon.setAttribute("href", profile.logoUrl);
+      } else {
+        favicon = document.createElement("link");
+        favicon.setAttribute("rel", "icon");
+        favicon.setAttribute("href", profile.logoUrl);
+        document.head.appendChild(favicon);
+      }
+
+      let appleIcon = document.querySelector("link[rel='apple-touch-icon']");
+      if (appleIcon) {
+        appleIcon.setAttribute("href", profile.logoUrl);
+      } else {
+        appleIcon = document.createElement("link");
+        appleIcon.setAttribute("rel", "apple-touch-icon");
+        appleIcon.setAttribute("href", profile.logoUrl);
+        document.head.appendChild(appleIcon);
+      }
+    }
+  }, [profile?.logoUrl]);
+
+  // Capture beforeinstallprompt for custom desktop/mobile app installation
+  useEffect(() => {
+    const handleBeforeInstall = (e: any) => {
+      e.preventDefault();
+      (window as any).deferredPrompt = e;
+      window.dispatchEvent(new CustomEvent('pwa-installable'));
+    };
+    window.addEventListener('beforeinstallprompt', handleBeforeInstall);
+    return () => window.removeEventListener('beforeinstallprompt', handleBeforeInstall);
+  }, []);
 
 
 
@@ -467,7 +563,7 @@ const App: React.FC = () => {
         </div>
         <div className="flex flex-col items-center gap-2">
           <h2 className="text-white font-black text-[10px] tracking-[0.4em] uppercase">OSS SENSEI</h2>
-          <p className="text-slate-500 text-[8px] font-bold tracking-[0.2em] uppercase">Sincronizando tatame...</p>
+          <p className="text-slate-500 text-[8px] font-bold tracking-[0.2em] uppercase">{t('common.loading', 'Sincronizando tatame...')}</p>
         </div>
       </div>
     );
@@ -488,7 +584,7 @@ const App: React.FC = () => {
   const isPortal = location.pathname.startsWith('/portal/');
   const isAdmin = role === 'admin';
   const showHeader = isAdmin || isPortal;
-  const isMasterAdmin = !!user;
+  const isMasterAdmin = MASTER_ADMINS.includes(user?.email || '');
 
   return (
     <div 
@@ -546,9 +642,10 @@ const App: React.FC = () => {
                     <Route path="/promotions" element={<BeltSystem />} />
                     <Route path="/language" element={<LanguageSelection />} />
                     <Route path="/timer" element={<FightTimer />} />
+                    <Route path="/plans" element={<Plans />} />
                     
                     {/* Governança Master - Restrito */}
-                    <Route path="/settings" element={isMasterAdmin ? <Settings /> : <Navigate to="/dashboard" />} />
+                    <Route path="/settings" element={<Settings />} />
                     <Route path="/audit" element={isMasterAdmin ? <SystemAudit /> : <Navigate to="/dashboard" />} />
                     
                     <Route path="/exhibition" element={<ExhibitionMode />} />
@@ -585,10 +682,10 @@ const App: React.FC = () => {
 
                 <div className="flex flex-wrap justify-center gap-12">
                    <div className="flex flex-col items-center lg:items-end">
-                      <span className="text-[9px] font-black text-slate-400 uppercase tracking-[0.3em] mb-2">Protocolo de Integridade</span>
+                      <span className="text-[9px] font-black text-slate-400 uppercase tracking-[0.3em] mb-2">{t('settings.integrityProtocol', 'Protocolo de Integridade')}</span>
                       <div className="flex items-center gap-2 px-4 py-1.5 bg-emerald-500/5 border border-emerald-500/20 rounded-full">
                          <div className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
-                         <span className="text-[8px] font-black text-emerald-600 uppercase tracking-widest leading-none">Blindado & Imutável</span>
+                         <span className="text-[8px] font-black text-emerald-600 uppercase tracking-widest leading-none">{t('settings.blindadoImutavel', 'Blindado & Imutável')}</span>
                       </div>
                    </div>
                    <div className="flex flex-col items-center lg:items-end space-y-1">

@@ -78,6 +78,15 @@ export const api = {
   },
 
   /**
+   * Busca dados da assinatura SaaS (SYSBJJ Subscription Sync)
+   */
+  async fetchSubscription() {
+    return await enterpriseApi.fetchWithEnterprise(`/api/subscription/current`, {
+      useCache: false
+    });
+  },
+
+  /**
    * Remove um item de uma coleção
    */
   async deleteData(collection: string, id: string, _userId: string) {

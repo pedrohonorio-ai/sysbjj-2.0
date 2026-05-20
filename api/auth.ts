@@ -3,12 +3,18 @@ import * as bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
 import { prisma } from '../prisma/client.js';
 import { handleApiError } from './utils.js';
+import { MASTER_ADMIN_EMAIL } from '../server/config/masterAdmin.js';
 
 const JWT_SECRET = process.env.JWT_SECRET || 'sysbjj-enterprise-oss-secret-2024';
 
 const generateToken = (user: any) => {
+  const isMasterAdmin = user.email === MASTER_ADMIN_EMAIL;
   return jwt.sign(
-    { id: user.id, email: user.email, role: user.role },
+    { 
+      id: user.id, 
+      email: user.email, 
+      role: isMasterAdmin ? "MASTER" : "USER" 
+    },
     JWT_SECRET,
     { expiresIn: '7d' }
   );
@@ -54,9 +60,24 @@ export const registerHandler = async (req: Request, res: Response) => {
       }
     });
 
+    console.log(`🥋 [AUTH REGISTER] Criando assinatura FREE inicial...`);
+    await prisma.subscription.create({
+      data: {
+        userId: user.id,
+        plan: "FREE",
+        maxStudents: 20,
+        monthlyPrice: 0,
+        active: true
+      }
+    });
+
     console.log(`🥋 [AUTH REGISTER] Usuário criado com sucesso: ${user.id}`);
     // Remove password before sending
     const { password: _, ...userWithoutPassword } = user;
+    const isMasterAdmin = user.email === MASTER_ADMIN_EMAIL;
+    if (isMasterAdmin) {
+      userWithoutPassword.role = 'MASTER';
+    }
     const token = generateToken(user);
 
     res.status(201).json({ 
@@ -112,6 +133,25 @@ export const loginHandler = async (req: Request, res: Response) => {
     console.log(`🥋 [AUTH LOGIN] Sucesso: ${user.id}`);
     // Remove password before sending
     const { password: _, ...userWithoutPassword } = user;
+    const isMasterAdmin = user.email === MASTER_ADMIN_EMAIL;
+    if (isMasterAdmin) {
+      userWithoutPassword.role = 'MASTER';
+      try {
+        await prisma.systemLog.create({
+          data: {
+            userId: user.id,
+            timestamp: BigInt(Date.now()),
+            userEmail: user.email,
+            action: 'LOGIN_MASTER',
+            details: 'Sensei Master fez login no sistema de administração.',
+            category: 'Auth',
+            deviceInfo: req.headers['user-agent'] || 'Desconhecido',
+          }
+        });
+      } catch (logErr) {
+        console.error("🥋 Falha ao registrar log de Auditoria Master:", logErr);
+      }
+    }
     const token = generateToken(user);
 
     res.json({ 

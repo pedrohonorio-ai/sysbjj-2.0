@@ -8,13 +8,26 @@ import { useData } from '../contexts/DataContext.js';
 import { useProfile } from '../contexts/ProfileContext.js';
 import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 import VerificationBadge from '../components/ui/VerificationBadge.js';
+import PlanCard from '../components/subscription/PlanCard.js';
+import { api } from '../services/api.js';
 
 const Dashboard: React.FC = () => {
   const { t } = useTranslation();
-  const { students, payments, logs, verifyAuditIntegrity } = useData();
+  const { students, payments, logs, verifyAuditIntegrity, ledger, attendance } = useData();
   const { profile } = useProfile();
   const [currentTime, setCurrentTime] = useState(new Date());
   const [temp, setTemp] = useState<number | null>(null);
+  const [subscription, setSubscription] = useState<any>(null);
+
+  useEffect(() => {
+    const fetchSub = async () => {
+      try {
+        const res = await api.fetchSubscription();
+        if (res) setSubscription(res);
+      } catch (e) {}
+    };
+    fetchSub();
+  }, []);
 
   useEffect(() => {
     const timer = setInterval(() => setCurrentTime(new Date()), 1000);
@@ -57,15 +70,41 @@ const Dashboard: React.FC = () => {
     { title: t('dashboard.monthlyRevenue'), value: `R$ ${totalRevenue.toLocaleString()}`, icon: <TrendingUp size={24} />, color: 'bg-purple-500', trend: '+18%', isUp: true, link: '/finances' },
   ];
 
-  const chartData = [
-    { name: 'Seg', attendance: 45, revenue: 1200 },
-    { name: 'Ter', attendance: 52, revenue: 1500 },
-    { name: 'Qua', attendance: 48, revenue: 1100 },
-    { name: 'Qui', attendance: 61, revenue: 2100 },
-    { name: 'Sex', attendance: 55, revenue: 1800 },
-    { name: 'Sab', attendance: 32, revenue: 800 },
-    { name: 'Dom', attendance: 12, revenue: 200 },
-  ];
+  const chartData = Array.from({ length: 7 }).map((_, index) => {
+    const d = new Date();
+    d.setDate(d.getDate() - (6 - index));
+    
+    const dayName = d.toLocaleDateString('pt-BR', { weekday: 'short' }).replace('.', '');
+    const capitalizedDay = dayName.charAt(0).toUpperCase() + dayName.slice(1);
+    
+    const year = d.getFullYear();
+    const month = String(d.getMonth() + 1).padStart(2, '0');
+    const dateVal = String(d.getDate()).padStart(2, '0');
+    const localISOTime = `${year}-${month}-${dateVal}`;
+    
+    // Calculate attendance for this day
+    const dailyAttendanceList = attendance ? (attendance[localISOTime] || []) : [];
+    const attendanceCount = dailyAttendanceList.length;
+    
+    // Calculate total revenue for this day
+    const dailyRevenue = ledger ? ledger
+      .filter(item => {
+        const itemDate = new Date(item.timestamp);
+        const itemYear = itemDate.getFullYear();
+        const itemMonth = String(itemDate.getMonth() + 1).padStart(2, '0');
+        const itemDateVal = String(itemDate.getDate()).padStart(2, '0');
+        const itemDateStr = `${itemYear}-${itemMonth}-${itemDateVal}`;
+        const isReceipt = ['Income', 'StudentPayment', 'ExtraRevenue'].includes(item.type);
+        return itemDateStr === localISOTime && isReceipt;
+      })
+      .reduce((acc, item) => acc + item.amount, 0) : 0;
+      
+    return {
+      name: capitalizedDay,
+      attendance: attendanceCount,
+      revenue: dailyRevenue
+    };
+  });
 
   return (
     <div className="space-y-8 pb-20">
@@ -111,6 +150,16 @@ const Dashboard: React.FC = () => {
            </div>
         </div>
       </header>
+
+      {subscription && subscription.usagePercent >= 80 && (
+        <motion.div 
+          initial={{ opacity: 0, scale: 0.95 }}
+          animate={{ opacity: 1, scale: 1 }}
+          className="max-w-4xl"
+        >
+          <PlanCard subscription={subscription} />
+        </motion.div>
+      )}
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
         {stats.map((stat, idx) => (

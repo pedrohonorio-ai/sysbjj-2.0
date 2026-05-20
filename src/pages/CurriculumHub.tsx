@@ -14,7 +14,7 @@ import { motion, AnimatePresence } from 'motion/react';
 const CurriculumHub: React.FC = () => {
   const { 
     schedules, addSchedule, updateSchedule, deleteSchedule,
-    techniques, lessonPlans, addLessonPlan 
+    techniques, lessonPlans, addLessonPlan, deleteLessonPlan 
   } = useData();
   const { t } = useTranslation();
   
@@ -365,7 +365,21 @@ const CurriculumHub: React.FC = () => {
                           lessonPlans.map(plan => (
                             <div key={plan.id} className="p-6 bg-white/5 rounded-[2rem] border border-white/5 hover:bg-white/10 transition-all cursor-pointer group flex flex-col justify-between h-40">
                                <div>
-                                  <p className="text-[9px] font-black text-blue-400 uppercase tracking-widest mb-1 italic">{new Date(plan.date).toLocaleDateString()}</p>
+                                  <div className="flex justify-between items-start">
+                                     <p className="text-[9px] font-black text-blue-400 uppercase tracking-widest mb-1 italic">{new Date(plan.date).toLocaleDateString()}</p>
+                                     <button
+                                       onClick={(e) => {
+                                         e.stopPropagation();
+                                         if (confirm('OSS! Deseja realmente excluir este plano de aula permanentemente?')) {
+                                           deleteLessonPlan(plan.id);
+                                         }
+                                       }}
+                                       className="p-1 text-rose-500 hover:bg-rose-950/20 rounded-lg transition-colors"
+                                       title="Excluir Plano"
+                                     >
+                                       <Trash2 size={12} />
+                                     </button>
+                                  </div>
                                   <h4 className="text-lg font-black uppercase tracking-tighter leading-tight">{plan.title}</h4>
                                </div>
                                <div className="flex items-center justify-between mt-6">

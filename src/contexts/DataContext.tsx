@@ -129,6 +129,7 @@ interface DataContextType {
   approveReceipt: (id: string) => void;
   rejectReceipt: (id: string) => void;
   addLedgerEntry: (entry: Omit<TransactionLedger, 'id' | 'timestamp' | 'previousHash' | 'hash'>) => void;
+  deleteLedgerEntry: (id: string) => void;
   clearNotification: (id: string) => void;
   recordAttendance: (studentIds: string[], lessonPlanId?: string, classId?: string, notes?: string) => void;
   completeRuleLesson: (studentId: string, lessonId: string, points: number) => void;
@@ -608,6 +609,14 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     logAction('Movimentação Ledger', `Nova entrada no ledger: ${entry.description}`, 'Financial');
   }, [ledger, logAction, user?.id]);
 
+  const deleteLedgerEntry = useCallback((id: string) => {
+    setLedger(prev => prev.filter(l => l.id !== id));
+    if (user?.id) {
+       api.deleteData('ledger', id, user.id).catch(err => handleApiError(err, OperationType.DELETE, `ledger/${id}`, setNotifications, setDbStatus));
+    }
+    logAction('Exclusão Ledger', `Transação removida ID: ${id}`, 'Financial');
+  }, [user?.id, logAction, setNotifications, setDbStatus]);
+
   const clearNotification = (id: string) => {
     setNotifications(prev => prev.filter(n => n.id !== id));
   };
@@ -1010,7 +1019,7 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   return (
     <DataContext.Provider value={{ 
       students, payments, schedules, gallery, extraRevenue, orders, lessonPlans, techniques, products, plans, receipts, ledger, professorRules, setProfessorRules, logs, attendance, presence, notifications, dbStatus, setDemoMode,
-      logAction, verifyAuditIntegrity, addStudent, updateStudent, deleteStudent, addPayment, addReceipt, approveReceipt, rejectReceipt, addLedgerEntry, clearNotification, recordAttendance, completeRuleLesson,
+      logAction, verifyAuditIntegrity, addStudent, updateStudent, deleteStudent, addPayment, addReceipt, approveReceipt, rejectReceipt, addLedgerEntry, deleteLedgerEntry, clearNotification, recordAttendance, completeRuleLesson,
       addSchedule, updateSchedule, deleteSchedule,
       addGalleryImage,
       addExtraRevenue, updateExtraRevenue, deleteExtraRevenue,

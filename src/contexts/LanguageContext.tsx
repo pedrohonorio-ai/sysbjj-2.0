@@ -1,12 +1,12 @@
 
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 import { AppLanguage } from '../types.js';
-import { translations } from '../locales.js';
+import i18n from '../i18n/index.js';
 
 interface LanguageContextType {
   language: AppLanguage;
   setLanguage: (lang: AppLanguage) => void;
-  t: (key: string, data?: Record<string, string | number>) => string;
+  t: (key: string, defaultValueOrData?: string | Record<string, string | number>) => string;
   tObj: (key: string) => any;
 }
 
@@ -14,61 +14,34 @@ const LanguageContext = createContext<LanguageContextType | undefined>(undefined
 
 export const LanguageProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
   const [language, setLanguageState] = useState<AppLanguage>(() => {
-    return (localStorage.getItem('oss_language') as AppLanguage) || AppLanguage.PORTUGUESE_BR;
+    const saved = localStorage.getItem('oss_language') as AppLanguage;
+    return saved || AppLanguage.PORTUGUESE_BR;
   });
+
+  useEffect(() => {
+    const currentLang = language === 'pt' ? 'pt-BR' : language;
+    if (i18n.language !== currentLang) {
+      i18n.changeLanguage(currentLang);
+    }
+  }, [language]);
 
   const setLanguage = (lang: AppLanguage) => {
     setLanguageState(lang);
     localStorage.setItem('oss_language', lang);
+    const i18nLang = lang === 'pt' ? 'pt-BR' : lang;
+    i18n.changeLanguage(i18nLang);
   };
 
-  const t = (key: string, data?: Record<string, string | number>): string => {
-    const keys = key.split('.');
-    let value = translations[language];
-
-    for (const k of keys) {
-      if (value && value[k]) {
-        value = value[k];
-      } else {
-        // Fallback to English if key not found in current language
-        let fallback = translations[AppLanguage.ENGLISH_US];
-        for (const fk of keys) {
-          if (fallback && fallback[fk]) {
-            fallback = fallback[fk];
-          } else {
-            return key; // Return the key itself as last resort
-          }
-        }
-        value = fallback;
-        break;
-      }
+  const t = (key: string, defaultValueOrData?: string | Record<string, string | number>): string => {
+    if (typeof defaultValueOrData === 'string') {
+      return i18n.t(key, { defaultValue: defaultValueOrData }) || defaultValueOrData;
     }
-
-    if (typeof value !== 'string') return key;
-
-    if (data) {
-      let result = value;
-      Object.entries(data).forEach(([key, val]) => {
-        result = result.replace(new RegExp(`{{${key}}}`, 'g'), String(val));
-      });
-      return result;
-    }
-
-    return value;
+    return i18n.t(key, defaultValueOrData) || key;
   };
 
   const tObj = (key: string): any => {
-    const keys = key.split('.');
-    let value = translations[language];
-
-    for (const k of keys) {
-      if (value && value[k]) {
-        value = value[k];
-      } else {
-        return {};
-      }
-    }
-    return value;
+    const value = i18n.t(key, { returnObjects: true });
+    return value && typeof value === 'object' ? value : {};
   };
 
   return (
@@ -85,3 +58,8 @@ export const useTranslation = () => {
   }
   return context;
 };
+
+export const useAppTranslation = () => {
+  return useTranslation();
+};
+

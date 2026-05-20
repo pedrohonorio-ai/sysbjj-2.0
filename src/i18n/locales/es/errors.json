@@ -1,0 +1,6 @@
+{
+  "invalid_credentials": "El PIN de seguridad proporcionado o el correo no coincide con un Sensei autorizado. ¡OSS!",
+  "unauthorized": "Acceso Restringido: Faltan accesos maestros para este panel administrativo. ¡OSS!",
+  "network_error": "Pérdida de tracción en los servicios de red. Revise su conexión.",
+  "system_busy": "Dojo saturado. El sistema se encuentra ocupado temporalmente. Reintente."
+}

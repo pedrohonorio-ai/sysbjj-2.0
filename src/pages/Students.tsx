@@ -42,11 +42,12 @@ import {
 } from 'lucide-react';
 import Webcam from 'react-webcam';
 import { Student, StudentStatus, BeltColor, KidsBeltColor, Gender, CBJJCategory } from '../types.js';
-import { BELT_COLORS, IBJJF_BELT_RULES } from '../constants/index.js';
+import { BELT_COLORS, IBJJF_BELT_RULES, MASTER_ADMINS } from '../constants/index.js';
 import { IBJJF_LESSONS } from '../constants/rulesData.js';
 import { useTranslation } from '../contexts/LanguageContext.js';
 import { useData } from '../contexts/DataContext.js';
 import { useProfile } from '../contexts/ProfileContext.js';
+import { useAuth } from '../context/AuthContext.js';
 import { calculateCBJJCategory, calculateWeightClass } from '../services/cbjj.js';
 import { compressImage } from '../services/imageUtils.js';
 
@@ -299,9 +300,14 @@ const NewStudentModal = ({ onClose, defaultIsKid }: { onClose: () => void, defau
         portalAccessCode: `SYS-${formData.name.substring(0, 3).toUpperCase()}-${Math.floor(Math.random()*1000)}`,
       });
       onClose();
-    } catch (err) {
+    } catch (err: any) {
       console.error("Error submitting student form:", err);
-      setError(t('common.errorOccurred') || 'Ocorreu um erro ao cadastrar o aluno.');
+      // Sensei: Tratamento Amigável para Limite de Plano
+      if (err.message?.includes('Limite') || err.message?.includes('upgrade')) {
+        setError("Sensei, você atingiu o limite de alunos do seu plano atual. O upgrade para o próximo nível é automático ao expandir sua academia!");
+      } else {
+        setError(t('common.errorOccurred') || 'Ocorreu um erro ao cadastrar o aluno.');
+      }
     }
   };
 
@@ -937,6 +943,8 @@ const NewStudentModal = ({ onClose, defaultIsKid }: { onClose: () => void, defau
 
 const StudentDetailsModal = ({ student, onClose }: { student: Student; onClose: () => void }) => {
   const { profile } = useProfile();
+  const { user } = useAuth();
+  const isMasterAdmin = MASTER_ADMINS.includes(user?.email || '');
   const [activeTab, setActiveTab] = useState<'overview' | 'analysis' | 'progress' | 'edit' | 'admin' | 'videos' | 'financial' | 'security' | 'contract' | 'health' | 'documents'>('overview');
   const [editTab, setEditTab] = useState<'basics' | 'legal' | 'technical' | 'health'>('basics');
   const { t } = useTranslation();
@@ -1145,7 +1153,9 @@ const StudentDetailsModal = ({ student, onClose }: { student: Student; onClose: 
           <button onClick={() => setActiveTab('security')} className={`px-4 sm:px-8 py-4 sm:py-6 text-[8px] sm:text-[10px] font-black uppercase tracking-[0.2em] border-b-4 transition-all whitespace-nowrap ${activeTab === 'security' ? 'border-indigo-600 text-indigo-600' : 'border-transparent text-slate-400'}`}>{t('common.integrityBadgeTab')}</button>
           <button onClick={() => setActiveTab('videos')} className={`px-4 sm:px-8 py-4 sm:py-6 text-[8px] sm:text-[10px] font-black uppercase tracking-[0.2em] border-b-4 transition-all whitespace-nowrap ${activeTab === 'videos' ? 'border-blue-600 text-blue-600' : 'border-transparent text-slate-400'}`}>{t('common.videos')}</button>
           <button onClick={() => setActiveTab('contract')} className={`px-4 sm:px-8 py-4 sm:py-6 text-[8px] sm:text-[10px] font-black uppercase tracking-[0.2em] border-b-4 transition-all whitespace-nowrap ${activeTab === 'contract' ? 'border-blue-600 text-blue-600' : 'border-transparent text-slate-400'}`}>{t('common.contract')}</button>
-          <button onClick={() => setActiveTab('admin')} className={`px-4 sm:px-8 py-4 sm:py-6 text-[8px] sm:text-[10px] font-black uppercase tracking-[0.2em] border-b-4 transition-all whitespace-nowrap ${activeTab === 'admin' ? 'border-blue-600 text-blue-600' : 'border-transparent text-slate-400'}`}>{t('students.adminTab')}</button>
+          {isMasterAdmin && (
+            <button onClick={() => setActiveTab('admin')} className={`px-4 sm:px-8 py-4 sm:py-6 text-[8px] sm:text-[10px] font-black uppercase tracking-[0.2em] border-b-4 transition-all whitespace-nowrap ${activeTab === 'admin' ? 'border-blue-600 text-blue-600' : 'border-transparent text-slate-400'}`}>{t('students.adminTab')}</button>
+          )}
         </div>
 
         <div className="p-4 sm:p-10 flex-1 overflow-y-auto bg-white dark:bg-slate-900">
@@ -2637,6 +2647,8 @@ const CompetitorSelectorModal = ({ onClose }: { onClose: () => void }) => {
 
 const Students: React.FC = () => {
   const { t } = useTranslation();
+  const { user } = useAuth();
+  const isMasterAdmin = MASTER_ADMINS.includes(user?.email || '');
   const { students, schedules, deleteStudent } = useData();
   const { profile } = useProfile();
   const [searchTerm, setSearchTerm] = useState('');

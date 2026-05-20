@@ -1,0 +1,6 @@
+{
+  "invalid_credentials": "The PIN number or email address provided is incorrect. Oss!",
+  "unauthorized": "Access Denied: You do not have permission to view this console. OSS!",
+  "network_error": "Connection issue on the Mat. Check internet telemetry.",
+  "system_busy": "Sparing session in progress. System is busy, please retry."
+}

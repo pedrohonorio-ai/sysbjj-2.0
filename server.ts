@@ -14,6 +14,10 @@ import { loginHandler, registerHandler } from "./api/auth.js";
 import { authenticate, AuthRequest } from "./api/authMiddleware.js";
 import batchHandler from "./api/batch.js";
 import { dataHandler } from "./api/data.js";
+import { requireMaster } from "./server/middleware/requireMaster.js";
+import subscriptionRouter from "./api/routes/subscription.js";
+import neonStatusHandler from "./api/admin/neon-status.js";
+import resetSystemMetricsHandler from "./api/admin/reset-system-metrics.js";
 
 // GLOBAL ERROR HANDLERS
 process.on('uncaughtException', (err) => {
@@ -122,6 +126,50 @@ async function startServer() {
   // Protected Routes - OSS! Acesso apenas com Cinto Preto (JWT)
   apiRouter.use(authenticate as any);
 
+  // Aplicar requireMaster em rotas sensíveis administrativas do SaaS e Governança
+  apiRouter.use("/admin", requireMaster as any);
+  apiRouter.get("/admin/neon-status", neonStatusHandler as any);
+  apiRouter.post("/admin/reset-system-metrics", resetSystemMetricsHandler as any);
+  apiRouter.use("/system-logs", requireMaster as any);
+  apiRouter.use("/governance", requireMaster as any);
+  apiRouter.use("/master", requireMaster as any);
+  apiRouter.use("/global-dashboard", requireMaster as any);
+  apiRouter.use("/audit", requireMaster as any);
+
+  // Custom endpoint for delete-student
+  apiRouter.delete("/delete-student", requireMaster as any, async (req: any, res: express.Response) => {
+    const { id } = req.body;
+    if (!id) return res.status(400).json({ success: false, error: "ID do aluno é obrigatório." });
+    try {
+      const student = await prisma.student.findUnique({ where: { id } });
+      const result = await prisma.student.delete({ where: { id } });
+      
+      // Registrar log de exclusão
+      try {
+        await prisma.systemLog.create({
+          data: {
+            userId: req.user.id,
+            timestamp: BigInt(Date.now()),
+            userEmail: req.user.email,
+            action: 'DELETE_STUDENT',
+            details: `Aluno ${student?.name || id} foi excluído permanentemente pelo Sensei Master.`,
+            category: 'Audit',
+            deviceInfo: req.headers['user-agent'] || 'Desconhecido',
+          }
+        });
+      } catch (logErr) {
+        console.error("🥋 Falha ao registrar log de exclusão:", logErr);
+      }
+
+      res.json({ success: true, count: 1 });
+    } catch (error: any) {
+      res.status(500).json({ success: false, error: error.message });
+    }
+  });
+
+  // Mount subscription routes
+  apiRouter.use("/subscription", subscriptionRouter);
+
   // Health and Diagnostic Routes (Protected)
   apiRouter.get("/health-db", healthDbHandler as any);
   apiRouter.get("/health-db-rls", healthDbRlsHandler as any);
@@ -138,10 +186,53 @@ async function startServer() {
     const userId = req.user?.id;
     if (!userId) return res.status(401).json({ error: "Unauthorized" });
 
+    // Proteção dupla de exclusão de alunos
+    const lowerColl = collection.toLowerCase();
+    if (lowerColl === 'student' || lowerColl === 'students') {
+      if (req.user?.role !== 'MASTER') {
+        return res.status(403).json({
+          success: false,
+          error: "Apenas o Sensei Master pode remover estudantes permanentemente."
+        });
+      }
+    }
+
     try {
       const anyPrisma = prisma as any;
       if (anyPrisma[collection]) {
+        // Get name for logging
+        let studentName = id;
+        if (lowerColl === 'student' || lowerColl === 'students') {
+          try {
+            const student = await prisma.student.findUnique({ where: { id } });
+            if (student) studentName = student.name;
+          } catch (e) {}
+        }
+
         const result = await anyPrisma[collection].deleteMany({ where: { id, userId: String(userId) } });
+        
+        // Recalculate plan on student deletion
+        if (collection === 'students' && result.count > 0) {
+          import('./api/subscriptionService.js').then(m => m.updateSubscriptionPlan(String(userId)));
+
+          // Log exclusion audit
+          try {
+            await prisma.systemLog.create({
+              data: {
+                userId: String(userId),
+                timestamp: BigInt(Date.now()),
+                userEmail: req.user.email,
+                action: 'DELETE_STUDENT',
+                details: `Aluno ${studentName} foi excluído permanentemente pelo Sensei Master.`,
+                category: 'Audit',
+                deviceInfo: req.headers['user-agent'] || 'Desconhecido',
+              }
+            });
+          } catch (logErr) {
+            console.error("🥋 Falha ao registrar log de exclusão:", logErr);
+          }
+        }
+        
         res.json({ success: true, count: result.count });
       } else {
         res.status(404).json({ error: "Collection not found" });
@@ -184,6 +275,16 @@ async function startServer() {
       res.sendFile(path.join(distPath, 'index.html'));
     });
   }
+
+  // --- GLOBAL ERROR HANDLER ---
+  app.use((err: any, req: express.Request, res: express.Response, _next: express.NextFunction) => {
+    console.error("🥋 [SERVER CONFIG ERROR]:", err);
+    res.status(err.status || err.statusCode || 500).json({
+      success: false,
+      error: err.message || "Erro interno do servidor",
+      timestamp: new Date().toISOString()
+    });
+  });
 
   // START LISTENING
   app.listen(PORT, "0.0.0.0", () => {

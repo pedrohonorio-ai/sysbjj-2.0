@@ -16,10 +16,11 @@ import {
   BookOpen,
   Store,
   Clock,
-  TrendingUp
+  TrendingUp,
+  ShieldCheck
 } from 'lucide-react';
 
-export const MASTER_ADMINS = ['pedro.honorio@gm.rio', 'dashfire@gmail.com'];
+export const MASTER_ADMINS = ['pedro.honorio@gm.rio'];
 
 export const NAVIGATION_ITEMS = [
   { id: 'dashboard', label: 'Painel', icon: <LayoutDashboard size={20} className="text-blue-500" /> },
@@ -31,6 +32,7 @@ export const NAVIGATION_ITEMS = [
   { id: 'finances', label: 'Financeiro', icon: <CreditCard size={20} className="text-emerald-400" /> },
   { id: 'history', label: 'Histórico', icon: <Clock size={20} className="text-gray-500" /> },
   { id: 'promotions', label: 'Graduação', icon: <Trophy size={20} className="text-yellow-500" /> },
+  { id: 'plans', label: 'Assinatura', icon: <ShieldCheck size={20} className="text-emerald-500" /> },
   { id: 'ibjjf-rules', label: 'Regras IBJJF', icon: <Shield size={20} className="text-slate-500" /> },
   { id: 'timer', label: 'Cronômetro', icon: <Timer size={20} className="text-red-500" /> },
   { id: 'audit', label: 'Auditoria', icon: <BarChart3 size={20} className="text-cyan-500" /> },
