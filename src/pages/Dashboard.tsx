@@ -151,13 +151,60 @@ const Dashboard: React.FC = () => {
         </div>
       </header>
 
-      {subscription && subscription.usagePercent >= 80 && (
-        <motion.div 
-          initial={{ opacity: 0, scale: 0.95 }}
-          animate={{ opacity: 1, scale: 1 }}
-          className="max-w-4xl"
+      {subscription && (
+        <motion.div
+          initial={{ opacity: 0, y: -10 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="bg-gradient-to-r from-slate-900 via-indigo-950 to-slate-900 border border-indigo-500/20 rounded-[2.5rem] p-6 text-white shadow-2xl relative overflow-hidden"
         >
-          <PlanCard subscription={subscription} />
+          <div className="absolute top-0 right-0 w-48 h-48 bg-indigo-500/10 rounded-full blur-3xl pointer-events-none" />
+          <div className="relative z-10 flex flex-col md:flex-row items-center justify-between gap-6">
+            
+            <div className="flex items-center gap-4 text-center md:text-left">
+              <div className="p-3 bg-indigo-500/20 rounded-2xl text-indigo-400 border border-indigo-500/30">
+                <ShieldCheck size={24} />
+              </div>
+              <div>
+                <div className="flex items-center gap-2 justify-center md:justify-start">
+                  <span className="text-[10px] font-black uppercase tracking-widest text-[#00E5FF]">SaaS Licença dōjō</span>
+                  <span className="text-[8px] font-black uppercase tracking-widest bg-emerald-500/10 text-emerald-400 border border-emerald-500/30 px-1.5 py-0.5 rounded">Ativa</span>
+                </div>
+                <h3 className="text-xl font-black italic uppercase tracking-tight mt-0.5">
+                  Plano {subscription.plan?.replace('_', ' ')}
+                </h3>
+              </div>
+            </div>
+
+            <div className="flex-1 max-w-xs w-full">
+              <div className="flex justify-between text-[10px] font-black uppercase text-slate-400 tracking-wider mb-1.5">
+                <span>Capacidade de Alunos</span>
+                <span className="font-mono text-white">{subscription.currentStudents} / {subscription.maxStudents === 999999 ? '∞' : subscription.maxStudents}</span>
+              </div>
+              <div className="w-full bg-slate-950 h-2 rounded-full overflow-hidden p-px border border-slate-800">
+                <div 
+                  className={`h-full rounded-full transition-all duration-1000 ${subscription.usagePercent >= 90 ? 'bg-red-500' : subscription.usagePercent >= 80 ? 'bg-amber-500' : 'bg-indigo-500'}`}
+                  style={{ width: `${Math.min(100, subscription.usagePercent || 0)}%` }}
+                />
+              </div>
+              <p className="text-[8px] font-bold text-slate-500 uppercase tracking-widest mt-1 text-right">
+                {subscription.usagePercent}% de limite atingido
+              </p>
+            </div>
+
+            <div className="text-center md:text-right space-y-1">
+              <div className="text-[10px] font-black uppercase text-slate-400 tracking-wider">Próxima Cobrança</div>
+              <div className="text-xs font-mono font-black text-white">
+                {subscription.nextBillingDate ? new Date(subscription.nextBillingDate).toLocaleDateString('pt-BR') : '--/--/----'}
+              </div>
+              <Link
+                to="/plans"
+                className="inline-block mt-2 px-4 py-1.5 bg-white text-slate-950 hover:bg-slate-200 transition-all text-[9px] font-black uppercase tracking-widest rounded-xl"
+              >
+                Gerenciar Plano
+              </Link>
+            </div>
+
+          </div>
         </motion.div>
       )}
 

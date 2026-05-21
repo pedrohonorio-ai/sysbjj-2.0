@@ -1,6 +1,6 @@
 import React, { useState, useEffect, lazy, Suspense } from 'react';
 import { Routes, Route, Link, useLocation, useNavigate, Navigate } from 'react-router-dom';
-import { Menu, X, Bell, Sun, Moon, Search, Shield, LogOut, Clock, CheckCircle2, Instagram, ChevronRight, ShieldCheck, Lock, ArrowUpRight, CalendarCheck, Timer, Monitor, Activity, Users, Cpu, Settings as SettingsIcon } from 'lucide-react';
+import { Menu, X, Bell, Sun, Moon, Search, Shield, LogOut, Clock, CheckCircle2, Instagram, ChevronRight, ShieldCheck, Lock, ArrowUpRight, CalendarCheck, Timer, Monitor, Activity, Users, Cpu, Award, Settings as SettingsIcon } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { NAVIGATION_ITEMS, BELT_COLORS, MASTER_ADMINS } from './constants/index.js';
 
@@ -24,6 +24,9 @@ const SystemObservability = lazy(() => import('./pages/admin/SystemObservability
 const LanguageSelection = lazy(() => import('./pages/LanguageSelection.js'));
 const Login = lazy(() => import('./pages/Login.js'));
 const Plans = lazy(() => import('./pages/Plans.js'));
+const SubscriptionManager = lazy(() => import('./pages/subscription/SubscriptionManager.js'));
+const BillingCenter = lazy(() => import('./pages/subscription/BillingCenter.js'));
+const SaaSControlCenter = lazy(() => import('./pages/admin/SaaSControlCenter.js'));
 
 import NotificationCenter from './components/NotificationCenter.js';
 import DatabaseWarning from './components/DatabaseWarning.js';
@@ -43,14 +46,14 @@ const Sidebar = ({ isOpen, toggle, onLogout, isMasterAdmin }: { isOpen: boolean,
 
   const filteredItems = NAVIGATION_ITEMS.filter(item => {
     if (item.id === 'audit') return isMasterAdmin;
-    if (item.id === 'plans' && !isMasterAdmin) return false;
     return true;
   });
 
-  const coreItems = filteredItems.filter(item => ['dashboard', 'students', 'teaching-hub', 'performance', 'business', 'attendance', 'finances', 'timer'].includes(item.id));
+  const coreItems = filteredItems.filter(item => ['dashboard', 'students', 'teaching-hub', 'performance', 'business', 'attendance', 'finances', 'timer', 'plans'].includes(item.id));
   const footerItems = filteredItems.filter(item => ['promotions', 'ibjjf-rules', 'history'].includes(item.id));
 
   const masterLinksList = [
+    { id: 'saas-admin', path: '/saas-admin', label: 'Controle SaaS Master', icon: <Award size={20} className="text-rose-500" /> },
     { id: 'observability', path: '/observability', label: 'Observabilidade SaaS', icon: <Activity size={20} className="text-indigo-500" /> },
     { id: 'governance', path: '/audit?tab=overview', label: t('audit.governance', 'Governança'), icon: <ShieldCheck size={20} className="text-rose-500" /> },
     { id: 'transactions', path: '/audit?tab=neon', label: t('audit.transactions', 'Transações Globais'), icon: <Activity size={20} className="text-emerald-500" /> },
@@ -644,7 +647,9 @@ const App: React.FC = () => {
                     <Route path="/promotions" element={<BeltSystem />} />
                     <Route path="/language" element={<LanguageSelection />} />
                     <Route path="/timer" element={<FightTimer />} />
-                    <Route path="/plans" element={<Plans />} />
+                    <Route path="/plans" element={<SubscriptionManager />} />
+                    <Route path="/billing" element={<BillingCenter />} />
+                    <Route path="/saas-admin" element={isMasterAdmin ? <SaaSControlCenter /> : <Navigate to="/dashboard" />} />
                     
                     {/* Governança Master - Restrito */}
                     <Route path="/settings" element={<Settings />} />
