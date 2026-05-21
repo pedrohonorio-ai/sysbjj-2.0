@@ -1,6 +1,0 @@
-{
-  "invalid_credentials": "O PIN informado ou e-mail de acesso não combinam. Tente novamente! OSS.",
-  "unauthorized": "Acesso Negado: Faltam privilégios master para acessar este painel. OSS!",
-  "network_error": "Houve uma perda de tração de rede. Verifique seu sinal de internet.",
-  "system_busy": "Sessão de Sparring carregada. O sistema está ocupado. Tente novamente."
-}

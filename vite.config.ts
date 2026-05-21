@@ -12,6 +12,7 @@ export default defineConfig(({ command, mode }) => {
       plugins: [react(), tailwindcss()],
       build: {
         outDir: 'dist',
+        assetsDir: 'assets',
         emptyOutDir: true,
       }
     };

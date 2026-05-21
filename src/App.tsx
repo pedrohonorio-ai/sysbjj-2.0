@@ -239,8 +239,8 @@ const Sidebar = ({ isOpen, toggle, onLogout, isMasterAdmin }: { isOpen: boolean,
             </div>
             <p className="text-[7px] font-bold text-slate-500 uppercase tracking-tighter opacity-60">Criado e Produzido por PPH e CT PH de JIU-JITSU</p>
             <div className="mt-1 flex items-center gap-2">
-              <span className="text-[6px] font-black text-blue-600/50 uppercase tracking-widest leading-none">Security_Node_Active</span>
-              <span className="text-[6px] font-bold text-slate-400 uppercase tracking-widest opacity-40">Automatic_Sync: Enabled</span>
+              <span className="text-[6px] font-black text-blue-600/50 uppercase tracking-widest leading-none">{t('system.securityNodeActive', 'Nó de Segurança Ativo')}</span>
+              <span className="text-[6px] font-bold text-slate-400 uppercase tracking-widest opacity-40">{t('system.automaticSyncEnabled', 'Sincronização Automática Ativa')}</span>
             </div>
           </div>
         </div>
@@ -674,8 +674,8 @@ const App: React.FC = () => {
                    <div className="space-y-1">
                       <p className="text-[12px] font-black text-slate-900 dark:text-white uppercase tracking-tighter italic">SYSBJJ INTELLIGENCE SYSTEM 2.0</p>
                       <div className="flex flex-col gap-0.5">
-                         <span className="text-[8px] font-black text-blue-600 uppercase tracking-widest leading-none">Security_Node_Active</span>
-                         <span className="text-[8px] font-bold text-slate-400 uppercase tracking-widest opacity-60">Hash: SHA-256_Automatic_Sync_Enabled</span>
+                         <span className="text-[8px] font-black text-blue-600 uppercase tracking-widest leading-none">{t('system.securityNodeActive', 'Nó de Segurança Ativo')}</span>
+                         <span className="text-[8px] font-bold text-slate-400 uppercase tracking-widest opacity-60">{t('system.hashAutomaticSyncEnabled', 'Hash: SHA-256 Sincronização Ativa')}</span>
                       </div>
                    </div>
                 </div>
