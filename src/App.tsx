@@ -20,6 +20,7 @@ const PerformanceAnalytics = lazy(() => import('./pages/PerformanceAnalytics.js'
 const ExhibitionMode = lazy(() => import('./pages/ExhibitionMode.js'));
 const SystemAudit = lazy(() => import('./pages/SystemAudit.js'));
 const MasterControlCenter = lazy(() => import('./pages/admin/MasterControlCenter.js'));
+const SystemObservability = lazy(() => import('./pages/admin/SystemObservability.js'));
 const LanguageSelection = lazy(() => import('./pages/LanguageSelection.js'));
 const Login = lazy(() => import('./pages/Login.js'));
 const Plans = lazy(() => import('./pages/Plans.js'));
@@ -50,6 +51,7 @@ const Sidebar = ({ isOpen, toggle, onLogout, isMasterAdmin }: { isOpen: boolean,
   const footerItems = filteredItems.filter(item => ['promotions', 'ibjjf-rules', 'history'].includes(item.id));
 
   const masterLinksList = [
+    { id: 'observability', path: '/observability', label: 'Observabilidade SaaS', icon: <Activity size={20} className="text-indigo-500" /> },
     { id: 'governance', path: '/audit?tab=overview', label: t('audit.governance', 'Governança'), icon: <ShieldCheck size={20} className="text-rose-500" /> },
     { id: 'transactions', path: '/audit?tab=neon', label: t('audit.transactions', 'Transações Globais'), icon: <Activity size={20} className="text-emerald-500" /> },
     { id: 'security-logs', path: '/audit?tab=logs', label: t('audit.securityLogs', 'Auditoria de Logs'), icon: <Clock size={20} className="text-cyan-500" /> },
@@ -647,6 +649,8 @@ const App: React.FC = () => {
                     {/* Governança Master - Restrito */}
                     <Route path="/settings" element={<Settings />} />
                     <Route path="/audit" element={isMasterAdmin ? <SystemAudit /> : <Navigate to="/dashboard" />} />
+                    <Route path="/admin" element={isMasterAdmin ? <MasterControlCenter /> : <Navigate to="/dashboard" />} />
+                    <Route path="/observability" element={isMasterAdmin ? <SystemObservability /> : <Navigate to="/dashboard" />} />
                     
                     <Route path="/exhibition" element={<ExhibitionMode />} />
                     <Route path="/portal/:code" element={<StudentPortal />} />

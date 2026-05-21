@@ -11,6 +11,9 @@ import batchHandler from "./batch.js";
 import { dataHandler } from "./data.js";
 import subscriptionRouter from "./routes/subscription.js";
 import { requireMaster } from "../server/middleware/requireMaster.js";
+import neonStatusHandler from "./admin/neon-status.js";
+import resetSystemMetricsHandler from "./admin/reset-system-metrics.js";
+import systemMetricsHandler from "./admin/system-metrics.js";
 
 const app = express();
 
@@ -57,6 +60,9 @@ protectedRouter.use(authenticate as any);
 
 // Aplicar requireMaster em rotas sensíveis administrativas do SaaS e Governança
 protectedRouter.use("/admin", requireMaster as any);
+protectedRouter.get("/admin/neon-status", neonStatusHandler as any);
+protectedRouter.get("/admin/system-metrics", systemMetricsHandler as any);
+protectedRouter.post("/admin/reset-system-metrics", resetSystemMetricsHandler as any);
 protectedRouter.use("/system-logs", requireMaster as any);
 protectedRouter.use("/governance", requireMaster as any);
 protectedRouter.use("/master", requireMaster as any);

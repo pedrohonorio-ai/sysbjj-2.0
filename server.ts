@@ -18,6 +18,7 @@ import { requireMaster } from "./server/middleware/requireMaster.js";
 import subscriptionRouter from "./api/routes/subscription.js";
 import neonStatusHandler from "./api/admin/neon-status.js";
 import resetSystemMetricsHandler from "./api/admin/reset-system-metrics.js";
+import systemMetricsHandler from "./api/admin/system-metrics.js";
 
 // GLOBAL ERROR HANDLERS
 process.on('uncaughtException', (err) => {
@@ -129,6 +130,7 @@ async function startServer() {
   // Aplicar requireMaster em rotas sensíveis administrativas do SaaS e Governança
   apiRouter.use("/admin", requireMaster as any);
   apiRouter.get("/admin/neon-status", neonStatusHandler as any);
+  apiRouter.get("/admin/system-metrics", systemMetricsHandler as any);
   apiRouter.post("/admin/reset-system-metrics", resetSystemMetricsHandler as any);
   apiRouter.use("/system-logs", requireMaster as any);
   apiRouter.use("/governance", requireMaster as any);
