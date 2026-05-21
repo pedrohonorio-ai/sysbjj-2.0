@@ -30,6 +30,7 @@ import { ResponsiveContainer, AreaChart, Area, XAxis, YAxis, Tooltip, CartesianG
 import { SaaSAnalytics } from '../../components/admin/SaaSAnalytics.js';
 import { SystemAlerts } from '../../components/admin/SystemAlerts.js';
 import { AdminMaintenancePanel } from '../../components/admin/AdminMaintenancePanel.js';
+import { SystemDatabaseMonitor } from '../../components/admin/SystemDatabaseMonitor.js';
 import { processNeonTelemetry } from '../../services/neonMonitor.js';
 import { guardian } from '../../services/PerformanceGuardian.js';
 
@@ -415,6 +416,12 @@ export const SystemObservability: React.FC = () => {
                 </div>
               </div>
             </div>
+
+            {/* SystemDatabaseMonitor Integration */}
+            <SystemDatabaseMonitor 
+              extendedNeon={extendedNeon}
+              onlineCount={presence.length || 1}
+            />
 
             {/* Heavy tables analysis / Real presence monitor */}
             <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">

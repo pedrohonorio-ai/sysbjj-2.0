@@ -65,8 +65,10 @@ export const registerHandler = async (req: Request, res: Response) => {
       data: {
         userId: user.id,
         plan: "FREE",
+        studentLimit: 20,
         maxStudents: 20,
         monthlyPrice: 0,
+        paymentStatus: "ACTIVE",
         active: true
       }
     });

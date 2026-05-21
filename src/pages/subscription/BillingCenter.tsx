@@ -115,8 +115,8 @@ export const BillingCenter: React.FC = () => {
 
     setTimeout(() => {
       // Create invoice record
-      const price = sub?.monthlyPrice || 20;
-      const planName = sub?.plan || 'BRONZE';
+      const price = Number(sub?.monthlyPrice || 0);
+      const planName = String(sub?.plan || 'FREE').replaceAll('_', ' ').toUpperCase();
       
       const newInvoice = {
         id: `inv-${Date.now().toString().slice(-4)}`,
@@ -142,8 +142,8 @@ export const BillingCenter: React.FC = () => {
   };
 
   const activeInvoice = useMemo(() => {
-    const price = sub?.monthlyPrice || 0;
-    const planName = sub?.plan || 'FREE';
+    const price = Number(sub?.monthlyPrice || 0);
+    const planName = String(sub?.plan || 'FREE').replaceAll('_', ' ').toUpperCase();
     
     return {
       planName,

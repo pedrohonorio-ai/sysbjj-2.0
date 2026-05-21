@@ -1942,7 +1942,7 @@ const StudentDetailsModal = ({ student, onClose }: { student: Student; onClose: 
                                </div>
                                <div className="md:col-span-3 text-right">
                                  <p className="text-[9px] font-black text-blue-400 uppercase tracking-widest md:hidden mb-1">{t('financial.value')}</p>
-                                 <p className="text-sm font-black">{t('common.currencySymbol')} {entry.amount.toLocaleString()}</p>
+                                 <p className="text-sm font-black">{t('common.currencySymbol')} {Number(entry.amount || 0).toLocaleString('pt-BR')}</p>
                                </div>
                                <div className="md:col-span-2 text-right">
                                   <span className="px-3 py-1 bg-emerald-500/20 text-emerald-400 rounded-lg text-[8px] font-black uppercase tracking-widest">

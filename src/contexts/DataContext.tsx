@@ -258,6 +258,7 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     isDemoMode: localStorage.getItem('oss_demo_mode') === 'true'
   });
   const lastHashRef = React.useRef<string>('0');
+  const fetchingRef = React.useRef(false);
 
   const isAuthenticated = !!user || (authRole === 'student' && !!studentCode);
 
@@ -268,6 +269,8 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     if (!isAuthenticated || !user?.id || dbStatus.isDemoMode) return;
 
     const fetchAllData = async () => {
+      if (fetchingRef.current) return;
+      fetchingRef.current = true;
       try {
         const collections = [
           'students', 'payments', 'schedules', 'logs', 'ledger', 
@@ -295,8 +298,8 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         // Auto-initialization for empty accounts
         if (!batchResults.students || batchResults.students.length === 0) {
            if (import.meta.env.DEV) {
-        console.log("Oss! Iniciando dados padrão para novo Sensei...");
-      }
+             console.log("Oss! Iniciando dados padrão para novo Sensei...");
+           }
            for (const s of INITIAL_STUDENTS) {
              const id = `STU-${Date.now()}-${Math.random().toString(36).substr(2, 5)}`;
              await api.saveData('students', user.id, { ...s, id });
@@ -306,6 +309,8 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         }
       } catch (error) {
         handleApiError(error, OperationType.LIST, 'all', setNotifications, setDbStatus);
+      } finally {
+        fetchingRef.current = false;
       }
     };
 

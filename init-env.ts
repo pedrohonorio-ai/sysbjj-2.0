@@ -44,9 +44,6 @@ const cleanupEnv = (key: string) => {
   return "";
 };
 
-const dbUrl = cleanupEnv('DATABASE_URL') || cleanupEnv('POSTGRES_URL') || cleanupEnv('POSTGRES_PRISMA_URL');
-const directUrl = cleanupEnv('DIRECT_URL') || dbUrl;
-
 const ensureProtocol = (url: string) => {
   if (!url) return "";
   
@@ -66,11 +63,29 @@ const ensureProtocol = (url: string) => {
   return result;
 };
 
+const dbUrl = cleanupEnv('DATABASE_URL') || cleanupEnv('POSTGRES_URL') || cleanupEnv('POSTGRES_PRISMA_URL');
+let directUrl = cleanupEnv('DIRECT_URL') || dbUrl;
+
+// 🥋 OSS SENSEI: Prevent model / schema DB mismatch issues when DIRECT_URL and DATABASE_URL point to different hosts
+if (dbUrl && directUrl) {
+  try {
+    const dbHost = new URL(ensureProtocol(dbUrl)).hostname.replace("-pooler", "");
+    const directHost = new URL(ensureProtocol(directUrl)).hostname.replace("-pooler", "");
+    if (dbHost !== directHost) {
+      console.warn(`🥋 OSS SENSEI: Host de DIRECT_URL (${directHost}) difere de DATABASE_URL (${dbHost}). Sobrepondo para consistência.`);
+      directUrl = dbUrl;
+    }
+  } catch (err) {
+    // URL fallback parsing safety
+    console.error("🥋 OSS SENSEI: Erro ao analisar URLs no init-env:", err);
+  }
+}
+
 const finalDbUrl = ensureProtocol(dbUrl);
 const finalDirectUrl = ensureProtocol(directUrl);
 
-if (finalDbUrl !== dbUrl) process.env.DATABASE_URL = finalDbUrl;
-if (finalDirectUrl !== directUrl) process.env.DIRECT_URL = finalDirectUrl;
+process.env.DATABASE_URL = finalDbUrl;
+process.env.DIRECT_URL = finalDirectUrl;
 
 if (finalDbUrl) {
   if (!finalDbUrl.startsWith('postgresql://') && !finalDbUrl.startsWith('postgres://')) {

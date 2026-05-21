@@ -1,50 +1,66 @@
-import i18n from 'i18next';
-import { initReactI18next } from 'react-i18next';
+import i18n from "i18next";
+import { initReactI18next } from "react-i18next";
+import LanguageDetector from "i18next-browser-languagedetector";
 
-import ptBR from './locales/pt-BR.json' with { type: 'json' };
-import enUS from './locales/en-US.json' with { type: 'json' };
-import esES from './locales/es-ES.json' with { type: 'json' };
+import ptBR from "./locales/pt-BR.json" with { type: "json" };
+import enUS from "./locales/en-US.json" with { type: "json" };
+import esES from "./locales/es-ES.json" with { type: "json" };
 
 i18n
+  .use(LanguageDetector)
   .use(initReactI18next)
   .init({
     resources: {
-      pt: {
-        translation: ptBR
+      "pt-BR": {
+        translation: ptBR,
       },
-      'pt-BR': {
-        translation: ptBR
+      "en-US": {
+        translation: enUS,
       },
-      en: {
-        translation: enUS
+      "es-ES": {
+        translation: esES,
       },
-      'en-US': {
-        translation: enUS
-      },
-      es: {
-        translation: esES
-      },
-      'es-ES': {
-        translation: esES
-      }
     },
 
-    lng: localStorage.getItem('language') || localStorage.getItem('oss_language') || 'pt',
+    lng: "pt-BR",
+    fallbackLng: "pt-BR",
 
-    fallbackLng: 'pt',
+    supportedLngs: [
+      "pt-BR",
+      "en-US",
+      "es-ES"
+    ],
 
-    supportedLngs: ['pt', 'pt-BR', 'en', 'en-US', 'es', 'es-ES'],
+    load: "currentOnly",
 
-    interpolation: {
-      escapeValue: false
-    },
+    nonExplicitSupportedLngs: false,
+
+    debug: false,
 
     returnNull: false,
     returnEmptyString: false,
 
     saveMissing: false,
 
-    debug: false
+    interpolation: {
+      escapeValue: false,
+    },
+
+    react: {
+      useSuspense: false,
+    },
+
+    detection: {
+      order: [
+        "localStorage",
+        "navigator",
+        "htmlTag"
+      ],
+
+      caches: ["localStorage"],
+
+      lookupLocalStorage: "SYSBJJ_LANG",
+    },
   });
 
 export default i18n;

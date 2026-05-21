@@ -8,42 +8,45 @@ import { LanguageProvider } from './contexts/LanguageContext.js';
 import { ProfileProvider } from './contexts/ProfileContext.js';
 import { DataProvider } from './contexts/DataContext.js';
 import { AuthProvider } from './context/AuthContext.js';
+import i18n from './i18n/index.js';
+
+const savedLanguage = localStorage.getItem("SYSBJJ_LANG") || "pt-BR";
+i18n.changeLanguage(savedLanguage);
+document.documentElement.lang = savedLanguage;
+
 
 // 🥋 OSS SENSEI: Global Production Guard
-// Limpa ruídos de WebSocket e HMR em produção antes de iniciar o React
-if (process.env.NODE_ENV === 'production' || window.location.hostname !== 'localhost') {
-  // 1. Silencia logs do Vite que tentam se conectar ao HMR desabilitado
-  const originalWarn = console.warn;
-  const originalError = console.error;
-  
-  console.warn = (...args) => {
-    if (typeof args[0] === 'string' && (args[0].includes('[vite]') || args[0].includes('WebSocket'))) return;
-    originalWarn.apply(console, args);
-  };
-  
-  console.error = (...args) => {
-    if (typeof args[0] === 'string' && (args[0].includes('[vite]') || args[0].includes('WebSocket'))) return;
-    originalError.apply(console, args);
-  };
+// Limpa ruídos de WebSocket e HMR
+const originalWarn = console.warn;
+const originalError = console.error;
 
-  // 2. Intercepta erros de rede/websocket globais
-  window.addEventListener('error', (e: any) => {
-    if (e.message?.includes('WebSocket') || e.target instanceof WebSocket || (e.error && e.error.message?.includes('WebSocket'))) {
-      e.stopImmediatePropagation();
-      e.preventDefault();
-    }
-  }, true);
+console.warn = (...args) => {
+  if (typeof args[0] === 'string' && (args[0].includes('[vite]') || args[0].includes('WebSocket') || args[0].includes('connection') || args[0].includes('closed'))) return;
+  originalWarn.apply(console, args);
+};
 
-  // 3. Intercepta Rejeições Não Tratadas (comum em erros de WebSocket fechado prematuramente)
-  window.addEventListener('unhandledrejection', (event) => {
-    const reason = event.reason;
-    const message = typeof reason === 'string' ? reason : (reason?.message || '');
-    if (message.includes('WebSocket')) {
-      event.preventDefault();
-      event.stopPropagation();
-    }
-  }, true);
-}
+console.error = (...args) => {
+  if (typeof args[0] === 'string' && (args[0].includes('[vite]') || args[0].includes('WebSocket') || args[0].includes('connection') || args[0].includes('closed'))) return;
+  originalError.apply(console, args);
+};
+
+// Intercepta erros de rede/websocket globais
+window.addEventListener('error', (e: any) => {
+  if (e.message?.includes('WebSocket') || e.message?.includes('closed') || e.target instanceof WebSocket || (e.error && e.error.message?.includes('WebSocket'))) {
+    e.stopImmediatePropagation();
+    e.preventDefault();
+  }
+}, true);
+
+// Intercepta Rejeições Não Tratadas (comum em erros de WebSocket fechado prematuramente)
+window.addEventListener('unhandledrejection', (event) => {
+  const reason = event.reason;
+  const message = typeof reason === 'string' ? reason : (reason?.message || '');
+  if (message.includes('WebSocket') || message.includes('closed')) {
+    event.preventDefault();
+    event.stopPropagation();
+  }
+}, true);
 
   const ErrorFallback = ({ error }: { error: Error }) => (
   <div style={{ 
@@ -135,21 +138,19 @@ class ErrorBoundary extends React.Component<{ children: React.ReactNode }, { has
 }
 
 createRoot(document.getElementById('root')!).render(
-  <StrictMode>
-    <ErrorBoundary>
-      <BrowserRouter>
-        <ThemeProvider>
-          <LanguageProvider>
-            <AuthProvider>
-              <DataProvider>
-                <ProfileProvider>
-                  <App />
-                </ProfileProvider>
-              </DataProvider>
-            </AuthProvider>
-          </LanguageProvider>
-        </ThemeProvider>
-      </BrowserRouter>
-    </ErrorBoundary>
-  </StrictMode>,
+  <ErrorBoundary>
+    <BrowserRouter>
+      <ThemeProvider>
+        <LanguageProvider>
+          <AuthProvider>
+            <DataProvider>
+              <ProfileProvider>
+                <App />
+              </ProfileProvider>
+            </DataProvider>
+          </AuthProvider>
+        </LanguageProvider>
+      </ThemeProvider>
+    </BrowserRouter>
+  </ErrorBoundary>,
 );

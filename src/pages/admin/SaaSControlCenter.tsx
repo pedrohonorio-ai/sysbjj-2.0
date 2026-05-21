@@ -373,13 +373,13 @@ export const SaaSControlCenter: React.FC = () => {
                           a.plan === 'BRONZE' ? 'bg-amber-950 text-amber-400 border-amber-900/30' :
                           'bg-slate-950 text-slate-500 border-slate-900'
                         }`}>
-                          {a.plan.replace('_', ' ')}
+                          {String(a.plan || 'FREE').replaceAll('_', ' ')}
                         </span>
                       </td>
 
                       {/* Financial info */}
                       <td className="py-4 px-4 text-center font-mono font-black text-emerald-400">
-                        {a.plan === 'FREE' ? 'Grátis' : `R$ ${a.monthlyPrice.toFixed(2)}`}
+                        {String(a.plan || 'FREE').toUpperCase() === 'FREE' ? 'Grátis' : `R$ ${Number(a.monthlyPrice || 0).toFixed(2)}`}
                       </td>
 
                       {/* Active / Blocked Status */}

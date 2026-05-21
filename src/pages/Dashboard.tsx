@@ -1,5 +1,5 @@
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { Link } from 'react-router-dom';
 import { motion } from 'motion/react';
 import { Users, Calendar, TrendingUp, DollarSign, Award, ArrowUpRight, ArrowDownRight, Clock, ShieldCheck, Activity, Cake, History, CloudSun, Timer } from 'lucide-react';
@@ -13,6 +13,13 @@ import { api } from '../services/api.js';
 
 const Dashboard: React.FC = () => {
   const { t } = useTranslation();
+  const safeT = (key: string, fallback?: string) => {
+    const value = t(key);
+    if (!value || value === key) {
+      return fallback || "";
+    }
+    return value;
+  };
   const { students, payments, logs, verifyAuditIntegrity, ledger, attendance } = useData();
   const { profile } = useProfile();
   const [currentTime, setCurrentTime] = useState(new Date());
@@ -20,14 +27,48 @@ const Dashboard: React.FC = () => {
   const [subscription, setSubscription] = useState<any>(null);
 
   useEffect(() => {
+    let active = true;
     const fetchSub = async () => {
       try {
         const res = await api.fetchSubscription();
-        if (res) setSubscription(res);
-      } catch (e) {}
+        if (res && active) {
+          setSubscription(res.subscription || res.plan || res);
+        }
+      } catch (e) {
+        console.warn("⚠️ Error fetching subscription on dashboard state:", e);
+      }
     };
     fetchSub();
+    return () => {
+      active = false;
+    };
   }, []);
+
+  // Safe subscription helper with full defaults preventing any undefined exceptions or null crashes
+  const safeSubscription = useMemo(() => {
+    const subObj = subscription || {};
+    const planStr = typeof subObj.plan === 'string' ? subObj.plan : 'FREE';
+    const limit = Number(subObj.studentLimit || subObj.maxStudents || 20);
+    const curr = Number(subObj.currentStudents || students.filter(s => s.status === 'Active').length || 0);
+    const usePct = Math.min(100, limit > 0 ? Math.round((curr / limit) * 100) : 0);
+
+    return {
+      plan: planStr,
+      studentLimit: limit,
+      maxStudents: limit,
+      currentStudents: curr,
+      usagePercent: usePct,
+      monthlyPrice: Number(subObj.monthlyPrice || 0),
+      active: subObj.active !== false,
+      nextBillingDate: subObj.nextBillingDate || null
+    };
+  }, [subscription, students]);
+
+  const formattedPlan = useMemo(() => {
+    return String(safeSubscription.plan)
+      .replaceAll("_", " ")
+      .toUpperCase();
+  }, [safeSubscription.plan]);
 
   useEffect(() => {
     const timer = setInterval(() => setCurrentTime(new Date()), 1000);
@@ -67,7 +108,7 @@ const Dashboard: React.FC = () => {
     { title: t('dashboard.totalStudents'), value: students.length, icon: <Users size={24} />, color: 'bg-blue-500', trend: '+12%', isUp: true, link: '/students' },
     { title: t('dashboard.activeStudents'), value: activeStudents, icon: <Activity size={24} />, color: 'bg-emerald-500', trend: '+5%', isUp: true, link: '/students' },
     { title: t('common.timer'), value: 'PRO TIMER', icon: <Timer size={24} />, color: 'bg-rose-500', trend: 'IBJJF', isUp: true, link: '/timer' },
-    { title: t('dashboard.monthlyRevenue'), value: `R$ ${totalRevenue.toLocaleString()}`, icon: <TrendingUp size={24} />, color: 'bg-purple-500', trend: '+18%', isUp: true, link: '/finances' },
+    { title: t('dashboard.monthlyRevenue'), value: `R$ ${Number(totalRevenue || 0).toLocaleString('pt-BR')}`, icon: <TrendingUp size={24} />, color: 'bg-purple-500', trend: '+18%', isUp: true, link: '/finances' },
   ];
 
   const chartData = Array.from({ length: 7 }).map((_, index) => {
@@ -151,7 +192,7 @@ const Dashboard: React.FC = () => {
         </div>
       </header>
 
-      {subscription && (
+      {safeSubscription && (
         <motion.div
           initial={{ opacity: 0, y: -10 }}
           animate={{ opacity: 1, y: 0 }}
@@ -170,7 +211,7 @@ const Dashboard: React.FC = () => {
                   <span className="text-[8px] font-black uppercase tracking-widest bg-emerald-500/10 text-emerald-400 border border-emerald-500/30 px-1.5 py-0.5 rounded">Ativa</span>
                 </div>
                 <h3 className="text-xl font-black italic uppercase tracking-tight mt-0.5">
-                  Plano {subscription.plan?.replace('_', ' ')}
+                  Plano {formattedPlan}
                 </h3>
               </div>
             </div>
@@ -178,23 +219,23 @@ const Dashboard: React.FC = () => {
             <div className="flex-1 max-w-xs w-full">
               <div className="flex justify-between text-[10px] font-black uppercase text-slate-400 tracking-wider mb-1.5">
                 <span>Capacidade de Alunos</span>
-                <span className="font-mono text-white">{subscription.currentStudents} / {subscription.maxStudents === 999999 ? '∞' : subscription.maxStudents}</span>
+                <span className="font-mono text-white">{safeSubscription.currentStudents} / {safeSubscription.maxStudents === 999999 ? '∞' : safeSubscription.maxStudents}</span>
               </div>
               <div className="w-full bg-slate-950 h-2 rounded-full overflow-hidden p-px border border-slate-800">
                 <div 
-                  className={`h-full rounded-full transition-all duration-1000 ${subscription.usagePercent >= 90 ? 'bg-red-500' : subscription.usagePercent >= 80 ? 'bg-amber-500' : 'bg-indigo-500'}`}
-                  style={{ width: `${Math.min(100, subscription.usagePercent || 0)}%` }}
+                  className={`h-full rounded-full transition-all duration-1000 ${safeSubscription.usagePercent >= 90 ? 'bg-red-500' : safeSubscription.usagePercent >= 80 ? 'bg-amber-500' : 'bg-indigo-500'}`}
+                  style={{ width: `${Math.min(100, safeSubscription.usagePercent || 0)}%` }}
                 />
               </div>
               <p className="text-[8px] font-bold text-slate-500 uppercase tracking-widest mt-1 text-right">
-                {subscription.usagePercent}% de limite atingido
+                {safeSubscription.usagePercent}% de limite atingido
               </p>
             </div>
 
             <div className="text-center md:text-right space-y-1">
               <div className="text-[10px] font-black uppercase text-slate-400 tracking-wider">Próxima Cobrança</div>
               <div className="text-xs font-mono font-black text-white">
-                {subscription.nextBillingDate ? new Date(subscription.nextBillingDate).toLocaleDateString('pt-BR') : '--/--/----'}
+                {safeSubscription.nextBillingDate ? new Date(safeSubscription.nextBillingDate).toLocaleDateString('pt-BR') : '--/--/----'}
               </div>
               <Link
                 to="/plans"
@@ -391,9 +432,9 @@ const Dashboard: React.FC = () => {
             <div>
                <h2 className="text-xl font-black text-slate-900 dark:text-white uppercase tracking-tighter italic flex items-center gap-2">
                  <History size={24} className="text-blue-600" />
-                 {t('dashboard.recentActivities')}
+                 {safeT('dashboard.recentActivities', 'Atividades Recentes')}
                </h2>
-               <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mt-1">{t('dashboard.syncStatus')}</p>
+               <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mt-1">{safeT('dashboard.syncStatus', 'Sincronização OK')}</p>
             </div>
             <VerificationBadge status={auditStatus} />
          </div>

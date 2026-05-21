@@ -208,7 +208,7 @@ const Finances: React.FC = () => {
                          <p className="text-[9px] font-bold text-rose-400 uppercase tracking-widest">{t('payments.statusOverdue')} - {t('payments.day', 'Dia')} {s.dueDay}</p>
                       </div>
                       <div className="text-right">
-                         <p className="text-sm font-black italic">R$ {s.monthlyValue.toLocaleString()}</p>
+                         <p className="text-sm font-black italic">R$ {Number(s.monthlyValue || 0).toLocaleString('pt-BR')}</p>
                       </div>
                    </div>
                  ))}
@@ -373,7 +373,7 @@ const Finances: React.FC = () => {
                 <div className="space-y-4">
                    <div className="flex items-center justify-between">
                       <span className="text-[10px] font-bold text-slate-400 uppercase">{t('payments.business.overdueCapital', 'Mensalidades em Atraso')}</span>
-                      <span className="text-lg font-black text-rose-500 italic">R$ {overdueAmount.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</span>
+                      <span className="text-lg font-black text-rose-500 italic">R$ {Number(overdueAmount || 0).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</span>
                    </div>
                    <div className="w-full bg-white/5 h-2 rounded-full overflow-hidden">
                       <motion.div 

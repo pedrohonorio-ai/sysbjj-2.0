@@ -22,6 +22,12 @@ import {
 
 export const MASTER_ADMINS = ['pedro.honorio@gm.rio'];
 
+const MASTER_EMAIL = "pedro.honorio@gm.rio";
+
+export const isMasterAdmin = (email?: string) => {
+  return email?.toLowerCase() === MASTER_EMAIL.toLowerCase();
+};
+
 export const NAVIGATION_ITEMS = [
   { id: 'dashboard', label: 'Painel', icon: <LayoutDashboard size={20} className="text-blue-500" /> },
   { id: 'students', label: 'Alunos', icon: <Users size={20} className="text-indigo-500" /> },

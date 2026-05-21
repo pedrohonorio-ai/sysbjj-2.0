@@ -87,7 +87,7 @@ const BusinessHub: React.FC = () => {
         <div className="p-8 bg-blue-600 rounded-[2.5rem] text-white shadow-xl shadow-blue-600/20 relative overflow-hidden">
           <div className="absolute -right-4 -bottom-4 opacity-10"><TrendingUp size={120} /></div>
           <p className="text-[10px] font-black uppercase tracking-widest opacity-80 mb-1">Receita Mensal Loja</p>
-          <h2 className="text-3xl font-black italic">R$ {stats.monthlyRevenue.toLocaleString()}</h2>
+          <h2 className="text-3xl font-black italic">R$ {Number(stats.monthlyRevenue || 0).toLocaleString('pt-BR')}</h2>
           <div className="mt-4 flex items-center gap-2 text-[10px] font-black uppercase tracking-widest bg-white/10 w-fit px-3 py-1 rounded-lg">
              <ArrowUpRight size={14} />
              Volume Saudável
@@ -173,7 +173,7 @@ const BusinessHub: React.FC = () => {
                       <p className="text-[9px] font-black text-blue-600 uppercase tracking-widest">{product.category}</p>
                       <h3 className="text-lg font-black text-slate-900 dark:text-white uppercase tracking-tight truncate">{product.name}</h3>
                       <div className="flex items-center justify-between pt-4">
-                        <span className="text-2xl font-black text-slate-900 dark:text-white uppercase tracking-tighter italic">R$ {product.price.toLocaleString()}</span>
+                        <span className="text-2xl font-black text-slate-900 dark:text-white uppercase tracking-tighter italic">R$ {Number(product.price || 0).toLocaleString('pt-BR')}</span>
                         <div className="flex gap-2">
                           <button
                             onClick={() => {
@@ -274,7 +274,7 @@ const BusinessHub: React.FC = () => {
                        <div className="flex items-center justify-between pt-6 border-t border-slate-100 dark:border-white/5">
                           <div>
                              <p className="text-[8px] font-black text-slate-400 uppercase tracking-widest">Valor</p>
-                             <p className="text-lg font-black text-slate-900 dark:text-white italic">R$ {order.price.toLocaleString()}</p>
+                             <p className="text-lg font-black text-slate-900 dark:text-white italic">R$ {Number(order.price || 0).toLocaleString('pt-BR')}</p>
                           </div>
                           <div className="flex gap-2">
                              {order.status === 'Pending' && (
@@ -371,7 +371,7 @@ const BusinessHub: React.FC = () => {
                         <div>
                           <h3 className="text-2xl font-black uppercase tracking-tighter">{plan.name}</h3>
                           <div className="flex items-baseline gap-2 mt-4">
-                            <span className="text-4xl font-black italic">R$ {plan.price.toLocaleString()}</span>
+                            <span className="text-4xl font-black italic">R$ {Number(plan.price || 0).toLocaleString('pt-BR')}</span>
                             <span className="text-[10px] font-black opacity-50 uppercase tracking-widest">/ mês</span>
                           </div>
                         </div>
@@ -424,11 +424,11 @@ const BusinessHub: React.FC = () => {
                   </div>
                   <div className="p-6 bg-blue-600 rounded-3xl text-white shadow-xl">
                     <p className="text-[8px] font-black uppercase tracking-widest opacity-70 mb-2">Receita Potencial</p>
-                    <h3 className="text-2xl font-black italic">R$ {biData.summary.monthlyRevenueGoal.toLocaleString()}</h3>
+                    <h3 className="text-2xl font-black italic">R$ {Number(biData.summary.monthlyRevenueGoal || 0).toLocaleString('pt-BR')}</h3>
                   </div>
                   <div className="p-6 bg-emerald-600 rounded-3xl text-white shadow-xl">
                     <p className="text-[8px] font-black uppercase tracking-widest opacity-70 mb-2">Lucro Líquido</p>
-                    <h3 className="text-2xl font-black italic">R$ {biData.summary.netProfit.toLocaleString()}</h3>
+                    <h3 className="text-2xl font-black italic">R$ {Number(biData.summary.netProfit || 0).toLocaleString('pt-BR')}</h3>
                   </div>
                 </div>
 
@@ -473,15 +473,15 @@ const BusinessHub: React.FC = () => {
                         <div className="space-y-4">
                            <div className="p-4 bg-slate-50 dark:bg-white/5 rounded-2xl border-l-4 border-blue-500">
                              <p className="text-[8px] font-black text-slate-400 uppercase tracking-widest">Matrículas e Mensalidades</p>
-                             <p className="text-xl font-black text-slate-900 dark:text-white italic">R$ {biData.finances.breakdown.studentPayments.toLocaleString()}</p>
+                             <p className="text-xl font-black text-slate-900 dark:text-white italic">R$ {Number(biData.finances.breakdown.studentPayments || 0).toLocaleString('pt-BR')}</p>
                            </div>
                            <div className="p-4 bg-slate-50 dark:bg-white/5 rounded-2xl border-l-4 border-purple-500">
                              <p className="text-[8px] font-black text-slate-400 uppercase tracking-widest">Vendas da Loja (Ledger)</p>
-                             <p className="text-xl font-black text-slate-900 dark:text-white italic">R$ {biData.finances.breakdown.ledgerIncomes.toLocaleString()}</p>
+                             <p className="text-xl font-black text-slate-900 dark:text-white italic">R$ {Number(biData.finances.breakdown.ledgerIncomes || 0).toLocaleString('pt-BR')}</p>
                            </div>
                            <div className="p-4 bg-slate-50 dark:bg-white/5 rounded-2xl border-l-4 border-amber-500">
                              <p className="text-[8px] font-black text-slate-400 uppercase tracking-widest">Receitas Extras</p>
-                             <p className="text-xl font-black text-slate-900 dark:text-white italic">R$ {biData.finances.breakdown.extraIncomes.toLocaleString()}</p>
+                             <p className="text-xl font-black text-slate-900 dark:text-white italic">R$ {Number(biData.finances.breakdown.extraIncomes || 0).toLocaleString('pt-BR')}</p>
                            </div>
                         </div>
                         <div className="flex flex-col justify-center items-center p-8 bg-slate-950 rounded-[2rem] text-center border border-white/5 relative overflow-hidden group">
@@ -517,7 +517,7 @@ const BusinessHub: React.FC = () => {
                           <tr key={cat} className="group hover:bg-slate-50 dark:hover:bg-white/5 transition-all">
                             <td className="py-4 font-black text-[10px] text-slate-600 dark:text-slate-300 uppercase tracking-widest">{cat}</td>
                             <td className={`py-4 text-sm font-black text-right italic ${amount >= 0 ? 'text-emerald-500' : 'text-rose-500'}`}>
-                              {amount >= 0 ? '+' : '-'} R$ {Math.abs(amount).toLocaleString()}
+                              {amount >= 0 ? '+' : '-'} R$ {Number(Math.abs(amount) || 0).toLocaleString('pt-BR')}
                             </td>
                             <td className="py-4 text-right">
                                <div className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-md bg-slate-100 dark:bg-white/5 border border-slate-200 dark:border-white/10">
@@ -573,7 +573,7 @@ const BusinessHub: React.FC = () => {
                   </div>
                   <div>
                      <h4 className="text-lg font-black text-slate-900 dark:text-white uppercase tracking-tight">{selectedProduct.name}</h4>
-                     <p className="text-2xl font-black text-slate-900 dark:text-white italic mt-1">R$ {selectedProduct.price.toLocaleString()}</p>
+                     <p className="text-2xl font-black text-slate-900 dark:text-white italic mt-1">R$ {Number(selectedProduct.price || 0).toLocaleString('pt-BR')}</p>
                   </div>
                </div>
 

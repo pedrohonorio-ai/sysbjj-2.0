@@ -34,6 +34,7 @@ export const SubscriptionManager: React.FC = () => {
   const [sub, setSub] = useState<any>(null);
   const [actionError, setActionError] = useState<string | null>(null);
   const [successMsg, setSuccessMsg] = useState<string | null>(null);
+  const fetchedRef = useRef(false);
 
   // Load current subscription
   const fetchSubscription = async () => {
@@ -54,6 +55,8 @@ export const SubscriptionManager: React.FC = () => {
   };
 
   useEffect(() => {
+    if (fetchedRef.current) return;
+    fetchedRef.current = true;
     fetchSubscription();
   }, []);
 
@@ -181,7 +184,7 @@ export const SubscriptionManager: React.FC = () => {
 
   // Safe formatting helpers
   const formatMoney = (value: number) => {
-    return value.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
+    return Number(value || 0).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
   };
 
   if (loading && !sub) {
@@ -193,7 +196,7 @@ export const SubscriptionManager: React.FC = () => {
     );
   }
 
-  const currentPlanId = sub?.plan || 'FREE';
+  const currentPlanId = String(sub?.plan || 'FREE').replaceAll('_', ' ').toUpperCase();
 
   return (
     <div className="space-y-8 pb-16 animate-in fade-in duration-500">
@@ -268,7 +271,7 @@ export const SubscriptionManager: React.FC = () => {
               <div>
                 <p className="text-[9px] font-bold text-slate-500 uppercase tracking-widest">Assinatura Atual</p>
                 <h3 className="text-xl font-black text-white uppercase italic leading-none flex items-center gap-2">
-                  Plano {currentPlanId.replace('_', ' ')}
+                  Plano {currentPlanId}
                   <span className={`text-[8px] font-black px-2 py-0.5 rounded border ${
                     sub?.active ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20' : 'bg-red-500/10 text-red-400 border-red-500/20'
                   }`}>
@@ -434,7 +437,7 @@ export const SubscriptionManager: React.FC = () => {
                     )}
                   </div>
 
-                  <h3 className={`text-base font-black tracking-wider uppercase mb-1 ${plan.accent}`}>{plan.name.replace('_', ' ')}</h3>
+                  <h3 className={`text-base font-black tracking-wider uppercase mb-1 ${plan.accent}`}>{String(plan.name || '').replaceAll('_', ' ').toUpperCase()}</h3>
                   <p className="text-[9px] text-slate-400 leading-snug mb-4">{plan.tagline}</p>
 
                   <div className="flex items-baseline gap-1 mb-4">
