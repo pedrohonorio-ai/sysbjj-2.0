@@ -44,10 +44,10 @@ export const BillingCenter: React.FC = () => {
     { id: 'inv-01', date: '21/03/2026', desc: 'Assinatura Mensal - BRONZE', amount: 20, status: 'Pago', method: 'PIX', ref: '03/2026' }
   ]);
 
-  // PIX Credentials Configuration
-  const PIX_KEY = "pedro.honorio@gm.rio";
-  const PIX_BENEFICIARY = "SYSBJJ 2.0 Tecnologia Ltda";
-  const PIX_CITY = "Rio de Janeiro";
+  // PIX Credentials Configuration loaded dynamically from master admin setup
+  const PIX_KEY = sub?.pixKey || "pedro.honorio@gm.rio";
+  const PIX_BENEFICIARY = sub?.pixHolder || "SYSBJJ 2.0 Tecnologia Ltda";
+  const PIX_CITY = sub?.pixCity || "Rio de Janeiro";
 
   // Fetch current subscription
   const fetchSubscription = async () => {
@@ -153,8 +153,59 @@ export const BillingCenter: React.FC = () => {
     };
   }, [sub]);
 
-  // Generated dynamic payload for PIX copy-and-paste emulated code
-  const pixEconCode = `00020101021126580014br.gov.bcb.pix0119${PIX_KEY}5204000053039865405${activeInvoice.price.toFixed(2)}5802BR5925${PIX_BENEFICIARY.replace(/\s/g, '%20')}6014${PIX_CITY.replace(/\s/g, '%20')}62070503***6304`;
+  // Generated dynamic payload for PIX copy-and-paste code (EMV standard with CRC16)
+  const pixEconCode = useMemo(() => {
+    const key = String(PIX_KEY).trim();
+    const holder = String(PIX_BENEFICIARY)
+      .trim()
+      .normalize("NFD")
+      .replace(/[\u0300-\u036f]/g, "")
+      .replace(/[^a-zA-Z0-9 ]/g, "")
+      .slice(0, 25);
+    const city = String(PIX_CITY)
+      .trim()
+      .normalize("NFD")
+      .replace(/[\u0300-\u036f]/g, "")
+      .replace(/[^a-zA-Z0-9 ]/g, "")
+      .slice(0, 15);
+    const price = Number(activeInvoice.price || 0);
+
+    const payloadFormat = "000201";
+    const initiationMethod = "010211";
+
+    const gui = "0014br.gov.bcb.pix";
+    const keySub = `01${String(key.length).padStart(2, '0')}${key}`;
+    const merchantAccount = `${gui}${keySub}`;
+    const id26 = `26${String(merchantAccount.length).padStart(2, '0')}${merchantAccount}`;
+
+    const id52 = "52040000";
+    const id53 = "5303986";
+
+    const amountStr = Number(price).toFixed(2);
+    const id54 = `54${String(amountStr.length).padStart(2, '0')}${amountStr}`;
+
+    const id58 = "5802BR";
+    const id59 = `59${String(holder.length).padStart(2, '0')}${holder}`;
+    const id60 = `60${String(city.length).padStart(2, '0')}${city}`;
+    const id62 = "62070503***";
+
+    const rawPayload = `${payloadFormat}${initiationMethod}${id26}${id52}${id53}${id54}${id58}${id59}${id60}${id62}6304`;
+
+    let crc = 0xFFFF;
+    for (let i = 0; i < rawPayload.length; i++) {
+      crc ^= (rawPayload.charCodeAt(i) << 8);
+      for (let j = 0; j < 8; j++) {
+        if ((crc & 0x8000) !== 0) {
+          crc = ((crc << 1) ^ 0x1021) & 0xFFFF;
+        } else {
+          crc = (crc << 1) & 0xFFFF;
+        }
+      }
+    }
+    const crcStr = crc.toString(16).toUpperCase().padStart(4, '0');
+
+    return `${rawPayload}${crcStr}`;
+  }, [PIX_KEY, PIX_BENEFICIARY, PIX_CITY, activeInvoice.price]);
 
   return (
     <div className="space-y-8 pb-16 animate-in fade-in duration-500">

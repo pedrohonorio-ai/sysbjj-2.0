@@ -244,8 +244,8 @@ const Sidebar = ({ isOpen, toggle, onLogout, isMasterAdmin }: { isOpen: boolean,
             </div>
             <p className="text-[7px] font-bold text-slate-500 uppercase tracking-tighter opacity-60">Criado e Produzido por PPH e CT PH de JIU-JITSU</p>
             <div className="mt-1 flex items-center gap-2">
-              <span className="text-[6px] font-black text-blue-600/50 uppercase tracking-widest leading-none">{t('system.securityNodeActive', 'Nó de Segurança Ativo')}</span>
-              <span className="text-[6px] font-bold text-slate-400 uppercase tracking-widest opacity-40">{t('system.automaticSyncEnabled', 'Sincronização Automática Ativa')}</span>
+              <span className="text-[6px] font-black text-blue-600/50 uppercase tracking-widest leading-none">{t('system.securityNodeActive', 'Sistema Protegido')}</span>
+              <span className="text-[6px] font-bold text-slate-400 uppercase tracking-widest opacity-40">{t('system.automaticSyncEnabled', 'Sincronização Ativa')}</span>
             </div>
           </div>
         </div>
@@ -404,7 +404,7 @@ const Header = ({ toggleSidebar, auth, onLogout }: { toggleSidebar: () => void, 
           </div>
           <div className="flex items-center gap-2 mt-1">
             <span className="w-1.5 h-1.5 rounded-full bg-green-500 animate-pulse" />
-            <span className="text-[8px] font-black text-slate-400 uppercase tracking-widest">{t('settings.masterSyncActive', 'Sincronização Master Ativa')}</span>
+            <span className="text-[8px] font-black text-slate-400 uppercase tracking-widest">{t('settings.masterSyncActive', 'Sincronização Ativa')}</span>
           </div>
         </div>
       </div>
@@ -683,18 +683,18 @@ const App: React.FC = () => {
                    <div className="space-y-1">
                       <p className="text-[12px] font-black text-slate-900 dark:text-white uppercase tracking-tighter italic">SYSBJJ INTELLIGENCE SYSTEM 2.0</p>
                       <div className="flex flex-col gap-0.5">
-                         <span className="text-[8px] font-black text-blue-600 uppercase tracking-widest leading-none">{t('system.securityNodeActive', 'Nó de Segurança Ativo')}</span>
-                         <span className="text-[8px] font-bold text-slate-400 uppercase tracking-widest opacity-60">{t('system.hashAutomaticSyncEnabled', 'Hash: SHA-256 Sincronização Ativa')}</span>
+                         <span className="text-[8px] font-black text-blue-600 uppercase tracking-widest leading-none">{t('system.securityNodeActive', 'Sistema Protegido')}</span>
+                         <span className="text-[8px] font-bold text-slate-400 uppercase tracking-widest opacity-60">{t('system.hashAutomaticSyncEnabled', 'Sincronização Ativa')}</span>
                       </div>
                    </div>
                 </div>
 
                 <div className="flex flex-wrap justify-center gap-12">
                    <div className="flex flex-col items-center lg:items-end">
-                      <span className="text-[9px] font-black text-slate-400 uppercase tracking-[0.3em] mb-2">{t('settings.integrityProtocol', 'Protocolo de Integridade')}</span>
+                      <span className="text-[9px] font-black text-slate-400 uppercase tracking-[0.3em] mb-2">{t('settings.integrityProtocol', 'Sistema Protegido')}</span>
                       <div className="flex items-center gap-2 px-4 py-1.5 bg-emerald-500/5 border border-emerald-500/20 rounded-full">
                          <div className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
-                         <span className="text-[8px] font-black text-emerald-600 uppercase tracking-widest leading-none">{t('settings.blindadoImutavel', 'Blindado & Imutável')}</span>
+                         <span className="text-[8px] font-black text-emerald-600 uppercase tracking-widest leading-none">{t('settings.blindadoImutavel', 'Sincronização Ativa')}</span>
                       </div>
                    </div>
                    <div className="flex flex-col items-center lg:items-end space-y-1">

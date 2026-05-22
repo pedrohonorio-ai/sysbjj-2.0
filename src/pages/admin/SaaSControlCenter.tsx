@@ -16,7 +16,9 @@ import {
   Trophy,
   Activity,
   UserCheck,
-  CreditCard
+  CreditCard,
+  QrCode,
+  Save
 } from 'lucide-react';
 import { useTranslation } from '../../contexts/LanguageContext.js';
 import { useAuth } from '../../context/AuthContext.js';
@@ -41,6 +43,12 @@ export const SaaSControlCenter: React.FC = () => {
     return email === "pedro.honorio@gm.rio" || user.role === "MASTER";
   }, [user]);
 
+  // PIX Master Configuration states
+  const [pixKey, setPixKey] = useState<string>('');
+  const [pixHolder, setPixHolder] = useState<string>('');
+  const [pixCity, setPixCity] = useState<string>('');
+  const [savingPix, setSavingPix] = useState<boolean>(false);
+
   // Load all academies subscriptions
   const loadSubscriptions = async () => {
     try {
@@ -59,9 +67,50 @@ export const SaaSControlCenter: React.FC = () => {
     }
   };
 
+  // Load dynamic Master Admin's PIX settings
+  const loadGlobalPixConfig = async () => {
+    try {
+      const res = await enterpriseApi.fetchWithEnterprise('/api/subscription/admin/pix-config', { useCache: false });
+      if (res && res.success) {
+        setPixKey(res.pixKey || '');
+        setPixHolder(res.pixHolder || '');
+        setPixCity(res.pixCity || '');
+      }
+    } catch (e) {
+      console.error("Falha ao ler dados de PIX global:", e);
+    }
+  };
+
+  const handleSavePixConfig = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setSavingPix(true);
+    setErr(null);
+    setSuccess(null);
+
+    try {
+      const res = await enterpriseApi.fetchWithEnterprise('/api/subscription/admin/pix-config', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ pixKey, pixHolder, pixCity })
+      });
+
+      if (res && res.success) {
+        setSuccess('🥋 OSS SENSEI! Dados de recebimento PIX guardados e sincronizados com sucesso!');
+        await loadGlobalPixConfig(); // Reload
+      } else {
+        setErr(res?.error || 'Problema ao gravar as configurações de PIX.');
+      }
+    } catch (err: any) {
+      setErr(err.message || 'Erro ao conectar à autoridade para salvar PIX.');
+    } finally {
+      setSavingPix(false);
+    }
+  };
+
   useEffect(() => {
     if (isMasterAuthorized) {
       loadSubscriptions();
+      loadGlobalPixConfig();
     }
   }, [isMasterAuthorized]);
 
@@ -292,6 +341,69 @@ export const SaaSControlCenter: React.FC = () => {
         </div>
 
       </div>
+
+      {/* OS SENSEI: Global PIX configuration Form for system administration */}
+      <section className="bg-slate-900 border border-slate-800 p-8 rounded-[2rem] space-y-6 relative overflow-hidden">
+        <div className="absolute top-0 right-0 w-64 h-64 bg-gradient-to-br from-cyan-500/5 to-transparent rounded-full blur-3xl pointer-events-none" />
+        <div className="flex items-center gap-3 border-b border-slate-800 pb-4">
+          <div className="p-2.5 rounded-xl bg-cyan-500/10 text-[#00E5FF] border border-cyan-500/20">
+            <QrCode size={20} />
+          </div>
+          <div>
+            <h3 className="text-sm font-black text-white uppercase italic tracking-wider">Configurações Globais de Recebimento PIX</h3>
+            <p className="text-[10px] text-slate-500 uppercase tracking-widest font-bold">Configure a chave PIX, o beneficiário e a cidade que serão usados para gerar faturas e pagamentos de mensalidades de uso do sistema</p>
+          </div>
+        </div>
+
+        <form onSubmit={handleSavePixConfig} className="grid grid-cols-1 md:grid-cols-3 gap-6 items-end">
+          <div className="space-y-2">
+            <label className="text-[10px] font-black text-slate-400 uppercase tracking-wider block">Chave PIX Comercial (SaaS)</label>
+            <input
+              type="text"
+              required
+              placeholder="Ex: pedro.honorio@gm.rio ou CPF/CNPJ"
+              value={pixKey}
+              onChange={(e) => setPixKey(e.target.value)}
+              className="w-full bg-slate-950 border border-slate-850 rounded-xl py-2.5 px-4 text-xs text-white placeholder-slate-600 focus:outline-none focus:border-cyan-500 font-sans"
+            />
+          </div>
+
+          <div className="space-y-2">
+            <label className="text-[10px] font-black text-slate-400 uppercase tracking-wider block">Titular/Beneficiário do Recebimento</label>
+            <input
+              type="text"
+              required
+              placeholder="Ex: SYSBJJ 2.0 Tecnologia Ltda"
+              value={pixHolder}
+              onChange={(e) => setPixHolder(e.target.value)}
+              className="w-full bg-slate-950 border border-slate-850 rounded-xl py-2.5 px-4 text-xs text-white placeholder-slate-600 focus:outline-none focus:border-cyan-500 font-sans"
+            />
+          </div>
+
+          <div className="space-y-2">
+            <label className="text-[10px] font-black text-slate-400 uppercase tracking-wider block">Cidade de Registro da Chave</label>
+            <input
+              type="text"
+              required
+              placeholder="Ex: Rio de Janeiro"
+              value={pixCity}
+              onChange={(e) => setPixCity(e.target.value)}
+              className="w-full bg-slate-950 border border-slate-850 rounded-xl py-2.5 px-4 text-xs text-white placeholder-slate-600 focus:outline-none focus:border-cyan-500 font-sans"
+            />
+          </div>
+
+          <div className="md:col-span-3 flex justify-end pt-2 border-t border-slate-850">
+            <button
+              type="submit"
+              disabled={savingPix}
+              className="px-5 py-2.5 bg-gradient-to-r from-cyan-600 to-indigo-600 hover:from-cyan-500 hover:to-indigo-500 text-white rounded-xl text-[10px] font-black uppercase tracking-widest transition-all shadow-md hover:shadow-cyan-500/10 flex items-center gap-2"
+            >
+              <Save size={12} className={savingPix ? "animate-spin" : ""} />
+              {savingPix ? 'Salvando Ajustes...' : 'Salvar Dados Recebimento PIX'}
+            </button>
+          </div>
+        </form>
+      </section>
 
       {/* Main Academias List Section */}
       <section className="bg-slate-900 border border-slate-800 rounded-[2rem] overflow-hidden">

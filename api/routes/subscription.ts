@@ -4,6 +4,140 @@ import { prisma } from "../../prisma/client.js";
 
 const router = Router();
 
+// OS SENSEI: EMV Standard Static/Dynamic PIX Payload Generator with dynamic tag lengths & mathematical CRC16
+function generatePixPayload(pixKey: string, pixHolder: string, pixCity: string, price: number): string {
+  const normalizedKey = String(pixKey || "pedro.honorio@gm.rio").trim();
+  
+  // Clean special characters from Holder and City to avoid banking app scanner failures
+  const normalizedHolder = String(pixHolder || "SYSBJJ 2.0 Tecnologia Ltda")
+    .trim()
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .replace(/[^a-zA-Z0-9 ]/g, "")
+    .slice(0, 25);
+    
+  const normalizedCity = String(pixCity || "Rio de Janeiro")
+    .trim()
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .replace(/[^a-zA-Z0-9 ]/g, "")
+    .slice(0, 15);
+
+  const payloadFormat = "000201";
+  const initiationMethod = "010211"; // Reusable standard static
+
+  const gui = "0014br.gov.bcb.pix";
+  const keySub = `01${String(normalizedKey.length).padStart(2, '0')}${normalizedKey}`;
+  const merchantAccount = `${gui}${keySub}`;
+  const id26 = `26${String(merchantAccount.length).padStart(2, '0')}${merchantAccount}`;
+
+  const id52 = "52040000";
+  const id53 = "5303986"; // BRL Currency Code
+
+  const amountStr = Number(price || 0).toFixed(2);
+  const id54 = `54${String(amountStr.length).padStart(2, '0')}${amountStr}`;
+
+  const id58 = "5802BR";
+  const id59 = `59${String(normalizedHolder.length).padStart(2, '0')}${normalizedHolder}`;
+  const id60 = `60${String(normalizedCity.length).padStart(2, '0')}${normalizedCity}`;
+  const id62 = "62070503***";
+
+  const rawPayload = `${payloadFormat}${initiationMethod}${id26}${id52}${id53}${id54}${id58}${id59}${id60}${id62}6304`;
+
+  // Standard CRC16-CCITT implementation over raw payload
+  let crc = 0xFFFF;
+  for (let i = 0; i < rawPayload.length; i++) {
+    crc ^= (rawPayload.charCodeAt(i) << 8);
+    for (let j = 0; j < 8; j++) {
+      if ((crc & 0x8000) !== 0) {
+        crc = ((crc << 1) ^ 0x1021) & 0xFFFF;
+      } else {
+        crc = (crc << 1) & 0xFFFF;
+      }
+    }
+  }
+  const crcStr = crc.toString(16).toUpperCase().padStart(4, '0');
+
+  return `${rawPayload}${crcStr}`;
+}
+
+// Endpoint: GET /api/subscription/admin/pix-config
+router.get("/admin/pix-config", authenticate as any, async (req: AuthRequest, res: Response): Promise<any> => {
+  try {
+    const masterUser = await prisma.user.findUnique({
+      where: { email: "pedro.honorio@gm.rio" }
+    });
+    
+    const masterSub = masterUser ? await prisma.subscription.findUnique({
+      where: { userId: masterUser.id }
+    }) : null;
+
+    return res.json({
+      success: true,
+      pixKey: masterSub?.pixKey || "pedro.honorio@gm.rio",
+      pixHolder: masterSub?.pixHolder || "SYSBJJ 2.0 Tecnologia Ltda",
+      pixCity: masterSub?.pixCity || "Rio de Janeiro"
+    });
+  } catch (error: any) {
+    console.error("🥋 ERROR FETCHING SAAS PIX CONFIG:", error);
+    return res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+// Endpoint: POST /api/subscription/admin/pix-config
+router.post("/admin/pix-config", authenticate as any, async (req: AuthRequest, res: Response): Promise<any> => {
+  const isMaster = req.user?.email?.toLowerCase() === "pedro.honorio@gm.rio" || req.user?.role === "MASTER";
+  if (!isMaster) {
+    return res.status(403).json({ success: false, error: "Acesso exclusivo ao Sensei Master." });
+  }
+
+  const { pixKey, pixHolder, pixCity } = req.body;
+  if (!pixKey || !pixHolder || !pixCity) {
+    return res.status(400).json({ success: false, error: "Todos os campos (Chave, Titular e Cidade) são obrigatórios." });
+  }
+  
+  try {
+    const masterUser = await prisma.user.findUnique({
+      where: { email: "pedro.honorio@gm.rio" }
+    });
+    
+    if (!masterUser) {
+      return res.status(404).json({ success: false, error: "Usuário master pedro.honorio@gm.rio não encontrado." });
+    }
+
+    const updatedSub = await prisma.subscription.upsert({
+      where: { userId: masterUser.id },
+      create: {
+        userId: masterUser.id,
+        plan: "BLACK_BELT",
+        studentLimit: 999999,
+        maxStudents: 999999,
+        monthlyPrice: 0,
+        active: true,
+        pixKey,
+        pixHolder,
+        pixCity
+      },
+      update: {
+        pixKey,
+        pixHolder,
+        pixCity
+      }
+    });
+
+    return res.json({
+      success: true,
+      message: "Configuração global de PIX do SaaS atualizada com sucesso pelo Sensei Supremo!",
+      pixKey: updatedSub.pixKey,
+      pixHolder: updatedSub.pixHolder,
+      pixCity: updatedSub.pixCity
+    });
+  } catch (error: any) {
+    console.error("🥋 ERROR SAVING SAAS PIX CONFIG:", error);
+    return res.status(500).json({ success: false, error: error.message });
+  }
+});
+
 // Endpoint: GET /api/subscription/current
 router.get("/current", authenticate as any, async (req: AuthRequest, res: Response): Promise<any> => {
   const userId = req.user?.id;
@@ -34,6 +168,10 @@ router.get("/current", authenticate as any, async (req: AuthRequest, res: Respon
       });
     }
 
+    if (typeof sub.plan !== "string") {
+      sub.plan = "FREE";
+    }
+
     const limitVal = sub.studentLimit || sub.maxStudents || 20;
     const usagePercent = Math.min(100, Math.round((currentStudents / limitVal) * 100));
 
@@ -41,6 +179,14 @@ router.get("/current", authenticate as any, async (req: AuthRequest, res: Respon
     const startedAt = sub.startedAt || sub.createdAt;
     const expiresAt = new Date(startedAt.getTime() + 30 * 24 * 60 * 60 * 1000).toISOString();
     const nextBillingDate = expiresAt;
+
+    // Load global PIX config of the Master admin so that Billing center displays it
+    const masterUser = await prisma.user.findUnique({
+      where: { email: "pedro.honorio@gm.rio" }
+    });
+    const masterSub = masterUser ? await prisma.subscription.findUnique({
+      where: { userId: masterUser.id }
+    }) : null;
 
     const responseData = {
       id: sub.id,
@@ -57,9 +203,9 @@ router.get("/current", authenticate as any, async (req: AuthRequest, res: Respon
       lastPaymentDate: sub.updatedAt.toISOString(),
       nextBillingDate: nextBillingDate,
       paymentStatus: sub.paymentStatus || "ACTIVE",
-      pixKey: sub.pixKey || "pedro.honorio@gm.rio",
-      pixHolder: sub.pixHolder || "SYSBJJ 2.0 Tecnologia Ltda",
-      pixCity: sub.pixCity || "Rio de Janeiro",
+      pixKey: masterSub?.pixKey || "pedro.honorio@gm.rio",
+      pixHolder: masterSub?.pixHolder || "SYSBJJ 2.0 Tecnologia Ltda",
+      pixCity: masterSub?.pixCity || "Rio de Janeiro",
       autoRenew: true,
       createdAt: sub.createdAt.toISOString(),
       updatedAt: sub.updatedAt.toISOString(),
@@ -90,6 +236,9 @@ router.get("/current", authenticate as any, async (req: AuthRequest, res: Respon
       nextBillingDate: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString(),
       paymentStatus: "Paid",
       autoRenew: true,
+      pixKey: "pedro.honorio@gm.rio",
+      pixHolder: "SYSBJJ 2.0 Tecnologia Ltda",
+      pixCity: "Rio de Janeiro",
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString(),
       usagePercent: 0,
@@ -127,9 +276,17 @@ router.post("/upgrade", authenticate as any, async (req: AuthRequest, res: Respo
   }
 
   try {
-    const PIX_KEY = "pedro.honorio@gm.rio";
-    const PIX_HOLDER = "SYSBJJ 2.0 Tecnologia Ltda";
-    const PIX_CITY = "Rio de Janeiro";
+    // Load dynamic Master Admin's PIX configurations
+    const masterUser = await prisma.user.findUnique({
+      where: { email: "pedro.honorio@gm.rio" }
+    });
+    const masterSub = masterUser ? await prisma.subscription.findUnique({
+      where: { userId: masterUser.id }
+    }) : null;
+
+    const PIX_KEY = masterSub?.pixKey || "pedro.honorio@gm.rio";
+    const PIX_HOLDER = masterSub?.pixHolder || "SYSBJJ 2.0 Tecnologia Ltda";
+    const PIX_CITY = masterSub?.pixCity || "Rio de Janeiro";
 
     const updatedSub = await prisma.subscription.upsert({
       where: { userId: String(userId) },
@@ -158,7 +315,7 @@ router.post("/upgrade", authenticate as any, async (req: AuthRequest, res: Respo
       }
     });
 
-    const pixPayload = `00020101021126580014br.gov.bcb.pix0119${PIX_KEY}5204000053039865405${Number(monthlyPrice).toFixed(2)}5802BR5925${PIX_HOLDER.replace(/\s/g, '%20')}6014${PIX_CITY.replace(/\s/g, '%20')}62070503***6304`;
+    const pixPayload = generatePixPayload(PIX_KEY, PIX_HOLDER, PIX_CITY, monthlyPrice);
 
     await prisma.systemLog.create({
       data: {
@@ -166,7 +323,7 @@ router.post("/upgrade", authenticate as any, async (req: AuthRequest, res: Respo
         timestamp: BigInt(Date.now()),
         userEmail: req.user.email,
         action: 'PLAN_UPGRADE',
-        details: `Plano atualizado com sucesso e liberado automaticamente para ${plan} pelo próprio Sensei via Pix.`,
+        details: `Plano atualizado com sucesso e liberado automaticamente para ${plan} pelo próprio Sensei via Pix. Key: ${PIX_KEY}`,
         category: 'Billing',
         deviceInfo: req.headers['user-agent'] || 'Desconhecido',
       }

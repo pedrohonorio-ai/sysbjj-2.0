@@ -99,6 +99,15 @@ export async function dataHandler(req: AuthRequest, res: Response) {
             update: { ...payload, userId: uid }
           });
           break;
+        case 'logs':
+          result = await prisma.systemLog.create({
+            data: {
+              ...payload,
+              timestamp: payload.timestamp ? BigInt(payload.timestamp) : BigInt(Date.now()),
+              userId: uid
+            }
+          });
+          break;
         default:
           if (anyPrisma[collection]) {
             result = await anyPrisma[collection].upsert({

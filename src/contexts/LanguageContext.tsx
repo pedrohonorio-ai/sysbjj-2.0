@@ -49,12 +49,15 @@ export const LanguageProvider: React.FC<{ children: ReactNode }> = ({ children }
 
   const t = (key: string, defaultValueOrData?: string | Record<string, string | number>): string => {
     const fallback = typeof defaultValueOrData === 'string' ? defaultValueOrData : undefined;
-    const value = tSafe(key, fallback);
     
     if (defaultValueOrData && typeof defaultValueOrData === 'object') {
-      return i18n.t(key, defaultValueOrData) || value;
+      const value = i18n.t(key, defaultValueOrData);
+      if (value && value !== key) {
+        return tSafe(key, value);
+      }
     }
-    return value;
+    
+    return tSafe(key, fallback);
   };
 
   const tObj = (key: string): any => {

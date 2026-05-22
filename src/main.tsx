@@ -16,17 +16,38 @@ document.documentElement.lang = savedLanguage;
 
 
 // 🥋 OSS SENSEI: Global Production Guard
-// Limpa ruídos de WebSocket e HMR
+// Limpa ruídos de WebSocket, HMR, DEBUG, RENDER, etc.
+const originalLog = console.log;
 const originalWarn = console.warn;
 const originalError = console.error;
 
+const shouldSilenceLog = (message: string): boolean => {
+  const lowercaseMsg = String(message).toLowerCase();
+  return (
+    lowercaseMsg.includes('vite') ||
+    lowercaseMsg.includes('websocket') ||
+    lowercaseMsg.includes('hmr') ||
+    lowercaseMsg.includes('debug') ||
+    lowercaseMsg.includes('bootstrap') ||
+    lowercaseMsg.includes('render') ||
+    lowercaseMsg.includes('api') ||
+    lowercaseMsg.includes('connection') ||
+    lowercaseMsg.includes('closed')
+  );
+};
+
+console.log = (...args) => {
+  if (typeof args[0] === 'string' && shouldSilenceLog(args[0])) return;
+  originalLog.apply(console, args);
+};
+
 console.warn = (...args) => {
-  if (typeof args[0] === 'string' && (args[0].includes('[vite]') || args[0].includes('WebSocket') || args[0].includes('connection') || args[0].includes('closed'))) return;
+  if (typeof args[0] === 'string' && shouldSilenceLog(args[0])) return;
   originalWarn.apply(console, args);
 };
 
 console.error = (...args) => {
-  if (typeof args[0] === 'string' && (args[0].includes('[vite]') || args[0].includes('WebSocket') || args[0].includes('connection') || args[0].includes('closed'))) return;
+  if (typeof args[0] === 'string' && shouldSilenceLog(args[0])) return;
   originalError.apply(console, args);
 };
 
@@ -40,9 +61,12 @@ window.addEventListener('error', (e: any) => {
 
 // Intercepta Rejeições Não Tratadas (comum em erros de WebSocket fechado prematuramente)
 window.addEventListener('unhandledrejection', (event) => {
-  const reason = event.reason;
-  const message = typeof reason === 'string' ? reason : (reason?.message || '');
-  if (message.includes('WebSocket') || message.includes('closed')) {
+  const message = String(event.reason || event.reason?.message || "");
+  if (
+    message.includes("WebSocket closed without opened") ||
+    message.includes("WebSocket") ||
+    message.includes("closed")
+  ) {
     event.preventDefault();
     event.stopPropagation();
   }

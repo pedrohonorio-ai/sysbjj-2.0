@@ -14,10 +14,13 @@ i18n
       "pt-BR": {
         translation: ptBR,
       },
-      "en-US": {
+      "pt": {
+        translation: ptBR,
+      },
+      "en": {
         translation: enUS,
       },
-      "es-ES": {
+      "es": {
         translation: esES,
       },
     },
@@ -27,8 +30,8 @@ i18n
 
     supportedLngs: [
       "pt-BR",
-      "en-US",
-      "es-ES"
+      "en",
+      "es"
     ],
 
     load: "currentOnly",
@@ -48,6 +51,22 @@ i18n
 
     react: {
       useSuspense: false,
+    },
+
+    parseMissingKeyHandler: (key: string) => {
+      const fallbackMap: Record<string, string> = {
+        "dashboard.recentActivities": "Atividades Recentes",
+        "dashboard.syncStatus": "Status de Sincronização",
+        "dashboard.totalStudents": "Total de Alunos",
+        "dashboard.financial": "Financeiro",
+        "dashboard.attendance": "Presença",
+        "settings.language": "Idioma",
+        "settings.theme": "Tema",
+        "subscription.currentPlan": "Plano Atual",
+        "subscription.upgrade": "Atualizar Plano"
+      };
+
+      return fallbackMap[key] || "Informação";
     },
 
     detection: {

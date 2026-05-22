@@ -384,7 +384,9 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     
     // API Sync
     if (user?.id && !dbStatus.isDemoMode) {
-       api.saveData('logs', user.id, newLog).catch(err => handleApiError(err, OperationType.CREATE, 'logs', setNotifications, setDbStatus));
+       api.saveData('logs', user.id, newLog).catch(err => {
+         console.warn("Falha ao registrar log no banco de dados (Salvando localmente):", err.message || err);
+       });
     }
   }, [user?.id, user?.email, dbStatus.isDemoMode]);
 
