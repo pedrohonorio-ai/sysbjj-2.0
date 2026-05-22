@@ -56,6 +56,19 @@ export const BELT_COLORS: Record<string, string> = {
   'Red-White': 'bg-gradient-to-r from-red-600 to-white text-slate-900 border border-red-200', 
   'Red': 'bg-red-600 text-white shadow-lg border-r-8 border-yellow-500',
   
+  // Português equivalents
+  'Branca': 'bg-white text-slate-800 border border-slate-200',
+  'Cinza': 'bg-slate-400 text-white shadow-sm',
+  'Amarela': 'bg-yellow-400 text-slate-900 shadow-sm',
+  'Laranja': 'bg-orange-500 text-white shadow-sm',
+  'Verde': 'bg-green-600 text-white shadow-sm',
+  'Azul': 'bg-blue-600 text-white shadow-sm',
+  'Roxa': 'bg-purple-700 text-white shadow-sm',
+  'Marrom': 'bg-amber-900 text-white shadow-sm',
+  'Preta': 'bg-slate-900 text-white border-r-8 border-red-600',
+  'Coral': 'bg-gradient-to-r from-red-600 to-slate-900 text-white border border-slate-700',
+  'Vermelha': 'bg-red-600 text-white shadow-lg border-r-8 border-yellow-500',
+
   // Kids (Até 15 anos)
   'White-Gray': 'bg-white text-slate-600 border-x-8 border-slate-400',
   'Gray': 'bg-slate-400 text-white shadow-sm',
@@ -71,13 +84,13 @@ export const BELT_COLORS: Record<string, string> = {
   'Black-Green': 'bg-green-600 text-white border-r-8 border-slate-900',
 };
 
-export const ADULT_BELTS = ['White', 'Blue', 'Purple', 'Brown', 'Black', 'Red-Black', 'Red-White', 'Red'];
+export const ADULT_BELTS = ['White', 'Blue', 'Purple', 'Brown', 'Black', 'Red-Black', 'Red-White', 'Red', 'Branca', 'Azul', 'Roxa', 'Marrom', 'Preta', 'Coral', 'Vermelha'];
 export const KIDS_BELTS = [
-  'White', 
-  'White-Gray', 'Gray', 'Gray-Black', 
-  'White-Yellow', 'Yellow', 'Black-Yellow', 
-  'White-Orange', 'Orange', 'Black-Orange', 
-  'White-Green', 'Green', 'Black-Green'
+  'White', 'Branca',
+  'White-Gray', 'Gray', 'Cinza', 'Gray-Black', 
+  'White-Yellow', 'Yellow', 'Amarela', 'Black-Yellow', 
+  'White-Orange', 'Orange', 'Laranja', 'Black-Orange', 
+  'White-Green', 'Green', 'Verde', 'Black-Green'
 ];
 
 export const PIX_CONFIG = {
@@ -97,17 +110,30 @@ export const IBJJF_BELT_RULES: Record<string, { minTimeMonths: number, minAge: n
   'Red-White': { minTimeMonths: 84, minAge: 57 },
   'Red': { minTimeMonths: 120, minAge: 67 },
   
+  // Português equivalents
+  'Branca': { minTimeMonths: 0, minAge: 0 },
+  'Azul': { minTimeMonths: 24, minAge: 16 },
+  'Roxa': { minTimeMonths: 18, minAge: 16 },
+  'Marrom': { minTimeMonths: 12, minAge: 18 },
+  'Preta': { minTimeMonths: 36, minAge: 19 },
+  'Coral': { minTimeMonths: 84, minAge: 50 },
+  'Vermelha': { minTimeMonths: 120, minAge: 67 },
+
   // Kids (Orientativo IBJJF)
   'White-Gray': { minTimeMonths: 0, minAge: 4 },
   'Gray': { minTimeMonths: 12, minAge: 4 },
+  'Cinza': { minTimeMonths: 12, minAge: 4 },
   'Gray-Black': { minTimeMonths: 12, minAge: 4 },
   'White-Yellow': { minTimeMonths: 12, minAge: 7 },
   'Yellow': { minTimeMonths: 12, minAge: 7 },
+  'Amarela': { minTimeMonths: 12, minAge: 7 },
   'Black-Yellow': { minTimeMonths: 12, minAge: 7 },
   'White-Orange': { minTimeMonths: 12, minAge: 10 },
   'Orange': { minTimeMonths: 12, minAge: 10 },
+  'Laranja': { minTimeMonths: 12, minAge: 10 },
   'Black-Orange': { minTimeMonths: 12, minAge: 10 },
   'White-Green': { minTimeMonths: 12, minAge: 13 },
   'Green': { minTimeMonths: 12, minAge: 13 },
+  'Verde': { minTimeMonths: 12, minAge: 13 },
   'Black-Green': { minTimeMonths: 12, minAge: 13 },
 };

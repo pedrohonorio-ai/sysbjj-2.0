@@ -63,10 +63,26 @@ i18n
         "settings.language": "Idioma",
         "settings.theme": "Tema",
         "subscription.currentPlan": "Plano Atual",
-        "subscription.upgrade": "Atualizar Plano"
+        "subscription.upgrade": "Atualizar Plano",
+        "dashboard.monthlyRevenue": "Receita Mensal",
+        "dashboard.activeStudents": "Alunos Ativos",
+        "dashboard.attendanceRate": "Frequência Geral",
+        "dashboard.activeRate": "Taxa de Atividade",
+        "dashboard.overdueAlerts": "Alertas de Atraso",
+        "common.currencySymbol": "R$"
       };
 
-      return fallbackMap[key] || "Informação";
+      if (fallbackMap[key]) {
+        return fallbackMap[key];
+      }
+
+      const parts = key.split('.');
+      const lastPart = parts[parts.length - 1];
+      const spaced = lastPart
+        .replace(/([A-Z])/g, ' $1')
+        .replace(/[_-]/g, ' ')
+        .trim();
+      return spaced.charAt(0).toUpperCase() + spaced.slice(1);
     },
 
     detection: {

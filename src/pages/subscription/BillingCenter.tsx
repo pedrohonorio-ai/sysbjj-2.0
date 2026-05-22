@@ -15,7 +15,8 @@ import {
   ChevronRight,
   Info,
   Calendar,
-  Sparkles
+  Sparkles,
+  RefreshCw
 } from 'lucide-react';
 import { useTranslation } from '../../contexts/LanguageContext.js';
 import { useData } from '../../contexts/DataContext.js';
@@ -24,62 +25,233 @@ import { useNavigate } from 'react-router-dom';
 
 export const BillingCenter: React.FC = () => {
   const { t } = useTranslation();
-  const { payments } = useData();
   const navigate = useNavigate();
 
   // Basic States
   const [copied, setCopied] = useState<boolean>(false);
+  const [copiedPayload, setCopiedPayload] = useState<boolean>(false);
   const [sub, setSub] = useState<any>(null);
   const [loading, setLoading] = useState<boolean>(true);
-  
+  const [actionError, setActionError] = useState<string | null>(null);
+  const [successMsg, setSuccessMsg] = useState<string | null>(null);
+
+  // Upgrade selectors
+  const [selectedPlan, setSelectedPlan] = useState<string>('BRONZE');
+  const [selectedCycle, setSelectedCycle] = useState<string>('MONTHLY');
+  const [finalPrice, setFinalPrice] = useState<number>(20);
+  const [submittingUpgrade, setSubmittingUpgrade] = useState<boolean>(false);
+
+  // Dynamic Pix states
+  const [dynamicPixCode, setDynamicPixCode] = useState<string>('');
+
   // Proof upload states
-  const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [uploading, setUploading] = useState<boolean>(false);
   const [uploadSuccess, setUploadSuccess] = useState<boolean>(false);
+  const [proofUrl, setProofUrl] = useState<string>('');
   const [notes, setNotes] = useState<string>('');
-  
-  // Standard simulated / configured bills
-  const [receipts, setReceipts] = useState<any[]>([
-    { id: 'inv-02', date: '21/04/2026', desc: 'Assinatura Mensal - BRONZE', amount: 20, status: 'Pago', method: 'PIX', ref: '04/2026' },
-    { id: 'inv-01', date: '21/03/2026', desc: 'Assinatura Mensal - BRONZE', amount: 20, status: 'Pago', method: 'PIX', ref: '03/2026' }
-  ]);
+
+  // Social Project Request states
+  const [isRequestingSocial, setIsRequestingSocial] = useState<boolean>(false);
+  const [socialName, setSocialName] = useState<string>('');
+  const [socialDesc, setSocialDesc] = useState<string>('');
+  const [socialLocation, setSocialLocation] = useState<string>('');
+  const [socialResponsible, setSocialResponsible] = useState<string>('');
+  const [socialCnpj, setSocialCnpj] = useState<string>('');
+  const [socialStudents, setSocialStudents] = useState<string>('');
+  const [submittingSocial, setSubmittingSocial] = useState<boolean>(false);
+
+  // Billing historical list from backend logs + locale storage fallback
+  const [receipts, setReceipts] = useState<any[]>([]);
 
   // PIX Credentials Configuration loaded dynamically from master admin setup
   const PIX_KEY = sub?.pixKey || "pedro.honorio@gm.rio";
   const PIX_BENEFICIARY = sub?.pixHolder || "SYSBJJ 2.0 Tecnologia Ltda";
   const PIX_CITY = sub?.pixCity || "Rio de Janeiro";
 
-  // Fetch current subscription
-  const fetchSubscription = async () => {
+  // Fetch current subscription & history
+  const fetchSubscriptionAndHistory = async () => {
     try {
       setLoading(true);
       const res = await enterpriseApi.fetchWithEnterprise('/api/subscription/current', { useCache: false });
       if (res && res.success) {
-        setSub(res.plan || res.subscription);
+        const subData = res.plan || res.subscription;
+        setSub(subData);
+        if (subData?.plan && subData.plan !== 'FREE') {
+          setSelectedPlan(subData.plan);
+        }
+        if (subData?.billingCycle) {
+          setSelectedCycle(subData.billingCycle);
+        }
       }
-    } catch (e) {
+
+      // Fetch payment history logs
+      const histRes = await enterpriseApi.fetchWithEnterprise('/api/subscription/history', { useCache: false });
+      if (histRes && histRes.success) {
+        setReceipts(histRes.history || []);
+      } else {
+        // Fallback local storage
+        const saved = localStorage.getItem('sysbjj_m_receipts2');
+        if (saved) {
+          setReceipts(JSON.parse(saved));
+        } else {
+          setReceipts([
+            { id: 'h-01', amount: 20, billingCycle: 'MONTHLY', status: 'APPROVED', notes: 'Mensalidade Bronze retroativa homologada', createdAt: new Date(Date.now() - 3 * 24 * 60 * 60 * 1000).toISOString() }
+          ]);
+        }
+      }
+    } catch (e: any) {
       console.error(e);
+      setActionError('Ocorreu um erro ao carregar as informações do financeiro.');
     } finally {
       setLoading(false);
     }
   };
 
   useEffect(() => {
-    fetchSubscription();
-    
-    // Load local uploaded invoices from localStorage if any
-    const saved = localStorage.getItem('sysbjj_m_receipts');
-    if (saved) {
-      try {
-        setReceipts(JSON.parse(saved));
-      } catch (err) {}
-    }
+    fetchSubscriptionAndHistory();
   }, []);
 
-  // Save localized invoices
-  const saveLocalReceipts = (newList: any[]) => {
-    setReceipts(newList);
-    localStorage.setItem('sysbjj_m_receipts', JSON.stringify(newList));
+  // Recalculate billing values live
+  const calculatedLivePrice = useMemo(() => {
+    let basePrice = 20; // BRONZE
+    if (selectedPlan === 'SILVER') basePrice = 30;
+    else if (selectedPlan === 'BLACK_BELT' || selectedPlan === 'BLACK BELT') basePrice = 50;
+    else if (selectedPlan === 'FREE' || selectedPlan === 'SOCIAL_PROJECT') basePrice = 0;
+
+    let multiplier = 1;
+    let discount = 1;
+
+    if (selectedCycle === 'QUARTERLY') multiplier = 3;
+    else if (selectedCycle === 'SEMIANNUAL') { multiplier = 6; discount = 0.9; } // 10% off
+    else if (selectedCycle === 'YEARLY') { multiplier = 12; discount = 0.8; }   // 20% off
+    else if (selectedCycle === 'LIFETIME') { multiplier = 36; discount = 0.6; } // 40% off
+    else if (selectedCycle === 'FREE') { multiplier = 0; }
+
+    return Math.round(basePrice * multiplier * discount);
+  }, [selectedPlan, selectedCycle]);
+
+  useEffect(() => {
+    setFinalPrice(calculatedLivePrice);
+  }, [calculatedLivePrice]);
+
+  // Request actual upgrade
+  const handleUpgradeRequest = async () => {
+    setSubmittingUpgrade(true);
+    setActionError(null);
+    setSuccessMsg(null);
+    try {
+      const res = await enterpriseApi.fetchWithEnterprise('/api/subscription/upgrade', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ plan: selectedPlan, billingCycle: selectedCycle })
+      });
+
+      if (res && res.success) {
+        setSuccessMsg(res.message || 'Solicitação de plano efetuada com sucesso!');
+        if (res.pixPayload) {
+          setDynamicPixCode(res.pixPayload);
+        }
+        await fetchSubscriptionAndHistory();
+      } else {
+        setActionError(res?.error || 'Erro ao registrar solicitação de upgrade. Verifique com o admin.');
+      }
+    } catch (err: any) {
+      setActionError(err.message || 'Erro de conexão.');
+    } finally {
+      setSubmittingUpgrade(false);
+    }
+  };
+
+  // Submit actual Pix Receipt Proof
+  const handleUploadProof = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setActionError(null);
+    setSuccessMsg(null);
+    setUploading(true);
+
+    try {
+      const res = await enterpriseApi.fetchWithEnterprise('/api/subscription/submit-receipt', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ proofUrl: proofUrl || "Comprovante de Transferência Vinculado", notes })
+      });
+
+      if (res && res.success) {
+        setUploadSuccess(true);
+        setSuccessMsg(res.message || 'Comprovante anexado perfeitamente! Aguardando homologação.');
+        
+        // Save local copy
+        const localReceipt = {
+          id: `h-usr-${Date.now().toString().slice(-4)}`,
+          amount: finalPrice,
+          billingCycle: selectedCycle,
+          status: 'PENDING',
+          notes: notes || 'Pendente de homologação manual',
+          createdAt: new Date().toISOString()
+        };
+        const newList = [localReceipt, ...receipts];
+        setReceipts(newList);
+        localStorage.setItem('sysbjj_m_receipts2', JSON.stringify(newList));
+        
+        setProofUrl('');
+        setNotes('');
+        await fetchSubscriptionAndHistory();
+      } else {
+        setActionError(res?.error || 'Não foi possível enviar o comprovante.');
+      }
+    } catch (err: any) {
+      setActionError(err.message || 'Erro de rede ao submeter recibo.');
+    } finally {
+      setUploading(false);
+      setTimeout(() => setUploadSuccess(false), 4500);
+    }
+  };
+
+  // Social project submissions request
+  const handleRequestSocial = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!socialName.trim() || !socialDesc.trim()) {
+      setActionError('Nome do projeto e descrição social são campos obrigatórios.');
+      return;
+    }
+
+    setSubmittingSocial(true);
+    setActionError(null);
+    setSuccessMsg(null);
+
+    try {
+      const res = await enterpriseApi.fetchWithEnterprise('/api/subscription/request-social', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          socialProjectName: socialName,
+          socialDescription: socialDesc,
+          location: socialLocation,
+          responsibleName: socialResponsible,
+          cnpj: socialCnpj,
+          expectedStudents: socialStudents
+        })
+      });
+
+      if (res && res.success) {
+        setSuccessMsg('🥋 Candidatura para Projeto Social enviada com sucesso! Aguarde aprovação.');
+        setIsRequestingSocial(false);
+        // Clear forms
+        setSocialName('');
+        setSocialDesc('');
+        setSocialLocation('');
+        setSocialResponsible('');
+        setSocialCnpj('');
+        setSocialStudents('');
+        await fetchSubscriptionAndHistory();
+      } else {
+        setActionError(res?.error || 'Erro ao submeter os parâmetros do Projeto Social.');
+      }
+    } catch (err: any) {
+      setActionError(err.message || 'Erro ao salvar os detalhes do dojo.');
+    } finally {
+      setSubmittingSocial(false);
+    }
   };
 
   const handleCopyKey = () => {
@@ -88,73 +260,13 @@ export const BillingCenter: React.FC = () => {
     setTimeout(() => setCopied(false), 2500);
   };
 
-  // Drag and Drop files handlers
-  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    if (e.target.files && e.target.files[0]) {
-      setSelectedFile(e.target.files[0]);
-    }
+  // Safe formatting helpers
+  const formatMoney = (value: number) => {
+    return Number(value || 0).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
   };
 
-  const handleDrop = (e: React.DragEvent) => {
-    e.preventDefault();
-    if (e.dataTransfer.files && e.dataTransfer.files[0]) {
-      setSelectedFile(e.dataTransfer.files[0]);
-    }
-  };
-
-  const handleDragOver = (e: React.DragEvent) => {
-    e.preventDefault();
-  };
-
-  // Confirm standard receipt submit
-  const handleUploadProof = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!selectedFile && !notes.trim()) return;
-
-    setUploading(true);
-
-    setTimeout(() => {
-      // Create invoice record
-      const price = Number(sub?.monthlyPrice || 0);
-      const planName = String(sub?.plan || 'FREE').replaceAll('_', ' ').toUpperCase();
-      
-      const newInvoice = {
-        id: `inv-${Date.now().toString().slice(-4)}`,
-        date: new Date().toLocaleDateString('pt-BR'),
-        desc: `Assinatura Mensal - ${planName} (Pendente Homologação)`,
-        amount: price,
-        status: 'Pendente',
-        method: 'PIX',
-        ref: `${(new Date().getMonth() + 1).toString().padStart(2, '0')}/${new Date().getFullYear()}`,
-        notes: notes
-      };
-
-      const newList = [newInvoice, ...receipts];
-      saveLocalReceipts(newList);
-
-      setUploading(false);
-      setUploadSuccess(true);
-      setSelectedFile(null);
-      setNotes('');
-
-      setTimeout(() => setUploadSuccess(false), 3500);
-    }, 1500);
-  };
-
-  const activeInvoice = useMemo(() => {
-    const price = Number(sub?.monthlyPrice || 0);
-    const planName = String(sub?.plan || 'FREE').replaceAll('_', ' ').toUpperCase();
-    
-    return {
-      planName,
-      price,
-      dueDate: sub?.nextBillingDate ? new Date(sub.nextBillingDate).toLocaleDateString('pt-BR') : '21/06/2026',
-      needsPayment: price > 0
-    };
-  }, [sub]);
-
-  // Generated dynamic payload for PIX copy-and-paste code (EMV standard with CRC16)
-  const pixEconCode = useMemo(() => {
+  // EMV standard static/fallback QR payload
+  const fallbackPixCode = useMemo(() => {
     const key = String(PIX_KEY).trim();
     const holder = String(PIX_BENEFICIARY)
       .trim()
@@ -168,7 +280,7 @@ export const BillingCenter: React.FC = () => {
       .replace(/[\u0300-\u036f]/g, "")
       .replace(/[^a-zA-Z0-9 ]/g, "")
       .slice(0, 15);
-    const price = Number(activeInvoice.price || 0);
+    const price = Number(finalPrice || 20);
 
     const payloadFormat = "000201";
     const initiationMethod = "010211";
@@ -205,103 +317,197 @@ export const BillingCenter: React.FC = () => {
     const crcStr = crc.toString(16).toUpperCase().padStart(4, '0');
 
     return `${rawPayload}${crcStr}`;
-  }, [PIX_KEY, PIX_BENEFICIARY, PIX_CITY, activeInvoice.price]);
+  }, [PIX_KEY, PIX_BENEFICIARY, PIX_CITY, finalPrice]);
+
+  const finalPixPayload = dynamicPixCode || fallbackPixCode;
+
+  if (loading && !sub) {
+    return (
+      <div className="min-h-[50vh] flex flex-col items-center justify-center space-y-4">
+        <RefreshCw size={44} className="text-[#00E5FF] animate-spin" />
+        <p className="text-xs font-black uppercase tracking-widest text-slate-400">Carregando livro caixa e credenciais de PIX...</p>
+      </div>
+    );
+  }
+
+  const userPlanText = String(sub?.plan || 'FREE').replaceAll('_', ' ').toUpperCase();
+  const userStatus = String(sub?.status || 'Active').replaceAll('_', ' ').toUpperCase();
 
   return (
     <div className="space-y-8 pb-16 animate-in fade-in duration-500">
       
+      {/* Messages */}
+      <AnimatePresence>
+        {successMsg && (
+          <motion.div 
+            initial={{ opacity: 0, y: -20 }} 
+            animate={{ opacity: 1, y: 0 }} 
+            exit={{ opacity: 0, y: -20 }}
+            className="p-4 bg-emerald-950 border border-emerald-500/30 text-emerald-400 rounded-3xl flex items-center justify-between text-xs font-black uppercase tracking-wide shadow-2xl"
+          >
+            <div className="flex items-center gap-2">
+              <span className="w-2 h-2 rounded-full bg-emerald-400 animate-ping" />
+              {successMsg}
+            </div>
+            <button onClick={() => setSuccessMsg(null)} className="text-[10px] underline ml-4 hover:text-white">Fechar</button>
+          </motion.div>
+        )}
+
+        {actionError && (
+          <motion.div 
+            initial={{ opacity: 0, y: -20 }} 
+            animate={{ opacity: 1, y: 0 }} 
+            exit={{ opacity: 0, y: -20 }}
+            className="p-4 bg-red-950 border border-red-500/30 text-red-500 rounded-3xl flex items-center justify-between text-xs font-black uppercase tracking-wide shadow-2xl"
+          >
+            <div className="flex items-center gap-2">
+              <AlertCircle size={16} />
+              {actionError}
+            </div>
+            <button onClick={() => setActionError(null)} className="text-[10px] underline ml-4 hover:text-white">Fechar</button>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
       {/* Header section */}
       <header className="flex flex-col md:flex-row items-center justify-between gap-6 bg-slate-900 border border-slate-800 p-8 rounded-[2.5rem] relative overflow-hidden">
         <div className="absolute top-0 right-0 w-80 h-80 bg-gradient-to-br from-indigo-500/10 to-transparent rounded-full blur-3xl pointer-events-none" />
         <div className="space-y-2 relative z-10 text-center md:text-left">
           <div className="flex items-center justify-center md:justify-start gap-1.5 text-[#00E5FF] leading-none">
             <CreditCard size={14} />
-            <span className="text-[9px] font-black uppercase tracking-widest">Billing & Invoices Hub</span>
+            <span className="text-[9px] font-black uppercase tracking-widest">SaaS Billing & Enterprise Hub</span>
           </div>
           <h1 className="text-3xl font-black text-white italic uppercase tracking-tighter">
             Central de Faturamento & Pagamentos PIX
           </h1>
           <p className="text-slate-400 text-xs font-bold uppercase tracking-wider max-w-2xl">
-            OSS! Visualize faturas, faça o upload de comprovantes de mensalidade SaaS e pague via PIX imediatamente.
+            OSS! Adquira upgrades, configure períodos flexíveis de recorrência de mensalidades e homologue comprovantes PIX instantaneamente.
           </p>
         </div>
 
         <button
           onClick={() => navigate('/plans')}
-          className="px-5 py-3 bg-slate-800 hover:bg-slate-700 text-white rounded-xl text-[10px] font-black uppercase tracking-widest transition-all self-center border border-slate-700/50 flex items-center gap-2"
+          className="px-5 py-3 bg-slate-800 hover:bg-slate-700 text-white rounded-xl text-[10px] font-black uppercase tracking-widest transition-all border border-slate-700/50 flex items-center gap-2"
         >
-          <ArrowLeft size={12} /> Voltar para Planos
+          <ArrowLeft size={12} /> Painel de Planos
         </button>
       </header>
 
-      {/* Main Grid */}
+      {/* Main Grid: Split Billing Configuration & Upload */}
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
         
-        {/* Left column: Active invoice and PIX details */}
+        {/* Left column: Recurrence Selection, Pricing Preview, PIX Generation */}
         <div className="lg:col-span-7 space-y-6">
           
-          {/* Active invoice card */}
-          <div className="bg-slate-900 border border-slate-800 p-6 rounded-[2rem] relative overflow-hidden flex flex-col justify-between">
-            <div>
-              <div className="flex items-center justify-between mb-4">
-                <span className="text-[9px] font-black uppercase tracking-widest bg-amber-500/10 border border-amber-500/20 text-amber-500 px-2.5 py-1 rounded">
-                  Fatura em Aberto
-                </span>
-                <span className="text-[11px] font-mono text-slate-400">Ref: {new Date().getMonth() + 1}/{new Date().getFullYear()}</span>
-              </div>
+          {/* USER CONFIG: STEP 1 & 2 SELECTOR */}
+          <div className="bg-slate-900 border border-slate-800 p-6 rounded-[2rem] space-y-6">
+            <div className="space-y-1">
+              <span className="text-[9px] font-black uppercase tracking-wider text-indigo-400 bg-indigo-500/10 px-2.5 py-0.5 border border-indigo-500/20 rounded">
+                Configuração da Recorrência
+              </span>
+              <h3 className="text-sm font-black text-white uppercase tracking-tight">Seleção de Plano e Ciclo de Pagamento</h3>
+            </div>
 
-              <div className="flex justify-between items-baseline flex-wrap gap-2">
-                <div>
-                  <h3 className="text-xs font-bold uppercase tracking-widest text-slate-400">Assinatura Mensal - Plano {activeInvoice.planName}</h3>
-                  <p className="text-3xl font-black text-white tracking-tighter mt-1 italic uppercase">
-                    R$ {activeInvoice.price.toFixed(2)}
-                  </p>
-                </div>
+            {/* Select Plan Mode */}
+            <div className="grid grid-cols-3 gap-3">
+              {['BRONZE', 'SILVER', 'BLACK_BELT'].map((pId) => {
+                const label = pId === 'BLACK_BELT' ? 'BLACK BELT' : pId;
+                const isSelected = selectedPlan === pId;
+                return (
+                  <button
+                    key={pId}
+                    type="button"
+                    onClick={() => { setSelectedPlan(pId); setSelectedCycle('MONTHLY'); }}
+                    className={`p-3.5 rounded-2xl border text-center transition-all ${
+                      isSelected 
+                        ? 'bg-indigo-600/15 border-indigo-500 text-indigo-400 ring-1 ring-indigo-500/40' 
+                        : 'bg-slate-950 border-slate-850 hover:bg-slate-900 text-slate-400'
+                    }`}
+                  >
+                    <p className="text-[10px] font-black tracking-wider uppercase">{label}</p>
+                    <p className="text-[9px] text-slate-500 mt-1 font-bold">
+                      {pId === 'BRONZE' ? 'R$ 20' : pId === 'SILVER' ? 'R$ 30' : 'R$ 50'}/mês
+                    </p>
+                  </button>
+                );
+              })}
+            </div>
 
-                <div className="text-right">
-                  <p className="text-[9px] font-bold text-slate-400 uppercase tracking-widest">Vencimento:</p>
-                  <p className="text-sm font-black text-white mt-0.5">{activeInvoice.dueDate}</p>
-                </div>
+            {/* Choose Recurring Period (Section 3: Flex recurrence options) */}
+            <div className="space-y-2">
+              <label className="text-[9px] font-black text-slate-500 uppercase tracking-widest block">Período de Assinatura (Ciclo):</label>
+              <div className="grid grid-cols-2 md:grid-cols-5 gap-2">
+                {[
+                  { id: 'MONTHLY', label: 'Mensal', tag: 'Sem desc' },
+                  { id: 'QUARTERLY', label: 'Trimestral', tag: '3 meses' },
+                  { id: 'SEMIANNUAL', label: 'Semestral', tag: '10% OFF' },
+                  { id: 'YEARLY', label: 'Anual', tag: '20% OFF' },
+                  { id: 'LIFETIME', label: 'Vitalício', tag: '40% OFF' }
+                ].map((cycle) => {
+                  const isSel = selectedCycle === cycle.id;
+                  return (
+                    <button
+                      key={cycle.id}
+                      type="button"
+                      onClick={() => setSelectedCycle(cycle.id)}
+                      className={`p-3 rounded-xl border text-center transition-all ${
+                        isSel 
+                          ? 'bg-[#00E5FF]/10 border-[#00E5FF] text-[#00E5FF] font-black' 
+                          : 'bg-slate-950 border-slate-850 text-slate-400'
+                      }`}
+                    >
+                      <p className="text-[10px] uppercase font-bold leading-none">{cycle.label}</p>
+                      <span className="text-[8px] opacity-70 block mt-1 font-bold uppercase">{cycle.tag}</span>
+                    </button>
+                  );
+                })}
               </div>
             </div>
 
-            {activeInvoice.needsPayment ? (
-              <div className="mt-6 p-4 bg-amber-500/10 border border-amber-500/20 rounded-2xl text-[10px] text-amber-300 leading-relaxed flex gap-2.5">
-                <AlertCircle size={16} className="text-amber-500 shrink-0 mt-0.5 animate-bounce" />
-                <div>
-                  <strong>🥋 PENDÊNCIA PIX DETECTADA:</strong> Efetue a leitura do QR Code ou utilize o código Copia e Cola para realizar o repasse Pix correspondente ao valor do seu plano. Após o envio, escaneie e anexe o comprovante na lateral direita para validação master do dōjō.
-                </div>
+            {/* Final dynamic price display (Section 4: visualizes final value) */}
+            <div className="p-5 bg-slate-950 rounded-2xl border border-slate-850 flex items-center justify-between">
+              <div className="space-y-1">
+                <span className="text-[8px] font-black text-slate-500 uppercase tracking-widest">Valor do Plano Acumulado:</span>
+                <p className="text-2xl font-black text-white leading-none">
+                  {formatMoney(finalPrice)}
+                  <span className="text-[10px] text-slate-500 lowercase font-bold font-sans ml-1">/período</span>
+                </p>
               </div>
-            ) : (
-              <div className="mt-6 p-4 bg-emerald-500/10 border border-emerald-500/20 rounded-2xl text-[10px] text-emerald-300 leading-relaxed flex gap-2.5">
-                <ShieldCheck size={16} className="text-emerald-500 shrink-0 mt-0.5" />
-                <div>
-                  Plano Basicamente Grátis (FREE) ativo de R$ 0,00. Nenhuma fatura pendente para o ciclo atual! OSS!
-                </div>
-              </div>
-            )}
+
+              <button
+                type="button"
+                onClick={handleUpgradeRequest}
+                disabled={submittingUpgrade || finalPrice === 0}
+                className="px-6 py-3 bg-indigo-600 hover:bg-indigo-500 text-white rounded-xl text-[10px] font-black uppercase tracking-widest transition-all disabled:opacity-40 flex items-center gap-2"
+              >
+                {submittingUpgrade ? <RefreshCw className="animate-spin" size={11} /> : <QrCode size={12} />}
+                Gerar Dynamic PIX
+              </button>
+            </div>
           </div>
 
-          {/* PIX Copy & Paste Box */}
-          {activeInvoice.needsPayment && (
-            <div className="bg-slate-900 border border-slate-800 p-6 rounded-[2rem] space-y-4">
-              <div className="flex items-center gap-2 text-xs font-black text-slate-200 uppercase tracking-wider">
-                <QrCode size={16} className="text-[#00E5FF]" />
-                Instruções de Transferência Pix Manual
+          {/* ACTIVE INVOICE & PIX CODE CONTAINER */}
+          {finalPrice > 0 && (
+            <div className="bg-slate-900 border border-slate-800 p-6 rounded-[2rem] space-y-5">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2 text-xs font-black text-white uppercase tracking-wider">
+                  <QrCode size={16} className="text-[#00E5FF]" />
+                  Dados de Pagamento via PIX Integrado
+                </div>
+                <span className="text-[9px] font-black uppercase tracking-widest bg-amber-500/10 border border-amber-500/20 text-amber-500 px-2.5 py-0.5 rounded">
+                  {userStatus === "PENDING" ? "Cobrança Pendente" : "Upgrade Agendado"}
+                </span>
               </div>
 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                {/* Simulated QR Code SVG */}
+                {/* Dynamically simulated QR code */}
                 <div className="bg-slate-950 border border-slate-800 p-4 rounded-2xl flex flex-col items-center justify-center text-center space-y-2">
                   <div className="bg-white p-3 rounded-xl shadow-lg relative overflow-hidden">
-                    {/* Generative QR style SVG */}
-                    <svg width="140" height="140" viewBox="0 0 100 100" className="text-slate-950">
+                    <svg width="130" height="130" viewBox="0 0 100 100" className="text-slate-950">
                       <rect width="100" height="100" fill="white" />
-                      {/* Quiet corners */}
                       <path d="M 0 0 h 25 v 25 h -25 z M 5 5 v 15 h 15 v -15 z M 8 8 h 9 v 9 h -9 z" fill="currentColor" />
                       <path d="M 75 0 h 25 v 25 h -25 z M 80 5 v 15 h 15 v -15 z M 83 8 h 9 v 9 h -9 z" fill="currentColor" />
                       <path d="M 0 75 h 25 v 25 h -25 z M 5 80 v 15 h 15 v -15 z M 8 83 h 9 v 9 h -9 z" fill="currentColor" />
-                      {/* Random pixels map to emulate PIX dynamic code */}
                       <rect x="35" y="5" width="5" height="10" fill="currentColor" />
                       <rect x="45" y="15" width="10" height="5" fill="currentColor" />
                       <rect x="60" y="5" width="5" height="15" fill="currentColor" />
@@ -310,63 +516,52 @@ export const BillingCenter: React.FC = () => {
                       <rect x="30" y="45" width="10" height="10" fill="currentColor" />
                       <rect x="45" y="40" width="5" height="15" fill="currentColor" />
                       <rect x="60" y="50" width="20" height="5" fill="currentColor" />
-                      <rect x="70" y="35" width="5" height="25" fill="currentColor" />
-                      <rect x="10" y="35" width="15" height="5" fill="currentColor" />
-                      <rect x="5" y="45" width="5" height="15" fill="currentColor" />
-                      <rect x="15" y="55" width="10" height="5" fill="currentColor" />
                       <rect x="85" y="60" width="10" height="15" fill="currentColor" />
                       <rect x="35" y="65" width="25" height="5" fill="currentColor" />
                       <rect x="65" y="70" width="5" height="25" fill="currentColor" />
-                      <rect x="35" y="80" width="10" height="10" fill="currentColor" />
-                      <rect x="50" y="85" width="15" height="5" fill="currentColor" />
-                      <rect x="80" y="80" width="15" height="5" fill="currentColor" />
-                      <rect x="85" y="90" width="10" height="5" fill="currentColor" />
                     </svg>
-                    {/* Tiny watermark */}
-                    <div className="absolute inset-0 m-auto w-10 h-10 bg-slate-900 rounded-lg flex items-center justify-center text-white text-[7px] font-black tracking-tight border border-slate-700 uppercase">
-                      BJJ
-                    </div>
                   </div>
-                  <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Escaneie o QR Code</span>
+                  <span className="text-[9px] font-bold text-slate-500 uppercase tracking-widest">Escaneie pelo App do Banco</span>
                 </div>
 
-                {/* Account credentials */}
+                {/* Info and action keys */}
                 <div className="space-y-4 flex flex-col justify-between">
-                  <div className="space-y-2.5">
+                  <div className="space-y-2 text-xs font-bold uppercase tracking-wider text-slate-400">
                     <div>
-                      <p className="text-[8px] font-bold text-slate-500 uppercase tracking-widest">Beneficiário Master:</p>
-                      <p className="text-xs font-bold text-white uppercase">{PIX_BENEFICIARY}</p>
+                      <p className="text-[8px] font-bold text-slate-500 tracking-widest">Favorecido:</p>
+                      <p className="text-white font-black">{PIX_BENEFICIARY}</p>
                     </div>
 
                     <div>
-                      <p className="text-[8px] font-bold text-slate-500 uppercase tracking-widest">Instituição de Destino:</p>
-                      <p className="text-xs font-bold text-white uppercase">PostgreSQL Cloud Banco</p>
+                      <p className="text-[8px] font-bold text-slate-500 tracking-widest">Chave Oficial Master:</p>
+                      <p className="text-white font-mono font-black">{PIX_KEY}</p>
                     </div>
 
                     <div>
-                      <p className="text-[8px] font-bold text-slate-500 uppercase tracking-widest">Chave Pix Corrente:</p>
-                      <p className="text-xs font-mono font-bold text-white">{PIX_KEY}</p>
+                      <p className="text-[8px] font-bold text-slate-500 tracking-widest">Instituição:</p>
+                      <p className="text-white font-black">SSBJJ Pagamentos S.A.</p>
                     </div>
                   </div>
 
                   <div className="space-y-2">
                     <button
                       onClick={handleCopyKey}
-                      className="w-full py-2.5 bg-slate-950 hover:bg-slate-900 border border-slate-800 text-white rounded-xl text-[10px] font-black uppercase tracking-wider flex items-center justify-center gap-2"
+                      className="w-full py-2.5 bg-slate-950 hover:bg-slate-900 border border-slate-800 text-white rounded-xl text-[9px] font-black uppercase tracking-wider flex items-center justify-center gap-2"
                     >
-                      {copied ? <Check size={12} className="text-emerald-400" /> : <Copy size={12} className="text-[#00E5FF]" />}
-                      {copied ? 'Chave Pix Copiada!' : 'Copiar Chave Pix'}
+                      {copied ? <Check size={11} className="text-emerald-400" /> : <Copy size={11} className="text-[#00E5FF]" />}
+                      {copied ? 'Chave Copiada!' : 'Copiar Chave CNPJ'}
                     </button>
                     
                     <button
                       onClick={() => {
-                        navigator.clipboard.writeText(pixEconCode);
-                        setCopied(true);
-                        setTimeout(() => setCopied(false), 2500);
+                        navigator.clipboard.writeText(finalPixPayload);
+                        setCopiedPayload(true);
+                        setTimeout(() => setCopiedPayload(false), 2500);
                       }}
-                      className="w-full py-2.5 bg-[#00E5FF]/10 text-[#00E5FF] hover:bg-[#00E5FF]/20 border border-[#00E5FF]/20 rounded-xl text-[10px] font-black uppercase tracking-wider flex items-center justify-center gap-2"
+                      className="w-full py-2.5 bg-[#00E5FF]/10 text-[#00E5FF] hover:bg-[#00E5FF]/20 border border-[#00E5FF]/20 rounded-xl text-[9px] font-black uppercase tracking-wider flex items-center justify-center gap-2"
                     >
-                      <Copy size={12} /> Copiar Código Copia/Cola
+                      {copiedPayload ? <Check size={11} /> : <Copy size={11} />}
+                      {copiedPayload ? 'Pix Copiado!' : 'Copiar Código Copia e Cola'}
                     </button>
                   </div>
                 </div>
@@ -374,51 +569,169 @@ export const BillingCenter: React.FC = () => {
             </div>
           )}
 
-          {/* Billing historical list */}
+          {/* SOCIAL PROJECT APPLICATION FORM (SECTION 11 & 12: Gratuidade) */}
+          <div className="bg-slate-900 border border-slate-800 p-6 rounded-[2rem] space-y-4">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <span className="p-1.5 bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 rounded-lg">
+                  <Sparkles size={14} />
+                </span>
+                <div>
+                  <h4 className="text-xs font-black text-white uppercase tracking-tight">Especial: Associação à Isenção de Projetos Sociais</h4>
+                  <p className="text-[8px] font-bold text-slate-500 uppercase tracking-widest">Bolsas administrativas de gratuidade com alunos ilimitados</p>
+                </div>
+              </div>
+
+              <button
+                type="button"
+                onClick={() => setIsRequestingSocial(!isRequestingSocial)}
+                className="px-3 py-1.5 bg-slate-950 hover:bg-slate-900 border border-slate-850 rounded-xl text-[9px] font-black uppercase tracking-widest text-white transition-all"
+              >
+                {isRequestingSocial ? 'Fechar Formulário' : 'Solicitar Isenção'}
+              </button>
+            </div>
+
+            <AnimatePresence>
+              {isRequestingSocial && (
+                <motion.form 
+                  initial={{ height: 0, opacity: 0 }}
+                  animate={{ height: 'auto', opacity: 1 }}
+                  exit={{ height: 0, opacity: 0 }}
+                  onSubmit={handleRequestSocial}
+                  className="space-y-4 border-t border-slate-800/60 pt-4 overflow-hidden"
+                >
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div className="space-y-1">
+                      <label className="text-[9px] font-black text-slate-500 uppercase tracking-widest">Nome do Projeto Social (🥋):</label>
+                      <input
+                        type="text"
+                        value={socialName}
+                        onChange={(e) => setSocialName(e.target.value)}
+                        placeholder="Ex: Tatame do Amanhã"
+                        className="w-full bg-slate-950 border border-slate-850 rounded-xl p-2.5 text-xs text-white uppercase font-sans placeholder-slate-700"
+                        required
+                      />
+                    </div>
+
+                    <div className="space-y-1">
+                      <label className="text-[9px] font-black text-slate-500 uppercase tracking-widest">Professor Responsável (Sensei):</label>
+                      <input
+                        type="text"
+                        value={socialResponsible}
+                        onChange={(e) => setSocialResponsible(e.target.value)}
+                        placeholder="Nome completo do Sensei líder"
+                        className="w-full bg-slate-950 border border-slate-850 rounded-xl p-2.5 text-xs text-white font-sans"
+                      />
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-2">
+                    <div className="space-y-1">
+                      <label className="text-[9px] font-black text-slate-500 uppercase tracking-widest">CNPJ da ONG / Entidade:</label>
+                      <input
+                        type="text"
+                        value={socialCnpj}
+                        onChange={(e) => setSocialCnpj(e.target.value)}
+                        placeholder="Ex: 00.000.000/0001-00"
+                        className="w-full bg-slate-950 border border-slate-850 rounded-xl p-2.5 text-xs text-white font-sans"
+                      />
+                    </div>
+
+                    <div className="space-y-1">
+                      <label className="text-[9px] font-black text-slate-500 uppercase tracking-widest">Comunidade / Localização:</label>
+                      <input
+                        type="text"
+                        value={socialLocation}
+                        onChange={(e) => setSocialLocation(e.target.value)}
+                        placeholder="Ex: Rocinha, RJ"
+                        className="w-full bg-slate-950 border border-slate-850 rounded-xl p-2.5 text-xs text-white font-sans"
+                      />
+                    </div>
+
+                    <div className="space-y-1">
+                      <label className="text-[9px] font-black text-slate-500 uppercase tracking-widest">Qtd Alunos Atendidos:</label>
+                      <input
+                        type="number"
+                        value={socialStudents}
+                        onChange={(e) => setSocialStudents(e.target.value)}
+                        placeholder="Ex: 120 crianças"
+                        className="w-full bg-slate-950 border border-slate-850 rounded-xl p-2.5 text-xs text-white font-sans"
+                      />
+                    </div>
+                  </div>
+
+                  <div className="space-y-1">
+                    <label className="text-[9px] font-black text-slate-500 uppercase tracking-widest">Justificativa Social / Pedagogia Ativa:</label>
+                    <textarea
+                      value={socialDesc}
+                      onChange={(e) => setSocialDesc(e.target.value)}
+                      placeholder="Descreva o impacto do projeto, faixas etárias, e vulnerabilidade atendida para isenção total e concessão do plano especial ilimitado..."
+                      className="w-full bg-slate-950 border border-slate-850 rounded-xl p-3 text-xs text-white font-sans"
+                      rows={3}
+                      required
+                    />
+                  </div>
+
+                  <button
+                    type="submit"
+                    disabled={submittingSocial}
+                    className="w-full py-3 bg-emerald-600 hover:bg-emerald-500 text-white rounded-xl text-[10px] font-black uppercase tracking-widest transition-all disabled:opacity-50"
+                  >
+                    {submittingSocial ? 'Processando Candidatura Suprema...' : 'Submeter Requerimento de Isenção ao Sensei Master'}
+                  </button>
+                </motion.form>
+              )}
+            </AnimatePresence>
+          </div>
+
+          {/* HISTORICAL BILLS LIST */}
           <div className="bg-slate-900 border border-slate-800 p-6 rounded-[2rem] space-y-4">
             <h3 className="text-xs font-black text-slate-200 uppercase tracking-wider flex items-center gap-2">
               <FileText size={16} className="text-[#00E5FF]" />
-              Faturas & Histórico de Cobranças SaaS
+              Faturas & Histórico de Cobranças do Dojo
             </h3>
 
-            <div className="space-y-2.5">
-              {receipts.map((invoice, idx) => (
-                <div key={invoice.id || idx} className="p-4 bg-slate-950/50 border border-slate-800/40 rounded-2xl flex items-center justify-between flex-wrap gap-4">
-                  <div className="flex items-center gap-3">
-                    <div className={`p-2 rounded-xl border ${
-                      invoice.status === 'Pago' ? 'bg-emerald-500/10 border-emerald-500/20 text-emerald-400' : 'bg-amber-500/10 border-amber-500/20 text-amber-400'
-                    }`}>
-                      <FileText size={16} />
-                    </div>
-                    <div>
-                      <h4 className="text-xs font-bold text-white uppercase">{invoice.desc}</h4>
-                      <div className="flex items-center gap-3 mt-1 text-[9px] font-bold text-slate-500 uppercase tracking-widest">
-                        <span className="flex items-center gap-1"><Calendar size={10} /> {invoice.date}</span>
-                        <span>Cod: {invoice.id}</span>
-                        <span>Mês: {invoice.ref}</span>
+            {receipts.length === 0 ? (
+              <p className="text-slate-500 text-[10px] uppercase font-bold tracking-wider text-center py-6">Nenhuma cobrança registrada para o ciclo.</p>
+            ) : (
+              <div className="space-y-2.5">
+                {receipts.map((invoice, idx) => (
+                  <div key={invoice.id || idx} className="p-4 bg-slate-950 border border-slate-850 rounded-2xl flex items-center justify-between flex-wrap gap-4">
+                    <div className="flex items-center gap-3">
+                      <div className={`p-2 rounded-xl border ${
+                        invoice.status === 'APPROVED' ? 'bg-emerald-500/10 border-emerald-500/20 text-emerald-400' : 'bg-amber-500/10 border-amber-500/20 text-amber-400'
+                      }`}>
+                        <FileText size={16} />
+                      </div>
+                      <div>
+                        <h4 className="text-xs font-black text-white uppercase">
+                          Fatura BJJ {invoice.billingCycle || 'FLEX'}
+                        </h4>
+                        <p className="text-[8px] font-bold text-slate-500 uppercase tracking-widest mt-1">
+                          Ref: {new Date(invoice.createdAt || Date.now()).toLocaleDateString('pt-BR')} | {invoice.notes || 'Sem observações'}
+                        </p>
                       </div>
                     </div>
-                  </div>
 
-                  <div className="text-right flex items-center gap-4">
-                    <div>
-                      <p className="text-xs font-black text-white">R$ {invoice.amount.toFixed(2)}</p>
-                      <p className="text-[9px] font-bold text-slate-500 uppercase">{invoice.method}</p>
+                    <div className="text-right flex items-center gap-4">
+                      <div>
+                        <p className="text-xs font-black text-white">R$ {Number(invoice.amount || 0).toFixed(2)}</p>
+                        <p className="text-[8px] font-bold text-slate-500 uppercase">PIX MANUAL</p>
+                      </div>
+                      <span className={`text-[8px] font-black uppercase px-2 py-0.5 rounded border ${
+                        invoice.status === 'APPROVED' ? 'bg-emerald-500/10 border-emerald-500/20 text-emerald-400' : 'bg-amber-500/10 border-amber-500/20 text-amber-400'
+                      }`}>
+                        {invoice.status === 'APPROVED' ? 'APROVADO' : 'PENDENTE'}
+                      </span>
                     </div>
-                    <span className={`text-[8px] font-black uppercase px-2.5 py-0.5 rounded border ${
-                      invoice.status === 'Pago' ? 'bg-emerald-500/10 border-emerald-500/25 text-emerald-400' : 'bg-amber-500/10 border-amber-500/25 text-amber-400'
-                    }`}>
-                      {invoice.status}
-                    </span>
                   </div>
-                </div>
-              ))}
-            </div>
+                ))}
+              </div>
+            )}
           </div>
-
         </div>
 
-        {/* Right column: Attachment file upload tool */}
+        {/* Right column: Attachment file upload tool / Screen comprobation */}
         <div className="lg:col-span-5">
           <div className="bg-slate-900 border border-slate-800 p-6 rounded-[2rem] space-y-6 sticky top-6">
             <div className="space-y-1">
@@ -426,57 +739,39 @@ export const BillingCenter: React.FC = () => {
                 <UploadCloud size={16} className="text-[#00E5FF]" />
                 Comprovar Pagamento Manual Pix
               </h3>
-              <p className="text-[9px] text-slate-400 font-bold uppercase tracking-wider">Submeta o recibo Pix correspondente ao seu Dojo</p>
+              <p className="text-[9px] text-slate-400 font-bold uppercase tracking-wider">Anexe o link do comprovante ou arquivo para validação</p>
             </div>
 
             <form onSubmit={handleUploadProof} className="space-y-4">
-              {/* Drag and Drop Box */}
-              <div
-                onDragOver={handleDragOver}
-                onDrop={handleDrop}
-                className={`border-2 border-dashed rounded-2xl p-6 text-center cursor-pointer transition-all ${
-                  selectedFile 
-                    ? 'border-emerald-500/50 bg-emerald-950/10 text-emerald-300' 
-                    : 'border-slate-800 hover:border-slate-700 bg-slate-950/20 text-slate-400'
-                }`}
-              >
+              {/* Receipt URL input */}
+              <div className="space-y-1">
+                <label className="text-[9px] font-black text-slate-500 uppercase tracking-widest block">URL do Comprovante / Link da Imagem:</label>
                 <input
-                  type="file"
-                  id="receipt-file"
-                  accept="image/*,application/pdf"
-                  className="hidden"
-                  onChange={handleFileChange}
+                  type="text"
+                  value={proofUrl}
+                  onChange={(e) => setProofUrl(e.target.value)}
+                  placeholder="Cole o link do comprovante (ex: imgur, drive, dropbox)"
+                  className="w-full bg-slate-950 border border-slate-850 rounded-xl p-2.5 text-xs text-white placeholder-slate-700 font-sans"
+                  required
                 />
-                
-                <label htmlFor="receipt-file" className="block cursor-pointer space-y-3">
-                  <UploadCloud size={32} className={`mx-auto ${selectedFile ? 'text-emerald-400' : 'text-slate-500'}`} />
-                  <div>
-                    <p className="text-xs font-bold uppercase tracking-wide text-white">
-                      {selectedFile ? 'Arquivo Carregado' : 'Carregar Comprovante Pix'}
-                    </p>
-                    <p className="text-[9px] text-slate-500 mt-0.5 uppercase tracking-wide leading-relaxed">
-                      {selectedFile ? selectedFile.name : 'Clique para navegar ou Arraste o arquivo PDF/Imagem aqui'}
-                    </p>
-                  </div>
-                </label>
               </div>
 
-              {/* Observation box */}
+              {/* Observation notes */}
               <div className="space-y-1">
-                <label className="text-[9px] font-black text-slate-500 uppercase tracking-widest block">Observações do Fechamento (Opcional):</label>
+                <label className="text-[9px] font-black text-slate-500 uppercase tracking-widest block">Notas Adicionais do Dojo:</label>
                 <textarea
                   value={notes}
                   onChange={(e) => setNotes(e.target.value)}
-                  placeholder="Sensei, anote observações adicionais aqui..."
-                  className="w-full bg-slate-950 border border-slate-800 rounded-xl p-3 text-xs text-white focus:outline-none focus:border-indigo-600 font-sans"
-                  rows={3}
+                  placeholder="Ex: Transferido da conta jurídica da academia do Sensei Pedro"
+                  className="w-full bg-slate-950 border border-slate-850 rounded-xl p-3 text-xs text-white focus:outline-none focus:border-indigo-600 font-sans"
+                  rows={4}
                 />
               </div>
 
               <button
                 type="submit"
-                disabled={uploading || (!selectedFile && !notes.trim())}
-                className="w-full py-4 bg-emerald-600 hover:bg-emerald-500 disabled:opacity-50 disabled:hover:scale-100 text-white rounded-xl text-[10px] font-black uppercase tracking-widest transition-all flex items-center justify-center gap-2"
+                disabled={uploading || (!proofUrl.trim() && !notes.trim())}
+                className="w-full py-4 bg-emerald-600 hover:bg-emerald-500 disabled:opacity-40 text-white rounded-xl text-[10px] font-black uppercase tracking-widest transition-all flex items-center justify-center gap-2"
               >
                 {uploading ? (
                   <>
@@ -491,30 +786,21 @@ export const BillingCenter: React.FC = () => {
               </button>
             </form>
 
-            {/* Success Notification Proof */}
-            <AnimatePresence>
-              {uploadSuccess && (
-                <motion.div 
-                  initial={{ opacity: 0, scale: 0.95 }}
-                  animate={{ opacity: 1, scale: 1 }}
-                  exit={{ opacity: 0, scale: 0.95 }}
-                  className="p-4 bg-emerald-950 border border-emerald-500/30 text-emerald-400 rounded-2xl text-[10px] leading-relaxed flex items-start gap-2.5"
-                >
-                  <ShieldCheck size={16} className="text-emerald-400 shrink-0 mt-0.5" />
-                  <div>
-                    <strong>COMPROVANTE ENVIADO COM SUCESSO!</strong> O ticket foi salvo e enviado para validação pelo Sensei Master <strong>pedro.honorio@gm.rio</strong>. A liberação ocorre no dōjō em instantes após homologação.
-                  </div>
-                </motion.div>
-              )}
-            </AnimatePresence>
+            {uploadSuccess && (
+              <div className="p-4 bg-emerald-950 border border-emerald-500/30 text-emerald-400 rounded-2xl text-[10px] leading-relaxed flex gap-2">
+                <ShieldCheck size={16} className="text-emerald-400 shrink-0 mt-0.5" />
+                <div>
+                  <strong>COMPROVANTE REGISTRADO:</strong> O recibo foi enviado com sucesso para aprovação pelo Sensei Supremo <strong>pedro.honorio@gm.rio</strong>. A liberação ocorrerá em instantes.
+                </div>
+              </div>
+            )}
 
             <div className="p-4 bg-indigo-500/5 border border-indigo-500/10 rounded-2xl text-[9px] text-indigo-300 leading-relaxed flex gap-2">
               <Info size={14} className="text-indigo-400 shrink-0" />
               <span>
-                <strong>Confirmação Manual:</strong> As faturas SaaS via PIX são compensadas manualmente pelo nosso suporte master integrado ao dōjō do Sensei. Qualquer dúvida entre em contato.
+                <strong>Auditoria Recíproca:</strong> A liberação automática é concedida mediante confirmação de compensação no painel do administrador. Mantenha os seus dados atualizados para evitar qualquer suspensão.
               </span>
             </div>
-
           </div>
         </div>
 

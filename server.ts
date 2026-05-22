@@ -49,8 +49,7 @@ async function startServer() {
       const allowedOrigins = [
         "http://localhost:3000",
         "http://localhost:5173",
-        "https://sysbjj-2-0.vercel.app",
-        "https://sysbjj.online"
+        "https://sysbjj2.vercel.app"
       ];
 
       const isAllowed = !origin || 
@@ -58,8 +57,7 @@ async function startServer() {
                        origin.includes("ais-dev") ||
                        origin.includes("ais-pre") ||
                        origin.includes(".run.app") ||
-                       origin.includes(".vercel.app") ||
-                       origin.includes("onrender.com");
+                       (origin.includes(".vercel.app") && origin === "https://sysbjj2.vercel.app");
 
       if (isAllowed) {
         callback(null, true);

@@ -71,10 +71,34 @@ export async function dataHandler(req: AuthRequest, res: Response) {
             }
           }
 
+          const pBelt = payload.belt ? String(payload.belt).trim() : "Branca";
+          const beltMap: Record<string, string> = {
+            white: "Branca", branca: "Branca",
+            cinza: "Cinza", grey: "Cinza", gray: "Cinza",
+            amarela: "Amarela", yellow: "Amarela",
+            laranja: "Laranja", orange: "Laranja",
+            verde: "Verde", green: "Verde",
+            azul: "Azul", blue: "Azul",
+            roxa: "Roxa", purple: "Roxa",
+            marrom: "Marrom", brown: "Marrom",
+            preta: "Preta", black: "Preta",
+            coral: "Coral", vermelha: "Vermelha", red: "Vermelha"
+          };
+          const normalizedBelt = beltMap[pBelt.toLowerCase()] || (pBelt.charAt(0).toUpperCase() + pBelt.slice(1));
+          const normalizedStripes = isNaN(Number(payload.stripes)) ? 0 : Math.round(Number(payload.stripes));
+          const normalizedDegrees = isNaN(Number(payload.degrees)) ? 0 : Math.round(Number(payload.degrees));
+
+          const cleanPayload = {
+            ...payload,
+            belt: normalizedBelt,
+            stripes: normalizedStripes,
+            degrees: normalizedDegrees
+          };
+
           result = await prisma.student.upsert({
             where: { id: id || 'new-stu' },
-            create: { ...payload, userId: uid },
-            update: { ...payload, userId: uid }
+            create: { ...cleanPayload, userId: uid },
+            update: { ...cleanPayload, userId: uid }
           });
 
           // Trigger automatic upgrade if allowed or update state

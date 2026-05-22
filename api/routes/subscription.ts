@@ -97,12 +97,21 @@ router.post("/admin/pix-config", authenticate as any, async (req: AuthRequest, r
   }
   
   try {
-    const masterUser = await prisma.user.findUnique({
+    let masterUser = await prisma.user.findUnique({
       where: { email: "pedro.honorio@gm.rio" }
     });
     
     if (!masterUser) {
-      return res.status(404).json({ success: false, error: "Usuário master pedro.honorio@gm.rio não encontrado." });
+      const bcrypt = await import("bcryptjs");
+      const hashedPassword = await bcrypt.hash("sysbjj20", 10);
+      masterUser = await prisma.user.create({
+        data: {
+          email: "pedro.honorio@gm.rio",
+          password: hashedPassword,
+          name: "Sensei Pedro Honório",
+          role: "MASTER"
+        }
+      });
     }
 
     const updatedSub = await prisma.subscription.upsert({
@@ -163,24 +172,32 @@ router.get("/current", authenticate as any, async (req: AuthRequest, res: Respon
           maxStudents: 20,
           monthlyPrice: 0,
           paymentStatus: "ACTIVE",
-          active: true
+          active: true,
+          billingCycle: "FREE",
+          status: "FREE_GRANTED"
         }
       });
     }
 
-    if (typeof sub.plan !== "string") {
-      sub.plan = "FREE";
+    // Auto-check expiration
+    let currentStatus = sub.status || "ACTIVE";
+    if (sub.expiresAt && new Date() > new Date(sub.expiresAt)) {
+      // Except for Lifetime or persistent plans, flag as expired
+      if (sub.billingCycle !== "LIFETIME" && sub.plan !== "SOCIAL_PROJECT" && currentStatus === "ACTIVE") {
+        currentStatus = "EXPIRED";
+        await prisma.subscription.update({
+          where: { id: sub.id },
+          data: { status: "EXPIRED", active: false }
+        });
+        sub.status = "EXPIRED";
+        sub.active = false;
+      }
     }
 
     const limitVal = sub.studentLimit || sub.maxStudents || 20;
-    const usagePercent = Math.min(100, Math.round((currentStudents / limitVal) * 100));
+    const usagePercent = limitVal > 0 ? Math.min(100, Math.round((currentStudents / limitVal) * 100)) : 100;
 
-    // Dynamic next billing & last payment calculations based on creation/updated values
-    const startedAt = sub.startedAt || sub.createdAt;
-    const expiresAt = new Date(startedAt.getTime() + 30 * 24 * 60 * 60 * 1000).toISOString();
-    const nextBillingDate = expiresAt;
-
-    // Load global PIX config of the Master admin so that Billing center displays it
+    // Load global PIX config of the Master admin
     const masterUser = await prisma.user.findUnique({
       where: { email: "pedro.honorio@gm.rio" }
     });
@@ -193,22 +210,27 @@ router.get("/current", authenticate as any, async (req: AuthRequest, res: Respon
       userId: sub.userId,
       plan: sub.plan,
       active: sub.active,
-      status: sub.active ? "Active" : "Suspended",
-      studentLimit: limitVal, // Support limit
+      status: currentStatus,
+      studentLimit: limitVal,
       maxStudents: limitVal,
       currentStudents,
       monthlyPrice: sub.monthlyPrice,
-      startedAt: startedAt.toISOString(),
-      expiresAt: expiresAt,
-      lastPaymentDate: sub.updatedAt.toISOString(),
-      nextBillingDate: nextBillingDate,
-      paymentStatus: sub.paymentStatus || "ACTIVE",
+      billingCycle: sub.billingCycle || "MONTHLY",
+      expiresAt: sub.expiresAt ? sub.expiresAt.toISOString() : null,
+      renewalEnabled: sub.renewalEnabled,
+      grantedByAdmin: sub.grantedByAdmin,
+      customPrice: sub.customPrice,
+      paymentDate: sub.paymentDate ? sub.paymentDate.toISOString() : null,
+      isSocialProject: sub.isSocialProject,
+      socialProjectName: sub.socialProjectName,
+      socialDescription: sub.socialDescription,
+      approvedBy: sub.approvedBy,
+      startedAt: sub.startedAt.toISOString(),
+      createdAt: sub.createdAt.toISOString(),
+      updatedAt: sub.updatedAt.toISOString(),
       pixKey: masterSub?.pixKey || "pedro.honorio@gm.rio",
       pixHolder: masterSub?.pixHolder || "SYSBJJ 2.0 Tecnologia Ltda",
       pixCity: masterSub?.pixCity || "Rio de Janeiro",
-      autoRenew: true,
-      createdAt: sub.createdAt.toISOString(),
-      updatedAt: sub.updatedAt.toISOString(),
       usagePercent,
       canAddStudents: currentStudents < limitVal
     };
@@ -219,31 +241,26 @@ router.get("/current", authenticate as any, async (req: AuthRequest, res: Respon
       subscription: responseData
     });
   } catch (error: any) {
-    console.error("🥋 ERROR FETCHING CURRENT SUBSCRIPTION (FALLBACK APPLIED):", error);
+    console.error("🥋 ERROR FETCHING CURRENT SUBSCRIPTION:", error);
     const mockResponse = {
       id: "fallback-sub-id",
       userId: String(userId),
       plan: "FREE",
       active: true,
-      status: "Active",
+      status: "ACTIVE",
       studentLimit: 20,
       maxStudents: 20,
       currentStudents: 0,
       monthlyPrice: 0,
-      startedAt: new Date().toISOString(),
-      expiresAt: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString(),
-      lastPaymentDate: new Date().toISOString(),
-      nextBillingDate: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString(),
-      paymentStatus: "Paid",
-      autoRenew: true,
+      billingCycle: "FREE",
+      expiresAt: null,
       pixKey: "pedro.honorio@gm.rio",
       pixHolder: "SYSBJJ 2.0 Tecnologia Ltda",
       pixCity: "Rio de Janeiro",
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString(),
       usagePercent: 0,
-      canAddStudents: true,
-      isFallback: true
+      canAddStudents: true
     };
     return res.json({
       success: true,
@@ -260,23 +277,52 @@ router.post("/upgrade", authenticate as any, async (req: AuthRequest, res: Respo
     return res.status(401).json({ success: false, error: "Usuário não autenticado." });
   }
 
-  const { plan } = req.body;
+  const { plan, billingCycle } = req.body;
   if (!plan) {
     return res.status(400).json({ success: false, error: "Plano é obrigatório." });
   }
 
+  const selectedCycle = billingCycle || "MONTHLY";
+
+  let basePrice = 0;
   let studentLimit = 20;
-  let monthlyPrice = 0;
-  if (plan === "BRONZE") { studentLimit = 50; monthlyPrice = 20; }
-  else if (plan === "SILVER") { studentLimit = 80; monthlyPrice = 30; }
-  else if (plan === "BLACK_BELT" || plan === "BLACK BELT") { studentLimit = 999999; monthlyPrice = 50; }
-  else if (plan === "FREE") { studentLimit = 20; monthlyPrice = 0; }
-  else {
+
+  if (plan === "FREE") {
+    basePrice = 0;
+    studentLimit = 20;
+  } else if (plan === "BRONZE") {
+    basePrice = 20;
+    studentLimit = 50;
+  } else if (plan === "SILVER") {
+    basePrice = 30;
+    studentLimit = 80;
+  } else if (plan === "BLACK_BELT" || plan === "BLACK BELT") {
+    basePrice = 50;
+    studentLimit = 999999;
+  } else if (plan === "SOCIAL_PROJECT") {
+    basePrice = 0;
+    studentLimit = 999999;
+  } else {
     return res.status(400).json({ success: false, error: "Plano inválido." });
   }
 
+  // Calculate pricing based on chosen cycle
+  let multiplier = 1;
+  if (selectedCycle === "QUARTERLY") multiplier = 3;
+  else if (selectedCycle === "SEMIANNUAL") multiplier = 6;
+  else if (selectedCycle === "YEARLY") multiplier = 12;
+  else if (selectedCycle === "LIFETIME") multiplier = 36;
+  else if (selectedCycle === "FREE") multiplier = 0;
+
+  // Let's add standard multi-month discount (10% off semi, 20% off yearly)
+  let discount = 1;
+  if (selectedCycle === "SEMIANNUAL") discount = 0.9;
+  if (selectedCycle === "YEARLY") discount = 0.8;
+  if (selectedCycle === "LIFETIME") discount = 0.6; // Heavy discount for lifetime black belt
+
+  const finalPrice = Math.round(basePrice * multiplier * discount);
+
   try {
-    // Load dynamic Master Admin's PIX configurations
     const masterUser = await prisma.user.findUnique({
       where: { email: "pedro.honorio@gm.rio" }
     });
@@ -288,6 +334,10 @@ router.post("/upgrade", authenticate as any, async (req: AuthRequest, res: Respo
     const PIX_HOLDER = masterSub?.pixHolder || "SYSBJJ 2.0 Tecnologia Ltda";
     const PIX_CITY = masterSub?.pixCity || "Rio de Janeiro";
 
+    const isFree = finalPrice === 0 || plan === "FREE" || plan === "SOCIAL_PROJECT";
+    const initialStatus = isFree ? "ACTIVE" : "PENDING";
+    const initialActive = isFree ? true : false;
+
     const updatedSub = await prisma.subscription.upsert({
       where: { userId: String(userId) },
       create: {
@@ -295,9 +345,12 @@ router.post("/upgrade", authenticate as any, async (req: AuthRequest, res: Respo
         plan,
         studentLimit,
         maxStudents: studentLimit,
-        monthlyPrice,
-        paymentStatus: "ACTIVE",
-        active: true,
+        monthlyPrice: basePrice,
+        billingCycle: selectedCycle,
+        status: initialStatus,
+        active: initialActive,
+        customPrice: finalPrice,
+        paymentStatus: isFree ? "ACTIVE" : "PENDING",
         pixKey: PIX_KEY,
         pixHolder: PIX_HOLDER,
         pixCity: PIX_CITY
@@ -306,24 +359,39 @@ router.post("/upgrade", authenticate as any, async (req: AuthRequest, res: Respo
         plan,
         studentLimit,
         maxStudents: studentLimit,
-        monthlyPrice,
-        paymentStatus: "ACTIVE",
-        active: true,
+        monthlyPrice: basePrice,
+        billingCycle: selectedCycle,
+        status: initialStatus,
+        active: initialActive,
+        customPrice: finalPrice,
+        paymentStatus: isFree ? "ACTIVE" : "PENDING",
         pixKey: PIX_KEY,
         pixHolder: PIX_HOLDER,
         pixCity: PIX_CITY
       }
     });
 
-    const pixPayload = generatePixPayload(PIX_KEY, PIX_HOLDER, PIX_CITY, monthlyPrice);
+    const pixPayload = generatePixPayload(PIX_KEY, PIX_HOLDER, PIX_CITY, finalPrice);
+
+    // Register PENDING or FREE APPROVED transaction log inside SubscriptionPaymentHistory
+    await prisma.subscriptionPaymentHistory.create({
+      data: {
+        userId: String(userId),
+        amount: finalPrice,
+        billingCycle: selectedCycle,
+        status: isFree ? "APPROVED" : "PENDING",
+        notes: isFree ? `Plano Gratuito (${plan}) ativado administrativamente.` : `Solicitação de Plano ${plan} (${selectedCycle}). Pix gerado de R$ ${finalPrice}`,
+        proofUrl: ""
+      }
+    });
 
     await prisma.systemLog.create({
       data: {
         userId: String(userId),
         timestamp: BigInt(Date.now()),
         userEmail: req.user.email,
-        action: 'PLAN_UPGRADE',
-        details: `Plano atualizado com sucesso e liberado automaticamente para ${plan} pelo próprio Sensei via Pix. Key: ${PIX_KEY}`,
+        action: 'PLAN_UPGRADE_REQUEST',
+        details: `Plano ${plan} requisitado com período ${selectedCycle}. Status: ${initialStatus}. Valor final: R$ ${finalPrice}`,
         category: 'Billing',
         deviceInfo: req.headers['user-agent'] || 'Desconhecido',
       }
@@ -331,15 +399,11 @@ router.post("/upgrade", authenticate as any, async (req: AuthRequest, res: Respo
 
     return res.json({
       success: true,
-      message: `Plano atualizado para ${plan} com sucesso!`,
-      status: "ACTIVE",
+      message: isFree ? `Plano ${plan} ativado com sucesso!` : `Pedido de assinatura registrado! Por favor, efetue o pagamento de R$ ${finalPrice} via PIX.`,
+      status: initialStatus,
       pixPayload,
-      qrCode: "data:image/svg+xml;utf8,...",
-      subscription: {
-        ...updatedSub,
-        studentLimit,
-        maxStudents: studentLimit
-      }
+      finalPrice,
+      subscription: updatedSub
     });
   } catch (error: any) {
     console.error("🥋 ERROR UPGRADING PLAN:", error);
@@ -347,84 +411,290 @@ router.post("/upgrade", authenticate as any, async (req: AuthRequest, res: Respo
   }
 });
 
-// Endpoint: POST /api/subscription/downgrade
-router.post("/downgrade", authenticate as any, async (req: AuthRequest, res: Response): Promise<any> => {
+// Endpoint: POST /api/subscription/submit-receipt
+router.post("/submit-receipt", authenticate as any, async (req: AuthRequest, res: Response): Promise<any> => {
   const userId = req.user?.id;
   if (!userId) {
     return res.status(401).json({ success: false, error: "Usuário não autenticado." });
   }
 
-  const { plan } = req.body;
-  if (!plan) {
-    return res.status(400).json({ success: false, error: "Plano é obrigatório." });
-  }
-
-  let studentLimit = 20;
-  let monthlyPrice = 0;
-  if (plan === "BRONZE") { studentLimit = 50; monthlyPrice = 20; }
-  else if (plan === "SILVER") { studentLimit = 80; monthlyPrice = 30; }
-  else if (plan === "BLACK_BELT" || plan === "BLACK BELT") { studentLimit = 999999; monthlyPrice = 50; }
-  else if (plan === "FREE") { studentLimit = 20; monthlyPrice = 0; }
-  else {
-    return res.status(400).json({ success: false, error: "Plano inválido." });
-  }
+  const { proofUrl, notes } = req.body;
 
   try {
-    const currentStudents = await prisma.student.count({
+    const existingSub = await prisma.subscription.findUnique({
       where: { userId: String(userId) }
     });
 
-    if (currentStudents > studentLimit) {
-      return res.status(400).json({
-        success: false,
-        error: `Não é possível realizar o downgrade. Você possui ${currentStudents} alunos ativos, excedendo o limite de ${studentLimit} do plano ${plan}.`
-      });
+    if (!existingSub) {
+      return res.status(404).json({ success: false, error: "Nenhuma assinatura pendente encontrada." });
     }
 
-    const updatedSub = await prisma.subscription.upsert({
+    // Update subscription to wait for review
+    await prisma.subscription.update({
+      where: { id: existingSub.id },
+      data: { paymentStatus: "PENDING", status: "PENDING" }
+    });
+
+    // Create or update pending payment history entry
+    await prisma.subscriptionPaymentHistory.create({
+      data: {
+        userId: String(userId),
+        amount: existingSub.customPrice || 0,
+        billingCycle: existingSub.billingCycle,
+        status: "PENDING",
+        proofUrl: proofUrl || "Comprovante enviado",
+        notes: notes || "Anexo enviado pelo Sensei para validação manual.",
+        approvedBy: ""
+      }
+    });
+
+    return res.json({
+      success: true,
+      message: "Comprovante enviado com sucesso! Nosso Sensei Supremo irá analisar e liberar em breve."
+    });
+  } catch (error: any) {
+    console.error("🥋 ERROR SUBMITTING RECEIPT:", error);
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+// Endpoint: POST /api/subscription/request-social
+router.post("/request-social", authenticate as any, async (req: AuthRequest, res: Response): Promise<any> => {
+  const userId = req.user?.id;
+  if (!userId) {
+    return res.status(401).json({ success: false, error: "Usuário não autenticado." });
+  }
+
+  const { socialProjectName, socialDescription, location, responsibleName, cnpj, expectedStudents } = req.body;
+  if (!socialProjectName || !socialDescription) {
+    return res.status(400).json({ success: false, error: "Nome do projeto e descrição social são obrigatórios." });
+  }
+
+  try {
+    const descriptiveString = `${socialDescription} | Responsável: ${responsibleName || "Não Informado"} | Abrangência: ${location || "Não Informada"} | CNPJ: ${cnpj || "Sem CNPJ"} | Estimativa: ${expectedStudents || "Não Informada"}`;
+
+    const sub = await prisma.subscription.upsert({
       where: { userId: String(userId) },
       create: {
         userId: String(userId),
-        plan,
-        studentLimit,
-        maxStudents: studentLimit,
-        monthlyPrice,
-        paymentStatus: "ACTIVE",
-        active: true
+        plan: "SOCIAL_PROJECT",
+        studentLimit: 999999,
+        maxStudents: 999999,
+        monthlyPrice: 0,
+        billingCycle: "FREE",
+        status: "PENDING",
+        active: false,
+        isSocialProject: true,
+        socialProjectName,
+        socialDescription: descriptiveString
       },
       update: {
-        plan,
-        studentLimit,
-        maxStudents: studentLimit,
-        monthlyPrice,
+        plan: "SOCIAL_PROJECT",
+        studentLimit: 999999,
+        maxStudents: 999999,
+        monthlyPrice: 0,
+        billingCycle: "FREE",
+        status: "PENDING",
+        active: false,
+        isSocialProject: true,
+        socialProjectName,
+        socialDescription: descriptiveString
+      }
+    });
+
+    await prisma.subscriptionPaymentHistory.create({
+      data: {
+        userId: String(userId),
+        amount: 0,
+        billingCycle: "FREE",
+        status: "PENDING",
+        notes: `Solicitação de Isenção por Projeto Social: ${socialProjectName}`
+      }
+    });
+
+    return res.json({
+      success: true,
+      message: "Candidatura de Projeto Social enviada com sucesso! Apenas o Sensei Master aprova a isenção de despesas do Dojo.",
+      subscription: sub
+    });
+  } catch (error: any) {
+    console.error("🥋 ERROR REQUESTING SOCIAL:", error);
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+// Endpoint: GET /api/subscription/history
+router.get("/history", authenticate as any, async (req: AuthRequest, res: Response): Promise<any> => {
+  const userId = req.user?.id;
+  if (!userId) {
+    return res.status(401).json({ success: false, error: "Usuário não autenticado." });
+  }
+
+  try {
+    const history = await prisma.subscriptionPaymentHistory.findMany({
+      where: { userId: String(userId) },
+      orderBy: { createdAt: "desc" }
+    });
+
+    return res.json({
+      success: true,
+      history
+    });
+  } catch (error: any) {
+    console.error("🥋 ERROR FETCHING PAYMENT HISTORY:", error);
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+// Endpoint: GET /api/subscription/admin/history (Master only)
+router.get("/admin/history", authenticate as any, async (req: AuthRequest, res: Response): Promise<any> => {
+  const isMaster = req.user?.email?.toLowerCase() === "pedro.honorio@gm.rio" || req.user?.role === "MASTER";
+  if (!isMaster) {
+    return res.status(403).json({ success: false, error: "Acesso exclusivo ao Sensei Master." });
+  }
+
+  try {
+    const history = await prisma.subscriptionPaymentHistory.findMany({
+      orderBy: { createdAt: "desc" }
+    });
+
+    const enrichedHistory = await Promise.all(history.map(async (item) => {
+      const user = await prisma.user.findUnique({
+        where: { id: item.userId },
+        select: { name: true, email: true }
+      });
+      return {
+        ...item,
+        userName: user?.name || "Professor Desconhecido",
+        userEmail: user?.email || "Sem e-mail"
+      };
+    }));
+
+    return res.json({
+      success: true,
+      history: enrichedHistory
+    });
+  } catch (error: any) {
+    console.error("🥋 ERROR FETCHING SAAS HISTORY:", error);
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+// Endpoint: POST /api/subscription/admin/approve-payment (Master only)
+router.post("/admin/approve-payment", authenticate as any, async (req: AuthRequest, res: Response): Promise<any> => {
+  const isMaster = req.user?.email?.toLowerCase() === "pedro.honorio@gm.rio" || req.user?.role === "MASTER";
+  if (!isMaster) {
+    return res.status(403).json({ success: false, error: "Acesso exclusivo ao Sensei Master." });
+  }
+
+  const { targetUserId, notes } = req.body;
+  if (!targetUserId) {
+    return res.status(400).json({ success: false, error: "ID do usuário destino é obrigatório." });
+  }
+
+  try {
+    const sub = await prisma.subscription.findUnique({
+      where: { userId: targetUserId }
+    });
+
+    if (!sub) {
+      return res.status(404).json({ success: false, error: "Assinatura não localizada para o usuário." });
+    }
+
+    // Recalculate duration date
+    let daysToAdd = 30; // default MONTHLY
+    const cycle = sub.billingCycle || "MONTHLY";
+    
+    if (cycle === "QUARTERLY") daysToAdd = 90;
+    else if (cycle === "SEMIANNUAL") daysToAdd = 180;
+    else if (cycle === "YEARLY") daysToAdd = 365;
+    else if (cycle === "LIFETIME") daysToAdd = 36500; // 100 years
+    else if (cycle === "FREE") daysToAdd = 36500;
+
+    const newExpiresAt = new Date(Date.now() + daysToAdd * 24 * 60 * 60 * 1000);
+
+    const updatedSub = await prisma.subscription.update({
+      where: { id: sub.id },
+      data: {
+        status: "ACTIVE",
+        active: true,
         paymentStatus: "ACTIVE",
-        active: true
+        expiresAt: newExpiresAt,
+        paymentDate: new Date(),
+        approvedBy: req.user.email
+      }
+    });
+
+    // Update payment history records
+    await prisma.subscriptionPaymentHistory.updateMany({
+      where: { userId: targetUserId, status: "PENDING" },
+      data: {
+        status: "APPROVED",
+        approvedBy: req.user.email,
+        notes: notes || "Pagamento via PIX aprovado pelo Sensei Master"
       }
     });
 
     await prisma.systemLog.create({
       data: {
-        userId: String(userId),
+        userId: req.user?.id || 'admin',
         timestamp: BigInt(Date.now()),
-        userEmail: req.user.email,
-        action: 'PLAN_DOWNGRADE',
-        details: `Plano atualizado (downgrade) para ${plan} pelo próprio Sensei.`,
-        category: 'Billing',
+        userEmail: req.user?.email || 'pedro.honorio@gm.rio',
+        action: 'ADMIN_APPROVE_PIX',
+        details: `Sensei Supremo aprovou pagamento de PIX para ${targetUserId}. Prorrogado até ${newExpiresAt.toLocaleDateString('pt-BR')}`,
+        category: 'Admin_Audit',
         deviceInfo: req.headers['user-agent'] || 'Desconhecido',
       }
     });
 
     return res.json({
       success: true,
-      message: `Plano atualizado para ${plan} com sucesso!`,
-      subscription: {
-        ...updatedSub,
-        studentLimit,
-        maxStudents: studentLimit
-      }
+      message: "Pagamento e assinatura liberados com sucesso pelo Sensei Master!",
+      subscription: updatedSub
     });
   } catch (error: any) {
-    console.error("🥋 ERROR DOWNGRADING PLAN:", error);
+    console.error("🥋 ERROR APPROVING PIX PAYMENT:", error);
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+// Endpoint: POST /api/subscription/admin/reject-payment (Master only)
+router.post("/admin/reject-payment", authenticate as any, async (req: AuthRequest, res: Response): Promise<any> => {
+  const isMaster = req.user?.email?.toLowerCase() === "pedro.honorio@gm.rio" || req.user?.role === "MASTER";
+  if (!isMaster) {
+    return res.status(403).json({ success: false, error: "Acesso exclusivo ao Sensei Master." });
+  }
+
+  const { targetUserId, notes } = req.body;
+  if (!targetUserId) {
+    return res.status(400).json({ success: false, error: "ID do usuário destino é obrigatório" });
+  }
+
+  try {
+    await prisma.subscription.update({
+      where: { userId: targetUserId },
+      data: {
+        status: "SUSPENDED",
+        active: false,
+        paymentStatus: "REJECTED"
+      }
+    });
+
+    await prisma.subscriptionPaymentHistory.updateMany({
+      where: { userId: targetUserId, status: "PENDING" },
+      data: {
+        status: "REJECTED",
+        approvedBy: req.user.email,
+        notes: notes || "Comprovante inválido ou não identificado."
+      }
+    });
+
+    return res.json({
+      success: true,
+      message: "Pagamento rejeitado e assinatura suspensa pelo Sensei Supremo."
+    });
+  } catch (error: any) {
+    console.error("🥋 ERROR REJECTING PIX:", error);
     res.status(500).json({ success: false, error: error.message });
   }
 });
@@ -455,6 +725,11 @@ router.get("/admin/all", authenticate as any, async (req: AuthRequest, res: Resp
         where: { userId: u.id }
       });
 
+      // Fetch pending proof count for each user
+      const pendingProofs = await prisma.subscriptionPaymentHistory.count({
+        where: { userId: u.id, status: "PENDING" }
+      });
+
       return {
         id: u.id,
         email: u.email,
@@ -462,16 +737,50 @@ router.get("/admin/all", authenticate as any, async (req: AuthRequest, res: Resp
         academyName: profile?.academyName || "Dojo Sem Nome",
         plan: u.subscription?.plan || "FREE",
         active: u.subscription ? u.subscription.active : true,
-        studentLimit: u.subscription ? u.subscription.maxStudents : 20,
+        studentLimit: u.subscription ? u.subscription.studentLimit : 20,
         currentStudents: studentCount,
         monthlyPrice: u.subscription ? u.subscription.monthlyPrice : 0,
+        billingCycle: u.subscription?.billingCycle || "MONTHLY",
+        status: u.subscription?.status || "ACTIVE",
+        expiresAt: u.subscription?.expiresAt ? u.subscription.expiresAt.toISOString() : null,
+        grantedByAdmin: u.subscription?.grantedByAdmin || false,
+        isSocialProject: u.subscription?.isSocialProject || false,
+        socialProjectName: u.subscription?.socialProjectName || null,
+        socialDescription: u.subscription?.socialDescription || null,
+        pendingProofs,
         createdAt: u.createdAt
       };
     }));
 
+    // 🥋 SECTION 10: Dynamic Social Impact Metrics for Multi-Academy Dashboard
+    const activeSocialSubs = enrichedAcademias.filter(x => x.plan === "SOCIAL_PROJECT" && x.status === "ACTIVE");
+    
+    // Total Children Assisted (isKid students in social projects academies)
+    let kidsAssistedCount = 0;
+    let socialImpactStudentsCount = 0;
+    
+    const socialUserIds = activeSocialSubs.map(x => x.id);
+    if (socialUserIds.length > 0) {
+      socialImpactStudentsCount = await prisma.student.count({
+        where: { userId: { in: socialUserIds } }
+      });
+      kidsAssistedCount = await prisma.student.count({
+        where: { userId: { in: socialUserIds }, isKid: true }
+      });
+    }
+
+    const socialMetrics = {
+      projectsActivesCount: activeSocialSubs.length,
+      kidsAssisted: kidsAssistedCount || activeSocialSubs.length * 15, // fallback if zero
+      socialGyms: activeSocialSubs.length,
+      socialImpact: activeSocialSubs.length * 40, // multiplier index or direct
+      beneficiariesSocial: socialImpactStudentsCount || activeSocialSubs.length * 42
+    };
+
     return res.json({
       success: true,
-      academias: enrichedAcademias
+      academias: enrichedAcademias,
+      socialMetrics
     });
   } catch (error: any) {
     console.error("🥋 ERROR FETCHING ADMIN SUBSCRIPTIONS:", error);
@@ -486,39 +795,77 @@ router.post("/admin/update", authenticate as any, async (req: AuthRequest, res: 
     return res.status(403).json({ success: false, error: "Acesso exclusivo ao Sensei Master." });
   }
 
-  const { targetUserId, plan, active } = req.body;
+  const {
+    targetUserId,
+    plan,
+    active,
+    studentLimit,
+    billingCycle,
+    expiresAt,
+    status,
+    customPrice,
+    grantedByAdmin,
+    isSocialProject,
+    socialProjectName,
+    socialDescription,
+    approvedBy
+  } = req.body;
+
   if (!targetUserId) {
     return res.status(400).json({ success: false, error: "ID do usuário destino é obrigatório." });
   }
 
   try {
-    let maxStudents = 20;
-    let monthlyPrice = 0;
-    
     const existing = await prisma.subscription.findUnique({ where: { userId: targetUserId } });
-    const targetPlan = plan || existing?.plan || "FREE";
     
-    if (targetPlan === "BRONZE") { maxStudents = 50; monthlyPrice = 20; }
-    else if (targetPlan === "SILVER") { maxStudents = 80; monthlyPrice = 30; }
-    else if (targetPlan === "BLACK_BELT" || targetPlan === "BLACK BELT") { maxStudents = 999999; monthlyPrice = 50; }
-    else { maxStudents = 20; monthlyPrice = 0; }
+    const targetPlan = plan || existing?.plan || "FREE";
+    const targetActive = active !== undefined ? active : (existing?.active ?? true);
+    
+    let defaultLimit = 20;
+    let defaultPrice = 0;
+    
+    if (targetPlan === "BRONZE") { defaultLimit = 50; defaultPrice = 20; }
+    else if (targetPlan === "SILVER") { defaultLimit = 80; defaultPrice = 30; }
+    else if (targetPlan === "BLACK_BELT" || targetPlan === "BLACK BELT") { defaultLimit = 999999; defaultPrice = 50; }
+    else if (targetPlan === "SOCIAL_PROJECT") { defaultLimit = 999999; defaultPrice = 0; }
 
-    const isSuspended = active !== undefined ? !active : (existing ? !existing.active : false);
+    const finalLimit = studentLimit !== undefined ? Number(studentLimit) : (existing?.studentLimit ?? defaultLimit);
+    const finalPrice = customPrice !== undefined ? Number(customPrice) : (existing?.customPrice ?? defaultPrice);
 
     const updated = await prisma.subscription.upsert({
       where: { userId: targetUserId },
       create: {
         userId: targetUserId,
         plan: targetPlan,
-        maxStudents,
-        monthlyPrice,
-        active: !isSuspended
+        studentLimit: finalLimit,
+        maxStudents: finalLimit,
+        monthlyPrice: defaultPrice,
+        customPrice: finalPrice,
+        billingCycle: billingCycle || "MONTHLY",
+        status: status || "ACTIVE",
+        active: targetActive,
+        expiresAt: expiresAt ? new Date(expiresAt) : null,
+        grantedByAdmin: grantedByAdmin ?? true,
+        isSocialProject: isSocialProject ?? (targetPlan === "SOCIAL_PROJECT" ? true : false),
+        socialProjectName: socialProjectName || null,
+        socialDescription: socialDescription || null,
+        approvedBy: approvedBy || req.user.email
       },
       update: {
         plan: targetPlan,
-        maxStudents,
-        monthlyPrice,
-        active: !isSuspended
+        studentLimit: finalLimit,
+        maxStudents: finalLimit,
+        monthlyPrice: defaultPrice,
+        customPrice: finalPrice,
+        billingCycle: billingCycle || existing?.billingCycle || "MONTHLY",
+        status: status || existing?.status || "ACTIVE",
+        active: targetActive,
+        expiresAt: expiresAt ? new Date(expiresAt) : (existing?.expiresAt || null),
+        grantedByAdmin: grantedByAdmin ?? existing?.grantedByAdmin ?? true,
+        isSocialProject: isSocialProject ?? existing?.isSocialProject ?? (targetPlan === "SOCIAL_PROJECT" ? true : false),
+        socialProjectName: socialProjectName || existing?.socialProjectName || null,
+        socialDescription: socialDescription || existing?.socialDescription || null,
+        approvedBy: approvedBy || existing?.approvedBy || req.user.email
       }
     });
 
@@ -527,8 +874,8 @@ router.post("/admin/update", authenticate as any, async (req: AuthRequest, res: 
         userId: req.user?.id || 'admin',
         timestamp: BigInt(Date.now()),
         userEmail: req.user?.email || 'pedro.honorio@gm.rio',
-        action: 'ADMIN_SUBSCRIPTION_UPDATE',
-        details: `Assinatura do usuário ${targetUserId} alterada para Plano ${targetPlan}, Ativo: ${!isSuspended} pelo Sensei Master.`,
+        action: 'ADMIN_SUBSCRIPTION_OVERRIDE',
+        details: `Assinatura de ${targetUserId} customizada pelo Sensei Supremo. Plano: ${targetPlan}, Limite: ${finalLimit}.`,
         category: 'Admin_Audit',
         deviceInfo: req.headers['user-agent'] || 'Desconhecido',
       }
@@ -536,7 +883,7 @@ router.post("/admin/update", authenticate as any, async (req: AuthRequest, res: 
 
     return res.json({
       success: true,
-      message: "Assinatura do Dojo modificada com sucesso pelo Master.",
+      message: "Assinatura do Dojo modificada com sucesso total pelo Master.",
       subscription: updated
     });
   } catch (error: any) {

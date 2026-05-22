@@ -65,10 +65,9 @@ const Dashboard: React.FC = () => {
   }, [subscription, students]);
 
   const formattedPlan = useMemo(() => {
-    return String(safeSubscription.plan)
-      .replaceAll("_", " ")
-      .toUpperCase();
-  }, [safeSubscription.plan]);
+    const safePlan = typeof safeSubscription?.plan === 'string' ? safeSubscription.plan : 'FREE';
+    return safePlan.replaceAll("_", " ").toUpperCase();
+  }, [safeSubscription]);
 
   useEffect(() => {
     const timer = setInterval(() => setCurrentTime(new Date()), 1000);

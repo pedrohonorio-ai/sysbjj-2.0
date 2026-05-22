@@ -77,6 +77,52 @@ const BeltSystem: React.FC = () => {
     return BELT_REQUIREMENTS[belt] || ['Requisitos não definidos'];
   };
 
+  const getIBJJFPredictions = (student: Student) => {
+    const isKid = !!student.isKid;
+    const currentBelt = student.belt || "Branca";
+    const lastPromoStr = student.lastPromotionDate || new Date().toISOString().split('T')[0];
+    let lastPromoDate = new Date(lastPromoStr + 'T12:00:00');
+    if (isNaN(lastPromoDate.getTime())) {
+      lastPromoDate = new Date();
+    }
+    
+    // Standard Progression Lists
+    const adultProgression = ["Branca", "Azul", "Roxa", "Marrom", "Preta", "Coral", "Vermelha"];
+    const kidProgression = [
+      "Branca", "White-Gray", "Gray", "Gray-Black", 
+      "White-Yellow", "Yellow", "Black-Yellow", 
+      "White-Orange", "Orange", "Black-Orange", 
+      "White-Green", "Green", "Black-Green"
+    ];
+    
+    const colorsList = isKid ? kidProgression : adultProgression;
+    const currentIndex = colorsList.findIndex(b => b.toLowerCase() === currentBelt.toLowerCase());
+    
+    if (currentIndex === -1) {
+      return [];
+    }
+    
+    const predictions = [];
+    let rollingDate = new Date(lastPromoDate);
+    
+    for (let i = currentIndex + 1; i < colorsList.length; i++) {
+      const targetBelt = colorsList[i];
+      const rules = IBJJF_BELT_RULES[targetBelt];
+      const minMonths = rules ? rules.minTimeMonths : 12;
+      
+      rollingDate.setMonth(rollingDate.getMonth() + minMonths);
+      
+      predictions.push({
+        belt: targetBelt,
+        estimatedDate: new Date(rollingDate).toISOString().split('T')[0],
+        minTimeRequired: minMonths,
+        minAgeRequired: rules ? rules.minAge : 0
+      });
+    }
+    
+    return predictions.slice(0, 3); // Limit to next 3 to avoid token bloat and keep UI clean
+  };
+
   return (
     <div className="space-y-8 pb-20">
       <header className="flex flex-col md:flex-row md:items-center justify-between gap-6">
@@ -432,6 +478,34 @@ const BeltSystem: React.FC = () => {
                               <span className="text-[9px] font-bold text-slate-600 dark:text-slate-400 uppercase leading-tight">{req}</span>
                            </div>
                         ))}
+                      </div>
+                   </div>
+
+                   <div className="space-y-4 border-t border-slate-100 dark:border-white/5 pt-4">
+                      <h4 className="text-[10px] font-black text-slate-900 dark:text-white uppercase tracking-widest flex items-center gap-2">
+                        <Clock size={14} className="text-blue-500" />
+                        Planejamento de Graduações Futuras (IBJJF)
+                      </h4>
+                      <div className="space-y-2 max-h-48 overflow-y-auto pr-2 custom-scrollbar">
+                        {getIBJJFPredictions(selectedStudent).length === 0 ? (
+                          <p className="text-[10px] text-slate-400 font-bold uppercase italic">Sem outras graduações mapeadas nesta categoria</p>
+                        ) : (
+                          getIBJJFPredictions(selectedStudent).map((pred, pIdx) => (
+                            <div key={pIdx} className="p-3 bg-slate-50 dark:bg-slate-800 rounded-xl flex items-center justify-between border border-slate-100 dark:border-white/5 hover:border-blue-500/10 transition-all">
+                              <div className="flex items-center gap-3">
+                                <div className={`w-3.5 h-3.5 rounded-full ${BELT_COLORS[pred.belt] || 'bg-slate-500'} border border-black/10 shrink-0`} />
+                                <div className="text-left">
+                                  <p className="text-[10px] font-black text-slate-900 dark:text-white uppercase tracking-tight italic">{pred.belt}</p>
+                                  <p className="text-[8px] font-bold text-slate-400 uppercase tracking-widest leading-none">Carência: {pred.minTimeRequired} meses</p>
+                                </div>
+                              </div>
+                              <div className="text-right">
+                                <p className="text-[10px] font-black text-blue-600 dark:text-blue-400 italic">{new Date(pred.estimatedDate + 'T12:00:00').toLocaleDateString('pt-BR')}</p>
+                                <p className="text-[8px] font-bold text-slate-400 uppercase tracking-widest">Idade Mín: {pred.minAgeRequired} anos</p>
+                              </div>
+                            </div>
+                          ))
+                        )}
                       </div>
                    </div>
                 </div>

@@ -71,7 +71,7 @@ export const SaaSAnalytics: React.FC<SaaSAnalyticsProps> = ({ studentsCount, pay
           </div>
           <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">MRR (Recorrência Mensal)</p>
           <p className="text-2xl font-black text-white mt-1">
-            R$ {saasStats.mrr.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+            R$ {Number(saasStats.mrr || 0).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
           </p>
           <span className="text-emerald-400 text-[10px] font-bold flex items-center gap-1 mt-2">
             <TrendingUp size={12} /> {saasStats.growth} este mês
@@ -85,7 +85,7 @@ export const SaaSAnalytics: React.FC<SaaSAnalyticsProps> = ({ studentsCount, pay
           </div>
           <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">ARR (Projeção Anual)</p>
           <p className="text-2xl font-black text-white mt-1">
-            R$ {saasStats.arr.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+            R$ {Number(saasStats.arr || 0).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
           </p>
           <span className="text-slate-400 text-[10px] uppercase font-bold mt-2 block">Cálculo baseado no MRR atual</span>
         </div>

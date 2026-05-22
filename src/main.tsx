@@ -61,16 +61,28 @@ window.addEventListener('error', (e: any) => {
 
 // Intercepta Rejeições Não Tratadas (comum em erros de WebSocket fechado prematuramente)
 window.addEventListener('unhandledrejection', (event) => {
-  const message = String(event.reason || event.reason?.message || "");
+  const msg = String(event.reason || event.reason?.message || "");
   if (
-    message.includes("WebSocket closed without opened") ||
-    message.includes("WebSocket") ||
-    message.includes("closed")
+    msg.includes("WebSocket closed without opened") ||
+    msg.includes("WebSocket") ||
+    msg.includes("closed")
   ) {
     event.preventDefault();
     event.stopPropagation();
+    return;
   }
 }, true);
+
+// Desabilitar Websockets em Produção
+if (import.meta.env.PROD) {
+  try {
+    if (typeof (window as any).disableWebsocket === 'function') {
+      (window as any).disableWebsocket();
+    }
+  } catch (e) {
+    // Silencioso
+  }
+}
 
   const ErrorFallback = ({ error }: { error: Error }) => (
   <div style={{ 

@@ -178,6 +178,8 @@ const NewStudentModal = ({ onClose, defaultIsKid }: { onClose: () => void, defau
     technicalNotes: '',
     monthlyValue: 250,
     belt: defaultIsKid ? KidsBeltColor.WHITE : BeltColor.WHITE,
+    stripes: 0,
+    degrees: 0,
     dueDay: 10,
     status: StudentStatus.ACTIVE,
     pros: '',
@@ -288,7 +290,8 @@ const NewStudentModal = ({ onClose, defaultIsKid }: { onClose: () => void, defau
     try {
       await addStudent({
         ...formData,
-        stripes: 0,
+        stripes: Number(formData.stripes || 0),
+        degrees: Number(formData.degrees || 0),
         attendanceCount: 0,
         history: [],
         techniques: [],
@@ -570,6 +573,30 @@ const NewStudentModal = ({ onClose, defaultIsKid }: { onClose: () => void, defau
                       ))
                     )}
                   </select>
+                </div>
+
+                <div className="space-y-2">
+                  <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">{t('students.stripesCount') || "Graus"}</label>
+                  <input 
+                    type="number" 
+                    min="0"
+                    max="4"
+                    className="w-full px-6 py-4 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-2xl outline-none focus:ring-2 focus:ring-blue-600 dark:text-white font-bold" 
+                    value={formData.stripes}
+                    onChange={e => setFormData({...formData, stripes: parseInt(e.target.value) || 0})}
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Listras (Degrees)</label>
+                  <input 
+                    type="number" 
+                    min="0"
+                    max="10"
+                    className="w-full px-6 py-4 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-2xl outline-none focus:ring-2 focus:ring-blue-600 dark:text-white font-bold" 
+                    value={formData.degrees}
+                    onChange={e => setFormData({...formData, degrees: parseInt(e.target.value) || 0})}
+                  />
                 </div>
 
                 <div className="space-y-2">
@@ -1540,8 +1567,12 @@ const StudentDetailsModal = ({ student, onClose }: { student: Student; onClose: 
                       </select>
                     </div>
                     <div className="space-y-2">
-                      <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">{t('students.stripesCount')}</label>
-                      <input type="number" min="0" max="4" className="w-full px-5 py-3.5 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-2xl outline-none focus:ring-2 focus:ring-blue-600 dark:text-white font-bold" value={editFormData.stripes} onChange={e => setEditFormData({...editFormData, stripes: parseInt(e.target.value)})} />
+                      <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">{t('students.stripesCount') || "Graus"}</label>
+                      <input type="number" min="0" max="4" className="w-full px-5 py-3.5 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-2xl outline-none focus:ring-2 focus:ring-blue-600 dark:text-white font-bold" value={editFormData.stripes} onChange={e => setEditFormData({...editFormData, stripes: parseInt(e.target.value) || 0})} />
+                    </div>
+                    <div className="space-y-2">
+                      <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Listras (Degrees)</label>
+                      <input type="number" min="0" max="10" className="w-full px-5 py-3.5 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-2xl outline-none focus:ring-2 focus:ring-blue-600 dark:text-white font-bold" value={editFormData.degrees || 0} onChange={e => setEditFormData({...editFormData, degrees: parseInt(e.target.value) || 0})} />
                     </div>
                     <div className="space-y-2">
                       <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">{t('students.lastPromotion')}</label>

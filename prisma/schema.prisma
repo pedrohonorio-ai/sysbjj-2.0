@@ -34,6 +34,22 @@ model Subscription {
 
   monthlyPrice     Float    @default(0)
 
+  // OS SENSEI: Enterprise flexibilization fields
+  billingCycle     String   @default("MONTHLY") // MONTHLY | QUARTERLY | SEMIANNUAL | YEARLY | LIFETIME | FREE | CUSTOM
+  status           String   @default("ACTIVE")  // ACTIVE | PENDING | EXPIRED | SUSPENDED | FREE_GRANTED
+  expiresAt        DateTime?
+  renewalEnabled   Boolean  @default(false)
+  grantedByAdmin   Boolean  @default(false)
+  customPrice      Float?
+  paymentDate      DateTime?
+  
+  // OS SENSEI: Social projects extension
+  isSocialProject  Boolean  @default(false)
+  nonprofit        Boolean  @default(false)
+  socialProjectName String?
+  socialDescription String?
+  approvedBy       String?
+
   paymentStatus    String   @default("PENDING")
 
   pixKey           String?
@@ -51,6 +67,21 @@ model Subscription {
   subscriptionStatus String?
 
   user          User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model SubscriptionPaymentHistory {
+  id           String   @id @default(cuid())
+  userId       String
+  amount       Float
+  date         DateTime @default(now())
+  proofUrl     String?  // Comprovante (opcional ou base64)
+  billingCycle String?  // Período contratado
+  status       String   @default("APPROVED") // APPROVED | PENDING | REJECTED
+  approvedBy   String?  // Aprovado por (email ou ID)
+  notes        String?  // Observações
+  createdAt    DateTime @default(now())
+
+  @@index([userId])
 }
 
 model Student {

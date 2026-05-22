@@ -49,6 +49,9 @@ export const SaaSControlCenter: React.FC = () => {
   const [pixCity, setPixCity] = useState<string>('');
   const [savingPix, setSavingPix] = useState<boolean>(false);
 
+  // Administrative invoice history & pending approvals queue (Section 5: manual approval, refusal)
+  const [adminInvoices, setAdminInvoices] = useState<any[]>([]);
+
   // Load all academies subscriptions
   const loadSubscriptions = async () => {
     try {
@@ -64,6 +67,18 @@ export const SaaSControlCenter: React.FC = () => {
       setErr(err.message || 'Erro ao comunicar com a autoridade SaaS.');
     } finally {
       setLoading(false);
+    }
+  };
+
+  // Load pending/audited receipt history queue
+  const loadAdminInvoices = async () => {
+    try {
+      const res = await enterpriseApi.fetchWithEnterprise('/api/subscription/admin/history', { useCache: false });
+      if (res && res.success) {
+        setAdminInvoices(res.history || []);
+      }
+    } catch (e: any) {
+      console.error("Falha ao ler histórico global de pagamentos:", e);
     }
   };
 
@@ -107,10 +122,53 @@ export const SaaSControlCenter: React.FC = () => {
     }
   };
 
+  const handleApprovePayment = async (targetUserId: string) => {
+    setErr(null);
+    setSuccess(null);
+    try {
+      const res = await enterpriseApi.fetchWithEnterprise('/api/subscription/admin/approve-payment', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ targetUserId })
+      });
+      if (res && res.success) {
+        setSuccess('🎉 OSS! Mensalidade homologada e acesso total ao dojo ativado!');
+        await loadSubscriptions();
+        await loadAdminInvoices();
+      } else {
+        setErr(res?.error || 'Erro ao homologar pagamento.');
+      }
+    } catch (err: any) {
+      setErr(err.message || 'Erro de rede na aprovação.');
+    }
+  };
+
+  const handleRejectPayment = async (targetUserId: string) => {
+    setErr(null);
+    setSuccess(null);
+    try {
+      const res = await enterpriseApi.fetchWithEnterprise('/api/subscription/admin/reject-payment', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ targetUserId, notes: 'Recusado pelo auditor supremo' })
+      });
+      if (res && res.success) {
+        setSuccess('❌ Comprovante recusado e guardado para inconformidades.');
+        await loadSubscriptions();
+        await loadAdminInvoices();
+      } else {
+        setErr(res?.error || 'Erro ao rejeitar pagamento.');
+      }
+    } catch (err: any) {
+      setErr(err.message || 'Erro de rede ao arquivar rejeição.');
+    }
+  };
+
   useEffect(() => {
     if (isMasterAuthorized) {
       loadSubscriptions();
       loadGlobalPixConfig();
+      loadAdminInvoices();
     }
   }, [isMasterAuthorized]);
 
@@ -567,6 +625,137 @@ export const SaaSControlCenter: React.FC = () => {
           </div>
         )}
 
+      </section>
+
+      {/* 🥋 SEÇÃO: HOMOLOGAÇÃO MANUAL DE COMPROVANTES PIX */}
+      <section className="bg-slate-900 border border-slate-800 p-6 rounded-[2rem] space-y-4">
+        <div className="flex items-center justify-between border-b border-slate-850 pb-3">
+          <div className="space-y-1">
+            <h3 className="text-sm font-black text-white uppercase italic tracking-wider flex items-center gap-2">
+              <CreditCard size={18} className="text-[#00E5FF]" />
+              Fila de Recebimentos & Comprovantes PIX Pendentes
+            </h3>
+            <p className="text-[9px] text-slate-500 uppercase tracking-widest font-bold">
+              Audite comprovantes enviados pelos professores para ativar planos SaaS manualmente
+            </p>
+          </div>
+          <button 
+            type="button" 
+            onClick={loadAdminInvoices}
+            className="p-1 px-2.5 bg-slate-950 border border-slate-850 hover:bg-slate-900 rounded-lg text-[9px] font-black uppercase text-indigo-400"
+          >
+            Atualizar Fila
+          </button>
+        </div>
+
+        {adminInvoices.length === 0 ? (
+          <p className="text-slate-500 text-[10px] uppercase font-bold tracking-wider text-center py-6">Nenhum comprovante PIX pendente de auditoria.</p>
+        ) : (
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            {adminInvoices.map((inv) => {
+              const isPend = inv.status === 'PENDING';
+              return (
+                <div key={inv.id} className={`p-4 rounded-2xl border ${isPend ? 'bg-slate-950/70 border-amber-500/20' : 'bg-slate-950/30 border-slate-850'} space-y-3`}>
+                  <div className="flex items-start justify-between font-sans">
+                    <div>
+                      <h4 className="text-xs font-black text-white uppercase italic">{inv.academyName || 'Academia sem nome'}</h4>
+                      <p className="text-[10px] font-bold text-indigo-400 uppercase tracking-wide">{inv.userName} ({inv.userEmail})</p>
+                      <p className="text-[8px] text-slate-500 uppercase tracking-widest mt-1">Transação enviada em: {new Date(inv.createdAt).toLocaleString('pt-BR')}</p>
+                    </div>
+
+                    <span className={`text-[8px] font-black uppercase px-2 py-0.5 rounded border ${
+                      isPend ? 'bg-amber-500/10 border-amber-500/20 text-amber-500' : 'bg-emerald-500/10 border-emerald-500/20 text-emerald-400'
+                    }`}>
+                      {inv.status}
+                    </span>
+                  </div>
+
+                  <div className="p-3 bg-slate-900 rounded-xl space-y-1 font-sans">
+                    <p className="text-[9px] font-black text-slate-400 uppercase">VALOR INVOICE SÂAS: <span className="text-emerald-400 text-xs font-mono">R$ {Number(inv.amount || 0).toFixed(2)}</span> ({inv.billingCycle})</p>
+                    {inv.proofUrl && (
+                      <p className="text-[9px] font-bold text-slate-400 uppercase tracking-wider">
+                        Comprovante: <a href={inv.proofUrl} target="_blank" rel="noopener noreferrer" className="text-[#00E5FF] underline inline-flex items-center gap-1">Visualizar Recibo <Search size={9} /></a>
+                      </p>
+                    )}
+                    {inv.notes && (
+                      <p className="text-[9px] text-slate-500 italic">“{inv.notes}”</p>
+                    )}
+                  </div>
+
+                  {isPend && (
+                    <div className="flex gap-2">
+                      <button
+                        type="button"
+                        onClick={() => handleApprovePayment(inv.userId)}
+                        className="flex-1 py-1.5 bg-emerald-650 hover:bg-emerald-500 text-white rounded-lg text-[9px] font-black uppercase tracking-wider transition-all"
+                      >
+                        Homologar Pagamento (Ativar)
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => handleRejectPayment(inv.userId)}
+                        className="py-1.5 px-3 bg-red-950 hover:bg-red-900 text-red-500 border border-red-950 rounded-lg text-[9px] font-black uppercase tracking-wider transition-all"
+                      >
+                        Recusar
+                      </button>
+                    </div>
+                  )}
+                </div>
+              );
+            })}
+          </div>
+        )}
+      </section>
+
+      {/* 🥋 SEÇÃO: PEDIDOS DE ISENÇÃO DE PROJETOS SOCIAIS / GRATUIDADE */}
+      <section className="bg-slate-900 border border-slate-800 p-6 rounded-[2rem] space-y-4">
+        <div className="border-b border-slate-850 pb-3">
+          <h3 className="text-sm font-black text-white uppercase italic tracking-wider flex items-center gap-2">
+            <Trophy size={18} className="text-emerald-400" />
+            Pedidos de Isenções e Parcerias Sociais Ativas
+          </h3>
+          <p className="text-[9px] text-slate-500 uppercase tracking-widest font-bold">
+            Ficha para concessão administrativa de bolsas dojo ilimitadas
+          </p>
+        </div>
+
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          {academias.filter(ac => ac.socialProjectName || ac.plan === 'SOCIAL_PROJECT').map((a) => (
+            <div key={a.id} className="p-4 bg-slate-950 border border-slate-850 rounded-2xl space-y-3 font-sans">
+              <div className="flex items-start justify-between">
+                <div>
+                  <h4 className="text-xs font-black text-white uppercase">🥋 {a.socialProjectName || 'Projeto Social Desconhecido'}</h4>
+                  <p className="text-[10px] text-indigo-400 font-bold uppercase">{a.academyName} | CNPJ: {a.cnpj || 'Não Informado'}</p>
+                </div>
+                <span className="text-[8px] font-black uppercase px-2 py-0.5 rounded bg-emerald-500/10 border border-emerald-500/20 text-emerald-400">
+                  {a.plan === 'SOCIAL_PROJECT' ? 'SOCIAL ATIVO' : 'CANDIDATO'}
+                </span>
+              </div>
+
+              <p className="text-[10px] text-slate-400 bg-slate-900 p-2.5 rounded-lg line-clamp-2">
+                “{a.socialDescription || 'Sem detalhes fornecidos pelo professor.'}”
+              </p>
+
+              <div className="flex items-center justify-between text-[8px] font-bold text-slate-500 uppercase tracking-widest bg-slate-900/60 p-2 rounded-lg">
+                <span>Alunos Estimados: {a.expectedStudents || 'N/A'}</span>
+                <span>Responsável: {a.professorName || 'Sensei'}</span>
+              </div>
+
+              {a.plan !== 'SOCIAL_PROJECT' && (
+                <button
+                  type="button"
+                  onClick={() => handleUpdateSubscription(a.id, 'SOCIAL_PROJECT', true)}
+                  className="w-full py-2 bg-emerald-600 hover:bg-emerald-500 text-white rounded-lg text-[9px] font-black uppercase tracking-wider transition-all"
+                >
+                  Conceder Bolsa Social Gratuita Ilimitada
+                </button>
+              )}
+            </div>
+          ))}
+          {academias.filter(ac => ac.socialProjectName || ac.plan === 'SOCIAL_PROJECT').length === 0 && (
+            <p className="text-slate-500 text-[10px] uppercase font-bold tracking-wider text-center py-6 md:col-span-2">Nenhum requerimento de gratuidade em aberto.</p>
+          )}
+        </div>
       </section>
 
       {/* Safety warning audit */}

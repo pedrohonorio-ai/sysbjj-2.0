@@ -314,6 +314,7 @@ export interface Student {
   status: StudentStatus;
   belt: BeltColor | KidsBeltColor;
   stripes: number;
+  degrees: number;
   monthlyValue: number;
   dueDay: number;
   lastPaymentDate?: string;

@@ -230,7 +230,15 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   }, []);
 
   const { user, role: authRole, studentCode } = useAuth();
-  const [students, setStudents] = useState<Student[]>(() => loadSafely('oss_students', []));
+  const [students, setStudents] = useState<Student[]>(() => {
+    const raw = loadSafely('oss_students', []);
+    return raw.map((s: any) => ({
+      ...s,
+      belt: s.belt || "Branca",
+      degrees: Number(s.degrees || 0),
+      stripes: Number(s.stripes || 0)
+    }));
+  });
   const [payments, setPayments] = useState<Payment[]>(() => loadSafely('oss_payments', []));
   const [schedules, setSchedules] = useState<ClassSchedule[]>(() => loadSafely('oss_schedules', DEFAULT_SCHEDULES));
   const [gallery, setGallery] = useState<GalleryImage[]>(() => loadSafely('oss_gallery', []));
@@ -259,6 +267,8 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   });
   const lastHashRef = React.useRef<string>('0');
   const fetchingRef = React.useRef(false);
+  const initializedRef = React.useRef(false);
+  const loadingRef = React.useRef(false);
 
   const isAuthenticated = !!user || (authRole === 'student' && !!studentCode);
 
@@ -269,8 +279,9 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     if (!isAuthenticated || !user?.id || dbStatus.isDemoMode) return;
 
     const fetchAllData = async () => {
-      if (fetchingRef.current) return;
+      if (fetchingRef.current || loadingRef.current) return;
       fetchingRef.current = true;
+      loadingRef.current = true;
       try {
         const collections = [
           'students', 'payments', 'schedules', 'logs', 'ledger', 
@@ -280,7 +291,15 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         
         const batchResults = await api.fetchBatchData(collections, user.id);
 
-        if (batchResults.students) setStudents(batchResults.students);
+        if (batchResults.students) {
+          const normalized = batchResults.students.map((s: any) => ({
+            ...s,
+            belt: s.belt || "Branca",
+            degrees: Number(s.degrees || 0),
+            stripes: Number(s.stripes || 0)
+          }));
+          setStudents(normalized);
+        }
         if (batchResults.payments) setPayments(batchResults.payments);
         if (batchResults.schedules && batchResults.schedules.length > 0) setSchedules(batchResults.schedules);
         if (batchResults.logs) setLogs(batchResults.logs);
@@ -311,10 +330,14 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         handleApiError(error, OperationType.LIST, 'all', setNotifications, setDbStatus);
       } finally {
         fetchingRef.current = false;
+        loadingRef.current = false;
       }
     };
 
-    fetchAllData();
+    if (!initializedRef.current) {
+      initializedRef.current = true;
+      fetchAllData();
+    }
     
     // Refresh periodicamente (opcional se não usar realtime)
     const interval = setInterval(fetchAllData, 60000); // 1 minuto
@@ -454,7 +477,20 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
 
       const rawValue = student.monthlyValue;
       const monthlyValue = typeof rawValue === 'number' ? rawValue : (typeof rawValue === 'string' ? parseFloat(rawValue) || 0 : 0);
-      const newStudent = { ...student, id, photoUrl, monthlyValue } as Student;
+      
+      const normalizedBelt = student.belt || "Branca";
+      const normalizedStripes = isNaN(Number(student.stripes)) ? 0 : Math.round(Number(student.stripes));
+      const normalizedDegrees = isNaN(Number(student.degrees)) ? 0 : Math.round(Number(student.degrees));
+
+      const newStudent = { 
+        ...student, 
+        id, 
+        photoUrl, 
+        monthlyValue,
+        belt: normalizedBelt,
+        stripes: normalizedStripes,
+        degrees: normalizedDegrees
+      } as Student;
       
       // Optimistic Update
       setStudents(prev => [...prev, newStudent]);
@@ -475,6 +511,16 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     let finalUpdates = { ...updates };
     if (finalUpdates.photoUrl && finalUpdates.photoUrl.startsWith('data:image')) {
       finalUpdates.photoUrl = await compressImage(finalUpdates.photoUrl);
+    }
+
+    if (finalUpdates.belt !== undefined) {
+      finalUpdates.belt = (finalUpdates.belt || "Branca") as any;
+    }
+    if (finalUpdates.stripes !== undefined) {
+      finalUpdates.stripes = isNaN(Number(finalUpdates.stripes)) ? 0 : Math.round(Number(finalUpdates.stripes));
+    }
+    if (finalUpdates.degrees !== undefined) {
+      finalUpdates.degrees = isNaN(Number(finalUpdates.degrees)) ? 0 : Math.round(Number(finalUpdates.degrees));
     }
 
     // Optimistic Update
