@@ -22,6 +22,7 @@ import { useTranslation } from '../../contexts/LanguageContext.js';
 import { useData } from '../../contexts/DataContext.js';
 import { enterpriseApi } from '../../services/enterpriseApi.js';
 import { useNavigate } from 'react-router-dom';
+import { SUBSCRIPTION_PLANS } from '../../constants/index.js';
 
 export const SubscriptionManager: React.FC = () => {
   const { t } = useTranslation();
@@ -78,77 +79,20 @@ export const SubscriptionManager: React.FC = () => {
     return { limit, count, percent, alert };
   }, [sub, currentStudentsCount]);
 
-  // Official plans configuration
-  const officialPlans = [
-    {
-      id: 'FREE',
-      name: 'FREE',
-      price: 0,
-      studentLimit: 20,
-      badge: 'Básico',
-      accent: 'text-slate-400',
-      bgColor: 'bg-slate-950/40 border-slate-800',
-      tagline: 'Ideal para professores iniciando seu primeiro dojo.',
-      features: [
-        'Até 20 alunos ativos',
-        'Gestão de treinos & chamada',
-        'Grade de horários básica',
-        'Presença em tempo real',
-        'Visualização estática'
-      ]
-    },
-    {
-      id: 'BRONZE',
-      name: 'BRONZE',
-      price: 20,
-      studentLimit: 50,
-      badge: 'Popular',
-      accent: 'text-amber-500',
-      bgColor: 'bg-amber-950/10 border-amber-900/30 ring-1 ring-amber-500/20',
-      tagline: 'Para academias em consolidação e crescimento constante.',
-      features: [
-        'Até 50 alunos ativos',
-        'Relatórios de caixa básicos',
-        'Controle financeiro integrado',
-        'Biblioteca completa de técnicas',
-        'Selo bronze de integridade'
-      ]
-    },
-    {
-      id: 'SILVER',
-      name: 'SILVER',
-      price: 30,
-      studentLimit: 80,
-      badge: 'Profissional',
-      accent: 'text-slate-300',
-      bgColor: 'bg-slate-900/40 border-slate-700/50',
-      tagline: 'Para grandes dojos que exigem escala e gestão sólida.',
-      features: [
-        'Até 80 alunos ativos',
-        'Business Hub (LTV & Churn)',
-        'Notificações adicionais',
-        'Suporte prioritário do Sensei',
-        'Indicadores de presença reais'
-      ]
-    },
-    {
-      id: 'BLACK_BELT',
-      name: 'BLACK BELT',
-      price: 50,
-      studentLimit: 999999,
-      badge: 'Elite',
-      accent: 'text-red-500 font-extrabold',
-      bgColor: 'border-red-600/50 bg-radial-gradient bg-slate-950 shadow-[0_0_20px_rgba(239,68,68,0.15)]',
-      tagline: 'Acesso total sem restrições. O ápice do ecossistema.',
-      features: [
-        'Alunos e cadastros ILIMITADOS',
-        'Certificação SYSBJJ inclusa',
-        'Inteligência Preditiva IA ativa',
-        'Suporte VIP via WhatsApp',
-        'Sistema multi-professor completo'
-      ]
-    }
-  ];
+  // Official plans configuration dynamically mapped
+  const officialPlans = useMemo(() => {
+    return SUBSCRIPTION_PLANS.map(p => ({
+      id: p.id,
+      name: p.name,
+      price: Number(p.price || 0),
+      studentLimit: Number(p.students || 0),
+      badge: p.id === 'FREE' ? 'Básico' : p.id === 'BRONZE' ? 'Popular' : p.id === 'SILVER' ? 'Profissional' : p.id === 'BLACK_BELT' ? 'Elite' : 'Social',
+      accent: p.id === 'FREE' ? 'text-slate-400' : p.id === 'BRONZE' ? 'text-amber-500' : p.id === 'SILVER' ? 'text-slate-300' : p.id === 'BLACK_BELT' ? 'text-red-500 font-extrabold' : 'text-emerald-400 font-bold',
+      bgColor: p.id === 'FREE' ? 'bg-slate-950/40 border-slate-800' : p.id === 'BRONZE' ? 'bg-amber-950/10 border-amber-900/30 ring-1 ring-amber-500/20' : p.id === 'SILVER' ? 'bg-slate-900/40 border-slate-700/50' : p.id === 'BLACK_BELT' ? 'border-red-600/50 bg-radial-gradient bg-slate-950 shadow-[0_0_20px_rgba(239,68,68,0.15)]' : 'bg-emerald-950/10 border-emerald-900/30 ring-1 ring-emerald-500/20',
+      tagline: p.tagline,
+      features: p.features
+    }));
+  }, []);
 
   // Handle plan upgrade or downgrade
   const handlePlanChange = async (planId: string, currentPlan: string) => {

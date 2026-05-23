@@ -779,6 +779,9 @@
       "pro": "Pro Master Sensei (Elite)",
       "enterprise": "Afiliação Global (Enterprise)"
     },
+    "plans.socialProject": "Projeto Social",
+    "plans.requestGrant": "Solicitar Gratuidade",
+    "plans.nonprofit": "Instituição sem fins lucrativos",
     "features": {
       "limit": "Limite Máximo: {{count}} alunos cadastrados",
       "students": "Alunos Ilimitados",

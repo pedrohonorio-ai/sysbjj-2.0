@@ -7,6 +7,7 @@ import { useAuth } from '../context/AuthContext.js';
 import { AppLanguage } from '../types.js';
 import { Check, Globe, User, Save, Shield, Database, Download, Upload, Trash2, CreditCard, Mail, BookOpen, MapPin, Monitor, Activity, Users, TrendingUp, Trophy, ShieldCheck } from 'lucide-react';
 import { api } from '../services/api.js';
+import { enterpriseApi } from '../services/enterpriseApi.js';
 import { compressImage } from '../services/imageUtils.js';
 import PlanCard from '../components/subscription/PlanCard.js';
 import { MASTER_ADMINS } from '../constants/index.js';
@@ -55,6 +56,39 @@ const Settings: React.FC = () => {
   });
   const [subscription, setSubscription] = useState<any>(null);
   const [canInstall, setCanInstall] = useState(!!(window as any).deferredPrompt);
+
+  // 🥋 EXCLUSÃO DE CONTA SEGURA LOCAL STATE
+  const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
+  const [isDeleting, setIsDeleting] = useState(false);
+  const [deleteError, setDeleteError] = useState<string | null>(null);
+
+  const handleConfirmDeleteAccount = async () => {
+    setIsDeleting(true);
+    setDeleteError(null);
+    try {
+      const targetUserId = user?.id || authData.id;
+      if (!targetUserId) {
+        throw new Error("Identificação do usuário não encontrada.");
+      }
+      
+      const res = await enterpriseApi.fetchWithEnterprise(`/api/admin/delete-user/${targetUserId}`, {
+        method: 'DELETE'
+      });
+      
+      if (res && res.success) {
+        localStorage.clear();
+        sessionStorage.clear();
+        setIsDeleteModalOpen(false);
+        window.location.href = '/login';
+      } else {
+        setDeleteError(res?.error || "Erro ao solicitar exclusão no servidor.");
+      }
+    } catch (err: any) {
+      setDeleteError(err.message || "Falha ao processar exclusão segura.");
+    } finally {
+      setIsDeleting(false);
+    }
+  };
 
   useEffect(() => {
     const handleInstallable = () => setCanInstall(true);
@@ -737,6 +771,105 @@ const Settings: React.FC = () => {
           </p>
         </div>
       </div>
+
+      {/* 🥋 EXCLUSÃO SEGURA DE CONTA & LIMPEZA SUPREMA */}
+      <div className="bg-red-50 dark:bg-red-950/15 rounded-[2rem] sm:rounded-[2.5rem] border border-red-200 dark:border-red-900/30 overflow-hidden transition-all shadow-md">
+        <div className="p-6 sm:p-8 border-b border-red-200/50 dark:border-red-900/40 bg-red-100/10 dark:bg-red-900/10 flex items-center justify-between">
+          <h3 className="text-xs sm:text-sm font-black text-red-600 uppercase tracking-[0.15em] flex items-center gap-3">
+            <ShieldCheck size={18} /> Gerenciamento da Academia & Conta
+          </h3>
+          <span className="text-[8px] font-black text-red-600 bg-red-100 px-3 py-1 rounded-full uppercase tracking-widest">
+            Zona de Segurança
+          </span>
+        </div>
+        <div className="p-6 sm:p-8 space-y-6">
+          <div className="text-left space-y-2">
+            <h4 className="text-sm font-black text-red-700 dark:text-red-400 uppercase tracking-tight">Exclusão Definitiva de Conta</h4>
+            <p className="text-xs text-slate-500 font-bold uppercase tracking-wider leading-relaxed">
+              Deseja remover sua academia e limpar todos os dados do tatame? Esta ação realiza a desativação imediata com exclusão em cascata irrecuperável de alunos, presenças, pagamentos e todos os dados fiscais e de faturamento associados no Neon PostgreSQL para aliviar o sistema.
+            </p>
+          </div>
+
+          <div className="p-4 bg-orange-500/10 border border-orange-500/20 rounded-2xl flex items-start gap-3">
+            <div className="p-2 bg-orange-500/10 text-orange-600 rounded-xl shrink-0">
+              <ShieldCheck size={18} />
+            </div>
+            <div>
+              <p className="text-[10px] font-black text-orange-600 uppercase tracking-widest">Protocolo de Confirmação Dupla SYSBJJ</p>
+              <p className="text-[9px] text-slate-500 font-bold uppercase mt-1 leading-normal">
+                Nota: A conta principal do Sensei Geral "pedro.honorio@gm.rio" é protegida como root do ecossistema e nunca poderá ser excluída.
+              </p>
+            </div>
+          </div>
+
+          <div className="pt-2">
+            <button 
+              type="button"
+              onClick={() => {
+                const targetEmail = user?.email || authData.email || '';
+                if (targetEmail.toLowerCase() === 'pedro.honorio@gm.rio') {
+                  alert('🥋 RETORNO DO DOJO: Sensei Geral Pedro Honório, você é o administrador master do ecossistema. Suas credenciais são de segurança vitalícia e não podem ser excluídas!');
+                  return;
+                }
+                setIsDeleteModalOpen(true);
+              }}
+              className="w-full sm:w-auto px-8 py-4 bg-red-600 hover:bg-red-700 text-white rounded-2xl font-black text-[11px] uppercase tracking-wider shadow-lg flex items-center justify-center gap-2"
+            >
+              <Trash2 size={14} /> Excluir Minha Conta
+            </button>
+          </div>
+        </div>
+      </div>
+
+      {/* 🥋 EXCLUSÃO DE CONTA: CONFIRMAÇÃO DUPLA */}
+      {isDeleteModalOpen && (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm animate-in fade-in duration-300">
+          <div className="w-full max-w-md bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-[2.5rem] p-8 shadow-2xl space-y-6 text-center animate-in zoom-in-95 duration-250">
+            <div className="mx-auto w-16 h-16 bg-red-100 dark:bg-red-950/30 text-red-600 rounded-full flex items-center justify-center shadow-inner">
+              <Trash2 size={32} />
+            </div>
+
+            <div className="space-y-2">
+              <span className="text-[9px] font-black uppercase tracking-widest text-red-600 bg-red-50 dark:bg-red-950/20 px-3 py-1 rounded-full border border-red-200/30">
+                Aviso Supremo do Dojo
+              </span>
+              <h3 className="text-xl font-black text-slate-900 dark:text-white italic uppercase tracking-tighter">
+                Confirmar Exclusão de Academia?
+              </h3>
+              <p className="text-red-600 dark:text-red-400 font-extrabold text-[12px] uppercase tracking-wider leading-snug bg-red-50 dark:bg-red-950/25 p-4 rounded-2xl border border-red-200/40">
+                "ATENÇÃO:<br />Esta ação removerá permanentemente todos os dados da academia."
+              </p>
+            </div>
+
+            <p className="text-slate-400 text-[10px] font-bold uppercase tracking-widest leading-normal">
+              Todos os alunos, presenças, mensalidades, planos PIX e históricos fiscais serão expurgados para aliviar o banco Neon instantaneamente.
+            </p>
+
+            {deleteError && (
+              <p className="text-red-600 text-[11px] font-black uppercase">{deleteError}</p>
+            )}
+
+            <div className="grid grid-cols-2 gap-3 pt-2">
+              <button
+                type="button"
+                onClick={() => setIsDeleteModalOpen(false)}
+                disabled={isDeleting}
+                className="py-4 border border-slate-200 dark:border-slate-800 text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800 rounded-2xl text-[10px] font-black uppercase tracking-widest transition-all disabled:opacity-50"
+              >
+                Cancelar
+              </button>
+              <button
+                type="button"
+                onClick={handleConfirmDeleteAccount}
+                disabled={isDeleting}
+                className="py-4 bg-red-600 hover:bg-red-500 text-white rounded-2xl text-[10px] font-black uppercase tracking-widest transition-all shadow-lg flex items-center justify-center gap-2 disabled:opacity-50"
+              >
+                {isDeleting ? 'Excluindo...' : 'Excluir Permanentemente'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

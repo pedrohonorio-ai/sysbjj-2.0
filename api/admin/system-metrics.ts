@@ -15,14 +15,77 @@ export default async function systemMetricsHandler(req: AuthRequest, res: Respon
 
   const startMs = Date.now();
   try {
-    // 1. Measure DB Latency
+    // 🥋 JOB 1: Limpeza Automática - Remove contas deletadas suaves há mais de 30 dias
+    const thirtyDaysAgo = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000);
+    try {
+      const usersToPurge = await prisma.user.findMany({
+        where: {
+          NOT: { deletedAt: null },
+          deletedAt: { lt: thirtyDaysAgo }
+        }
+      });
+      for (const u of usersToPurge) {
+        if (u.email?.toLowerCase() === "pedro.honorio@gm.rio") continue;
+        await prisma.student.deleteMany({ where: { userId: u.id } });
+        await prisma.payment.deleteMany({ where: { userId: u.id } });
+        await prisma.classSchedule.deleteMany({ where: { userId: u.id } });
+        await prisma.presence.deleteMany({ where: { userId: u.id } });
+        await prisma.subscriptionPaymentHistory.deleteMany({ where: { userId: u.id } });
+        await prisma.paymentReceipt.deleteMany({ where: { userId: u.id } });
+        await prisma.extraRevenue.deleteMany({ where: { userId: u.id } });
+        await prisma.lessonPlan.deleteMany({ where: { userId: u.id } });
+        await prisma.libraryTechnique.deleteMany({ where: { userId: u.id } });
+        await prisma.product.deleteMany({ where: { userId: u.id } });
+        await prisma.kimonoOrder.deleteMany({ where: { userId: u.id } });
+        await prisma.professorProfile.deleteMany({ where: { userId: u.id } });
+        await prisma.plan.deleteMany({ where: { userId: u.id } });
+        await prisma.transactionLedger.deleteMany({ where: { userId: u.id } });
+        await prisma.systemLog.deleteMany({ where: { userId: u.id } });
+        await prisma.subscription.deleteMany({ where: { userId: u.id } });
+        await prisma.user.delete({ where: { id: u.id } });
+      }
+    } catch (e) {
+      console.error("🥋 Falha ao executar JOB purga 30 dias:", e);
+    }
+
+    // 🥋 JOB 2: Identificar e Marcar Contas Fantasmas como inactive (active = false)
+    try {
+      const prospectiveGhosts = await prisma.user.findMany({
+        where: {
+          active: true,
+          deletedAt: null
+        }
+      });
+      for (const u of prospectiveGhosts) {
+        if (u.email?.toLowerCase() === "pedro.honorio@gm.rio") continue;
+        const sCount = await prisma.student.count({ where: { userId: u.id } });
+        const hasStudents = sCount > 0;
+        const hasNoLogin = u.lastLoginAt === null;
+        const hasNoActivity = u.lastActivityAt === null;
+        const sevenDaysAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000);
+        const isOldAccount = u.createdAt < sevenDaysAgo;
+        if (isOldAccount && !hasStudents && (hasNoLogin || hasNoActivity)) {
+          await prisma.user.update({
+            where: { id: u.id },
+            data: { active: false }
+          });
+        }
+      }
+    } catch (ghostErr) {
+      console.error("🥋 Falha ao desativar contas fantasmas:", ghostErr);
+    }
+
+    // 🥋 Measure DB Latency
     const queryStart = Date.now();
     await prisma.$queryRaw`SELECT 1`;
     const neonLatency = Date.now() - queryStart;
 
-    // 2. Fetch real data from prisma models
+    // 🥋 Fetch real data using strict activity and deletion boundaries
     const [
-      totalUsers,
+      usersActive,
+      usersInactive,
+      usersDeleted,
+      testAccountsCount,
       totalStudents,
       activeAcademies,
       totalPayments,
@@ -30,16 +93,26 @@ export default async function systemMetricsHandler(req: AuthRequest, res: Respon
       activeSessionsCount,
       recentLogs
     ] = await Promise.all([
-      prisma.user.count(),
+      prisma.user.count({ where: { active: true, deletedAt: null } }),
+      prisma.user.count({ where: { active: false, deletedAt: null } }),
+      prisma.user.count({ where: { NOT: { deletedAt: null } } }),
+      prisma.user.count({
+        where: {
+          OR: [
+            { email: { contains: "test" } },
+            { email: { contains: "example" } },
+            { name: { contains: "teste" } }
+          ]
+        }
+      }),
       prisma.student.count(),
       prisma.professorProfile.count(),
       prisma.payment.count(),
-      // Use Presence table for active sessions/online users
       prisma.presence.count(),
       prisma.presence.count({
         where: {
           lastSeen: {
-            gt: BigInt(Date.now() - 5 * 60 * 1000) // Online in the last 5 minutes
+            gt: BigInt(Date.now() - 5 * 60 * 1000)
           }
         }
       }),
@@ -50,6 +123,18 @@ export default async function systemMetricsHandler(req: AuthRequest, res: Respon
         }
       })
     ]);
+
+    // Count acadamias sem atividade in last 30 days
+    const academiasSemAtividade = await prisma.user.count({
+      where: {
+        active: true,
+        deletedAt: null,
+        OR: [
+          { lastActivityAt: null },
+          { lastActivityAt: { lt: thirtyDaysAgo } }
+        ]
+      }
+    });
 
     // Calculate MRR / Totals
     const currentMonthStr = new Date().toISOString().substring(0, 7); // YYYY-MM
@@ -85,7 +170,13 @@ export default async function systemMetricsHandler(req: AuthRequest, res: Respon
 
     // Formulate final telemetry data object
     const metrics = {
-      totalUsers,
+      totalUsers: usersActive,
+      usersActive,
+      usersInactive,
+      usersDeleted,
+      testAccounts: testAccountsCount,
+      academiasOnline: onlineUsersCount || 1,
+      academiasSemAtividade,
       totalStudents,
       activeAcademies: activeAcademies || 1,
       totalRevenue,

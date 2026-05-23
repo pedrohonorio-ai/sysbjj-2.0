@@ -54,6 +54,114 @@ app.get("/api/health", (_, res) => {
 app.post("/api/auth/login", loginHandler);
 app.post("/api/auth/register", registerHandler);
 
+// 🥋 SUPREME ENDPOINT: DELETE /api/admin/delete-user/:id
+app.delete("/api/admin/delete-user/:id", authenticate as any, async (req: AuthRequest, res: Response): Promise<any> => {
+    const targetId = req.params.id;
+    if (!targetId) {
+        return res.status(400).json({ success: false, error: "ID do usuário é obrigatório." });
+    }
+
+    const masterEmail = "pedro.honorio@gm.rio";
+    const isMaster = req.user?.email?.toLowerCase() === masterEmail || req.user?.role === "MASTER";
+    const isOwner = req.user?.id === targetId;
+
+    if (!isMaster && !isOwner) {
+        return res.status(403).json({ 
+            success: false, 
+            error: "Restrito: Apenas o Sensei Master ou o próprio proprietário da conta podem executar esta ação." 
+        });
+    }
+
+    try {
+        const targetUser = await prisma.user.findUnique({ where: { id: targetId } });
+        if (!targetUser) {
+            return res.status(404).json({ success: false, error: "Usuário não encontrado no tatame." });
+        }
+
+        // Bloquear exclusão do Master
+        if (targetUser.email?.toLowerCase() === masterEmail) {
+            return res.status(403).json({ 
+                success: false, 
+                error: "🥋 OPERAÇÃO NEGADA: O Sensei Master Geral do ecossistema (pedro.honorio@gm.rio) não pode ser excluído sob nenhuma circunstância!" 
+            });
+        }
+
+        const uidStr = String(targetId);
+
+        // 🥋 EXCLUSÃO EM CASCATA PROGRAMÁTICA
+        console.log(`🥋 [CASCADE PURGE] Iniciando remoção completa dos dados da conta: ${targetUser.email}`);
+        
+        await prisma.student.deleteMany({ where: { userId: uidStr } });
+        await prisma.payment.deleteMany({ where: { userId: uidStr } });
+        await prisma.classSchedule.deleteMany({ where: { userId: uidStr } });
+        await prisma.presence.deleteMany({ where: { userId: uidStr } });
+        await prisma.subscriptionPaymentHistory.deleteMany({ where: { userId: uidStr } });
+        await prisma.paymentReceipt.deleteMany({ where: { userId: uidStr } });
+        await prisma.extraRevenue.deleteMany({ where: { userId: uidStr } });
+        await prisma.lessonPlan.deleteMany({ where: { userId: uidStr } });
+        await prisma.libraryTechnique.deleteMany({ where: { userId: uidStr } });
+        await prisma.product.deleteMany({ where: { userId: uidStr } });
+        await prisma.kimonoOrder.deleteMany({ where: { userId: uidStr } });
+        await prisma.professorProfile.deleteMany({ where: { userId: uidStr } });
+        await prisma.plan.deleteMany({ where: { userId: uidStr } });
+        await prisma.transactionLedger.deleteMany({ where: { userId: uidStr } });
+        
+        // Registrar log de auditoria global persistente (vinculada a MASTER ou SYSTEM)
+        try {
+            await prisma.systemLog.create({
+                data: {
+                    userId: "SYSTEM_AUDIT",
+                    timestamp: BigInt(Date.now()),
+                    userEmail: req.user?.email || "system",
+                    action: 'USER_DELETED',
+                    details: `Usuário ${targetUser.email} foi deletado (Soft Delete ativo). Todos os dados associados foram limpos de forma irreversível para otimizar o banco Postgres.`,
+                    category: 'Audit',
+                    deviceInfo: req.headers['user-agent'] || 'Desconhecido',
+                }
+            });
+        } catch (e) {
+            console.error("Falha ao salvar log de auditoria de exclusão:", e);
+        }
+
+        // Limpar logs do usuário que restavam
+        await prisma.systemLog.deleteMany({ where: { userId: uidStr } });
+
+        // Atualizar Subscription para reset
+        try {
+            await prisma.subscription.updateMany({
+                where: { userId: uidStr },
+                data: {
+                    plan: "FREE",
+                    active: false,
+                    monthlyPrice: 0,
+                    studentLimit: 20,
+                    status: "EXPIRED"
+                }
+            });
+        } catch (e) {}
+
+        // 🥋 SOFT DELETE NO MODEL USER
+        await prisma.user.update({
+            where: { id: targetId },
+            data: {
+                active: false,
+                deletedAt: new Date()
+            }
+        });
+
+        console.log(`🥋 [CASCADE PURGE COMPLETE]: ${targetUser.email} removido com sucesso.`);
+
+        return res.json({ 
+            success: true, 
+            message: `🥋 OSS! A conta da academia ${targetUser.name || targetUser.email} foi removida permanentemente do banco de dados.` 
+        });
+
+    } catch (err: any) {
+        console.error("🥋 Erro na exclusão de conta:", err);
+        return res.status(500).json({ success: false, error: err.message || "Erro interno na transação de exclusão." });
+    }
+});
+
 // Protected Router
 const protectedRouter = express.Router() as any;
 protectedRouter.use(authenticate as any);

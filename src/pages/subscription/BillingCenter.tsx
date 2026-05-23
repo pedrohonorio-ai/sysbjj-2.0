@@ -22,6 +22,7 @@ import { useTranslation } from '../../contexts/LanguageContext.js';
 import { useData } from '../../contexts/DataContext.js';
 import { enterpriseApi } from '../../services/enterpriseApi.js';
 import { useNavigate } from 'react-router-dom';
+import { SUBSCRIPTION_PLANS, BILLING_CYCLES } from '../../constants/index.js';
 
 export const BillingCenter: React.FC = () => {
   const { t } = useTranslation();
@@ -43,6 +44,8 @@ export const BillingCenter: React.FC = () => {
 
   // Dynamic Pix states
   const [dynamicPixCode, setDynamicPixCode] = useState<string>('');
+  const [isPixModalOpen, setIsPixModalOpen] = useState<boolean>(false);
+  const [confirmingPix, setConfirmingPix] = useState<boolean>(false);
 
   // Proof upload states
   const [uploading, setUploading] = useState<boolean>(false);
@@ -113,19 +116,23 @@ export const BillingCenter: React.FC = () => {
 
   // Recalculate billing values live
   const calculatedLivePrice = useMemo(() => {
-    let basePrice = 20; // BRONZE
-    if (selectedPlan === 'SILVER') basePrice = 30;
-    else if (selectedPlan === 'BLACK_BELT' || selectedPlan === 'BLACK BELT') basePrice = 50;
-    else if (selectedPlan === 'FREE' || selectedPlan === 'SOCIAL_PROJECT') basePrice = 0;
+    const planObj = SUBSCRIPTION_PLANS.find(p => p.id === selectedPlan);
+    const basePrice = planObj ? Number(planObj.price || 0) : 0;
 
     let multiplier = 1;
     let discount = 1;
 
-    if (selectedCycle === 'QUARTERLY') multiplier = 3;
-    else if (selectedCycle === 'SEMIANNUAL') { multiplier = 6; discount = 0.9; } // 10% off
-    else if (selectedCycle === 'YEARLY') { multiplier = 12; discount = 0.8; }   // 20% off
-    else if (selectedCycle === 'LIFETIME') { multiplier = 36; discount = 0.6; } // 40% off
-    else if (selectedCycle === 'FREE') { multiplier = 0; }
+    const cycleObj = BILLING_CYCLES.find(c => c.id === selectedCycle);
+    if (cycleObj) {
+      multiplier = cycleObj.months;
+      if (selectedCycle === 'SEMIANNUAL') discount = 0.9; // 10% off
+      else if (selectedCycle === 'YEARLY') discount = 0.8; // 20% off
+    } else if (selectedCycle === 'LIFETIME') {
+      multiplier = 36;
+      discount = 0.6; // 40% off
+    } else if (selectedCycle === 'FREE') {
+      multiplier = 0;
+    }
 
     return Math.round(basePrice * multiplier * discount);
   }, [selectedPlan, selectedCycle]);
@@ -152,6 +159,7 @@ export const BillingCenter: React.FC = () => {
           setDynamicPixCode(res.pixPayload);
         }
         await fetchSubscriptionAndHistory();
+        setIsPixModalOpen(true); // Open the PIX payment checkout modal!
       } else {
         setActionError(res?.error || 'Erro ao registrar solicitação de upgrade. Verifique com o admin.');
       }
@@ -159,6 +167,30 @@ export const BillingCenter: React.FC = () => {
       setActionError(err.message || 'Erro de conexão.');
     } finally {
       setSubmittingUpgrade(false);
+    }
+  };
+
+  // Auto-confirm payment simulated flow
+  const handleConfirmPayment = async () => {
+    setConfirmingPix(true);
+    setActionError(null);
+    setSuccessMsg(null);
+    try {
+      const res = await enterpriseApi.fetchWithEnterprise('/api/subscription/confirm-payment', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' }
+      });
+      if (res && res.success) {
+        setSuccessMsg(res.message || '🥋 OSS! Pagamento PIX e limites homologados instantaneamente!');
+        setIsPixModalOpen(false);
+        await fetchSubscriptionAndHistory();
+      } else {
+        setActionError(res?.error || 'Erro ao confirmar faturamento instantâneo.');
+      }
+    } catch (err: any) {
+      setActionError(err.message || 'Erro ao comunicar recebimento.');
+    } finally {
+      setConfirmingPix(false);
     }
   };
 
@@ -330,7 +362,8 @@ export const BillingCenter: React.FC = () => {
     );
   }
 
-  const userPlanText = String(sub?.plan || 'FREE').replaceAll('_', ' ').toUpperCase();
+  const safePlan = typeof sub?.plan === "string" ? sub.plan : "FREE";
+  const userPlanText = String(safePlan).replaceAll('_', ' ').toUpperCase();
   const userStatus = String(sub?.status || 'Active').replaceAll('_', ' ').toUpperCase();
 
   return (
@@ -409,25 +442,38 @@ export const BillingCenter: React.FC = () => {
             </div>
 
             {/* Select Plan Mode */}
-            <div className="grid grid-cols-3 gap-3">
-              {['BRONZE', 'SILVER', 'BLACK_BELT'].map((pId) => {
-                const label = pId === 'BLACK_BELT' ? 'BLACK BELT' : pId;
-                const isSelected = selectedPlan === pId;
+            <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
+              {SUBSCRIPTION_PLANS.map((plan) => {
+                const isSelected = selectedPlan === plan.id;
+                const priceNum = Number(plan.price || 0);
+                const studentsNum = Number(plan.students || 0);
                 return (
                   <button
-                    key={pId}
+                    key={plan.id}
                     type="button"
-                    onClick={() => { setSelectedPlan(pId); setSelectedCycle('MONTHLY'); }}
-                    className={`p-3.5 rounded-2xl border text-center transition-all ${
+                    onClick={() => {
+                      setSelectedPlan(plan.id);
+                      if (plan.id === 'FREE' || plan.id === 'SOCIAL_PROJECT') {
+                        setSelectedCycle('FREE');
+                      } else {
+                        if (selectedCycle === 'FREE') setSelectedCycle('MONTHLY');
+                      }
+                    }}
+                    className={`p-3 rounded-2xl border text-center transition-all flex flex-col justify-between h-28 items-center ${
                       isSelected 
                         ? 'bg-indigo-600/15 border-indigo-500 text-indigo-400 ring-1 ring-indigo-500/40' 
                         : 'bg-slate-950 border-slate-850 hover:bg-slate-900 text-slate-400'
                     }`}
                   >
-                    <p className="text-[10px] font-black tracking-wider uppercase">{label}</p>
-                    <p className="text-[9px] text-slate-500 mt-1 font-bold">
-                      {pId === 'BRONZE' ? 'R$ 20' : pId === 'SILVER' ? 'R$ 30' : 'R$ 50'}/mês
-                    </p>
+                    <div className="w-full">
+                      <p className="text-[9px] font-black tracking-wider uppercase leading-snug truncate">{plan.name}</p>
+                      <p className="text-[11px] text-white mt-1.5 font-black">
+                        {priceNum > 0 ? `R$ ${priceNum}` : 'Grátis'}
+                      </p>
+                    </div>
+                    <div className="text-[8px] text-slate-500 font-bold uppercase tracking-wider leading-none mt-2">
+                      {studentsNum >= 999999 ? 'Sem limites' : `Até ${studentsNum} Alunos`}
+                    </div>
                   </button>
                 );
               })}
@@ -436,28 +482,26 @@ export const BillingCenter: React.FC = () => {
             {/* Choose Recurring Period (Section 3: Flex recurrence options) */}
             <div className="space-y-2">
               <label className="text-[9px] font-black text-slate-500 uppercase tracking-widest block">Período de Assinatura (Ciclo):</label>
-              <div className="grid grid-cols-2 md:grid-cols-5 gap-2">
-                {[
-                  { id: 'MONTHLY', label: 'Mensal', tag: 'Sem desc' },
-                  { id: 'QUARTERLY', label: 'Trimestral', tag: '3 meses' },
-                  { id: 'SEMIANNUAL', label: 'Semestral', tag: '10% OFF' },
-                  { id: 'YEARLY', label: 'Anual', tag: '20% OFF' },
-                  { id: 'LIFETIME', label: 'Vitalício', tag: '40% OFF' }
-                ].map((cycle) => {
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
+                {BILLING_CYCLES.map((cycle) => {
                   const isSel = selectedCycle === cycle.id;
+                  const isFree = selectedPlan === 'FREE' || selectedPlan === 'SOCIAL_PROJECT';
                   return (
                     <button
                       key={cycle.id}
                       type="button"
+                      disabled={isFree}
                       onClick={() => setSelectedCycle(cycle.id)}
                       className={`p-3 rounded-xl border text-center transition-all ${
-                        isSel 
+                        isSel && !isFree
                           ? 'bg-[#00E5FF]/10 border-[#00E5FF] text-[#00E5FF] font-black' 
-                          : 'bg-slate-950 border-slate-850 text-slate-400'
+                          : 'bg-slate-950 border-slate-850 text-slate-400 disabled:opacity-35'
                       }`}
                     >
                       <p className="text-[10px] uppercase font-bold leading-none">{cycle.label}</p>
-                      <span className="text-[8px] opacity-70 block mt-1 font-bold uppercase">{cycle.tag}</span>
+                      <span className="text-[8px] opacity-70 block mt-1 font-bold uppercase">
+                        {cycle.id === 'MONTHLY' ? 'Sem desc' : cycle.id === 'QUARTERLY' ? '3 meses' : cycle.id === 'SEMIANNUAL' ? '10% OFF' : '20% OFF'}
+                      </span>
                     </button>
                   );
                 })}
@@ -465,24 +509,47 @@ export const BillingCenter: React.FC = () => {
             </div>
 
             {/* Final dynamic price display (Section 4: visualizes final value) */}
-            <div className="p-5 bg-slate-950 rounded-2xl border border-slate-850 flex items-center justify-between">
-              <div className="space-y-1">
+            <div className="p-5 bg-slate-950 rounded-2xl border border-slate-850 flex flex-col sm:flex-row items-center justify-between gap-4">
+              <div className="space-y-1 text-center sm:text-left">
                 <span className="text-[8px] font-black text-slate-500 uppercase tracking-widest">Valor do Plano Acumulado:</span>
                 <p className="text-2xl font-black text-white leading-none">
                   {formatMoney(finalPrice)}
-                  <span className="text-[10px] text-slate-500 lowercase font-bold font-sans ml-1">/período</span>
+                  <span className="text-[10px] text-slate-500 lowercase font-bold font-sans ml-1">
+                    {selectedPlan === 'FREE' || selectedPlan === 'SOCIAL_PROJECT' ? ' (Sem custos)' : '/período'}
+                  </span>
                 </p>
               </div>
 
-              <button
-                type="button"
-                onClick={handleUpgradeRequest}
-                disabled={submittingUpgrade || finalPrice === 0}
-                className="px-6 py-3 bg-indigo-600 hover:bg-indigo-500 text-white rounded-xl text-[10px] font-black uppercase tracking-widest transition-all disabled:opacity-40 flex items-center gap-2"
-              >
-                {submittingUpgrade ? <RefreshCw className="animate-spin" size={11} /> : <QrCode size={12} />}
-                Gerar Dynamic PIX
-              </button>
+              {selectedPlan === 'FREE' || selectedPlan === 'SOCIAL_PROJECT' ? (
+                <button
+                  type="button"
+                  onClick={async () => {
+                    if (selectedPlan === 'SOCIAL_PROJECT') {
+                      setIsRequestingSocial(true);
+                      document.getElementById('social-request-form-container')?.scrollIntoView({ behavior: 'smooth' });
+                    } else {
+                      // Gratuito
+                      await handleUpgradeRequest();
+                    }
+                  }}
+                  className={`px-6 py-3 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all ${
+                    selectedPlan === 'SOCIAL_PROJECT' ? 'bg-emerald-600 hover:bg-emerald-500 text-white' : 'bg-slate-800 hover:bg-slate-750 text-white'
+                  }`}
+                >
+                  {selectedPlan === 'SOCIAL_PROJECT' ? 'Solicitar Gratuidade' : 'Ativar Plano Gratuito'}
+                </button>
+              ) : (
+                <button
+                  type="button"
+                  id="checkout-upgrade-assinar-btn"
+                  onClick={handleUpgradeRequest}
+                  disabled={submittingUpgrade || finalPrice === 0}
+                  className="px-6 py-3 bg-indigo-600 hover:bg-indigo-500 text-white rounded-xl text-[10px] font-black uppercase tracking-widest transition-all disabled:opacity-40 flex items-center gap-2"
+                >
+                  {submittingUpgrade ? <RefreshCw className="animate-spin" size={11} /> : <QrCode size={12} />}
+                  Assinar Agora (PIX)
+                </button>
+              )}
             </div>
           </div>
 
@@ -805,6 +872,136 @@ export const BillingCenter: React.FC = () => {
         </div>
 
       </div>
+
+      {/* 🥋 LUXURIOUS PIX MODAL OVERLAY */}
+      <AnimatePresence>
+        {isPixModalOpen && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/80 backdrop-blur-sm">
+            <motion.div
+              initial={{ opacity: 0, scale: 0.95, y: 15 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.95, y: 15 }}
+              className="relative w-full max-w-lg bg-slate-900 border border-slate-800 rounded-[2.5rem] p-8 shadow-2xl overflow-y-auto max-h-[90vh] space-y-6"
+            >
+              {/* Close Button */}
+              <button
+                type="button"
+                onClick={() => setIsPixModalOpen(false)}
+                className="absolute top-5 right-5 text-slate-500 hover:text-white text-xs font-black uppercase tracking-widest px-3 py-1.5 bg-slate-950 border border-slate-800 rounded-xl"
+              >
+                Fechar [X]
+              </button>
+
+              <div className="text-center space-y-1.5 mt-2">
+                <span className="text-[9px] font-black uppercase tracking-wider text-[#00E5FF] bg-[#00E5FF]/10 px-3 py-1 rounded-full border border-[#00E5FF]/20">
+                  Checkout PIX Integrado
+                </span>
+                <h3 className="text-xl font-black text-white italic uppercase tracking-tighter">
+                  Pague com PIX para Liberação Instantânea
+                </h3>
+                <p className="text-slate-400 text-[10px] font-bold uppercase tracking-wider">
+                  Plano Selecionado: <span className="text-white">{selectedPlan}</span> ({selectedCycle})
+                </p>
+              </div>
+
+              {/* QR Code and Pricing details */}
+              <div className="bg-slate-950 border border-slate-850 p-6 rounded-3xl flex flex-col items-center justify-center space-y-4">
+                <div className="bg-white p-4 rounded-2xl shadow-xl">
+                  {/* Simulated QR Code SVG */}
+                  <svg width="150" height="150" viewBox="0 0 100 100" className="text-slate-950">
+                    <rect width="100" height="100" fill="white" />
+                    <path d="M 0 0 h 25 v 25 h -25 z M 5 5 v 15 h 15 v -15 z M 8 8 h 9 v 9 h -9 z" fill="currentColor" />
+                    <path d="M 75 0 h 25 v 25 h -25 z M 80 5 v 15 h 15 v -15 z M 83 8 h 9 v 9 h -9 z" fill="currentColor" />
+                    <path d="M 0 75 h 25 v 25 h -25 z M 5 80 v 15 h 15 v -15 z M 8 83 h 9 v 9 h -9 z" fill="currentColor" />
+                    <rect x="35" y="5" width="5" height="10" fill="currentColor" />
+                    <rect x="45" y="15" width="10" height="5" fill="currentColor" />
+                    <rect x="60" y="5" width="5" height="15" fill="currentColor" />
+                    <rect x="35" y="25" width="15" height="5" fill="currentColor" />
+                    <rect x="55" y="30" width="25" height="5" fill="currentColor" />
+                    <rect x="30" y="45" width="10" height="10" fill="currentColor" />
+                    <rect x="45" y="40" width="5" height="15" fill="currentColor" />
+                    <rect x="60" y="50" width="20" height="5" fill="currentColor" />
+                    <rect x="85" y="60" width="10" height="15" fill="currentColor" />
+                    <rect x="35" y="65" width="25" height="5" fill="currentColor" />
+                    <rect x="65" y="70" width="5" height="25" fill="currentColor" />
+                  </svg>
+                </div>
+
+                <div className="text-center">
+                  <span className="text-[9px] font-black text-slate-500 uppercase tracking-widest block">Valor Total:</span>
+                  <p className="text-3xl font-black text-white">{formatMoney(finalPrice)}</p>
+                </div>
+              </div>
+
+              {/* Transfer Details List */}
+              <div className="space-y-3 bg-slate-950/50 p-4 border border-slate-850 rounded-2xl text-xs font-bold uppercase tracking-wider text-slate-400">
+                <div className="flex justify-between border-b border-slate-850 pb-2">
+                  <span className="text-slate-500">Favorecido:</span>
+                  <span className="text-white font-black">{PIX_BENEFICIARY}</span>
+                </div>
+                <div className="flex justify-between border-b border-slate-850 pb-2">
+                  <span className="text-slate-500">Chave PIX:</span>
+                  <span className="text-white font-mono font-black">{PIX_KEY}</span>
+                </div>
+                <div className="flex justify-between border-b border-slate-850 pb-2">
+                  <span className="text-slate-500">Cidade:</span>
+                  <span className="text-white font-black">{PIX_CITY}</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-slate-500">Período Selecionado:</span>
+                  <span className="text-white font-black">
+                    {BILLING_CYCLES.find(c => c.id === selectedCycle)?.label || selectedCycle}
+                  </span>
+                </div>
+              </div>
+
+              {/* PIX Copy buttons */}
+              <div className="grid grid-cols-2 gap-3">
+                <button
+                  type="button"
+                  onClick={handleCopyKey}
+                  className="py-3 bg-slate-950 hover:bg-slate-900 border border-slate-800 text-white rounded-xl text-[9px] font-black uppercase tracking-wider flex items-center justify-center gap-2"
+                >
+                  {copied ? <Check size={11} className="text-emerald-400" /> : <Copy size={11} className="text-[#00E5FF]" />}
+                  {copied ? 'Chave Copiada!' : 'Copiar Chave PIX'}
+                </button>
+                    
+                <button
+                  type="button"
+                  onClick={() => {
+                    navigator.clipboard.writeText(finalPixPayload);
+                    setCopiedPayload(true);
+                    setTimeout(() => setCopiedPayload(false), 2500);
+                  }}
+                  className="py-3 bg-[#00E5FF]/10 text-[#00E5FF] hover:bg-[#00E5FF]/20 border border-[#00E5FF]/20 rounded-xl text-[9px] font-black uppercase tracking-wider flex items-center justify-center gap-2"
+                >
+                  {copiedPayload ? <Check size={11} /> : <Copy size={11} />}
+                  {copiedPayload ? 'Pix Copiado!' : 'Copiar Copia e Cola'}
+                </button>
+              </div>
+
+              {/* Auto Confirm Button */}
+              <button
+                type="button"
+                onClick={handleConfirmPayment}
+                disabled={confirmingPix}
+                className="w-full py-4 bg-emerald-600 hover:bg-emerald-500 disabled:opacity-50 text-white rounded-2xl text-[10px] font-black uppercase tracking-widest transition-all flex items-center justify-center gap-2 shadow-lg shadow-emerald-950"
+              >
+                {confirmingPix ? (
+                  <>
+                    <RefreshCw className="animate-spin" size={12} />
+                    Confirmando PIX via webhook...
+                  </>
+                ) : (
+                  <>
+                    <QrCode size={14} /> Confirmar Pagamento Realizado
+                  </>
+                )}
+              </button>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
 
     </div>
   );

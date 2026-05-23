@@ -137,3 +137,105 @@ export const IBJJF_BELT_RULES: Record<string, { minTimeMonths: number, minAge: n
   'Verde': { minTimeMonths: 12, minAge: 13 },
   'Black-Green': { minTimeMonths: 12, minAge: 13 },
 };
+
+export const SUBSCRIPTION_PLANS = [
+  {
+    id: "FREE",
+    name: "Plano Gratuito",
+    students: 20,
+    price: 0,
+    nonprofit: false,
+    tagline: "Ideal para professores iniciando seu primeiro dojo.",
+    features: [
+      "Até 20 alunos ativos",
+      "Gestão de treinos & chamada",
+      "Grade de horários básica",
+      "Presença em tempo real",
+      "Visualização estática"
+    ]
+  },
+  {
+    id: "BRONZE",
+    name: "Plano Bronze",
+    students: 50,
+    price: 20,
+    nonprofit: false,
+    tagline: "Para academias em consolidação e crescimento constante.",
+    features: [
+      "Até 50 alunos ativos",
+      "Relatórios de caixa básicos",
+      "Controle financeiro integrado",
+      "Biblioteca completa de técnicas",
+      "Selo bronze de integridade"
+    ]
+  },
+  {
+    id: "SILVER",
+    name: "Plano Silver",
+    students: 80,
+    price: 30,
+    nonprofit: false,
+    tagline: "Para grandes dojos que exigem escala e gestão sólida.",
+    features: [
+      "Até 80 alunos ativos",
+      "Business Hub (LTV & Churn)",
+      "Notificações adicionais",
+      "Suporte prioritário do Sensei",
+      "Indicadores de presença reais"
+    ]
+  },
+  {
+    id: "BLACK_BELT",
+    name: "Plano Black Belt",
+    students: 999999,
+    price: 50,
+    nonprofit: false,
+    tagline: "Acesso total sem restrições. O ápice do ecossistema.",
+    features: [
+      "Alunos e cadastros ILIMITADOS",
+      "Certificação SYSBJJ inclusa",
+      "Inteligência Preditiva IA ativa",
+      "Suporte VIP via WhatsApp",
+      "Sistema multi-professor completo"
+    ]
+  },
+  {
+    id: "SOCIAL_PROJECT",
+    name: "Projeto Social",
+    students: 999999,
+    price: 0,
+    nonprofit: true,
+    tagline: "Sistema gratuito para projetos sociais e instituições sem fins lucrativos.",
+    features: [
+      "Cadastro ilimitado de atletas sociais",
+      "Isenção total de pagamentos do software",
+      "Relatórios e declarações de presença públicas",
+      "Dojo inclusivo e transformador",
+      "Suporte exclusivo"
+    ]
+  }
+];
+
+export const BILLING_CYCLES = [
+  {
+    id: "MONTHLY",
+    label: "Mensal",
+    months: 1
+  },
+  {
+    id: "QUARTERLY",
+    label: "Trimestral",
+    months: 3
+  },
+  {
+    id: "SEMIANNUAL",
+    label: "Semestral",
+    months: 6
+  },
+  {
+    id: "YEARLY",
+    label: "Anual",
+    months: 12
+  }
+];
+

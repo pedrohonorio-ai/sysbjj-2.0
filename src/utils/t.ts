@@ -38,6 +38,9 @@ const MANDATORY_DICTIONARY: Record<string, string> = {
   "common.plans": "Assinatura e Planos",
   "plans": "Assinatura e Planos",
   "dashboard.plans": "Planos",
+  "plans.socialProject": "Projeto Social",
+  "plans.requestGrant": "Solicitar Gratuidade",
+  "plans.nonprofit": "Instituição sem fins lucrativos",
   
   "common.ibjjf-rules": "Regras Oficiais IBJJF",
   "ibjjf-rules": "Regras Oficiais IBJJF",

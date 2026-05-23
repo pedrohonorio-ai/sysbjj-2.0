@@ -11,13 +11,18 @@ datasource db {
 // OS SENSEI: Definindo modelos principais para a evolução do sistema
 
 model User {
-  id        String   @id @default(cuid())
-  email     String   @unique
-  password  String   // Hashed password
-  name      String?
-  role      String   @default("admin") // admin | student
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  id             String    @id @default(cuid())
+  email          String    @unique
+  password       String    // Hashed password
+  name           String?
+  role           String    @default("admin") // admin | student
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
+
+  deletedAt      DateTime?
+  active         Boolean   @default(true)
+  lastLoginAt    DateTime?
+  lastActivityAt DateTime?
 
   subscription Subscription?
 }

@@ -133,6 +133,21 @@ export const loginHandler = async (req: Request, res: Response) => {
     }
 
     console.log(`🥋 [AUTH LOGIN] Sucesso: ${user.id}`);
+    
+    // Atualiza controle de atividade real
+    try {
+      await prisma.user.update({
+        where: { id: user.id },
+        data: {
+          lastLoginAt: new Date(),
+          lastActivityAt: new Date(),
+          active: true // reactivate if logging back in
+        }
+      });
+    } catch (activeErr) {
+      console.error("🥋 Falha ao registrar lastLoginAt:", activeErr);
+    }
+
     // Remove password before sending
     const { password: _, ...userWithoutPassword } = user;
     const isMasterAdmin = user.email === MASTER_ADMIN_EMAIL;

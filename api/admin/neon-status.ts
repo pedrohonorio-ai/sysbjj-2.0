@@ -33,15 +33,15 @@ export default async function neonStatusHandler(req: AuthRequest, res: Response)
       dbSizeResult,
       onlinePresenceCount
     ] = await Promise.all([
-      prisma.user.count(),
+      prisma.user.count({ where: { active: true, deletedAt: null } }),
       prisma.professorProfile.count(),
       prisma.student.count(),
       prisma.payment.count(),
       prisma.presence.count(),
       prisma.systemLog.count(),
       prisma.payment.aggregate({
-        _sum: { amount: true },
-        where: { status: 'Paid' }
+         _sum: { amount: true },
+         where: { status: 'Paid' }
       }),
       // Query to estimate Postgres Database size
       prisma.$queryRaw<Array<{ size: string }>>`SELECT pg_size_pretty(pg_database_size(current_database())) as size`.catch(() => [{ size: '15.4 MB' }]),

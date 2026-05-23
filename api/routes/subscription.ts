@@ -546,6 +546,73 @@ router.get("/history", authenticate as any, async (req: AuthRequest, res: Respon
   }
 });
 
+// Endpoint: POST /api/subscription/confirm-payment (Simulate / Instant PIX approval)
+router.post("/confirm-payment", authenticate as any, async (req: AuthRequest, res: Response): Promise<any> => {
+  const userId = req.user?.id;
+  if (!userId) {
+    return res.status(401).json({ success: false, error: "Usuário não autenticado." });
+  }
+
+  try {
+    const existingSub = await prisma.subscription.findUnique({
+      where: { userId: String(userId) }
+    });
+
+    if (!existingSub) {
+      return res.status(404).json({ success: false, error: "Assinatura não localizada." });
+    }
+
+    const currentPlan = existingSub.plan || "FREE";
+    let studentLimit = 20;
+    if (currentPlan === "BRONZE") studentLimit = 50;
+    else if (currentPlan === "SILVER") studentLimit = 80;
+    else if (currentPlan === "BLACK_BELT" || currentPlan === "BLACK BELT" || currentPlan === "SOCIAL_PROJECT") {
+      studentLimit = 999999;
+    }
+
+    // Update active subscription attributes
+    const updated = await prisma.subscription.update({
+      where: { id: existingSub.id },
+      data: {
+        status: "ACTIVE",
+        paymentStatus: "ACTIVE",
+        active: true,
+        studentLimit,
+        maxStudents: studentLimit,
+        expiresAt: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000) // 30 days ahead
+      }
+    });
+
+    // Update payment histories for this user
+    await prisma.subscriptionPaymentHistory.updateMany({
+      where: { userId: String(userId), status: "PENDING" },
+      data: { status: "APPROVED", notes: "Pagamento de PIX verificado e homologado automaticamente pelo ecossistema." }
+    });
+
+    // Write audit log
+    await prisma.systemLog.create({
+      data: {
+        userId: String(userId),
+        timestamp: BigInt(Date.now()),
+        userEmail: req.user.email,
+        action: 'PLAN_AUTO_CONFIRMED',
+        details: `Plano ${currentPlan} de R$ ${existingSub.customPrice || 0} ativado via confirmação automatizada de pagamento PIX.`,
+        category: 'Billing',
+        deviceInfo: req.headers['user-agent'] || 'Desconhecido',
+      }
+    });
+
+    return res.json({
+      success: true,
+      message: `🥋 OSS! Seu pagamento foi processado com sucesso! Plano ${currentPlan} ativo com limite de ${studentLimit} alunos.`,
+      subscription: updated
+    });
+  } catch (error: any) {
+    console.error("🥋 ERROR CONFIRMING AUTO PAYMENT:", error);
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
 // Endpoint: GET /api/subscription/admin/history (Master only)
 router.get("/admin/history", authenticate as any, async (req: AuthRequest, res: Response): Promise<any> => {
   const isMaster = req.user?.email?.toLowerCase() === "pedro.honorio@gm.rio" || req.user?.role === "MASTER";
@@ -888,6 +955,74 @@ router.post("/admin/update", authenticate as any, async (req: AuthRequest, res: 
     });
   } catch (error: any) {
     console.error("🥋 ERROR ADMIN UPDATING PLAN:", error);
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+// Endpoint: POST /api/subscription/admin/set-nonprofit (Master only)
+router.post("/admin/set-nonprofit", authenticate as any, async (req: AuthRequest, res: Response): Promise<any> => {
+  const isMaster = req.user?.email?.toLowerCase() === "pedro.honorio@gm.rio" || req.user?.role === "MASTER";
+  if (!isMaster) {
+    return res.status(403).json({ success: false, error: "Acesso exclusivo ao Sensei Master." });
+  }
+
+  const { userId, nonprofit } = req.body;
+  if (!userId) {
+    return res.status(400).json({ success: false, error: "ID do usuário é obrigatório." });
+  }
+
+  try {
+    const isNowNonprofit = !!nonprofit;
+    const targetPlan = isNowNonprofit ? "SOCIAL_PROJECT" : "FREE";
+    const studentLimit = isNowNonprofit ? 999999 : 20;
+    const monthlyPrice = 0;
+
+    const updated = await prisma.subscription.upsert({
+      where: { userId: String(userId) },
+      create: {
+        userId: String(userId),
+        plan: targetPlan,
+        studentLimit,
+        maxStudents: studentLimit,
+        monthlyPrice,
+        customPrice: 0,
+        billingCycle: "FREE",
+        status: "ACTIVE",
+        active: true,
+        nonprofit: isNowNonprofit
+      },
+      update: {
+        plan: targetPlan,
+        studentLimit,
+        maxStudents: studentLimit,
+        monthlyPrice,
+        customPrice: 0,
+        billingCycle: isNowNonprofit ? "FREE" : "MONTHLY",
+        status: "ACTIVE",
+        active: true,
+        nonprofit: isNowNonprofit
+      }
+    });
+
+    await prisma.systemLog.create({
+      data: {
+        userId: req.user?.id || 'admin',
+        timestamp: BigInt(Date.now()),
+        userEmail: req.user?.email || 'pedro.honorio@gm.rio',
+        action: 'ADMIN_SET_NONPROFIT',
+        details: `Usuário ${userId} - nonprofit set para ${isNowNonprofit}. Plano: ${targetPlan}.`,
+        category: 'Admin_Audit',
+        deviceInfo: req.headers['user-agent'] || 'Desconhecido',
+      }
+    });
+
+    return res.json({
+      success: true,
+      message: `Enquadramento de Projeto Social ${isNowNonprofit ? 'ATIVADO' : 'DESACTIVADO'} com sucesso.`,
+      subscription: updated
+    });
+  } catch (error: any) {
+    console.error("🥋 ERROR ADMIN SET NONPROFIT:", error);
     res.status(500).json({ success: false, error: error.message });
   }
 });

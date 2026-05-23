@@ -30,6 +30,17 @@ export const authenticate = (req: AuthRequest, res: Response, next: NextFunction
       email: decoded.email,
       role: decoded.role
     };
+
+    // 🥋 OSS SENSEI: Registra atividade em background sem bloquear a requisição principal
+    import('../prisma/client.js').then(({ prisma }) => {
+      if (prisma && decoded.id) {
+        prisma.user.update({
+          where: { id: decoded.id },
+          data: { lastActivityAt: new Date(), active: true }
+        }).catch(() => {});
+      }
+    }).catch(() => {});
+
     next();
   } catch (err) {
     return res.status(403).json({ 

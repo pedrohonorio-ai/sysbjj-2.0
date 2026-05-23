@@ -201,6 +201,31 @@ export const SaaSControlCenter: React.FC = () => {
     }
   };
 
+  // Toggle nonprofit Project Social option
+  const handleToggleNonprofit = async (targetUserId: string, currentNonprofit: boolean) => {
+    setUpdatingId(targetUserId);
+    setErr(null);
+    setSuccess(null);
+
+    try {
+      const res = await enterpriseApi.fetchWithEnterprise('/api/subscription/admin/set-nonprofit', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ userId: targetUserId, nonprofit: !currentNonprofit })
+      });
+      if (res && res.success) {
+        setSuccess(`🥋 OSS! Status de Projeto Social / Isenção modificado com sucesso pelo Master!`);
+        await loadSubscriptions(); // reload
+      } else {
+        setErr(res?.error || 'Erro ao modificar status de Projeto Social.');
+      }
+    } catch (err: any) {
+      setErr(err.message || 'Erro de rede na transação de Projeto Social.');
+    } finally {
+      setUpdatingId(null);
+    }
+  };
+
   // SaaS analytics dashboard computations
   const analytics = useMemo(() => {
     if (!academias || academias.length === 0) {
@@ -541,15 +566,21 @@ export const SaaSControlCenter: React.FC = () => {
                           a.plan === 'BLACK_BELT' ? 'bg-red-950 text-red-400 border-red-500/20' :
                           a.plan === 'SILVER' ? 'bg-slate-800 text-slate-300 border-slate-700' :
                           a.plan === 'BRONZE' ? 'bg-amber-950 text-amber-400 border-amber-900/30' :
+                          a.plan === 'SOCIAL_PROJECT' ? 'bg-emerald-950 text-emerald-400 border-emerald-500/25' :
                           'bg-slate-950 text-slate-500 border-slate-900'
                         }`}>
                           {String(a.plan || 'FREE').replaceAll('_', ' ')}
                         </span>
+                        {a.nonprofit && (
+                          <div className="text-[9px] font-black text-emerald-400 uppercase tracking-widest mt-1.5 block">
+                            Projeto Social
+                          </div>
+                        )}
                       </td>
 
                       {/* Financial info */}
                       <td className="py-4 px-4 text-center font-mono font-black text-emerald-400">
-                        {String(a.plan || 'FREE').toUpperCase() === 'FREE' ? 'Grátis' : `R$ ${Number(a.monthlyPrice || 0).toFixed(2)}`}
+                        {String(a.plan || 'FREE').toUpperCase() === 'FREE' || String(a.plan || 'FREE').toUpperCase() === 'SOCIAL_PROJECT' || a.nonprofit ? 'Grátis' : `R$ ${Number(a.monthlyPrice || 0).toFixed(2)}`}
                       </td>
 
                       {/* Active / Blocked Status */}
@@ -565,6 +596,18 @@ export const SaaSControlCenter: React.FC = () => {
                       <td className="py-4 px-6 text-center">
                         <div className="flex items-center justify-center gap-1.5 flex-wrap max-w-sm mx-auto">
                           
+                          {/* Toggle Switch: Projeto Social */}
+                          <label className="flex items-center gap-1.5 px-2 py-1 bg-slate-950 hover:bg-slate-900 border border-slate-800 rounded text-[9px] font-bold text-slate-300 cursor-pointer transition-all select-none col-span-2">
+                            <input
+                              type="checkbox"
+                              checked={!!a.nonprofit}
+                              disabled={isCurrentUpdating}
+                              onChange={() => handleToggleNonprofit(a.id, !!a.nonprofit)}
+                              className="rounded border-slate-700 bg-slate-900 text-emerald-500 focus:ring-emerald-500/20 w-3 h-3"
+                            />
+                            <span>Conta Projeto Social</span>
+                          </label>
+
                           {/* Upgrade controllers */}
                           <button
                             onClick={() => handleUpdateSubscription(a.id, 'BRONZE')}
