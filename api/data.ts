@@ -88,11 +88,40 @@ export async function dataHandler(req: AuthRequest, res: Response) {
           const normalizedStripes = isNaN(Number(payload.stripes)) ? 0 : Math.round(Number(payload.stripes));
           const normalizedDegrees = isNaN(Number(payload.degrees)) ? 0 : Math.round(Number(payload.degrees));
 
+          // 🥋 CALCULA PREVISÕES E ELEGIBILIDADE IBJJF EM SEGUNDO PLANO / SALVAMENTO
+          let bSince: Date | null = null;
+          if (payload.beltSince) {
+            bSince = new Date(payload.beltSince);
+          } else if (payload.lastPromotionDate) {
+            bSince = new Date(payload.lastPromotionDate + 'T12:00:00');
+          }
+          if (!bSince || isNaN(bSince.getTime())) {
+            bSince = new Date();
+          }
+
+          let minMonths = 12;
+          const normalBeltLower = normalizedBelt.toLowerCase();
+          if (normalBeltLower === "branca") minMonths = 12;
+          else if (normalBeltLower === "azul") minMonths = 24;
+          else if (normalBeltLower === "roxa") minMonths = 18;
+          else if (normalBeltLower === "marrom") minMonths = 12;
+
+          const nPromotion = new Date(bSince);
+          nPromotion.setMonth(nPromotion.getMonth() + minMonths);
+
+          const rightNow = new Date();
+          const monthsElapsed = (rightNow.getFullYear() - bSince.getFullYear()) * 12 + (rightNow.getMonth() - bSince.getMonth());
+          const ibjjfEligible = monthsElapsed >= minMonths;
+
           const cleanPayload = {
             ...payload,
             belt: normalizedBelt,
             stripes: normalizedStripes,
-            degrees: normalizedDegrees
+            degrees: normalizedStripes, // mantém stripes e degrees em sincronia para segurança
+            beltSince: bSince,
+            nextPromotion: nPromotion,
+            ibjjfEligible: ibjjfEligible,
+            lastPromotionDate: bSince.toISOString().split('T')[0]
           };
 
           result = await prisma.student.upsert({

@@ -30,7 +30,7 @@ const StudentPortal: React.FC = () => {
   const { code } = useParams();
   const navigate = useNavigate();
   const { t, tObj } = useTranslation();
-  const { students, recordAttendance, gallery, payments, addGalleryImage, addReceipt, completeRuleLesson, logs } = useData();
+  const { students, recordAttendance, gallery, payments, addGalleryImage, addReceipt, completeRuleLesson, logs, graduationHistory } = useData();
   const { profile } = useProfile();
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState<'home' | 'training' | 'knowledge' | 'community' | 'wallet' | 'gallery' | 'homeTraining' | 'timer' | 'rules'>('home');
@@ -820,20 +820,61 @@ const StudentPortal: React.FC = () => {
             <div className="bg-white dark:bg-slate-900 rounded-[2.5rem] p-8 border border-slate-200 dark:border-slate-800 shadow-sm space-y-8">
               <div className="flex items-center justify-between">
                 <div>
-                  <h3 className="text-xl font-black text-slate-900 dark:text-white uppercase tracking-tighter leading-none">{t('portal.evolutionTitle')}</h3>
-                  <p className="text-[9px] font-black text-blue-500 uppercase tracking-widest mt-1">Caminho da Graduação</p>
+                  <h3 className="text-xl font-black text-slate-900 dark:text-white uppercase tracking-tighter leading-none">Minha Graduação e Evolução</h3>
+                  <p className="text-[9px] font-black text-blue-500 uppercase tracking-widest mt-1">Status e Carência de Faixa Regulamento Oficial</p>
                 </div>
                 <div className="w-12 h-12 bg-blue-600 rounded-2xl flex items-center justify-center text-white shadow-lg">
                   <GraduationCap size={24} />
                 </div>
               </div>
 
-              {/* Progress Bars */}
-              <div className="space-y-6">
-                <div className="space-y-3">
-                  <div className="flex justify-between items-end">
-                    <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest">{t('students.timeInBelt')}</p>
-                    <p className="text-[10px] font-black dark:text-white leading-none">{graduationAnalysis?.monthsInBelt} / {graduationAnalysis?.minMonths}m</p>
+              {/* Visual Belt Card representing current belt & degrees */}
+              <div className="p-6 rounded-3xl bg-slate-50 dark:bg-slate-800/50 border border-slate-100 dark:border-slate-700 flex flex-col sm:flex-row items-center justify-between gap-6">
+                <div className="flex items-center gap-4">
+                  <div className={`w-16 h-8 rounded-lg shrink-0 border border-black/10 flex items-center justify-center font-bold text-[10px] uppercase shadow-sm ${
+                    (student.belt as string) === 'Branca' || (student.belt as string) === 'White' ? 'bg-white text-slate-800 border-slate-300' :
+                    (student.belt as string) === 'Cinza' || (student.belt as string) === 'Gray' ? 'bg-slate-400 text-white' :
+                    (student.belt as string) === 'Amarela' || (student.belt as string) === 'Yellow' ? 'bg-amber-400 text-slate-900' :
+                    (student.belt as string) === 'Laranja' || (student.belt as string) === 'Orange' ? 'bg-orange-500 text-white' :
+                    (student.belt as string) === 'Verde' || (student.belt as string) === 'Green' ? 'bg-emerald-600 text-white' :
+                    (student.belt as string) === 'Azul' || (student.belt as string) === 'Blue' ? 'bg-[#2563EB] text-white' :
+                    (student.belt as string) === 'Roxa' || (student.belt as string) === 'Purple' ? 'bg-[#7C3AED] text-white' :
+                    (student.belt as string) === 'Marrom' || (student.belt as string) === 'Brown' ? 'bg-[#92400E] text-white' :
+                    'bg-[#111111] text-white border-b-2 border-rose-500'
+                  }`}>
+                    {student.belt}
+                  </div>
+                  <div>
+                    <h4 className="text-sm font-black text-slate-950 dark:text-white uppercase tracking-tight">Faixa Atual: {student.belt}</h4>
+                    <p className="text-[9px] text-slate-400 uppercase font-bold tracking-widest mt-0.5">
+                      Graus na Faixa: {student.stripes || student.degrees || 0}
+                    </p>
+                  </div>
+                </div>
+
+                {/* Degrees indicators */}
+                <div className="flex gap-1">
+                  {[1, 2, 3, 4].map((g) => (
+                    <div 
+                      key={g}
+                      className={`w-7 h-7 rounded border text-[10px] font-black flex items-center justify-center ${
+                        g <= (student.stripes || student.degrees || 0) 
+                          ? 'bg-amber-400 border-amber-400 text-slate-950 shadow-sm' 
+                          : 'bg-white dark:bg-slate-800 border-slate-200 dark:border-slate-700 text-slate-400'
+                      }`}
+                    >
+                      {g}
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              {/* Progress and Countdown */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div className="space-y-2">
+                  <div className="flex justify-between text-[10px] font-bold text-slate-400 uppercase tracking-wider">
+                    <span>Tempo de Carência</span>
+                    <span>{graduationAnalysis?.monthsInBelt} / {graduationAnalysis?.minMonths} m</span>
                   </div>
                   <div className="h-2.5 bg-slate-100 dark:bg-slate-800 rounded-full overflow-hidden">
                     <motion.div 
@@ -842,49 +883,73 @@ const StudentPortal: React.FC = () => {
                       className="h-full bg-blue-600"
                     />
                   </div>
+                  <p className="text-[9px] font-bold text-slate-400 uppercase tracking-widest">
+                    Mínimo exigido pela IBJJF para a {(student.belt as string) === 'Branca' || (student.belt as string) === 'White' ? 'Faixa Azul' : 'próxima faixa'}
+                  </p>
                 </div>
 
-                <div className="space-y-3">
-                  <div className="flex justify-between items-end">
-                    <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest">{t('students.studentReport')}</p>
-                    <p className="text-[10px] font-black dark:text-white leading-none">{student.attendanceCount} / {graduationAnalysis?.attendanceThreshold}</p>
+                <div className="space-y-2">
+                  <div className="flex justify-between text-[10px] font-bold text-slate-400 uppercase tracking-wider">
+                    <span>Frequência tatame</span>
+                    <span>{student.attendanceCount || 0} de {graduationAnalysis?.attendanceThreshold || 30} aulas</span>
                   </div>
                   <div className="h-2.5 bg-slate-100 dark:bg-slate-800 rounded-full overflow-hidden">
                     <motion.div 
                       initial={{ width: 0 }}
-                      animate={{ width: `${graduationAnalysis?.attendanceProgress}%` }}
+                      animate={{ width: `${Math.min(100, ((student.attendanceCount || 0) / (graduationAnalysis?.attendanceThreshold || 30)) * 100)}%` }}
                       className="h-full bg-cyan-500"
                     />
                   </div>
+                  <p className="text-[9px] font-bold text-slate-400 uppercase tracking-widest">
+                    Engajamento técnico sugerido pelo seu Sensei
+                  </p>
                 </div>
               </div>
-              
-              {/* Path Visualization */}
-              <div className="space-y-4 pt-4 border-t border-slate-100 dark:border-slate-800">
-                <div className="flex items-center gap-2">
-                  <Map size={14} className="text-blue-600" />
-                  <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">{t('common.nextBelts')}</p>
-                </div>
-                <div className="flex items-center gap-3 overflow-x-auto scrollbar-hide py-2">
-                  <div className="flex flex-col items-center gap-2 scale-90 opacity-60">
-                    <div className={`w-12 h-1.5 rounded-full ${BELT_COLORS[student.belt]}`} />
-                    <span className="text-[8px] font-bold text-slate-400 uppercase">{t(`belts.${student.belt}`)}</span>
+
+              {/* Elegibilidade Box */}
+              <div className="p-4 rounded-2xl bg-slate-50 dark:bg-slate-800/40 space-y-3">
+                <h5 className="text-[10px] font-black uppercase tracking-widest text-slate-900 dark:text-white flex items-center gap-2">
+                  <ShieldCheck size={14} className="text-emerald-500" /> Auto-Verificação Legal IBJJF
+                </h5>
+                {graduationAnalysis && graduationAnalysis.monthsInBelt >= graduationAnalysis.minMonths ? (
+                  <div className="p-3 bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 rounded-xl text-[10px] font-bold flex items-center gap-2">
+                    <CheckCircle2 size={13} /> Tempo regulamentar atingido! Você está elegível perante as regras da CBJJ/IBJJF.
                   </div>
-                  <ChevronRight size={14} className="text-slate-300" />
-                  <div className="flex flex-col items-center gap-2">
-                    <div className={`w-14 h-2 rounded-full ${BELT_COLORS[graduationAnalysis?.nextBelt || 'White']} shadow-sm ring-2 ring-blue-500/20`} />
-                    <span className="text-[10px] font-black text-blue-600 uppercase tracking-tight">{t(`belts.${graduationAnalysis?.nextBelt}`)}</span>
+                ) : (
+                  <div className="p-3 bg-amber-500/10 text-amber-600 dark:text-amber-400 rounded-xl text-[10px] font-bold flex items-center gap-2">
+                    <AlertTriangle size={13} /> Carência incompleta. Restam aproximadamente {Math.max(0, (graduationAnalysis?.minMonths || 12) - (graduationAnalysis?.monthsInBelt || 0))} meses de estágio nesta faixa.
                   </div>
-                  {graduationAnalysis?.futurePath.slice(1).map((fb, idx) => (
-                    <React.Fragment key={fb}>
-                      <ChevronRight size={14} className="text-slate-200" />
-                      <div className="flex flex-col items-center gap-2 scale-75 opacity-20">
-                        <div className={`w-10 h-1.5 rounded-full ${BELT_COLORS[fb]}`} />
-                        <span className="text-[8px] font-bold text-slate-400 uppercase">{t(`belts.${fb}`)}</span>
-                      </div>
-                    </React.Fragment>
-                  ))}
-                </div>
+                )}
+              </div>
+
+              {/* Linha do tempo de promoções passadas */}
+              <div className="pt-6 border-t border-slate-100 dark:border-slate-800 space-y-4">
+                <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest flex items-center gap-1.5">
+                  <Clock size={12} /> Meu Histórico de Evolução (Ledger)
+                </p>
+                {(() => {
+                  const myPromos = graduationHistory.filter(h => h.studentId === student.id);
+                  if (myPromos.length === 0) {
+                    return (
+                      <p className="text-[9px] font-bold text-slate-400 uppercase tracking-wide italic">Nenhum registro anterior no Ledger digital.</p>
+                    );
+                  }
+                  return (
+                    <div className="space-y-2">
+                      {myPromos.map((p, idx) => (
+                        <div key={idx} className="p-3 bg-slate-50 dark:bg-slate-800/30 rounded-xl flex justify-between items-center text-xs">
+                          <div>
+                            <span className="font-bold text-slate-400 uppercase text-[9px]">Promoção</span>
+                            <p className="font-black dark:text-white text-xs mt-0.5">{p.previousBelt} ➔ {p.newBelt}</p>
+                          </div>
+                          <span className="text-[9px] font-black bg-blue-500/10 text-blue-600 px-2 py-1 rounded uppercase">
+                            {new Date(p.promotedAt).toLocaleDateString('pt-BR')}
+                          </span>
+                        </div>
+                      ))}
+                    </div>
+                  );
+                })()}
               </div>
             </div>
 

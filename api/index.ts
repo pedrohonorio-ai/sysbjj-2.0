@@ -91,6 +91,14 @@ app.delete("/api/admin/delete-user/:id", authenticate as any, async (req: AuthRe
         // 🥋 EXCLUSÃO EM CASCATA PROGRAMÁTICA
         console.log(`🥋 [CASCADE PURGE] Iniciando remoção completa dos dados da conta: ${targetUser.email}`);
         
+        try {
+            const stuList = await prisma.student.findMany({ where: { userId: uidStr }, select: { id: true } });
+            const studentIds = stuList.map(s => s.id);
+            await prisma.graduationHistory.deleteMany({ where: { studentId: { in: studentIds } } });
+        } catch (gradErr) {
+            console.error("🥋 Falha ao remover históricos de graduação:", gradErr);
+        }
+
         await prisma.student.deleteMany({ where: { userId: uidStr } });
         await prisma.payment.deleteMany({ where: { userId: uidStr } });
         await prisma.classSchedule.deleteMany({ where: { userId: uidStr } });

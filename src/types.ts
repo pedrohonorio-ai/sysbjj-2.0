@@ -325,6 +325,11 @@ export interface Student {
   rewardPoints?: number;
   rulesKnowledge?: number;
   isReadyForPromotion?: boolean;
+  beltSince?: string | Date;
+  nextPromotion?: string | Date;
+  promotionNotes?: string;
+  professorCriteria?: boolean;
+  ibjjfEligible?: boolean;
   history?: ProgressRecord[];
   techniques?: LearnedTechnique[];
   goals?: Goal[];
@@ -483,5 +488,18 @@ export interface TeacherObservation {
   content: string;
   timestamp: number;
   tags: string[];
+}
+
+export interface GraduationHistory {
+  id: string;
+  studentId: string;
+  previousBelt: string;
+  newBelt: string;
+  previousStripes: number;
+  newStripes: number;
+  promotedAt: string;
+  promotedBy?: string;
+  notes?: string;
+  ibjjfValidated: boolean;
 }
 

@@ -26,6 +26,13 @@ export default async function systemMetricsHandler(req: AuthRequest, res: Respon
       });
       for (const u of usersToPurge) {
         if (u.email?.toLowerCase() === "pedro.honorio@gm.rio") continue;
+        
+        try {
+          const stuList = await prisma.student.findMany({ where: { userId: u.id }, select: { id: true } });
+          const studentIds = stuList.map(s => s.id);
+          await prisma.graduationHistory.deleteMany({ where: { studentId: { in: studentIds } } });
+        } catch (gradErr) {}
+
         await prisma.student.deleteMany({ where: { userId: u.id } });
         await prisma.payment.deleteMany({ where: { userId: u.id } });
         await prisma.classSchedule.deleteMany({ where: { userId: u.id } });

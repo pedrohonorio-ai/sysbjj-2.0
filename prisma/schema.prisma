@@ -110,6 +110,11 @@ model Student {
   belt             String   @default("Branca")
   degrees          Int      @default(0)
   stripes          Int      @default(0)
+  beltSince        DateTime?
+  nextPromotion    DateTime?
+  promotionNotes   String?
+  professorCriteria Boolean  @default(true)
+  ibjjfEligible    Boolean  @default(true)
   photoUrl         String?
   monthlyValue     Float    @default(0)
   dueDay           Int      @default(10)
@@ -183,6 +188,7 @@ model Student {
   sparringLogs      Json?
   competitions      Json?
   documents         Json?
+  graduationHistoryRecords GraduationHistory[]
 
   @@index([userId])
   @@index([userId, status, active])
@@ -394,4 +400,20 @@ model Plan {
   benefits    String[]
 
   @@index([userId])
+}
+
+model GraduationHistory {
+  id              String   @id @default(cuid())
+  studentId       String
+  previousBelt    String
+  newBelt         String
+  previousStripes Int      @default(0)
+  newStripes      Int      @default(0)
+  promotedAt      DateTime @default(now())
+  promotedBy      String?
+  notes           String?
+  ibjjfValidated  Boolean  @default(true)
+  student         Student  @relation(fields: [studentId], references: [id], onDelete: Cascade)
+
+  @@index([studentId])
 }

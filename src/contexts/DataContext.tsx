@@ -1,6 +1,6 @@
 
 import React, { createContext, useContext, useState, useEffect, ReactNode, useCallback } from 'react';
-import { Student, Payment, ClassSchedule, GalleryImage, ExtraRevenue, KimonoOrder, LessonPlan, LibraryTechnique, TechniqueCategory, BeltColor, Product, Plan, PaymentReceipt, TransactionLedger, SystemLog, AttendanceRecord, ExtraRevenueCategory, GraduationCriterion } from '../types.js';
+import { Student, Payment, ClassSchedule, GalleryImage, ExtraRevenue, KimonoOrder, LessonPlan, LibraryTechnique, TechniqueCategory, BeltColor, Product, Plan, PaymentReceipt, TransactionLedger, SystemLog, AttendanceRecord, ExtraRevenueCategory, GraduationCriterion, GraduationHistory } from '../types.js';
 import CryptoJS from 'crypto-js';
 import { IBJJF_LESSONS } from '../constants/rulesData.js';
 import { useAuth } from '../context/AuthContext.js';
@@ -110,6 +110,7 @@ interface DataContextType {
   plans: Plan[];
   receipts: PaymentReceipt[];
   ledger: TransactionLedger[];
+  graduationHistory: GraduationHistory[];
   professorRules: GraduationCriterion[];
   setProfessorRules: React.Dispatch<React.SetStateAction<GraduationCriterion[]>>;
   logs: SystemLog[];
@@ -250,6 +251,7 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   const [plans, setPlans] = useState<Plan[]>(() => loadSafely('oss_plans', DEFAULT_PLANS));
   const [receipts, setReceipts] = useState<PaymentReceipt[]>(() => loadSafely('oss_receipts', []));
   const [ledger, setLedger] = useState<TransactionLedger[]>(() => loadSafely('oss_ledger', []));
+  const [graduationHistory, setGraduationHistory] = useState<GraduationHistory[]>(() => loadSafely('oss_graduation_history', []));
   const [professorRules, setProfessorRules] = useState<GraduationCriterion[]>(() => loadSafely('oss_professor_rules', [
     { id: 'rule-1', name: 'Presença Mensal (>12)', weight: 0.3 },
     { id: 'rule-2', name: 'Domínio Técnico (Exame)', weight: 0.4 },
@@ -286,10 +288,15 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         const collections = [
           'students', 'payments', 'schedules', 'logs', 'ledger', 
           'receipts', 'extra_revenue', 'lesson_plans', 'techniques', 
-          'products', 'plans', 'orders'
+          'products', 'plans', 'orders', 'graduationHistory'
         ];
         
         const batchResults = await api.fetchBatchData(collections, user.id);
+
+        if (batchResults.graduationHistory) {
+          setGraduationHistory(batchResults.graduationHistory);
+          saveSafely('oss_graduation_history', batchResults.graduationHistory);
+        }
 
         if (batchResults.students) {
           const normalized = batchResults.students.map((s: any) => ({
@@ -795,10 +802,29 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     if (!student) return;
 
     const oldBelt = student.belt;
+    const oldStripes = student.stripes || 0;
+
+    // 🥋 AO GRADUAR: reseta graus para 0 e atualiza datas de carência/estágio
+    const nowDt = new Date();
+    let minMonths = 12;
+    const normalBeltLower = newBelt.toLowerCase();
+    if (normalBeltLower === "branca") minMonths = 12;
+    else if (normalBeltLower === "azul") minMonths = 24;
+    else if (normalBeltLower === "roxa") minMonths = 18;
+    else if (normalBeltLower === "marrom") minMonths = 12;
+
+    const nPromotion = new Date(nowDt);
+    nPromotion.setMonth(nPromotion.getMonth() + minMonths);
+
     const updates = { 
       belt: newBelt as any, 
+      stripes: 0,
+      degrees: 0,
       isReadyForPromotion: false,
-      lastPromotionDate: new Date().toISOString().split('T')[0]
+      lastPromotionDate: nowDt.toISOString().split('T')[0],
+      beltSince: nowDt,
+      nextPromotion: nPromotion,
+      ibjjfEligible: false
     };
 
     // Optimistic Update
@@ -806,6 +832,27 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
 
     if (user?.id) {
        api.saveData('students', user.id, { ...updates, id: studentId }).catch(err => handleApiError(err, OperationType.UPDATE, `students/${studentId}`, setNotifications, setDbStatus));
+       
+       // 🥋 SALVA HISTÓRICO DE GRADUAÇÃO NO BANCO DE DADOS
+       const newHistId = `GRD-${Date.now()}`;
+       const newHist: GraduationHistory = {
+         id: newHistId,
+         studentId: studentId,
+         previousBelt: oldBelt,
+         newBelt: newBelt,
+         previousStripes: oldStripes,
+         newStripes: 0,
+         promotedAt: nowDt.toISOString(),
+         promotedBy: user.email || 'Sensei',
+         notes: student.graduationNotes || 'Graduado com sucesso pelo Sensei.',
+         ibjjfValidated: true
+       };
+
+       api.saveData('graduationHistory', user.id, newHist)
+         .then(() => {
+           setGraduationHistory(prev => [newHist, ...prev]);
+         })
+         .catch(err => console.error("🥋 Falha ao salvar GraduationHistory:", err));
     }
 
     logAction('Graduação Aprovada', `Aluno ${student.name} graduado de ${oldBelt} para ${newBelt}`, 'Security');
@@ -826,7 +873,7 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       type: 'success',
       timestamp: Date.now()
     }, ...prev]);
-  }, [students, logAction, addLedgerEntry]);
+  }, [students, user, logAction, addLedgerEntry]);
 
   const addGalleryImage = (image: Omit<GalleryImage, 'id'>) => {
     const id = `IMG-${Date.now()}`;
@@ -1071,7 +1118,7 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
 
   return (
     <DataContext.Provider value={{ 
-      students, payments, schedules, gallery, extraRevenue, orders, lessonPlans, techniques, products, plans, receipts, ledger, professorRules, setProfessorRules, logs, attendance, presence, notifications, dbStatus, setDemoMode,
+      students, payments, schedules, gallery, extraRevenue, orders, lessonPlans, techniques, products, plans, receipts, ledger, graduationHistory, professorRules, setProfessorRules, logs, attendance, presence, notifications, dbStatus, setDemoMode,
       logAction, verifyAuditIntegrity, addStudent, updateStudent, deleteStudent, addPayment, addReceipt, approveReceipt, rejectReceipt, addLedgerEntry, deleteLedgerEntry, clearNotification, recordAttendance, completeRuleLesson,
       addSchedule, updateSchedule, deleteSchedule,
       addGalleryImage,

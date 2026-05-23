@@ -41,6 +41,22 @@ export default async function batchHandler(req: AuthRequest, res: Response) {
           case 'presence': data = await prisma.presence.findMany({ where: { userId: uid } }); break;
           case 'profile': data = await prisma.professorProfile.findUnique({ where: { userId: uid } }); break;
           case 'plans': data = await prisma.plan.findMany({ where: { userId: uid } }); break;
+          case 'graduationHistory':
+            data = await prisma.graduationHistory.findMany({
+              where: {
+                student: {
+                  userId: uid
+                }
+              },
+              include: {
+                student: true
+              },
+              take: 50,
+              orderBy: {
+                promotedAt: "desc"
+              }
+            });
+            break;
           default: 
             if (anyPrisma[collection]) {
               data = await anyPrisma[collection].findMany({ where: { userId: uid }, take: 50 });
