@@ -43,7 +43,7 @@ i18n
     returnNull: false,
     returnEmptyString: false,
 
-    saveMissing: false,
+    saveMissing: true,
 
     interpolation: {
       escapeValue: false,
@@ -54,35 +54,26 @@ i18n
     },
 
     parseMissingKeyHandler: (key: string) => {
-      const fallbackMap: Record<string, string> = {
-        "dashboard.recentActivities": "Atividades Recentes",
-        "dashboard.syncStatus": "Status de Sincronização",
-        "dashboard.totalStudents": "Total de Alunos",
-        "dashboard.financial": "Financeiro",
-        "dashboard.attendance": "Presença",
-        "settings.language": "Idioma",
-        "settings.theme": "Tema",
-        "subscription.currentPlan": "Plano Atual",
-        "subscription.upgrade": "Atualizar Plano",
-        "dashboard.monthlyRevenue": "Receita Mensal",
-        "dashboard.activeStudents": "Alunos Ativos",
-        "dashboard.attendanceRate": "Frequência Geral",
-        "dashboard.activeRate": "Taxa de Atividade",
-        "dashboard.overdueAlerts": "Alertas de Atraso",
-        "common.currencySymbol": "R$"
+      const formatFriendly = (k: string) => {
+        return k
+          .split(".")
+          .pop()
+          ?.replace(/([A-Z])/g, " $1")
+          .replace(/_/g, " ")
+          .replace(/^./, (s) => s.toUpperCase()) || k;
       };
 
-      if (fallbackMap[key]) {
-        return fallbackMap[key];
-      }
+      const map: Record<string, string> = {
+        "dashboard.recentActivities": "Atividades Recentes",
+        "dashboard.syncStatus": "Status de Sincronização",
+        "subscription.currentPlan": "Plano Atual",
+        "settings.security": "Segurança",
+        "settings.language": "Idioma",
+        "belt": "Faixa",
+        "stripes": "Graus",
+      };
 
-      const parts = key.split('.');
-      const lastPart = parts[parts.length - 1];
-      const spaced = lastPart
-        .replace(/([A-Z])/g, ' $1')
-        .replace(/[_-]/g, ' ')
-        .trim();
-      return spaced.charAt(0).toUpperCase() + spaced.slice(1);
+      return map[key] || formatFriendly(key);
     },
 
     detection: {

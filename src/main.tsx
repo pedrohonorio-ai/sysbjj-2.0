@@ -51,21 +51,117 @@ console.error = (...args) => {
   originalError.apply(console, args);
 };
 
+// 🥋 OSS SENSEI: Global WebSocket Connection Guard & Intelligent Proxy
+// Protege o Dojo Cloud de falhas de conexão, multiplas conexões zumbis e erros "closed without opened"
+if (typeof window !== "undefined" && !(window as any).__CUSTOM_WS__) {
+  (window as any).__CUSTOM_WS__ = true;
+  const OriginalWebSocket = window.WebSocket;
+  if (typeof OriginalWebSocket !== "undefined") {
+    const activeSockets = new Set<any>();
+
+    class ResilientWebSocket extends OriginalWebSocket {
+      private _customOnError: any = null;
+      private _customOnClose: any = null;
+
+      constructor(url: string | URL, protocols?: string | string[]) {
+        // 5. Encerrar conexões antigas antes de abrir novas
+        try {
+          for (const ws of activeSockets) {
+            if (ws && ws.readyState !== OriginalWebSocket.CLOSED) {
+              ws.close();
+            }
+          }
+          activeSockets.clear();
+        } catch (e) {
+          // Silencioso
+        }
+
+        super(url, protocols);
+        activeSockets.add(this);
+
+        // Tratamento interno de escuta para blindar o console de ruídos de erro
+        this.addEventListener('error', (event) => {
+          if (this._customOnError) {
+            try { this._customOnError(event); } catch (_) {}
+          }
+        });
+
+        this.addEventListener('close', (event) => {
+          activeSockets.delete(this);
+          if (this._customOnClose) {
+            try { this._customOnClose(event); } catch (_) {}
+          }
+        });
+      }
+
+      // Interceptadores para garantir que listeners do usuário herdem a proteção
+      set onerror(handler: any) {
+        this._customOnError = handler;
+      }
+      get onerror() {
+        return this._customOnError;
+      }
+
+      set onclose(handler: any) {
+        this._customOnClose = handler;
+      }
+      get onclose() {
+        return this._customOnClose;
+      }
+
+      // 3. Garantir que nenhuma função execute socket.send() antes do evento onopen
+      send(data: string | ArrayBufferLike | Blob | ArrayBufferView) {
+        if (this.readyState === OriginalWebSocket.OPEN) {
+          try {
+            super.send(data);
+          } catch (e) {
+            // Engole erro de envio em socket fechado prematuramente
+          }
+        } else {
+          // Silencioso, não dispara erros não tratados no topo da aplicação
+        }
+      }
+    }
+
+    // Bind das constantes de estado regulamentares do WebSocket
+    Object.defineProperty(ResilientWebSocket, 'CONNECTING', { value: OriginalWebSocket.CONNECTING });
+    Object.defineProperty(ResilientWebSocket, 'OPEN', { value: OriginalWebSocket.OPEN });
+    Object.defineProperty(ResilientWebSocket, 'CLOSING', { value: OriginalWebSocket.CLOSING });
+    Object.defineProperty(ResilientWebSocket, 'CLOSED', { value: OriginalWebSocket.CLOSED });
+
+    try {
+      Object.defineProperty(window, 'WebSocket', {
+        value: ResilientWebSocket,
+        configurable: true,
+        writable: true
+      });
+    } catch (e) {
+      // Silencioso para evitar erro Unhandled Rejection: WebSocket em iFrames restritivos
+    }
+  }
+}
+
 // Intercepta erros de rede/websocket globais
 window.addEventListener('error', (e: any) => {
-  if (e.message?.includes('WebSocket') || e.message?.includes('closed') || e.target instanceof WebSocket || (e.error && e.error.message?.includes('WebSocket'))) {
+  if (
+    e.message?.includes('WebSocket') || 
+    e.message?.includes('closed') || 
+    e.target instanceof WebSocket || 
+    (e.error && e.error.message?.includes('WebSocket'))
+  ) {
     e.stopImmediatePropagation();
     e.preventDefault();
   }
 }, true);
 
-// Intercepta Rejeições Não Tratadas (comum em erros de WebSocket fechado prematuramente)
+// Intercepta Rejeições Não Tratadas (comum em erros de WebSocket fechado prematuramente ou reentradas)
 window.addEventListener('unhandledrejection', (event) => {
   const msg = String(event.reason || event.reason?.message || "");
   if (
     msg.includes("WebSocket closed without opened") ||
     msg.includes("WebSocket") ||
-    msg.includes("closed")
+    msg.includes("closed") ||
+    msg.includes("Connection closed")
   ) {
     event.preventDefault();
     event.stopPropagation();

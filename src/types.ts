@@ -337,6 +337,10 @@ export interface Student {
   currentStreak?: number;
   portalAccessCode?: string;
   graduationNotes?: string;
+  blackBeltDate?: string | Date;
+  blackBeltDegree?: number;
+  lastDegreeDate?: string | Date;
+  graduationEligibleDate?: string | Date;
   pros?: string;
   cons?: string;
   photoUrl?: string;
@@ -377,7 +381,7 @@ export interface Student {
   classId?: string; // Default class/turma
   positionVideos?: PositionVideo[];
   milestones?: Milestone[];
-  examRequirements?: Record<string, boolean>;
+  examRequirements?: Record<string, any>;
   lastAttendanceDate?: string;
   joinedAt?: string;
   graduationHistory?: {

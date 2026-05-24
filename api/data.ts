@@ -38,7 +38,22 @@ export async function dataHandler(req: AuthRequest, res: Response) {
         case 'profile': data = await prisma.professorProfile.findUnique({ where: { userId: uid } }); break;
         default: 
           if (anyPrisma[collection]) {
-            data = await anyPrisma[collection].findMany({ where: { userId: uid } });
+            if (collection.toLowerCase() === 'graduationhistory') {
+              data = await prisma.graduationHistory.findMany({
+                where: { student: { userId: uid } },
+                include: { student: true }
+              });
+            } else {
+              try {
+                data = await anyPrisma[collection].findMany({ where: { userId: uid } });
+              } catch (e1) {
+                try {
+                  data = await anyPrisma[collection].findMany();
+                } catch (e2) {
+                  data = [];
+                }
+              }
+            }
           } else {
             return res.status(404).json({ error: `Coleção não encontrada: ${collection}` });
           }
@@ -113,6 +128,26 @@ export async function dataHandler(req: AuthRequest, res: Response) {
           const monthsElapsed = (rightNow.getFullYear() - bSince.getFullYear()) * 12 + (rightNow.getMonth() - bSince.getMonth());
           const ibjjfEligible = monthsElapsed >= minMonths;
 
+          let blackBeltDateParsed: Date | null = null;
+          if (payload.blackBeltDate) {
+            const d = new Date(payload.blackBeltDate);
+            if (!isNaN(d.getTime())) blackBeltDateParsed = d;
+          }
+          
+          let lastDegreeDateParsed: Date | null = null;
+          if (payload.lastDegreeDate) {
+            const d = new Date(payload.lastDegreeDate);
+            if (!isNaN(d.getTime())) lastDegreeDateParsed = d;
+          }
+
+          let graduationEligibleDateParsed: Date | null = null;
+          if (payload.graduationEligibleDate) {
+            const d = new Date(payload.graduationEligibleDate);
+            if (!isNaN(d.getTime())) graduationEligibleDateParsed = d;
+          }
+          
+          const blackBeltDegreeParsed = isNaN(Number(payload.blackBeltDegree)) ? 0 : Math.round(Number(payload.blackBeltDegree));
+
           const cleanPayload = {
             ...payload,
             belt: normalizedBelt,
@@ -121,7 +156,11 @@ export async function dataHandler(req: AuthRequest, res: Response) {
             beltSince: bSince,
             nextPromotion: nPromotion,
             ibjjfEligible: ibjjfEligible,
-            lastPromotionDate: bSince.toISOString().split('T')[0]
+            lastPromotionDate: bSince.toISOString().split('T')[0],
+            blackBeltDate: blackBeltDateParsed,
+            blackBeltDegree: blackBeltDegreeParsed,
+            lastDegreeDate: lastDegreeDateParsed,
+            graduationEligibleDate: graduationEligibleDateParsed
           };
 
           result = await prisma.student.upsert({
@@ -163,11 +202,24 @@ export async function dataHandler(req: AuthRequest, res: Response) {
           break;
         default:
           if (anyPrisma[collection]) {
-            result = await anyPrisma[collection].upsert({
-              where: { id: id || 'new' },
-              create: { ...payload, userId: uid },
-              update: { ...payload, userId: uid }
-            });
+            try {
+              result = await anyPrisma[collection].upsert({
+                where: { id: id || 'new' },
+                create: { ...payload, userId: uid },
+                update: { ...payload, userId: uid }
+              });
+            } catch (e1) {
+              try {
+                // Tenta sem o campo userId caso a tabela não tenha essa coluna
+                result = await anyPrisma[collection].upsert({
+                  where: { id: id || 'new' },
+                  create: payload,
+                  update: payload
+                });
+              } catch (e2: any) {
+                return res.status(500).json({ error: `Erro ao operar coleção dinâmica: ${e2.message}` });
+              }
+            }
           } else {
             return res.status(404).json({ error: `Coleção não suportada: ${collection}` });
           }

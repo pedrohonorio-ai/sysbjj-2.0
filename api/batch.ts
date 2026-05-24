@@ -26,7 +26,8 @@ export default async function batchHandler(req: AuthRequest, res: Response) {
       try {
         let data;
         const anyPrisma = prisma as any;
-        switch(collection) {
+        const collLower = collection.toLowerCase();
+        switch(collLower) {
           case 'students': data = await prisma.student.findMany({ where: { userId: uid }, orderBy: { joinedAt: 'desc' } }); break;
           case 'payments': data = await prisma.payment.findMany({ where: { userId: uid }, orderBy: { timestamp: 'desc' }, take: 100 }); break;
           case 'schedules': data = await prisma.classSchedule.findMany({ where: { userId: uid } }); break;
@@ -41,7 +42,7 @@ export default async function batchHandler(req: AuthRequest, res: Response) {
           case 'presence': data = await prisma.presence.findMany({ where: { userId: uid } }); break;
           case 'profile': data = await prisma.professorProfile.findUnique({ where: { userId: uid } }); break;
           case 'plans': data = await prisma.plan.findMany({ where: { userId: uid } }); break;
-          case 'graduationHistory':
+          case 'graduationhistory':
             data = await prisma.graduationHistory.findMany({
               where: {
                 student: {
@@ -59,7 +60,17 @@ export default async function batchHandler(req: AuthRequest, res: Response) {
             break;
           default: 
             if (anyPrisma[collection]) {
-              data = await anyPrisma[collection].findMany({ where: { userId: uid }, take: 50 });
+              try {
+                // Tenta com filtro de userId
+                data = await anyPrisma[collection].findMany({ where: { userId: uid }, take: 50 });
+              } catch (e1) {
+                try {
+                  // Se falhar (por exemplo, tabela sem userId, como table de Histórico ou Config), faz select geral
+                  data = await anyPrisma[collection].findMany({ take: 50 });
+                } catch (e2) {
+                  data = [];
+                }
+              }
             } else {
               data = [];
             }

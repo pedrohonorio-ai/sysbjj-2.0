@@ -135,6 +135,10 @@ model Student {
   planId           String?
   portalAccessCode String?
   graduationNotes  String?
+  blackBeltDate    DateTime?
+  blackBeltDegree  Int      @default(0)
+  lastDegreeDate   DateTime?
+  graduationEligibleDate DateTime?
   pros             String?
   cons             String?
   emergencyContact String?
