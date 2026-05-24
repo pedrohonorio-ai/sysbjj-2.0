@@ -14,6 +14,16 @@ export default defineConfig(({ command, mode }) => {
         outDir: 'dist',
         assetsDir: 'assets',
         emptyOutDir: true,
+        chunkSizeWarningLimit: 1200,
+        rollupOptions: {
+          output: {
+            manualChunks: {
+              react: ['react', 'react-dom'],
+              charts: ['recharts'],
+              ui: ['lucide-react']
+            }
+          }
+        }
       }
     };
 });

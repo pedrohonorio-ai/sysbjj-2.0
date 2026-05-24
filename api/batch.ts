@@ -27,21 +27,76 @@ export default async function batchHandler(req: AuthRequest, res: Response) {
         let data;
         const anyPrisma = prisma as any;
         const collLower = collection.toLowerCase();
+        
+        // Define limits based on standard enterprise performance parameters
+        const defaultStudentsTake = 200;
+        const defaultPaymentsTake = 100;
+        const defaultLogsTake = 50;
+        const defaultLedgerTake = 50;
+
         switch(collLower) {
-          case 'students': data = await prisma.student.findMany({ where: { userId: uid }, orderBy: { joinedAt: 'desc' } }); break;
-          case 'payments': data = await prisma.payment.findMany({ where: { userId: uid }, orderBy: { timestamp: 'desc' }, take: 100 }); break;
-          case 'schedules': data = await prisma.classSchedule.findMany({ where: { userId: uid } }); break;
-          case 'logs': data = await prisma.systemLog.findMany({ where: { userId: uid }, orderBy: { timestamp: 'desc' }, take: 100 }); break;
-          case 'ledger': data = await prisma.transactionLedger.findMany({ where: { userId: uid }, orderBy: { timestamp: 'desc' }, take: 100 }); break;
-          case 'receipts': data = await prisma.paymentReceipt.findMany({ where: { userId: uid }, orderBy: { timestamp: 'desc' } }); break;
-          case 'extra_revenue': data = await prisma.extraRevenue.findMany({ where: { userId: uid } }); break;
-          case 'lesson_plans': data = await prisma.lessonPlan.findMany({ where: { userId: uid } }); break;
-          case 'techniques': data = await prisma.libraryTechnique.findMany({ where: { userId: uid } }); break;
-          case 'products': data = await prisma.product.findMany({ where: { userId: uid } }); break;
-          case 'orders': data = await prisma.kimonoOrder.findMany({ where: { userId: uid } }); break;
-          case 'presence': data = await prisma.presence.findMany({ where: { userId: uid } }); break;
-          case 'profile': data = await prisma.professorProfile.findUnique({ where: { userId: uid } }); break;
-          case 'plans': data = await prisma.plan.findMany({ where: { userId: uid } }); break;
+          case 'students': 
+            data = await prisma.student.findMany({ 
+              where: { userId: uid }, 
+              orderBy: { joinedAt: 'desc' },
+              take: defaultStudentsTake
+            }); 
+            break;
+          case 'payments': 
+            data = await prisma.payment.findMany({ 
+              where: { userId: uid }, 
+              orderBy: { timestamp: 'desc' }, 
+              take: defaultPaymentsTake
+            }); 
+            break;
+          case 'schedules': 
+            data = await prisma.classSchedule.findMany({ where: { userId: uid } }); 
+            break;
+          case 'logs': 
+            data = await prisma.systemLog.findMany({ 
+              where: { userId: uid }, 
+              orderBy: { timestamp: 'desc' }, 
+              take: defaultLogsTake
+            }); 
+            break;
+          case 'ledger': 
+            data = await prisma.transactionLedger.findMany({ 
+              where: { userId: uid }, 
+              orderBy: { timestamp: 'desc' }, 
+              take: defaultLedgerTake
+            }); 
+            break;
+          case 'receipts': 
+            data = await prisma.paymentReceipt.findMany({ 
+              where: { userId: uid }, 
+              orderBy: { timestamp: 'desc' },
+              take: 50
+            }); 
+            break;
+          case 'extra_revenue': 
+            data = await prisma.extraRevenue.findMany({ where: { userId: uid }, take: 50 }); 
+            break;
+          case 'lesson_plans': 
+            data = await prisma.lessonPlan.findMany({ where: { userId: uid }, take: 50 }); 
+            break;
+          case 'techniques': 
+            data = await prisma.libraryTechnique.findMany({ where: { userId: uid }, take: 100 }); 
+            break;
+          case 'products': 
+            data = await prisma.product.findMany({ where: { userId: uid }, take: 50 }); 
+            break;
+          case 'orders': 
+            data = await prisma.kimonoOrder.findMany({ where: { userId: uid }, take: 50 }); 
+            break;
+          case 'presence': 
+            data = await prisma.presence.findMany({ where: { userId: uid }, take: 50 }); 
+            break;
+          case 'profile': 
+            data = await prisma.professorProfile.findUnique({ where: { userId: uid } }); 
+            break;
+          case 'plans': 
+            data = await prisma.plan.findMany({ where: { userId: uid } }); 
+            break;
           case 'graduationhistory':
             data = await prisma.graduationHistory.findMany({
               where: {
@@ -62,11 +117,11 @@ export default async function batchHandler(req: AuthRequest, res: Response) {
             if (anyPrisma[collection]) {
               try {
                 // Tenta com filtro de userId
-                data = await anyPrisma[collection].findMany({ where: { userId: uid }, take: 50 });
+                data = await anyPrisma[collection].findMany({ where: { userId: uid }, take: 30 });
               } catch (e1) {
                 try {
                   // Se falhar (por exemplo, tabela sem userId, como table de Histórico ou Config), faz select geral
-                  data = await anyPrisma[collection].findMany({ take: 50 });
+                  data = await anyPrisma[collection].findMany({ take: 30 });
                 } catch (e2) {
                   data = [];
                 }
