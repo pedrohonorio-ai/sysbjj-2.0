@@ -111,7 +111,7 @@ const Dashboard: React.FC = () => {
     { title: safeT('dashboard.totalStudents', 'Total de Alunos'), value: students.length, icon: <Users size={24} />, color: 'bg-blue-500', trend: '+12%', isUp: true, link: '/students' },
     { title: safeT('dashboard.activeStudents', 'Alunos Ativos'), value: activeStudents, icon: <Activity size={24} />, color: 'bg-emerald-500', trend: '+5%', isUp: true, link: '/students' },
     { title: safeT('common.timer', 'Cronômetro de Luta'), value: 'PRO TIMER', icon: <Timer size={24} />, color: 'bg-rose-500', trend: 'IBJJF', isUp: true, link: '/timer' },
-    { title: safeT('dashboard.monthlyRevenue', 'Faturamento Mensal'), value: `R$ ${Number(totalRevenue || 0).toLocaleString('pt-BR')}`, icon: <TrendingUp size={24} />, color: 'bg-purple-500', trend: '+18%', isUp: true, link: '/finances' },
+    { title: safeT('dashboard.monthlyRevenue', 'Faturamento Mensal'), value: `R$ ${Number(totalRevenue || 0).toLocaleString('pt-BR')}`, icon: <TrendingUp size={24} />, color: 'bg-purple-500', trend: '+18%', isUp: true, link: '/business?tab=finances' },
   ];
 
   const exportToPDF = () => {
@@ -357,7 +357,7 @@ const Dashboard: React.FC = () => {
                 {safeSubscription.nextBillingDate ? new Date(safeSubscription.nextBillingDate).toLocaleDateString('pt-BR') : '--/--/----'}
               </div>
               <Link
-                to="/plans"
+                to="/business?tab=saas-plans"
                 className="inline-block mt-2 px-4 py-1.5 bg-white text-slate-950 hover:bg-slate-200 transition-all text-[9px] font-black uppercase tracking-widest rounded-xl"
               >
                 Gerenciar Plano

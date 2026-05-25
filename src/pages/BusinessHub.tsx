@@ -80,8 +80,13 @@ const BusinessHub: React.FC<BusinessHubProps> = ({ defaultTab }) => {
     deleteLedgerEntry
   } = useData();
 
-  // Detect initial tab based on prop path, or router. Default to 'shop'
+  // Detect initial tab based on search param, prop path, or router. Default to 'shop'
   const getInitialTab = (): 'shop' | 'orders' | 'plans' | 'finances' | 'saas-plans' | 'reports' => {
+    const params = new URLSearchParams(location.search);
+    const tabParam = params.get('tab');
+    if (tabParam && ['shop', 'orders', 'plans', 'finances', 'saas-plans', 'reports'].includes(tabParam)) {
+      return tabParam as any;
+    }
     if (defaultTab) return defaultTab;
     if (location.pathname === '/finances') return 'finances';
     if (location.pathname === '/plans' || location.pathname === '/billing') return 'saas-plans';
@@ -125,7 +130,7 @@ const BusinessHub: React.FC<BusinessHubProps> = ({ defaultTab }) => {
   // Synced tab changer
   useEffect(() => {
     setActiveTab(getInitialTab());
-  }, [location.pathname, defaultTab]);
+  }, [location.pathname, location.search, defaultTab]);
 
   useEffect(() => {
     if (activeTab === 'reports' && user?.id) {

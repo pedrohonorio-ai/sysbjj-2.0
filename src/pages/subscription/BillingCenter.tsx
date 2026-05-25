@@ -419,7 +419,7 @@ export const BillingCenter: React.FC = () => {
         </div>
 
         <button
-          onClick={() => navigate('/plans')}
+          onClick={() => navigate('/business?tab=saas-plans')}
           className="px-5 py-3 bg-slate-800 hover:bg-slate-700 text-white rounded-xl text-[10px] font-black uppercase tracking-widest transition-all border border-slate-700/50 flex items-center gap-2"
         >
           <ArrowLeft size={12} /> Painel de Planos

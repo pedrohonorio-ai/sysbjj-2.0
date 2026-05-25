@@ -18,8 +18,8 @@ const MANDATORY_DICTIONARY: Record<string, string> = {
   "performance": "Performance e Evolução",
   "dashboard.analytics": "Análises",
   
-  "common.business": "Hub de Negócios",
-  "business": "Hub de Negócios",
+  "common.business": "Comercial & Financeiro",
+  "business": "Comercial & Financeiro",
   
   "common.attendance": "Presença & Chamada",
   "attendance": "Presença & Chamada",

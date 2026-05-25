@@ -49,7 +49,7 @@ const Sidebar = ({ isOpen, toggle, onLogout, isMasterAdmin }: { isOpen: boolean,
     return true;
   });
 
-  const coreItems = filteredItems.filter(item => ['dashboard', 'students', 'teaching-hub', 'performance', 'business', 'attendance', 'finances', 'timer', 'plans'].includes(item.id));
+  const coreItems = filteredItems.filter(item => ['dashboard', 'students', 'teaching-hub', 'performance', 'business', 'attendance', 'timer'].includes(item.id));
   const footerItems = filteredItems.filter(item => ['promotions', 'ibjjf-rules', 'history'].includes(item.id));
 
   const masterLinksList = [
@@ -642,12 +642,12 @@ const App: React.FC = () => {
                     <Route path="/ibjjf-rules" element={<IBJJFRules />} />
                     <Route path="/business" element={<BusinessHub />} />
                     <Route path="/attendance" element={<AttendancePage />} />
-                    <Route path="/finances" element={<Finances />} />
+                    <Route path="/finances" element={<Navigate to="/business?tab=finances" replace />} />
                     <Route path="/history" element={<AttendanceHistory />} />
                     <Route path="/promotions" element={<BeltSystem />} />
                     <Route path="/language" element={<LanguageSelection />} />
                     <Route path="/timer" element={<FightTimer />} />
-                    <Route path="/plans" element={<SubscriptionManager />} />
+                    <Route path="/plans" element={<Navigate to="/business?tab=saas-plans" replace />} />
                     <Route path="/billing" element={<BillingCenter />} />
                     <Route path="/saas-admin" element={isMasterAdmin ? <SaaSControlCenter /> : <Navigate to="/dashboard" />} />
                     
