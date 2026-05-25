@@ -87,7 +87,7 @@ const StudentPortal: React.FC = () => {
     });
 
     setWorkoutCounts({});
-    alert(t('portal.workoutSaved'));
+    alert(t('portal.workoutSaved') || 'Treino em Casa registrado com sucesso! Você ganhou 10 pontos de mérito.');
   };
 
   const homeWorkouts = useMemo(() => [

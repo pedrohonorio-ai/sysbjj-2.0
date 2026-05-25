@@ -39,6 +39,13 @@
   --bg-overlay: 2, 6, 23;
 }
 
+html, body, #root {
+  width: 100%;
+  min-height: 100%;
+  overflow-x: hidden;
+  overflow-y: auto;
+}
+
 body {
   font-family: 'Inter', sans-serif;
   background-color: #F8FAFC;

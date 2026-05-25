@@ -15,6 +15,7 @@ import {
   Baby,
   Medal,
   Trophy,
+  Award,
   Brain,
   Trash2,
   Zap,
@@ -40,7 +41,6 @@ import {
   LayoutList,
   UserCheck
 } from 'lucide-react';
-import Webcam from 'react-webcam';
 import { Student, StudentStatus, BeltColor, KidsBeltColor, Gender, CBJJCategory } from '../types.js';
 import { BELT_COLORS, IBJJF_BELT_RULES, MASTER_ADMINS } from '../constants/index.js';
 import { IBJJF_LESSONS } from '../constants/rulesData.js';
@@ -68,18 +68,68 @@ const formatPhone = (value: string) => {
     .replace(/(-\d{4})\d+?$/, '$1');
 };
 
+const getStatusTranslation = (status: string, fallback: string = 'Ativo') => {
+  const s = String(status || '').toLowerCase();
+  if (s === 'active' || s === 'ativo') return 'Ativo';
+  if (s === 'inactive' || s === 'inativo') return 'Inativo';
+  if (s === 'overdue' || s === 'atrasado' || s === 'atrasada') return 'Inadimplente';
+  if (s === 'waitlist' || s === 'lista' || s === 'fila') return 'Lista de Espera';
+  if (s === 'suspended' || s === 'suspenso') return 'Suspenso';
+  return fallback;
+};
+
 const CameraCapture = ({ onCapture, onClose }: { onCapture: (img: string) => void, onClose: () => void }) => {
-  const webcamRef = React.useRef<any>(null);
+  const videoRef = React.useRef<HTMLVideoElement>(null);
+  const streamRef = React.useRef<MediaStream | null>(null);
   const { t } = useTranslation();
-  const WebcamComponent = Webcam as any;
+  const [errorCount, setErrorCount] = useState(0);
+
+  React.useEffect(() => {
+    let active = true;
+    if (navigator.mediaDevices && navigator.mediaDevices.getUserMedia) {
+      navigator.mediaDevices.getUserMedia({ video: { facingMode: "user" } })
+        .then(stream => {
+          if (active) {
+            streamRef.current = stream;
+            if (videoRef.current) {
+              videoRef.current.srcObject = stream;
+            }
+          } else {
+            stream.getTracks().forEach(track => track.stop());
+          }
+        })
+        .catch(err => {
+          console.error("Camera access error:", err);
+          setErrorCount(1);
+        });
+    } else {
+      setErrorCount(2);
+    }
+
+    return () => {
+      active = false;
+      if (streamRef.current) {
+        streamRef.current.getTracks().forEach(track => track.stop());
+      }
+    };
+  }, [t]);
 
   const capture = React.useCallback(() => {
-    const imageSrc = webcamRef.current?.getScreenshot();
-    if (imageSrc) {
-      onCapture(imageSrc);
-      onClose();
+    if (videoRef.current) {
+      const canvas = document.createElement('canvas');
+      canvas.width = videoRef.current.videoWidth || 640;
+      canvas.height = videoRef.current.videoHeight || 480;
+      const ctx = canvas.getContext('2d');
+      if (ctx) {
+        // Draw matched size
+        ctx.scale(-1, 1);
+        ctx.drawImage(videoRef.current, -canvas.width, 0, canvas.width, canvas.height);
+        const imageSrc = canvas.toDataURL('image/jpeg');
+        onCapture(imageSrc);
+        onClose();
+      }
     }
-  }, [webcamRef, onCapture, onClose]);
+  }, [onCapture, onClose]);
 
   return (
     <div className="fixed inset-0 bg-slate-900/90 backdrop-blur-xl z-[150] flex items-center justify-center p-4">
@@ -91,19 +141,29 @@ const CameraCapture = ({ onCapture, onClose }: { onCapture: (img: string) => voi
           </button>
         </div>
         <div className="p-8 space-y-6">
-          <div className="relative rounded-[2rem] overflow-hidden border-4 border-slate-100 dark:border-slate-800 shadow-inner aspect-[4/3] bg-black">
-            <WebcamComponent
-              audio={false}
-              ref={webcamRef}
-              screenshotFormat="image/jpeg"
-              className="w-full h-full object-cover"
-              videoConstraints={{ facingMode: "user" }}
-            />
+          <div className="relative rounded-[2rem] overflow-hidden border-4 border-slate-100 dark:border-slate-800 shadow-inner aspect-[4/3] bg-black flex items-center justify-center">
+            {errorCount > 0 ? (
+              <div className="p-6 text-center text-slate-400">
+                <p className="text-xs font-bold uppercase tracking-wide text-red-500 mb-2">
+                  {errorCount === 1 ? t('settings.cameraError') || "Erro de Permissão da Câmera" : "Câmera não suportada neste Navegador"}
+                </p>
+                <p className="text-[10px] text-slate-500 mt-1 uppercase tracking-tight">Utilize o seletor para enviar um arquivo de foto.</p>
+              </div>
+            ) : (
+              <video
+                ref={videoRef}
+                autoPlay
+                playsInline
+                muted
+                className="w-full h-full object-cover transform scale-x-[-1]"
+              />
+            )}
             <div className="absolute inset-0 border-[1.5rem] border-blue-600/10 pointer-events-none rounded-[1.8rem]" />
           </div>
           <button 
+            disabled={errorCount > 0}
             onClick={capture}
-            className="w-full py-5 bg-blue-600 text-white rounded-[1.5rem] font-black uppercase text-xs tracking-widest hover:bg-blue-700 shadow-xl shadow-blue-500/20 active:scale-95 transition-all flex items-center justify-center gap-3"
+            className="w-full py-5 bg-blue-600 text-white rounded-[1.5rem] font-black uppercase text-xs tracking-widest hover:bg-blue-700 shadow-xl shadow-blue-500/20 active:scale-95 transition-all flex items-center justify-center gap-3 disabled:opacity-50 disabled:cursor-not-allowed"
           >
             <Camera size={20} /> {t('settings.takePhotoNow')}
           </button>
@@ -117,31 +177,31 @@ const validateStudent = (student: Partial<Student>, t: any): { isValid: boolean;
   const errors: string[] = [];
   
   if (!student.name || student.name.trim().length < 3) {
-    errors.push(t('students.validation.nameLength'));
+    errors.push(t('students.validation.nameLength') || 'O nome precisa ter pelo menos 3 caracteres.');
   }
 
   if (student.email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(student.email)) {
-    errors.push(t('students.validation.invalidEmail'));
+    errors.push(t('students.validation.invalidEmail') || 'O formato de e-mail inserido é inválido.');
   }
 
   if (student.cpf && student.cpf.replace(/\D/g, '').length !== 11) {
-    errors.push(t('students.validation.cpfLength'));
+    errors.push(t('students.validation.cpfLength') || 'O CPF deve conter exatamente 11 dígitos.');
   }
 
   if (student.phone && student.phone.replace(/\D/g, '').length < 10) {
-    errors.push(t('students.validation.invalidPhone'));
+    errors.push(t('students.validation.invalidPhone') || 'O número de telefone informado é inválido.');
   }
 
   if (!student.birthDate) {
-    errors.push(t('students.validation.birthDateRequired'));
+    errors.push(t('students.validation.birthDateRequired') || 'A data de nascimento é obrigatória.');
   }
 
   if (student.monthlyValue !== undefined && student.monthlyValue < 0) {
-    errors.push(t('students.validation.negativeMonthly'));
+    errors.push(t('students.validation.negativeMonthly') || 'O valor da mensalidade não pode ser negativo.');
   }
 
   if (student.dueDay !== undefined && (student.dueDay < 1 || student.dueDay > 31)) {
-    errors.push(t('students.validation.dueDayRange'));
+    errors.push(t('students.validation.dueDayRange') || 'O dia de vencimento deve estar entre 1 e 31.');
   }
 
   return {
@@ -172,6 +232,7 @@ const NewStudentModal = ({ onClose, defaultIsKid }: { onClose: () => void, defau
     category: CBJJCategory.ADULTO,
     weightClass: 'rooster',
     lastPromotionDate: new Date().toISOString().split('T')[0],
+    blackBeltDate: undefined as string | Date | undefined,
     isInstructor: false,
     isKid: defaultIsKid,
     isCompetitor: false,
@@ -609,6 +670,18 @@ const NewStudentModal = ({ onClose, defaultIsKid }: { onClose: () => void, defau
                   />
                 </div>
 
+                {formData.belt === BeltColor.BLACK && (
+                  <div className="space-y-2 md:col-span-2">
+                    <label className="text-[10px] font-black text-blue-600 dark:text-blue-400 uppercase tracking-widest ml-1">Data de Formatura Faixa Preta 🥋</label>
+                    <input 
+                      type="date" 
+                      className="w-full px-6 py-4 bg-blue-50/50 dark:bg-blue-950/10 border border-blue-200 dark:border-blue-900/30 rounded-2xl outline-none focus:ring-2 focus:ring-blue-600 dark:text-white font-bold" 
+                      value={formData.blackBeltDate ? (typeof formData.blackBeltDate === 'string' ? formData.blackBeltDate : new Date(formData.blackBeltDate).toISOString().split('T')[0]) : ''}
+                      onChange={e => setFormData({...formData, blackBeltDate: e.target.value})}
+                    />
+                  </div>
+                )}
+
                 <div className="space-y-2">
                   <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">{t('common.weight')} (kg)</label>
                   <input 
@@ -968,6 +1041,88 @@ const NewStudentModal = ({ onClose, defaultIsKid }: { onClose: () => void, defau
   );
 };
 
+// 🥋 HELPER: SISTEMA DE GRADUAÇÃO DE FAIXA PRETA AUTOMÁTICO (NORMAS IBJJF)
+const calculateBlackBeltGraduation = (blackBeltDateStr: any) => {
+  if (!blackBeltDateStr) return null;
+  const blackBeltDate = new Date(blackBeltDateStr);
+  if (isNaN(blackBeltDate.getTime())) return null;
+  
+  const today = new Date();
+  const diffTime = today.getTime() - blackBeltDate.getTime();
+  const diffYears = diffTime / (1000 * 60 * 60 * 24 * 365.25);
+  
+  if (diffYears < 0) return null;
+
+  const steps = [
+    { degree: 0, requiredYears: 0, belt: "Preta (Black Belt)" },
+    { degree: 1, requiredYears: 3, belt: "Preta (1º Grau)" },
+    { degree: 2, requiredYears: 6, belt: "Preta (2º Grau)" },
+    { degree: 3, requiredYears: 9, belt: "Preta (3º Grau)" },
+    { degree: 4, requiredYears: 14, belt: "Preta (4º Grau)" },
+    { degree: 5, requiredYears: 19, belt: "Preta (5º Grau)" },
+    { degree: 6, requiredYears: 24, belt: "Preta (6º Grau)" },
+    { degree: 7, requiredYears: 31, belt: "Coral Preta e Vermelha (7º Grau)" },
+    { degree: 8, requiredYears: 38, belt: "Coral Vermelha e Branca (8º Grau)" },
+    { degree: 9, requiredYears: 48, belt: "Vermelha (9º Grau - Grande Mestre)" }
+  ];
+
+  let currentDegree = 0;
+  let nextDegree = 1;
+
+  for (let i = 0; i < steps.length; i++) {
+    if (diffYears >= steps[i].requiredYears) {
+      currentDegree = steps[i].degree;
+      nextDegree = i + 1 < steps.length ? steps[i + 1].degree : 9;
+    } else {
+      break;
+    }
+  }
+
+  const currentStep = steps.find(s => s.degree === currentDegree) || steps[0];
+  const nextStep = steps.find(s => s.degree === nextDegree);
+
+  let nextPromotionDate: Date | null = null;
+  let yearsRemaining = 0;
+  if (nextStep) {
+    const yearsNeededTotal = nextStep.requiredYears;
+    const promoTime = new Date(blackBeltDate);
+    promoTime.setFullYear(promoTime.getFullYear() + Math.floor(yearsNeededTotal));
+    const frac = yearsNeededTotal % 1;
+    if (frac > 0) {
+      promoTime.setMonth(promoTime.getMonth() + Math.round(frac * 12));
+    }
+    nextPromotionDate = promoTime;
+    yearsRemaining = Math.max(0, yearsNeededTotal - diffYears);
+  }
+
+  const futureSchedule = steps.map(s => {
+    const pDate = new Date(blackBeltDate);
+    pDate.setFullYear(pDate.getFullYear() + Math.floor(s.requiredYears));
+    const frac = s.requiredYears % 1;
+    if (frac > 0) {
+      pDate.setMonth(pDate.getMonth() + Math.round(frac * 12));
+    }
+    return {
+      degree: s.degree,
+      belt: s.belt,
+      yearsRequired: s.requiredYears,
+      estimatedDate: pDate,
+      reached: diffYears >= s.requiredYears
+    };
+  });
+
+  return {
+    currentDegree,
+    currentBelt: currentStep.belt,
+    diffYears,
+    nextDegree,
+    nextBelt: nextStep ? nextStep.belt : null,
+    nextPromotionDate,
+    yearsRemaining,
+    futureSchedule
+  };
+};
+
 const StudentDetailsModal = ({ student, onClose }: { student: Student; onClose: () => void }) => {
   const { profile } = useProfile();
   const { user } = useAuth();
@@ -1155,7 +1310,7 @@ const StudentDetailsModal = ({ student, onClose }: { student: Student; onClose: 
                     {t(`belts.${student.belt}`)}
                   </span>
                   <span className="px-4 py-1.5 sm:px-6 sm:py-2.5 rounded-xl text-[9px] sm:text-[11px] font-black uppercase tracking-widest bg-white/10 text-white">
-                    {student.isKid ? t('common.kids').toUpperCase() : t(`status.${student.status}`).toUpperCase()}
+                    {student.isKid ? t('common.kids').toUpperCase() : getStatusTranslation(student.status).toUpperCase()}
                   </span>
                   {student.isCompetitor && (
                     <span className="px-4 py-1.5 sm:px-6 sm:py-2.5 rounded-xl text-[9px] sm:text-[11px] font-black uppercase tracking-widest bg-blue-600 text-white flex items-center gap-2">
@@ -1359,7 +1514,7 @@ const StudentDetailsModal = ({ student, onClose }: { student: Student; onClose: 
                         onChange={e => setEditFormData({...editFormData, status: e.target.value as StudentStatus})}
                       >
                         {Object.values(StudentStatus).map(v => (
-                          <option key={v} value={v}>{t(`status.${v}`)}</option>
+                          <option key={v} value={v}>{getStatusTranslation(v)}</option>
                         ))}
                       </select>
                     </div>
@@ -1578,6 +1733,17 @@ const StudentDetailsModal = ({ student, onClose }: { student: Student; onClose: 
                       <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">{t('students.lastPromotion')}</label>
                       <input type="date" className="w-full px-5 py-3.5 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-2xl outline-none focus:ring-2 focus:ring-blue-600 dark:text-white font-bold" value={editFormData.lastPromotionDate} onChange={e => setEditFormData({...editFormData, lastPromotionDate: e.target.value})} />
                     </div>
+                    {editFormData.belt === BeltColor.BLACK && (
+                      <div className="space-y-2 md:col-span-2">
+                        <label className="text-[10px] font-black text-blue-600 dark:text-blue-400 uppercase tracking-widest ml-1">Data de Formatura Faixa Preta 🥋</label>
+                        <input 
+                          type="date" 
+                          className="w-full px-5 py-3.5 bg-blue-50/50 dark:bg-blue-950/10 border border-blue-200 dark:border-blue-900/30 rounded-2xl outline-none focus:ring-2 focus:ring-blue-600 dark:text-white font-bold" 
+                          value={editFormData.blackBeltDate ? (typeof editFormData.blackBeltDate === 'string' ? editFormData.blackBeltDate : new Date(editFormData.blackBeltDate).toISOString().split('T')[0]) : ''} 
+                          onChange={e => setEditFormData({...editFormData, blackBeltDate: e.target.value})} 
+                        />
+                      </div>
+                    )}
                     <div className="space-y-2">
                       <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">{t('common.class')}</label>
                       <select className="w-full px-5 py-3.5 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-2xl outline-none focus:ring-2 focus:ring-blue-600 dark:text-white appearance-none font-bold" value={editFormData.classId || ''} onChange={e => setEditFormData({...editFormData, classId: e.target.value})}>
@@ -2167,35 +2333,141 @@ const StudentDetailsModal = ({ student, onClose }: { student: Student; onClose: 
                   </div>
 
                   <div className="lg:col-span-7 space-y-6">
-                    {beltAnalysis && (
+                    {student.belt === BeltColor.BLACK ? (
                       <section className="space-y-4">
-                        <h3 className="text-[10px] font-black text-slate-400 uppercase tracking-widest flex items-center gap-2"><Clock size={14} /> {t('students.beltAnalysis')}</h3>
-                        <div className="p-8 rounded-[2.5rem] bg-slate-100 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-700">
-                          <div className="flex justify-between items-center mb-6">
-                            <div>
-                              <p className="text-xs font-black uppercase tracking-widest text-slate-500">{t('students.timeInBelt')}</p>
-                              <p className="text-3xl font-black text-slate-900 dark:text-white tracking-tighter">{beltAnalysis.diffMonths} <span className="text-base text-slate-400">/ {beltAnalysis.minTime} {t('common.months')}</span></p>
-                            </div>
-                            <div className={`px-5 py-2.5 rounded-2xl text-[10px] font-black uppercase tracking-widest ${beltAnalysis.isEligible ? 'bg-emerald-100 text-emerald-700 shadow-emerald-100/50 shadow-lg' : 'bg-orange-100 text-orange-700 shadow-orange-100/50 shadow-lg'}`}>
-                              {beltAnalysis.isEligible ? t('students.eligible') : t('students.inGracePeriod')}
-                            </div>
-                          </div>
-                          <div className="w-full h-4 bg-slate-200 dark:bg-slate-700 rounded-full overflow-hidden shadow-inner">
-                            <motion.div 
-                              initial={{ width: 0 }}
-                              animate={{ width: `${beltAnalysis.progress}%` }}
-                              className={`h-full transition-all duration-1000 ${beltAnalysis.isEligible ? 'bg-emerald-500' : 'bg-blue-600'} shadow-[0_0_12px_rgba(59,130,246,0.3)]`}
-                            />
-                          </div>
-                          <div className="mt-6 p-4 bg-white dark:bg-slate-900 rounded-2xl border border-slate-100 dark:border-slate-800">
-                            <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest leading-relaxed">
-                              {beltAnalysis.isEligible 
-                                ? t('common.readyForEvaluation')
-                                : t('common.missingMonths', { months: (beltAnalysis.minTime - beltAnalysis.diffMonths) })}
+                        <h3 className="text-[10px] font-black text-slate-400 uppercase tracking-widest flex items-center gap-2">
+                          <Award size={14} className="text-red-600 animate-pulse" /> SISTEMA DE GRADUAÇÃO FAIXA PRETA IBJJF
+                        </h3>
+                        
+                        {!student.blackBeltDate ? (
+                          <div className="p-8 rounded-[2.5rem] bg-amber-50 dark:bg-amber-950/20 border border-amber-200 dark:border-amber-900/40 text-left space-y-3">
+                            <p className="text-xs font-black uppercase tracking-widest text-amber-700 dark:text-amber-400">DATA DE FORMAÇÃO AUSENTE</p>
+                            <p className="text-xs text-slate-600 dark:text-slate-400 font-medium leasing-relaxed">
+                              Sensei, para calcular automaticamente os graus IBJJF do aluno, defina a **Data de Formatura Faixa Preta** na aba **Editar** (Sub-aba Técnica).
                             </p>
                           </div>
-                        </div>
+                        ) : (
+                          (() => {
+                            const bbInfo = calculateBlackBeltGraduation(student.blackBeltDate);
+                            if (!bbInfo) return null;
+
+                            return (
+                              <div className="space-y-6">
+                                <div className="p-8 rounded-[2.5rem] bg-slate-900 dark:bg-slate-950 border border-slate-800 text-white shadow-xl space-y-6">
+                                  <div className="flex justify-between items-start">
+                                    <div className="space-y-1">
+                                      <p className="text-[9px] font-black text-red-500 uppercase tracking-widest">SISTEMA PREDITIVO DE GRAUS</p>
+                                      <h4 className="text-xl font-black uppercase tracking-tight">{bbInfo.currentDegree === 0 ? "Faixa Preta Lisa" : `Faixa Preta ${bbInfo.currentDegree}º Grau`}</h4>
+                                      <p className="text-[10px] text-slate-400 uppercase font-black tracking-widest mt-1">
+                                        Tempo de Faixa Preta: {bbInfo.diffYears.toFixed(1)} Anos
+                                      </p>
+                                    </div>
+                                    <div className="px-4 py-2 bg-red-600 text-white rounded-xl text-[9px] font-black uppercase tracking-widest whitespace-nowrap">
+                                      IBJJF COMPLIANT
+                                    </div>
+                                  </div>
+
+                                  <div className="grid grid-cols-2 gap-4 pt-4 border-t border-slate-800">
+                                    <div>
+                                      <p className="text-[8px] font-black text-slate-500 uppercase tracking-widest mb-1">PRÓXIMA GRADUAÇÃO</p>
+                                      <p className="text-xs font-black uppercase tracking-wider text-red-400">
+                                        {bbInfo.nextDegree}º Grau
+                                      </p>
+                                      <p className="text-[9px] text-slate-400 mt-1 max-w-[150px] truncate">{bbInfo.nextBelt}</p>
+                                    </div>
+                                    <div>
+                                      <p className="text-[8px] font-black text-slate-500 uppercase tracking-widest mb-1">PREVISÃO ESTIMADA</p>
+                                      <p className="text-xs font-black text-slate-300">
+                                        {bbInfo.nextPromotionDate ? new Date(bbInfo.nextPromotionDate).toLocaleDateString() : "--"}
+                                      </p>
+                                      <p className="text-[9px] text-slate-500 font-bold mt-1">
+                                        Faltam {bbInfo.yearsRemaining.toFixed(1)} anos
+                                      </p>
+                                    </div>
+                                  </div>
+                                </div>
+
+                                <div className="p-8 rounded-[2.5rem] bg-slate-50 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-700">
+                                  <h4 className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-4">MENSURAÇÃO DO TEMPO DE EVOLUÇÃO DOS GRAUS</h4>
+                                  <div className="space-y-3 max-h-[280px] overflow-y-auto pr-2 scrollbar-hide">
+                                    {bbInfo.futureSchedule.map((item, idx) => (
+                                      <div 
+                                        key={idx} 
+                                        className={`p-4 rounded-2xl flex items-center justify-between border transition-all ${
+                                          item.reached 
+                                            ? 'bg-emerald-50/30 dark:bg-emerald-950/20 border-emerald-500/30' 
+                                            : item.degree === bbInfo.nextDegree
+                                              ? 'bg-blue-50/40 dark:bg-blue-950/20 border-blue-500/30 ring-1 ring-blue-500/10'
+                                              : 'bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-850'
+                                        }`}
+                                      >
+                                        <div className="flex items-center gap-3">
+                                          <div className={`w-8 h-8 rounded-lg flex items-center justify-center font-black text-xs ${
+                                            item.reached 
+                                              ? 'bg-emerald-500 text-white' 
+                                              : item.degree === bbInfo.nextDegree 
+                                                ? 'bg-blue-600 text-white animate-pulse'
+                                                : 'bg-slate-100 dark:bg-slate-800 text-slate-400'
+                                          }`}>
+                                            {item.degree}G
+                                          </div>
+                                          <div>
+                                            <p className="text-xs font-black text-slate-800 dark:text-white">
+                                              {item.degree === 0 ? "Faixa Preta Lisa" : `${item.degree}º Grau`}
+                                            </p>
+                                            <p className="text-[9px] text-slate-400 font-bold uppercase tracking-wider">{item.belt}</p>
+                                          </div>
+                                        </div>
+                                        <div className="text-right">
+                                          <p className="text-[10px] font-black text-slate-600 dark:text-slate-400">
+                                            {item.estimatedDate.toLocaleDateString()}
+                                          </p>
+                                          <p className={`text-[8px] font-black uppercase tracking-widest mt-1 ${
+                                            item.reached ? 'text-emerald-600' : 'text-slate-400'
+                                          }`}>
+                                            {item.reached ? 'CONCLUÍDO ✔' : `Requisito: ${item.yearsRequired} anos`}
+                                          </p>
+                                        </div>
+                                      </div>
+                                    ))}
+                                  </div>
+                                </div>
+                              </div>
+                            );
+                          })()
+                        )}
                       </section>
+                    ) : (
+                      beltAnalysis && (
+                        <section className="space-y-4">
+                          <h3 className="text-[10px] font-black text-slate-400 uppercase tracking-widest flex items-center gap-2"><Clock size={14} /> {t('students.beltAnalysis')}</h3>
+                          <div className="p-8 rounded-[2.5rem] bg-slate-100 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-700">
+                            <div className="flex justify-between items-center mb-6">
+                              <div>
+                                <p className="text-xs font-black uppercase tracking-widest text-slate-500">{t('students.timeInBelt')}</p>
+                                <p className="text-3xl font-black text-slate-900 dark:text-white tracking-tighter">{beltAnalysis.diffMonths} <span className="text-base text-slate-400">/ {beltAnalysis.minTime} {t('common.months')}</span></p>
+                              </div>
+                              <div className={`px-5 py-2.5 rounded-2xl text-[10px] font-black uppercase tracking-widest ${beltAnalysis.isEligible ? 'bg-emerald-100 text-emerald-700 shadow-emerald-100/50 shadow-lg' : 'bg-orange-100 text-orange-700 shadow-orange-100/50 shadow-lg'}`}>
+                                {beltAnalysis.isEligible ? t('students.eligible') : t('students.inGracePeriod')}
+                              </div>
+                            </div>
+                            <div className="w-full h-4 bg-slate-200 dark:bg-slate-700 rounded-full overflow-hidden shadow-inner">
+                              <motion.div 
+                                initial={{ width: 0 }}
+                                animate={{ width: `${beltAnalysis.progress}%` }}
+                                className={`h-full transition-all duration-1000 ${beltAnalysis.isEligible ? 'bg-emerald-500' : 'bg-blue-600'} shadow-[0_0_12px_rgba(59,130,246,0.3)]`}
+                              />
+                            </div>
+                            <div className="mt-6 p-4 bg-white dark:bg-slate-900 rounded-2xl border border-slate-100 dark:border-slate-800">
+                              <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest leading-relaxed">
+                                {beltAnalysis.isEligible 
+                                  ? t('common.readyForEvaluation')
+                                  : t('common.missingMonths', { months: (beltAnalysis.minTime - beltAnalysis.diffMonths) })}
+                              </p>
+                            </div>
+                          </div>
+                        </section>
+                      )
                     )}
                   </div>
 
@@ -2688,6 +2960,10 @@ const Students: React.FC = () => {
   const [statusFilter, setStatusFilter] = useState<StudentStatus | ''>('');
   const [activeView, setActiveView] = useState<'adult' | 'kids' | 'competitors' | 'waitlist'>('adult');
   const [selectedStudent, setSelectedStudent] = useState<Student | null>(null);
+  const currentSelectedStudent = useMemo(() => {
+    if (!selectedStudent) return null;
+    return students.find(s => s.id === selectedStudent.id) || selectedStudent;
+  }, [selectedStudent, students]);
   const handleExportCSV = () => {
     const headers = ['ID', 'Nome', 'Apelido', 'Email', 'Telefone', 'Faixa', 'Graus', 'Status', 'Mensalidade'];
     const rows = students.map(s => [
@@ -2925,7 +3201,7 @@ const Students: React.FC = () => {
             >
               <option value="">{t('common.status')}</option>
               {Object.values(StudentStatus).map(status => (
-                <option key={status} value={status}>{t(`status.${status}`)}</option>
+                <option key={status} value={status}>{getStatusTranslation(status)}</option>
               ))}
             </select>
           </div>
@@ -2989,7 +3265,7 @@ const Students: React.FC = () => {
                               student.status === StudentStatus.OVERDUE ? 'bg-red-100 text-red-700' : 
                               student.status === StudentStatus.WAITLIST ? 'bg-indigo-100 text-indigo-700' : 'bg-slate-100 text-slate-500'
                             }`}>
-                              {t(`status.${student.status}`)}
+                              {getStatusTranslation(student.status)}
                               {student.status === StudentStatus.WAITLIST && student.waitlistRank && ` #${student.waitlistRank}`}
                             </span>
                             <div className="flex items-center gap-1">
@@ -3105,7 +3381,7 @@ const Students: React.FC = () => {
                      student.status === StudentStatus.OVERDUE ? 'bg-red-600 text-white shadow-lg shadow-red-600/20' : 
                      'bg-slate-200 text-slate-600'
                    }`}>
-                     {t(`status.${student.status}`)}
+                     {getStatusTranslation(student.status)}
                    </span>
                    <div className="flex items-center gap-1 text-[10px] font-black text-slate-400 uppercase tracking-widest">
                       <Zap size={14} className="text-yellow-500" />
@@ -3169,7 +3445,7 @@ const Students: React.FC = () => {
                         student.status === StudentStatus.WAITLIST ? 'bg-indigo-50 text-indigo-700 border-indigo-100 dark:bg-indigo-900/20 dark:border-indigo-900/30' :
                         'bg-slate-50 text-slate-500 border-slate-100 dark:bg-slate-800 dark:border-slate-700'
                       }`}>
-                        {t(`status.${student.status}`)}
+                        {getStatusTranslation(student.status)}
                         {student.status === StudentStatus.WAITLIST && student.waitlistRank && ` #${student.waitlistRank}`}
                       </span>
                       {!student.liabilityWaiverAccepted && <ShieldAlert size={14} className="text-amber-500" />}
@@ -3195,7 +3471,7 @@ const Students: React.FC = () => {
           </div>
         )}
       
-      {selectedStudent && <StudentDetailsModal student={selectedStudent} onClose={() => setSelectedStudent(null)} />}
+      {selectedStudent && currentSelectedStudent && <StudentDetailsModal student={currentSelectedStudent} onClose={() => setSelectedStudent(null)} />}
       {isAddingStudent && <NewStudentModal defaultIsKid={activeView === 'kids'} onClose={() => setIsAddingStudent(false)} />}
       {isSelectingCompetitors && <CompetitorSelectorModal onClose={() => setIsSelectingCompetitors(false)} />}
     </div>

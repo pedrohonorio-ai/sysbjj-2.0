@@ -190,7 +190,17 @@ protectedRouter.delete("/delete-student", requireMaster as any, async (req: any,
     const { id } = req.body;
     if (!id) return res.status(400).json({ success: false, error: "ID do aluno é obrigatório." });
     try {
-        const student = await prisma.student.findUnique({ where: { id } });
+        let student;
+        try {
+            student = await prisma.student.findUnique({ where: { id } });
+        } catch (findErr: any) {
+            console.warn("⚠️ [PRISMA DETECTED P2022 FOR DELETE] Using safe name select:", findErr.message);
+            try {
+                student = await prisma.student.findUnique({ where: { id }, select: { name: true } });
+            } catch (fallbackErr) {
+                student = null;
+            }
+        }
         const result = await prisma.student.delete({ where: { id } });
         
         // Registrar log de exclusão

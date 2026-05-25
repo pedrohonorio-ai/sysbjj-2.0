@@ -133,7 +133,7 @@ const CurriculumHub: React.FC = () => {
       <header className="flex flex-col md:flex-row md:items-center justify-between gap-6">
         <div className="animate-in slide-in-from-left duration-700">
           <h1 className="text-3xl md:text-5xl font-black text-slate-900 dark:text-white uppercase tracking-tighter italic leading-none">
-            Teaching <span className="text-blue-600">Hub</span>
+            Dojo de <span className="text-blue-600">Ensino</span>
           </h1>
           <p className="text-slate-400 font-bold uppercase tracking-widest text-[10px] mt-3">
             Gestão Unificada de Turmas, Currículo e Planejamento Técnico
@@ -342,7 +342,7 @@ const CurriculumHub: React.FC = () => {
                      <div className="flex justify-between items-center">
                         <div className="flex items-center gap-3 px-4 py-2 bg-white/10 backdrop-blur-xl rounded-2xl w-fit border border-white/10">
                            <Zap size={16} className="text-amber-400" />
-                           <span className="text-[10px] font-black uppercase tracking-[0.2em]">Lesson Plans</span>
+                           <span className="text-[10px] font-black uppercase tracking-[0.2em]">Planos de Aula</span>
                         </div>
                         <button 
                           onClick={() => {
@@ -402,7 +402,7 @@ const CurriculumHub: React.FC = () => {
                   <div className="flex items-center justify-between">
                      <h3 className="text-xl font-black text-slate-900 dark:text-white uppercase tracking-tighter italic flex items-center gap-4">
                         <Target size={28} className="text-rose-500" />
-                        Monthly Focus
+                        Foco Mensal
                      </h3>
                      <span className="w-3 h-3 rounded-full bg-rose-500 animate-ping opacity-50" />
                   </div>

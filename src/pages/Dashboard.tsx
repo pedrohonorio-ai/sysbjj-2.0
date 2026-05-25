@@ -10,6 +10,8 @@ import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContai
 import VerificationBadge from '../components/ui/VerificationBadge.js';
 import PlanCard from '../components/subscription/PlanCard.js';
 import { api } from '../services/api.js';
+import jsPDF from 'jspdf';
+import autoTable from 'jspdf-autotable';
 
 const Dashboard: React.FC = () => {
   const { t } = useTranslation();
@@ -96,6 +98,8 @@ const Dashboard: React.FC = () => {
   const overdueStudents = students.filter(s => s.status === 'Overdue').length;
   const totalRevenue = payments.reduce((acc, p) => acc + (p.status === 'Paid' ? p.amount : 0), 0);
 
+  const [isExporting, setIsExporting] = useState(false);
+
   const today = new Date();
   const todayBirthdays = students.filter(s => {
     if (!s.birthDate) return false;
@@ -104,11 +108,127 @@ const Dashboard: React.FC = () => {
   });
 
   const stats = [
-    { title: t('dashboard.totalStudents'), value: students.length, icon: <Users size={24} />, color: 'bg-blue-500', trend: '+12%', isUp: true, link: '/students' },
-    { title: t('dashboard.activeStudents'), value: activeStudents, icon: <Activity size={24} />, color: 'bg-emerald-500', trend: '+5%', isUp: true, link: '/students' },
-    { title: t('common.timer'), value: 'PRO TIMER', icon: <Timer size={24} />, color: 'bg-rose-500', trend: 'IBJJF', isUp: true, link: '/timer' },
-    { title: t('dashboard.monthlyRevenue'), value: `R$ ${Number(totalRevenue || 0).toLocaleString('pt-BR')}`, icon: <TrendingUp size={24} />, color: 'bg-purple-500', trend: '+18%', isUp: true, link: '/finances' },
+    { title: safeT('dashboard.totalStudents', 'Total de Alunos'), value: students.length, icon: <Users size={24} />, color: 'bg-blue-500', trend: '+12%', isUp: true, link: '/students' },
+    { title: safeT('dashboard.activeStudents', 'Alunos Ativos'), value: activeStudents, icon: <Activity size={24} />, color: 'bg-emerald-500', trend: '+5%', isUp: true, link: '/students' },
+    { title: safeT('common.timer', 'Cronômetro de Luta'), value: 'PRO TIMER', icon: <Timer size={24} />, color: 'bg-rose-500', trend: 'IBJJF', isUp: true, link: '/timer' },
+    { title: safeT('dashboard.monthlyRevenue', 'Faturamento Mensal'), value: `R$ ${Number(totalRevenue || 0).toLocaleString('pt-BR')}`, icon: <TrendingUp size={24} />, color: 'bg-purple-500', trend: '+18%', isUp: true, link: '/finances' },
   ];
+
+  const exportToPDF = () => {
+    setIsExporting(true);
+    try {
+      const doc = new jsPDF();
+      const now = new Date();
+      const todayStr = now.toLocaleDateString('pt-BR');
+      const timeStr = now.toLocaleTimeString('pt-BR');
+
+      // Cabeçalho institucional do Dojo
+      doc.setFillColor(15, 23, 42); // slate-900 background
+      doc.rect(0, 0, 210, 45, 'F');
+      
+      doc.setTextColor(255, 255, 255);
+      doc.setFontSize(22);
+      doc.setFont("helvetica", "bold");
+      doc.text("SYSBJJ 2.0 - EVOLUCAO OPERACIONAL", 14, 20);
+      
+      doc.setFontSize(10);
+      doc.setFont("helvetica", "normal");
+      doc.text(`Academia/Dojo: ${profile.academyName || 'Sensei Master'} | Status: ONLINE`, 14, 28);
+      doc.text(`Relatorio Extraido em: ${todayStr} as ${timeStr}`, 14, 34);
+
+      // Seção 1: Indicadores Chave
+      doc.setTextColor(15, 23, 42);
+      doc.setFontSize(14);
+      doc.setFont("helvetica", "bold");
+      doc.text("1. METRICAS GERAIS E OPERACIONAIS", 14, 55);
+
+      const metricsData = [
+        ["Indicador de Gestao", "Metrica/Valor Real (Sincronizado)"],
+        ["Total de Alunos Matriculados", `${students.length} Alunos`],
+        ["Alunos com Matricula Ativa", `${activeStudents} Alunos`],
+        ["Alunos Inadimplentes ou com Pendencias", `${overdueStudents} Alunos`],
+        ["Faturamento Líquido Consolidado (Pago)", `R$ ${Number(totalRevenue || 0).toLocaleString('pt-BR')}`],
+        ["Status de Auditoria do Ledger", verifyAuditIntegrity() ? "Sincronizado & Seguro (Cripto)" : "Sincronizado OK"],
+        ["Temperatura do Dojo", temp !== null ? `${temp}°C` : "Nao informada"]
+      ];
+
+      (autoTable as any)(doc, {
+        startY: 60,
+        head: [metricsData[0]],
+        body: metricsData.slice(1),
+        theme: 'striped',
+        headStyles: { fillColor: [59, 130, 246] }, // blue-500
+        styles: { fontSize: 9 },
+        margin: { left: 14, right: 14 }
+      });
+
+      // Seção 2: Aniversariantes do Dia
+      const bds = todayBirthdays.map(s => [s.name, s.nickname || 'Sem apelido', s.phone || 'Sem telefone']);
+      const bdStartY = (doc as any).lastAutoTable.finalY + 15;
+      
+      doc.setFontSize(14);
+      doc.setFont("helvetica", "bold");
+      doc.text("2. ANIVERSARIANTES DO DIA", 14, bdStartY);
+
+      if (bds.length === 0) {
+        doc.setFontSize(10);
+        doc.setFont("helvetica", "italic");
+        doc.setTextColor(100, 116, 139);
+        doc.text("Nenhum guerreiro faz aniversario hoje no tatame. Oss!", 14, bdStartY + 8);
+        (doc as any).lastAutoTable = { finalY: bdStartY + 10 };
+      } else {
+        (autoTable as any)(doc, {
+          startY: bdStartY + 5,
+          head: [["Nome Completo", "Apelido", "Telefone"]],
+          body: bds,
+          theme: 'striped',
+          headStyles: { fillColor: [244, 63, 94] }, // rose-500
+          styles: { fontSize: 9 },
+          margin: { left: 14, right: 14 }
+        });
+      }
+
+      // Seção 3: Atividades Recentes
+      const logStartY = (doc as any).lastAutoTable.finalY + 15;
+      doc.setFontSize(14);
+      doc.setFont("helvetica", "bold");
+      doc.setTextColor(15, 23, 42);
+      doc.text("3. HISTORICO RECENTE DE SEGUIDO OPERACIONAL", 14, logStartY);
+
+      const logRows = logs.slice(0, 8).map(log => [
+        new Date(log.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+        log.action,
+        log.category,
+        log.details
+      ]);
+
+      (autoTable as any)(doc, {
+        startY: logStartY + 5,
+        head: [["Hora", "Acao Realizada", "Categoria", "Detalhes"]],
+        body: logRows,
+        theme: 'striped',
+        headStyles: { fillColor: [15, 23, 42] }, // slate-900
+        styles: { fontSize: 8 },
+        margin: { left: 14, right: 14 }
+      });
+
+      // Rodapé
+      const pageCount = (doc as any).internal.getNumberOfPages();
+      for (let i = 1; i <= pageCount; i++) {
+        doc.setPage(i);
+        doc.setFontSize(8);
+        doc.setTextColor(148, 163, 184);
+        doc.text("SYSBJJ 2.0 - OSS! - EXCELENCIA OPERACIONAL E TECNICA", 14, 287);
+        doc.text(`Pagina ${i} de ${pageCount}`, 190, 287, { align: 'right' });
+      }
+
+      doc.save(`sysbjj_relatorio_diario_${new Date().toISOString().split('T')[0]}.pdf`);
+    } catch (e) {
+      console.error("Erro ao gerar PDF do Dashboard:", e);
+    } finally {
+      setIsExporting(false);
+    }
+  };
 
   const chartData = Array.from({ length: 7 }).map((_, index) => {
     const d = new Date();
@@ -150,8 +270,8 @@ const Dashboard: React.FC = () => {
     <div className="space-y-8 pb-20">
       <header className="flex flex-col lg:flex-row lg:items-center justify-between gap-6">
         <div>
-          <h1 className="text-3xl lg:text-4xl font-black text-slate-900 dark:text-white uppercase tracking-tighter italic">
-            Dashboard <span className="text-blue-600">Oss!</span>
+          <h1 className="text-3xl lg:text-4xl font-black text-slate-900 dark:text-white uppercase tracking-tighter italic mr-1">
+            Painel Principal <span className="text-blue-600">Oss!</span>
           </h1>
           <p className="text-slate-400 font-bold uppercase tracking-widest text-[10px] mt-2">
             Status da Academia: {profile.academyName} | Protocolo de Monitoramento Ativo
@@ -179,14 +299,14 @@ const Dashboard: React.FC = () => {
                     {temp !== null ? `${temp}°C` : '--°C'}
                  </div>
                  <div className="text-[9px] font-black text-slate-400 uppercase tracking-widest leading-none">
-                    {t('dashboard.dojoTemp')}
+                    {safeT('dashboard.dojoTemp', 'Temp. Tatame')}
                  </div>
               </div>
            </div>
 
            <div className="px-4 py-2 bg-emerald-500/10 border border-emerald-500/20 rounded-2xl flex items-center gap-2">
                 <div className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
-                <span className="text-[10px] font-black text-emerald-600 uppercase tracking-widest leading-none">{t('dashboard.tatameRealTime')}</span>
+                <span className="text-[10px] font-black text-emerald-600 uppercase tracking-widest leading-none">{safeT('dashboard.tatameRealTime', 'Tatame Online')}</span>
            </div>
         </div>
       </header>
@@ -273,7 +393,7 @@ const Dashboard: React.FC = () => {
                     {stat.isUp ? <ArrowUpRight size={12} /> : <ArrowDownRight size={12} />}
                     {stat.trend}
                   </div>
-                  <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest opacity-60">{t('dashboard.vsLastMonth')}</span>
+                  <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest opacity-60">{safeT('dashboard.vsLastMonth', 'vs mês anterior')}</span>
                 </div>
               </div>
             </Link>
@@ -294,19 +414,19 @@ const Dashboard: React.FC = () => {
                   <Cake size={32} />
                </div>
                <div>
-                  <h2 className="text-2xl font-black uppercase tracking-tighter italic">{t('dashboard.birthdays')}</h2>
-                  <p className="text-xs font-bold uppercase tracking-widest opacity-80 mt-1">{t('dashboard.birthdayMessage')}</p>
+                  <h2 className="text-2xl font-black uppercase tracking-tighter italic">{safeT('dashboard.birthdays', 'Aniversariantes do Dia')}</h2>
+                  <p className="text-xs font-bold uppercase tracking-widest opacity-80 mt-1">{safeT('dashboard.birthdayMessage', 'Parabéns aos guerreiros do tatame que celebram hoje!')}</p>
                </div>
             </div>
             <div className="flex flex-wrap gap-4">
-              {todayBirthdays.map(s => (
+               {todayBirthdays.map(s => (
                 <div key={s.id} className="flex items-center gap-3 bg-white/10 backdrop-blur-md px-5 py-3 rounded-2xl border border-white/20">
                   <div className="w-8 h-8 rounded-full bg-white text-rose-500 flex items-center justify-center font-black text-xs">
-                     {s.photoUrl ? <img src={s.photoUrl} className="w-full h-full rounded-full object-cover" /> : s.name[0]}
+                     {s.photoUrl ? <img src={s.photoUrl} className="w-full h-full rounded-full object-cover" referrerPolicy="no-referrer" /> : s.name[0]}
                   </div>
                   <span className="font-black uppercase tracking-tighter text-sm">{s.name}</span>
                 </div>
-              ))}
+               ))}
             </div>
           </div>
         </motion.div>
@@ -316,17 +436,17 @@ const Dashboard: React.FC = () => {
         <div className="xl:col-span-2 bg-white dark:bg-slate-900 rounded-[3rem] border border-slate-200 dark:border-white/5 p-8 shadow-2xl relative overflow-hidden">
           <div className="flex items-center justify-between mb-8 relative z-10">
             <div>
-              <h2 className="text-xl font-black text-slate-900 dark:text-white uppercase tracking-tighter italic">{t('dashboard.presenceRevenue')}</h2>
-              <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mt-1">{t('dashboard.weeklyReview')}</p>
+              <h2 className="text-xl font-black text-slate-900 dark:text-white uppercase tracking-tighter italic">{safeT('dashboard.presenceRevenue', 'Frequência & Faturamento')}</h2>
+              <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mt-1">{safeT('dashboard.weeklyReview', 'Acompanhamento de Presenças e Receita Semanal')}</p>
             </div>
             <div className="flex items-center gap-4">
               <div className="flex items-center gap-2">
                 <div className="w-3 h-3 rounded-full bg-blue-500" />
-                <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">{t('dashboard.presences')}</span>
+                <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">{safeT('dashboard.presences', 'Presenças')}</span>
               </div>
               <div className="flex items-center gap-2">
                 <div className="w-3 h-3 rounded-full bg-purple-500/30 border border-purple-500" />
-                <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">{t('dashboard.revenue')}</span>
+                <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">{safeT('dashboard.revenue', 'Faturamento')}</span>
               </div>
             </div>
           </div>
@@ -374,8 +494,8 @@ const Dashboard: React.FC = () => {
           <div className="absolute top-0 right-0 w-64 h-64 bg-blue-600/10 rounded-full -mr-32 -mt-32 blur-3xl group-hover:scale-125 transition-transform duration-700" />
           
           <div className="relative z-10 mb-8">
-            <h2 className="text-xl font-black text-white uppercase tracking-tighter italic">{t('dashboard.tatameStatus')}</h2>
-            <p className="text-[10px] font-bold text-slate-500 uppercase tracking-widest mt-1">{t('dashboard.graduationIntegrity')}</p>
+            <h2 className="text-xl font-black text-white uppercase tracking-tighter italic">{safeT('dashboard.tatameStatus', 'Status do Tatame')}</h2>
+            <p className="text-[10px] font-bold text-slate-500 uppercase tracking-widest mt-1">{safeT('dashboard.graduationIntegrity', 'Integridade e Governança Técnica')}</p>
           </div>
 
           <div className="space-y-6 flex-1 relative z-10">
@@ -385,7 +505,7 @@ const Dashboard: React.FC = () => {
                   <div className="p-2 bg-blue-500/20 rounded-xl text-blue-500">
                     <ShieldCheck size={18} />
                   </div>
-                  <span className="text-[11px] font-black text-white uppercase tracking-widest">{t('dashboard.securityProtocol')}</span>
+                  <span className="text-[11px] font-black text-white uppercase tracking-widest">{safeT('dashboard.securityProtocol', 'Protocolo de Segurança')}</span>
                 </div>
                 <span className="text-[10px] font-black text-emerald-500 uppercase tracking-widest">Ativo</span>
               </div>
@@ -396,7 +516,7 @@ const Dashboard: React.FC = () => {
                   className="h-full bg-blue-500 shadow-[0_0_10px_#3b82f6]"
                 />
               </div>
-              <p className="mt-3 text-[8px] font-medium text-slate-500 uppercase tracking-widest leading-none text-slate-400">Criptografia SHA-256 Validada</p>
+              <p className="mt-3 text-[8px] font-medium text-slate-400 uppercase tracking-widest leading-none">Criptografia SHA-256 Validada</p>
             </div>
 
             <div className="p-5 bg-white/5 rounded-3xl border border-white/10 hover:border-white/20 transition-all group/item">
@@ -405,9 +525,9 @@ const Dashboard: React.FC = () => {
                   <div className="p-2 bg-purple-500/20 rounded-xl text-purple-500">
                     <Award size={18} />
                   </div>
-                  <span className="text-[11px] font-black text-white uppercase tracking-widest">{t('dashboard.globalRanking')}</span>
+                  <span className="text-[11px] font-black text-white uppercase tracking-widest">{safeT('dashboard.globalRanking', 'Ranking de Assiduidade')}</span>
                 </div>
-                <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">{t('dashboard.localRank')}</span>
+                <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">{safeT('dashboard.localRank', 'Média de Presença')}</span>
               </div>
               <div className="w-full h-2 bg-slate-800 rounded-full overflow-hidden">
                 <motion.div 
@@ -416,12 +536,16 @@ const Dashboard: React.FC = () => {
                   className="h-full bg-purple-500 shadow-[0_0_10px_#a855f7]"
                 />
               </div>
-              <p className="mt-3 text-[8px] font-medium text-slate-500 uppercase tracking-widest leading-none text-slate-400">{t('dashboard.meritSystem')}</p>
+              <p className="mt-3 text-[8px] font-medium text-slate-400 uppercase tracking-widest leading-none">{safeT('dashboard.meritSystem', 'Sistema de Mérito por Presença')}</p>
             </div>
           </div>
 
-          <button className="mt-8 w-full bg-white text-slate-950 font-black py-4 rounded-2xl text-[11px] uppercase tracking-widest shadow-2xl shadow-white/10 transition-all hover:bg-slate-200 active:scale-95 relative z-10">
-            {t('dashboard.exportReport')}
+          <button 
+            disabled={isExporting}
+            onClick={exportToPDF}
+            className="mt-8 w-full bg-white text-slate-950 font-black py-4 rounded-2xl text-[11px] uppercase tracking-widest shadow-2xl shadow-white/10 transition-all hover:bg-slate-200 active:scale-95 relative z-10 disabled:opacity-50"
+          >
+            {isExporting ? 'Processando Relatório...' : safeT('dashboard.exportReport', 'Exportar Relatório Geral do Dojo')}
           </button>
         </div>
       </div>

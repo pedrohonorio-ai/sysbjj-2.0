@@ -49,7 +49,7 @@ const PerformanceAnalytics: React.FC = () => {
       <header className="flex flex-col md:flex-row md:items-center justify-between gap-6">
         <div>
           <h1 className="text-4xl md:text-6xl font-black text-slate-900 dark:text-white uppercase tracking-tighter italic leading-none">
-            Performance <span className="text-blue-600">HUB</span>
+            Hub de <span className="text-blue-600">Performance</span>
           </h1>
           <p className="text-slate-400 font-bold uppercase tracking-widest text-[10px] mt-3 italic flex items-center gap-2">
             <Shield size={12} className="text-blue-500" />
@@ -328,7 +328,7 @@ const PerformanceAnalytics: React.FC = () => {
                                             </div>
                                             <span className="text-[10px] font-black uppercase tracking-widest text-slate-500">Finalizações</span>
                                          </div>
-                                         <span className="text-sm font-black text-emerald-500 italic">4 ACHIEVED</span>
+                                         <span className="text-sm font-black text-emerald-500 italic">4 CONQUISTADAS</span>
                                       </div>
                                       <div className="flex items-center justify-between p-4 bg-slate-50 dark:bg-white/5 rounded-2xl border border-slate-100 dark:border-white/5">
                                          <div className="flex items-center gap-3">
@@ -337,7 +337,7 @@ const PerformanceAnalytics: React.FC = () => {
                                             </div>
                                             <span className="text-[10px] font-black uppercase tracking-widest text-slate-500">Cedidas</span>
                                          </div>
-                                         <span className="text-sm font-black text-rose-500 italic">2 CONCEDED</span>
+                                         <span className="text-sm font-black text-rose-500 italic">2 CEDIDAS</span>
                                       </div>
                                    </div>
 
@@ -416,7 +416,7 @@ const PerformanceAnalytics: React.FC = () => {
                                               comp.res === 'Silver' ? 'bg-slate-300 text-slate-600' : 
                                               'bg-amber-600 text-white'
                                             }`}>
-                                               {comp.res} MEDAL
+                                               {comp.res === 'Gold' ? 'OURO' : comp.res === 'Silver' ? 'PRATA' : 'BRONZE'}
                                             </span>
                                          </td>
                                       </tr>

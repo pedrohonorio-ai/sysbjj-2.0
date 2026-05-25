@@ -11,6 +11,106 @@ export const serializeData = (data: any) => {
   ));
 };
 
+export const SAFE_STUDENT_SELECT = {
+  id: true,
+  userId: true,
+  name: true,
+  nickname: true,
+  email: true,
+  phone: true,
+  birthDate: true,
+  gender: true,
+  cpf: true,
+  rg: true,
+  weight: true,
+  height: true,
+  category: true,
+  weightClass: true,
+  federationId: true,
+  lastPromotionDate: true,
+  status: true,
+  belt: true,
+  degrees: true,
+  stripes: true,
+  beltSince: true,
+  nextPromotion: true,
+  promotionNotes: true,
+  professorCriteria: true,
+  ibjjfEligible: true,
+  photoUrl: true,
+  monthlyValue: true,
+  dueDay: true,
+  active: true,
+  isKid: true,
+  isInstructor: true,
+  behaviorScore: true,
+  rewardPoints: true,
+  rulesKnowledge: true,
+  securityAuditStatus: true,
+  lastPaymentDate: true,
+  attendanceCount: true,
+  currentStreak: true,
+  lastSeen: true,
+  observations: true,
+  photo: true,
+  isReadyForPromotion: true,
+  planId: true,
+  portalAccessCode: true,
+  graduationNotes: true,
+  blackBeltDate: true,
+  blackBeltDegree: true,
+  lastDegreeDate: true,
+  graduationEligibleDate: true,
+  pros: true,
+  cons: true,
+  emergencyContact: true,
+  emergencyPhone: true,
+  medicalConditions: true,
+  address: true,
+  city: true,
+  state: true,
+  zipCode: true,
+  bloodType: true,
+  responsiblePerson: true,
+  responsibleEmail: true,
+  responsiblePhone: true,
+  responsibleCpf: true,
+  civilStatus: true,
+  occupation: true,
+  nationality: true,
+  rgIssuer: true,
+  lgpdConsent: true,
+  contractUrl: true,
+  billingPaused: true,
+  isCompetitor: true,
+  isWaitlist: true,
+  waitlistRank: true,
+  technicalNotes: true,
+  medicalCertificateUrl: true,
+  medicalCertificateDate: true,
+  medicalCertificateExpiration: true,
+  liabilityWaiverAccepted: true,
+  liabilityWaiverDate: true,
+  classId: true,
+  lastAttendanceDate: true,
+  joinedAt: true,
+  updatedAt: true,
+  attendanceHistory: true,
+  history: true,
+  techniques: true,
+  goals: true,
+  feedbacks: true,
+  homeWorkoutHistory: true,
+  completedRuleLessons: true,
+  customIndicators: true,
+  positionVideos: true,
+  milestones: true,
+  examRequirements: true,
+  graduationHistory: true,
+  technicalMetrics: true,
+  performanceRatings: true,
+};
+
 export async function dataHandler(req: AuthRequest, res: Response) {
   const { collection } = req.params;
   
@@ -31,7 +131,51 @@ export async function dataHandler(req: AuthRequest, res: Response) {
     if (req.method === 'GET') {
       let data;
       switch(collection) {
-        case 'students': data = await prisma.student.findMany({ where: { userId: uid }, orderBy: { joinedAt: 'desc' } }); break;
+        case 'students':
+          try {
+            data = await prisma.student.findMany({ where: { userId: uid }, orderBy: { joinedAt: 'desc' } });
+          } catch (err: any) {
+            console.warn("⚠️ [PRISMA FALLBACK] Error finding students, using safe select fallback:", err.message);
+            try {
+              const { graduationDate, nextDegreeDate, estimatedCoralDate, estimatedRedDate, blackBeltDate, blackBeltDegree, ...safeSelect } = SAFE_STUDENT_SELECT as any;
+              data = await prisma.student.findMany({
+                where: { userId: uid },
+                orderBy: { joinedAt: 'desc' },
+                select: safeSelect as any
+              });
+            } catch (fallbackErr: any) {
+              console.error("🚨 [PRISMA FALLBACK CRITICAL] Safe students query failed, running ultra-safe select fallback:", fallbackErr.message);
+              try {
+                const ultraSafeSelect = {
+                  id: true,
+                  userId: true,
+                  name: true,
+                  nickname: true,
+                  email: true,
+                  phone: true,
+                  status: true,
+                  belt: true,
+                  degrees: true,
+                  stripes: true,
+                  photoUrl: true,
+                  monthlyValue: true,
+                  dueDay: true,
+                  active: true,
+                  joinedAt: true,
+                  updatedAt: true
+                };
+                data = await prisma.student.findMany({
+                  where: { userId: uid },
+                  orderBy: { joinedAt: 'desc' },
+                  select: ultraSafeSelect as any
+                });
+              } catch (ultraErr: any) {
+                console.error("🚨 [PRISMA ULTRALIMIT] Ultimate students query failed, returning empty list:", ultraErr.message);
+                data = [];
+              }
+            }
+          }
+          break;
         case 'payments': data = await prisma.payment.findMany({ where: { userId: uid }, orderBy: { timestamp: 'desc' }, take: 200 }); break;
         case 'schedules': data = await prisma.classSchedule.findMany({ where: { userId: uid } }); break;
         case 'logs': data = await prisma.systemLog.findMany({ where: { userId: uid }, orderBy: { timestamp: 'desc' }, take: 100 }); break;
@@ -39,10 +183,28 @@ export async function dataHandler(req: AuthRequest, res: Response) {
         default: 
           if (anyPrisma[collection]) {
             if (collection.toLowerCase() === 'graduationhistory') {
-              data = await prisma.graduationHistory.findMany({
-                where: { student: { userId: uid } },
-                include: { student: true }
-              });
+              try {
+                data = await prisma.graduationHistory.findMany({
+                  where: { student: { userId: uid } },
+                  include: { student: true }
+                });
+              } catch (err: any) {
+                console.warn("⚠️ [PRISMA FALLBACK] Error finding graduationHistory, using safe include select fallback:", err.message);
+                try {
+                  const { graduationDate, nextDegreeDate, estimatedCoralDate, estimatedRedDate, ...safeSelect } = SAFE_STUDENT_SELECT as any;
+                  data = await prisma.graduationHistory.findMany({
+                    where: { student: { userId: uid } },
+                    include: {
+                      student: {
+                        select: safeSelect as any
+                      }
+                    }
+                  });
+                } catch (fallbackErr: any) {
+                  console.error("🚨 [PRISMA FALLBACK] Graduation history failed completely, returning empty:", fallbackErr.message);
+                  data = [];
+                }
+              }
             } else {
               try {
                 data = await anyPrisma[collection].findMany({ where: { userId: uid } });
@@ -140,10 +302,34 @@ export async function dataHandler(req: AuthRequest, res: Response) {
             if (!isNaN(d.getTime())) lastDegreeDateParsed = d;
           }
 
+          let graduationDateParsed: Date | null = null;
+          if (payload.graduationDate) {
+            const d = new Date(payload.graduationDate);
+            if (!isNaN(d.getTime())) graduationDateParsed = d;
+          }
+
+          let nextDegreeDateParsed: Date | null = null;
+          if (payload.nextDegreeDate) {
+            const d = new Date(payload.nextDegreeDate);
+            if (!isNaN(d.getTime())) nextDegreeDateParsed = d;
+          }
+
           let graduationEligibleDateParsed: Date | null = null;
           if (payload.graduationEligibleDate) {
             const d = new Date(payload.graduationEligibleDate);
             if (!isNaN(d.getTime())) graduationEligibleDateParsed = d;
+          }
+
+          let estimatedCoralDateParsed: Date | null = null;
+          if (payload.estimatedCoralDate) {
+            const d = new Date(payload.estimatedCoralDate);
+            if (!isNaN(d.getTime())) estimatedCoralDateParsed = d;
+          }
+
+          let estimatedRedDateParsed: Date | null = null;
+          if (payload.estimatedRedDate) {
+            const d = new Date(payload.estimatedRedDate);
+            if (!isNaN(d.getTime())) estimatedRedDateParsed = d;
           }
           
           const blackBeltDegreeParsed = isNaN(Number(payload.blackBeltDegree)) ? 0 : Math.round(Number(payload.blackBeltDegree));
@@ -158,16 +344,36 @@ export async function dataHandler(req: AuthRequest, res: Response) {
             ibjjfEligible: ibjjfEligible,
             lastPromotionDate: bSince.toISOString().split('T')[0],
             blackBeltDate: blackBeltDateParsed,
+            graduationDate: graduationDateParsed,
             blackBeltDegree: blackBeltDegreeParsed,
             lastDegreeDate: lastDegreeDateParsed,
-            graduationEligibleDate: graduationEligibleDateParsed
+            nextDegreeDate: nextDegreeDateParsed,
+            graduationEligibleDate: graduationEligibleDateParsed,
+            estimatedCoralDate: estimatedCoralDateParsed,
+            estimatedRedDate: estimatedRedDateParsed
           };
 
-          result = await prisma.student.upsert({
-            where: { id: id || 'new-stu' },
-            create: { ...cleanPayload, userId: uid },
-            update: { ...cleanPayload, userId: uid }
-          });
+          try {
+            result = await prisma.student.upsert({
+              where: { id: id || 'new-stu' },
+              create: { ...cleanPayload, userId: uid },
+              update: { ...cleanPayload, userId: uid }
+            });
+          } catch (upsertError: any) {
+            console.warn("⚠️ [PRISMA UPSERT FALLBACK] Failed to upsert student with full graduation fields, stripping them:", upsertError.message);
+            // Exclude fields: graduationDate, nextDegreeDate, estimatedCoralDate, estimatedRedDate
+            const { graduationDate, nextDegreeDate, estimatedCoralDate, estimatedRedDate, ...safePayload } = cleanPayload;
+            try {
+              result = await prisma.student.upsert({
+                where: { id: id || 'new-stu' },
+                create: { ...safePayload, userId: uid },
+                update: { ...safePayload, userId: uid }
+              });
+            } catch (fallbackError: any) {
+              console.error("🚨 [PRISMA UPSERT CRITICAL] Safe student upsert also failed:", fallbackError.message);
+              throw fallbackError;
+            }
+          }
 
           // Trigger automatic upgrade if allowed or update state
           import('./subscriptionService.js').then(m => m.updateSubscriptionPlan(uid));

@@ -1,6 +1,7 @@
 import { Response } from 'express';
 import { prisma } from '../prisma/client.js';
 import { AuthRequest } from './authMiddleware.js';
+import { SAFE_STUDENT_SELECT } from './data.js';
 
 export default async function batchHandler(req: AuthRequest, res: Response) {
   const { collections } = req.query;
@@ -36,11 +37,55 @@ export default async function batchHandler(req: AuthRequest, res: Response) {
 
         switch(collLower) {
           case 'students': 
-            data = await prisma.student.findMany({ 
-              where: { userId: uid }, 
-              orderBy: { joinedAt: 'desc' },
-              take: defaultStudentsTake
-            }); 
+            try {
+              data = await prisma.student.findMany({ 
+                where: { userId: uid }, 
+                orderBy: { joinedAt: 'desc' },
+                take: defaultStudentsTake
+              }); 
+            } catch (err: any) {
+              console.warn("⚠️ [BATCH SENSEI] Error reading students, running safe select:", err.message);
+              try {
+                const { graduationDate, nextDegreeDate, estimatedCoralDate, estimatedRedDate, blackBeltDate, blackBeltDegree, ...safeSelect } = SAFE_STUDENT_SELECT as any;
+                data = await prisma.student.findMany({
+                  where: { userId: uid },
+                  orderBy: { joinedAt: 'desc' },
+                  take: defaultStudentsTake,
+                  select: safeSelect as any
+                });
+              } catch (fallbackErr: any) {
+                console.error("🚨 [BATCH SENSEI CRITICAL] Safe student read failed, running ultra-safe select fallback:", fallbackErr.message);
+                try {
+                  const ultraSafeSelect = {
+                    id: true,
+                    userId: true,
+                    name: true,
+                    nickname: true,
+                    email: true,
+                    phone: true,
+                    status: true,
+                    belt: true,
+                    degrees: true,
+                    stripes: true,
+                    photoUrl: true,
+                    monthlyValue: true,
+                    dueDay: true,
+                    active: true,
+                    joinedAt: true,
+                    updatedAt: true
+                  };
+                  data = await prisma.student.findMany({
+                    where: { userId: uid },
+                    orderBy: { joinedAt: 'desc' },
+                    take: defaultStudentsTake,
+                    select: ultraSafeSelect as any
+                  });
+                } catch (ultraErr: any) {
+                  console.error("🚨 [BATCH ULTRALIMIT] Ultimate student read failed, returning empty list:", ultraErr.message);
+                  data = [];
+                }
+              }
+            }
             break;
           case 'payments': 
             data = await prisma.payment.findMany({ 
@@ -98,20 +143,46 @@ export default async function batchHandler(req: AuthRequest, res: Response) {
             data = await prisma.plan.findMany({ where: { userId: uid } }); 
             break;
           case 'graduationhistory':
-            data = await prisma.graduationHistory.findMany({
-              where: {
-                student: {
-                  userId: uid
+            try {
+              data = await prisma.graduationHistory.findMany({
+                where: {
+                  student: {
+                    userId: uid
+                  }
+                },
+                include: {
+                  student: true
+                },
+                take: 50,
+                orderBy: {
+                  promotedAt: "desc"
                 }
-              },
-              include: {
-                student: true
-              },
-              take: 50,
-              orderBy: {
-                promotedAt: "desc"
+              });
+            } catch (err: any) {
+              console.warn("⚠️ [BATCH SENSEI] Error reading graduation history, running safe student select:", err.message);
+              try {
+                const { graduationDate, nextDegreeDate, estimatedCoralDate, estimatedRedDate, ...safeSelect } = SAFE_STUDENT_SELECT as any;
+                data = await prisma.graduationHistory.findMany({
+                  where: {
+                    student: {
+                      userId: uid
+                    }
+                  },
+                  include: {
+                    student: {
+                      select: safeSelect as any
+                    }
+                  },
+                  take: 50,
+                  orderBy: {
+                    promotedAt: "desc"
+                  }
+                });
+              } catch (fallbackErr: any) {
+                console.error("🚨 [BATCH SENSEI] Graduation history completely failed, empty set:", fallbackErr.message);
+                data = [];
               }
-            });
+            }
             break;
           default: 
             if (anyPrisma[collection]) {

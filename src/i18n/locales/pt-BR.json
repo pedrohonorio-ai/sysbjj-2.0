@@ -41,6 +41,7 @@
     "instructor": "Sensei",
     "adult": "Adulto",
     "kid": "Kids",
+    "kids": "Kids",
     "type": "Tipo de Perfil",
     "value": "Mensalidade",
     "date": "Data",
@@ -316,7 +317,12 @@
       "cloudActive": "Nuvem Sincronizada",
       "blockchainOk": "Auditoria Blockchain OK",
       "aiGuardActive": "AI Sensei Guard Ativo",
-      "lastSync": "Último Sync"
+      "lastSync": "Último Sync",
+      "Active": "Ativo",
+      "Inactive": "Inativo",
+      "Overdue": "Inadimplente",
+      "Waitlist": "Fila de Esperas / Lista",
+      "Pending": "Pendente"
     },
     "portal": {
       "title": "Portal do Aluno",
@@ -730,7 +736,7 @@
     "athleteAge": "Idade Esportiva",
     "selectCompetitors": "Seleção de Atletas",
     "addSelectedCompetitors": "Confirmar Seleção",
-    "selectCompetitorsSubtitle: ": "Selecione os alunos da lista para registrar como competidores",
+    "selectCompetitorsSubtitle": "Selecione os alunos da lista para registrar como competidores",
     "searchStudents": "Pesquise na lista...",
     "noNewCompetitors": "Todos os alunos elegíveis já estão inseridos.",
     "selectionSuccess": "Lista de competidores atualizada! Oss.",

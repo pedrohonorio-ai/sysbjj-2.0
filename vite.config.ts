@@ -9,18 +9,21 @@ const __dirname = path.dirname(__filename);
 
 export default defineConfig(({ command, mode }) => {
     return {
+      base: '/',
       plugins: [react(), tailwindcss()],
+      optimizeDeps: {
+        include: ['react', 'react-dom']
+      },
       build: {
         outDir: 'dist',
         assetsDir: 'assets',
-        emptyOutDir: true,
-        chunkSizeWarningLimit: 1200,
+        sourcemap: false,
         rollupOptions: {
           output: {
-            manualChunks: {
-              react: ['react', 'react-dom'],
-              charts: ['recharts'],
-              ui: ['lucide-react']
+            manualChunks(id) {
+              if (id.includes('node_modules')) {
+                return 'vendor';
+              }
             }
           }
         }

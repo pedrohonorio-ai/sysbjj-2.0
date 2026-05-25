@@ -1,6 +1,6 @@
 import { Response } from 'express';
 import { prisma } from '../prisma/client.js';
-import { serializeData } from './data.js';
+import { serializeData, SAFE_STUDENT_SELECT } from './data.js';
 import { AuthRequest } from './authMiddleware.js';
 
 export default async function biHandler(req: AuthRequest, res: Response) {
@@ -8,8 +8,50 @@ export default async function biHandler(req: AuthRequest, res: Response) {
   if (!userId) return res.status(401).json({ error: "Sessão expirada" });
 
   try {
-    const [students, ledger, extraRevenue, payments] = await Promise.all([
-      prisma.student.findMany({ where: { userId } }),
+    let students: any[] = [];
+    try {
+      students = await prisma.student.findMany({ where: { userId } });
+    } catch (err: any) {
+      console.warn("⚠️ [BI SENSEI] Error reading students, running safe select:", err.message);
+      try {
+        const { graduationDate, nextDegreeDate, estimatedCoralDate, estimatedRedDate, blackBeltDate, blackBeltDegree, ...safeSelect } = SAFE_STUDENT_SELECT as any;
+        students = await prisma.student.findMany({
+          where: { userId },
+          select: safeSelect as any
+        });
+      } catch (fallbackE: any) {
+        console.error("🚨 [BI SENSEI] Safe student read failed, running ultra-safe select fallback:", fallbackE.message);
+        try {
+          const ultraSafeSelect = {
+            id: true,
+            userId: true,
+            name: true,
+            nickname: true,
+            email: true,
+            phone: true,
+            status: true,
+            belt: true,
+            degrees: true,
+            stripes: true,
+            photoUrl: true,
+            monthlyValue: true,
+            dueDay: true,
+            active: true,
+            joinedAt: true,
+            updatedAt: true
+          };
+          students = await prisma.student.findMany({
+            where: { userId },
+            select: ultraSafeSelect as any
+          });
+        } catch (ultraE: any) {
+          console.error("🚨 [BI ULTRALIMIT] Ultimate student read failed, returning empty list:", ultraE.message);
+          students = [];
+        }
+      }
+    }
+
+    const [ledger, extraRevenue, payments] = await Promise.all([
       prisma.transactionLedger.findMany({ where: { userId } }),
       prisma.extraRevenue.findMany({ where: { userId } }),
       prisma.payment.findMany({ where: { userId } })

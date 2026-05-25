@@ -338,9 +338,13 @@ export interface Student {
   portalAccessCode?: string;
   graduationNotes?: string;
   blackBeltDate?: string | Date;
+  graduationDate?: string | Date;
   blackBeltDegree?: number;
   lastDegreeDate?: string | Date;
+  nextDegreeDate?: string | Date;
   graduationEligibleDate?: string | Date;
+  estimatedCoralDate?: string | Date;
+  estimatedRedDate?: string | Date;
   pros?: string;
   cons?: string;
   photoUrl?: string;

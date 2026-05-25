@@ -136,9 +136,13 @@ model Student {
   portalAccessCode String?
   graduationNotes  String?
   blackBeltDate    DateTime?
+  graduationDate   DateTime?
   blackBeltDegree  Int      @default(0)
   lastDegreeDate   DateTime?
+  nextDegreeDate   DateTime?
   graduationEligibleDate DateTime?
+  estimatedCoralDate DateTime?
+  estimatedRedDate DateTime?
   pros             String?
   cons             String?
   emergencyContact String?
