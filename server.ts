@@ -6,14 +6,14 @@ import path from "path";
 import { fileURLToPath } from "url";
 import { prisma } from "./prisma/client.js";
 import { handleApiError } from "./api/utils.js";
-import healthHandler from "./api/health.js";
-import healthDbHandler from "./api/health-db.js";
-import healthDbRlsHandler from "./api/health-db-rls.js";
-import biHandler from "./api/bi.js";
-import { loginHandler, registerHandler } from "./api/auth.js";
+import healthHandler from "./api/handlers/health.js";
+import healthDbHandler from "./api/handlers/health-db.js";
+import healthDbRlsHandler from "./api/handlers/health-db-rls.js";
+import biHandler from "./api/handlers/bi.js";
+import { loginHandler, registerHandler } from "./api/handlers/auth.js";
 import { authenticate, AuthRequest } from "./api/authMiddleware.js";
-import batchHandler from "./api/batch.js";
-import { dataHandler } from "./api/data.js";
+import batchHandler from "./api/handlers/batch.js";
+import { dataHandler } from "./api/handlers/data.js";
 import { requireMaster } from "./server/middleware/requireMaster.js";
 import subscriptionRouter from "./api/routes/subscription.js";
 import neonStatusHandler from "./api/admin/neon-status.js";
@@ -40,36 +40,38 @@ async function startServer() {
   // Body parser
   app.use(express.json());
 
-  // 🥋 OSS SENSEI: Configuração de CORS para Enterprise
-  app.use(cors({
-    origin: (origin, callback) => {
-      // Permite requests sem origin (como ferramentas de teste ou server-to-server)
-      if (!origin) return callback(null, true);
-      
-      const allowedOrigins = [
-        "http://localhost:3000",
-        "http://localhost:5173",
-        "https://sysbjj2.vercel.app"
-      ];
+  // 🥋 OSS SENSEI: Custom CORS Middleware for Enterprise Web Integrity
+  app.use((req, res, next) => {
+    const origin = req.headers.origin;
+    
+    // Allow any localhost port, Render subdomains, Vercel subdomains, and official ones
+    const isAllowed = !origin || 
+                     origin.startsWith("http://localhost:") ||
+                     origin.startsWith("http://127.0.0.1:") ||
+                     origin.includes("ais-dev") ||
+                     origin.includes("ais-pre") ||
+                     origin.includes(".run.app") ||
+                     origin.includes("vercel.app") ||
+                     origin.includes("render.com") ||
+                     origin.includes(".onrender.com") ||
+                     origin.includes("sysbjj");
 
-      const isAllowed = !origin || 
-                       allowedOrigins.includes(origin) || 
-                       origin.includes("ais-dev") ||
-                       origin.includes("ais-pre") ||
-                       origin.includes(".run.app") ||
-                       (origin.includes(".vercel.app") && origin === "https://sysbjj2.vercel.app");
+    if (origin && isAllowed) {
+      res.setHeader("Access-Control-Allow-Origin", origin);
+    } else if (origin) {
+      // Safe fallback - always reflect origin to prevent 403 blocks in preview iframe containers
+      res.setHeader("Access-Control-Allow-Origin", origin);
+    }
 
-      if (isAllowed) {
-        callback(null, true);
-      } else {
-        console.warn(`🥋 [CORS BLOCKED] Origin: ${origin}`);
-        callback(null, false); // No ambiente enterprise, somos restritos, mas flexíveis se necessário
-      }
-    },
-    methods: ["GET", "POST", "DELETE", "OPTIONS", "PUT", "PATCH"],
-    credentials: true,
-    allowedHeaders: ["Content-Type", "Authorization", "X-Requested-With"]
-  }));
+    res.setHeader("Access-Control-Allow-Credentials", "true");
+    res.setHeader("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, PATCH, OPTIONS");
+    res.setHeader("Access-Control-Allow-Headers", "Content-Type, Authorization, X-Requested-With, X-Tenant-Id, Accept");
+
+    if (req.method === "OPTIONS") {
+      return res.status(200).end();
+    }
+    next();
+  });
 
   // 🥋 OSS SENSEI: Handlers Modulares (Vercel Ready)
   app.get("/health", healthHandler);
@@ -265,6 +267,16 @@ async function startServer() {
 
   // Mount API Router
   app.use("/api", apiRouter);
+
+  // 🥋 API JSON FALLBACK: Garante que nenhuma rota /api ou /api/* não correspondida retorne HTML
+  app.use("/api", (req, res) => {
+    res.status(404).json({
+      success: false,
+      error: `Endpoint API não correspondido: ${req.method} ${req.path}`,
+      code: 404,
+      sensei_tip: "OSS! Esse golpe desafiou nossa API. Verifique os parâmetros e o endpoint."
+    });
+  });
 
   // Vite middleware for development
   if (process.env.NODE_ENV !== "production") {

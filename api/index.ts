@@ -1,14 +1,14 @@
 import express, { Response } from "express";
 import cors from "cors";
 import { prisma } from "../prisma/client.js";
-import healthHandler from "./health.js";
-import healthDbHandler from "./health-db.js";
-import healthDbRlsHandler from "./health-db-rls.js";
-import biHandler from "./bi.js";
-import { loginHandler, registerHandler } from "./auth.js";
+import healthHandler from "./handlers/health.js";
+import healthDbHandler from "./handlers/health-db.js";
+import healthDbRlsHandler from "./handlers/health-db-rls.js";
+import biHandler from "./handlers/bi.js";
+import { loginHandler, registerHandler } from "./handlers/auth.js";
 import { authenticate, AuthRequest } from "./authMiddleware.js";
-import batchHandler from "./batch.js";
-import { dataHandler } from "./data.js";
+import batchHandler from "./handlers/batch.js";
+import { dataHandler } from "./handlers/data.js";
 import subscriptionRouter from "./routes/subscription.js";
 import { requireMaster } from "../server/middleware/requireMaster.js";
 import neonStatusHandler from "./admin/neon-status.js";
@@ -20,12 +20,38 @@ const app = express();
 // Body parser
 app.use(express.json());
 
-// CORS config
-app.use(cors({
-    origin: true,
-    credentials: true,
-    allowedHeaders: ["Content-Type", "Authorization", "X-Requested-With"]
-}));
+// 🥋 OSS SENSEI: Custom CORS Middleware for Enterprise Web Integrity
+app.use((req, res, next) => {
+    const origin = req.headers.origin;
+    
+    // Allow any localhost port, Render subdomains, Vercel subdomains, and official ones
+    const isAllowed = !origin || 
+                     origin.startsWith("http://localhost:") ||
+                     origin.startsWith("http://127.0.0.1:") ||
+                     origin.includes("ais-dev") ||
+                     origin.includes("ais-pre") ||
+                     origin.includes(".run.app") ||
+                     origin.includes("vercel.app") ||
+                     origin.includes("render.com") ||
+                     origin.includes(".onrender.com") ||
+                     origin.includes("sysbjj");
+
+    if (origin && isAllowed) {
+        res.setHeader("Access-Control-Allow-Origin", origin);
+    } else if (origin) {
+        // Safe fallback - always reflect origin to prevent 403 blocks in preview iframe containers
+        res.setHeader("Access-Control-Allow-Origin", origin);
+    }
+
+    res.setHeader("Access-Control-Allow-Credentials", "true");
+    res.setHeader("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, PATCH, OPTIONS");
+    res.setHeader("Access-Control-Allow-Headers", "Content-Type, Authorization, X-Requested-With, X-Tenant-Id, Accept");
+
+    if (req.method === "OPTIONS") {
+        return res.status(200).end();
+    }
+    next();
+});
 
 // 🥋 [OSS SENSEI] Initialization middleware - PROTEGE TODAS AS ROTAS API
 app.use((req, res, next) => {
@@ -299,6 +325,17 @@ protectedRouter.delete("/data/:collection/:id", async (req: any, res: any) => {
 });
 
 app.use("/api", protectedRouter);
+app.use("/", protectedRouter);
+
+// 🥋 FALLBACK DE MONITORAMENTO DE ROTAS: Garante que NENHUMA rota da API responda HTML em caso de 404
+app.all("*", (req, res) => {
+    res.status(404).json({
+        success: false,
+        error: `Endpoint não encontrado no tatame do servidor: ${req.method} ${req.path}`,
+        code: 404,
+        sensei_tip: "OSS! Essa técnica/rota não foi montada no servidor. Verifique o caminho e tente novamente."
+    });
+});
 
 // --- GLOBAL ERROR HANDLER (OSS SENSEI) ---
 // Garante que o servidor NUNCA envie HTML em caso de erro na API

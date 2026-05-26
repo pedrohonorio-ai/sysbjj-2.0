@@ -1,7 +1,7 @@
 import { Response } from 'express';
-import { prisma } from '../prisma/client.js';
+import { prisma } from '../../prisma/client.js';
 import { serializeData, SAFE_STUDENT_SELECT } from './data.js';
-import { AuthRequest } from './authMiddleware.js';
+import { AuthRequest } from '../authMiddleware.js';
 
 export default async function biHandler(req: AuthRequest, res: Response) {
   const userId = req.user?.id;

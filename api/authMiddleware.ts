@@ -1,7 +1,7 @@
 import { Request, Response, NextFunction } from 'express';
 import jwt from 'jsonwebtoken';
 
-const JWT_SECRET = process.env.JWT_SECRET || 'sysbjj-enterprise-oss-secret-2024';
+const JWT_SECRET = process.env.JWT_SECRET || process.env.AUTH_SECRET || process.env.SESSION_SECRET || 'sysbjj-enterprise-oss-secret-2024';
 
 export interface AuthRequest extends Request {
   user?: {
@@ -16,7 +16,9 @@ export const authenticate = (req: AuthRequest, res: Response, next: NextFunction
 
   if (!authHeader || !authHeader.startsWith('Bearer ')) {
     return res.status(401).json({ 
+      success: false,
       error: 'Acesso negado. Token não fornecido.',
+      code: 401,
       sensei_tip: 'OSS! Você precisa estar autenticado para acessar este recurso.' 
     });
   }
@@ -44,7 +46,9 @@ export const authenticate = (req: AuthRequest, res: Response, next: NextFunction
     next();
   } catch (err) {
     return res.status(403).json({ 
+      success: false,
       error: 'Token inválido ou expirado.',
+      code: 403,
       sensei_tip: 'Sua sessão expirou. Por favor, faça login novamente para continuar sua evolução.'
     });
   }

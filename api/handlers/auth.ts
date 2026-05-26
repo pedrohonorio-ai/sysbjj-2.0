@@ -1,11 +1,11 @@
 import { Request, Response } from 'express';
 import * as bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
-import { prisma } from '../prisma/client.js';
-import { handleApiError } from './utils.js';
-import { MASTER_ADMIN_EMAIL } from '../server/config/masterAdmin.js';
+import { prisma } from '../../prisma/client.js';
+import { handleApiError } from '../utils.js';
+import { MASTER_ADMIN_EMAIL } from '../../server/config/masterAdmin.js';
 
-const JWT_SECRET = process.env.JWT_SECRET || 'sysbjj-enterprise-oss-secret-2024';
+const JWT_SECRET = process.env.JWT_SECRET || process.env.AUTH_SECRET || process.env.SESSION_SECRET || 'sysbjj-enterprise-oss-secret-2024';
 
 const generateToken = (user: any) => {
   const isMasterAdmin = user.email === MASTER_ADMIN_EMAIL;

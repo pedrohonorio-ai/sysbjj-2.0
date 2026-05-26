@@ -1,16 +1,35 @@
 import { Response } from 'express';
-import { prisma } from '../prisma/client.js';
-import { AuthRequest } from './authMiddleware.js';
+import { prisma } from '../../prisma/client.js';
+import { AuthRequest } from '../authMiddleware.js';
 import { SAFE_STUDENT_SELECT } from './data.js';
 
 export default async function batchHandler(req: AuthRequest, res: Response) {
   const { collections } = req.query;
   const userId = req.user?.id;
+  const userEmail = req.user?.email || "Unknown";
   
-  if (!userId) return res.status(401).json({ error: "Sessão expirada" });
-  if (!collections || typeof collections !== 'string') return res.status(400).json({ error: "collections list required" });
+  if (!userId) {
+    return res.status(401).json({ 
+      success: false,
+      error: "Sessão expirada ou usuário não autenticado.",
+      code: 401
+    });
+  }
 
-  const collectionList = collections.split(',');
+  if (!collections || typeof collections !== 'string') {
+    return res.status(400).json({ 
+      success: false,
+      error: "Coleções de dados são obrigatórias.",
+      code: 400
+    });
+  }
+
+  // Sanitise collection names
+  const collectionList = collections
+    .split(',')
+    .map(c => c.trim())
+    .filter(c => c.length > 0 && /^[a-zA-Z0-9_]+$/.test(c));
+
   const results: Record<string, any> = {};
   const uid = String(userId);
 
@@ -22,14 +41,18 @@ export default async function batchHandler(req: AuthRequest, res: Response) {
     ));
   };
 
+  const QUERY_TIMEOUT_MS = 4500; // 4.5 seconds query timeout per collection
+
+  console.log(`🥋 [BATCH INITIATED] User: ${userEmail} (${uid}) | Collections: ${collectionList.join(', ')}`);
+
   try {
     await Promise.all(collectionList.map(async (collection) => {
-      try {
+      // Helper containing standard database load query
+      const dbFetchQuery = async () => {
         let data;
         const anyPrisma = prisma as any;
         const collLower = collection.toLowerCase();
         
-        // Define limits based on standard enterprise performance parameters
         const defaultStudentsTake = 200;
         const defaultPaymentsTake = 100;
         const defaultLogsTake = 50;
@@ -81,7 +104,6 @@ export default async function batchHandler(req: AuthRequest, res: Response) {
                     select: ultraSafeSelect as any
                   });
                 } catch (ultraErr: any) {
-                  console.error("🚨 [BATCH ULTRALIMIT] Ultimate student read failed, returning empty list:", ultraErr.message);
                   data = [];
                 }
               }
@@ -145,41 +167,24 @@ export default async function batchHandler(req: AuthRequest, res: Response) {
           case 'graduationhistory':
             try {
               data = await prisma.graduationHistory.findMany({
-                where: {
-                  student: {
-                    userId: uid
-                  }
-                },
-                include: {
-                  student: true
-                },
+                where: { student: { userId: uid } },
+                include: { student: true },
                 take: 50,
-                orderBy: {
-                  promotedAt: "desc"
-                }
+                orderBy: { promotedAt: "desc" }
               });
             } catch (err: any) {
               console.warn("⚠️ [BATCH SENSEI] Error reading graduation history, running safe student select:", err.message);
               try {
                 const { graduationDate, nextDegreeDate, estimatedCoralDate, estimatedRedDate, ...safeSelect } = SAFE_STUDENT_SELECT as any;
                 data = await prisma.graduationHistory.findMany({
-                  where: {
-                    student: {
-                      userId: uid
-                    }
-                  },
+                  where: { student: { userId: uid } },
                   include: {
-                    student: {
-                      select: safeSelect as any
-                    }
+                    student: { select: safeSelect as any }
                   },
                   take: 50,
-                  orderBy: {
-                    promotedAt: "desc"
-                  }
+                  orderBy: { promotedAt: "desc" }
                 });
               } catch (fallbackErr: any) {
-                console.error("🚨 [BATCH SENSEI] Graduation history completely failed, empty set:", fallbackErr.message);
                 data = [];
               }
             }
@@ -187,11 +192,9 @@ export default async function batchHandler(req: AuthRequest, res: Response) {
           default: 
             if (anyPrisma[collection]) {
               try {
-                // Tenta com filtro de userId
                 data = await anyPrisma[collection].findMany({ where: { userId: uid }, take: 30 });
               } catch (e1) {
                 try {
-                  // Se falhar (por exemplo, tabela sem userId, como table de Histórico ou Config), faz select geral
                   data = await anyPrisma[collection].findMany({ take: 30 });
                 } catch (e2) {
                   data = [];
@@ -201,15 +204,33 @@ export default async function batchHandler(req: AuthRequest, res: Response) {
               data = [];
             }
         }
-        results[collection] = data;
-      } catch (e) {
-        console.error(`🥋 [BATCH ERROR] Falha na coleção ${collection}:`, e);
+        return data || [];
+      };
+
+      // Race with timeout to safeguard enterprise performance
+      const fetchPromise = dbFetchQuery();
+      const timeoutPromise = new Promise((_, reject) => {
+        setTimeout(() => reject(new Error("Timeout")), QUERY_TIMEOUT_MS);
+      });
+
+      try {
+        results[collection] = await Promise.race([fetchPromise, timeoutPromise]);
+      } catch (err: any) {
+        console.error(`🚨 [BATCH TIMEOUT/ERROR] Collection: ${collection} -> Fallback to [] | Details:`, err.message);
         results[collection] = [];
       }
     }));
 
-    res.json(serializeData(results));
+    res.json(serializeData({
+      success: true,
+      ...results
+    }));
   } catch (error: any) {
-    res.status(500).json({ error: error.message });
+    console.error(`🚨 [BATCH COMPREHENSIVE CRASH]:`, error);
+    res.status(500).json({ 
+      success: false, 
+      error: error.message || "Erro na transação em lote (Batch)", 
+      code: 500 
+    });
   }
 }

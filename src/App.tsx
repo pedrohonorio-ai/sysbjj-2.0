@@ -53,16 +53,12 @@ const Sidebar = ({ isOpen, toggle, onLogout, isMasterAdmin }: { isOpen: boolean,
   const footerItems = filteredItems.filter(item => ['promotions', 'ibjjf-rules', 'history'].includes(item.id));
 
   const masterLinksList = [
-    { id: 'saas-admin', path: '/saas-admin', label: 'Controle SaaS Master', icon: <Award size={20} className="text-rose-500" /> },
-    { id: 'observability', path: '/observability', label: 'Observabilidade SaaS', icon: <Activity size={20} className="text-indigo-500" /> },
-    { id: 'governance', path: '/audit?tab=overview', label: t('audit.governance', 'Governança'), icon: <ShieldCheck size={20} className="text-rose-500" /> },
-    { id: 'transactions', path: '/audit?tab=neon', label: t('audit.transactions', 'Transações Globais'), icon: <Activity size={20} className="text-emerald-500" /> },
-    { id: 'security-logs', path: '/audit?tab=logs', label: t('audit.securityLogs', 'Auditoria de Logs'), icon: <Clock size={20} className="text-cyan-500" /> },
+    { id: 'audit', path: '/audit', label: 'SaaS & Auditoria Global', icon: <ShieldCheck size={20} className="text-rose-500" /> },
     { id: 'settings', path: '/settings', label: t('common.settings'), icon: <SettingsIcon size={20} className="text-slate-500" /> },
   ];
 
   const renderMasterLink = (item: { id: string, path: string, label: string, icon: React.ReactNode }) => {
-    const isActive = location.pathname + location.search === item.path || (location.pathname === '/audit' && item.path.startsWith('/audit') && location.search === item.path.substring(6));
+    const isActive = location.pathname === '/audit' || location.pathname === '/saas-admin' || location.pathname === '/observability';
     
     return (
       <Link
@@ -649,13 +645,13 @@ const App: React.FC = () => {
                     <Route path="/timer" element={<FightTimer />} />
                     <Route path="/plans" element={<Navigate to="/business?tab=saas-plans" replace />} />
                     <Route path="/billing" element={<BillingCenter />} />
-                    <Route path="/saas-admin" element={isMasterAdmin ? <SaaSControlCenter /> : <Navigate to="/dashboard" />} />
+                    <Route path="/saas-admin" element={<Navigate to="/audit?tab=saas" replace />} />
                     
                     {/* Governança Master - Restrito */}
                     <Route path="/settings" element={<Settings />} />
                     <Route path="/audit" element={isMasterAdmin ? <SystemAudit /> : <Navigate to="/dashboard" />} />
                     <Route path="/admin" element={isMasterAdmin ? <MasterControlCenter /> : <Navigate to="/dashboard" />} />
-                    <Route path="/observability" element={isMasterAdmin ? <SystemObservability /> : <Navigate to="/dashboard" />} />
+                    <Route path="/observability" element={<Navigate to="/audit?tab=observability" replace />} />
                     
                     <Route path="/exhibition" element={<ExhibitionMode />} />
                     <Route path="/portal/:code" element={<StudentPortal />} />

@@ -114,6 +114,7 @@ class EnterpriseApi {
           const response = await fetch(url, {
             ...fetchOptions,
             headers,
+            credentials: 'include',
             signal: controller.signal
           });
 
@@ -123,22 +124,48 @@ class EnterpriseApi {
             let errorInfo = `HTTP Error: ${response.status}`;
             const contentType = response.headers.get('content-type');
             
+            // 🥋 OSS SENSEI: Autolimpeza de token de forma segura
+            // Apenas remove a credencial se receber 401 (Não Autorizado) ou se o JSON indicar explicitamente Token Expirado.
+            // Isso previne que alunos sejam desconectados ao encontrarem recursos restritos (403).
+            if (response.status === 401) {
+              if (typeof window !== 'undefined') {
+                console.warn("🥋 [API AUTH CLEANUP] Sessão inválida (401), limpando credenciais locais de forma segura.");
+                localStorage.removeItem('oss_auth');
+                window.dispatchEvent(new Event('oss_unauthorized'));
+              }
+            }
+            
             if (contentType && contentType.includes('application/json')) {
               try {
                 const errorData = await response.json();
+                
+                // Se for um 403 indicando token expirado de verdade, limpa a sessão
+                if (response.status === 403 && (errorData.error?.includes('expirado') || errorData.error?.includes('token') || errorData.error?.includes('Token') || errorData.error?.includes('Sessão'))) {
+                  if (typeof window !== 'undefined') {
+                    console.warn("🥋 [API AUTH CLEANUP] Token expirado confirmado via JSON (403), limpando credenciais.");
+                    localStorage.removeItem('oss_auth');
+                    window.dispatchEvent(new Event('oss_unauthorized'));
+                  }
+                }
+
                 if (errorData.error) errorInfo = errorData.error;
                 const error = new Error(errorInfo) as any;
                 error.status = response.status;
                 error.troubleshooting = errorData.troubleshooting;
-                error.sensei_tip = errorData.sensei_tip;
+                error.sensei_tip = errorData.sensei_tip || "OSS! Tente realizar a ação novamente.";
                 throw error;
-              } catch (e) {
-                throw new Error(errorInfo);
+              } catch (e: any) {
+                if (e.status) throw e;
+                const error = new Error(errorInfo) as any;
+                error.status = response.status;
+                throw error;
               }
             } else {
               const text = await response.text();
               console.error('🥋 [NON-JSON ERROR]', text.substring(0, 200));
-              throw new Error(`Erro inesperado do servidor (${response.status}). Verifique sua conexão.`);
+              const error = new Error(`Resposta do servidor não pôde ser lida como JSON (${response.status}).`) as any;
+              error.status = response.status;
+              throw error;
             }
           }
 
@@ -160,6 +187,21 @@ class EnterpriseApi {
           return data;
         } catch (error: any) {
           lastError = error;
+          
+          // OSS SENSEI: Se for falha de autenticação (401) ou proibido (403), não repete a tentativa!
+          if (error.status === 401 || error.status === 403) {
+            console.error(`🥋 [AUTH/FORBIDDEN LIMIT] Status ${error.status} detectado. Abortando tentativas.`, error.message);
+            
+            // Aborda cache como fallback imediato para manter dojo operacional
+            if (isGet && useCache) {
+              const cachedData = this.getCache(url);
+              if (cachedData) {
+                console.log(`🥋 [CACHE RETRIEVED] Recuperado cache sob status ${error.status} para ${path}`);
+                return cachedData;
+              }
+            }
+            break;
+          }
           
           if (attempt < retry - 1) {
             const delay = Math.pow(2, attempt) * 1000;

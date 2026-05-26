@@ -81,7 +81,14 @@ const MANDATORY_DICTIONARY: Record<string, string> = {
   "system.sync": "Sincronização Ativa",
   "system.securityNodeActive": "Sistema Protegido",
   "system.automaticSyncEnabled": "Sincronização Ativa",
-  "system.hashAutomaticSyncEnabled": "Sincronização Ativa"
+  "system.hashAutomaticSyncEnabled": "Sincronização Ativa",
+  "common.training": "Treinamento & Aulas",
+  "common.tools": "Gestão e Ferramentas",
+  "common.options": "Ajustes & Configurações",
+  "common.logout": "Sair / Encerrar Sessão",
+  "common.shieldedIntegrity": "Segurança Blindada",
+  "settings.languageSelection": "Seleção de Idioma",
+  "settings.languageUpdateNote": "O sistema está configurado de forma inteligente em Português do Brasil para conformidade operacional e de acordo com as diretrizes do Sensei SYSBJJ 2.0."
 };
 
 // Technical terminology replacement map

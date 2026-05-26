@@ -48,6 +48,8 @@ import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
 import { MASTER_ADMINS, BELT_COLORS } from '../constants/index.js';
 import { motion, AnimatePresence } from 'motion/react';
+import { SaaSControlCenter } from './admin/SaaSControlCenter.js';
+import { SystemObservability } from './admin/SystemObservability.js';
 
 const SystemAudit: React.FC = () => {
   const { t } = useTranslation();
@@ -57,17 +59,17 @@ const SystemAudit: React.FC = () => {
   const [categoryFilter, setCategoryFilter] = useState<SystemLog['category'] | 'All'>('All');
   const [dateRange, setDateRange] = useState<'Today' | 'Week' | 'Month' | 'All'>('Week');
   const [searchParams, setSearchParams] = useSearchParams();
-  const [activeTab, setActiveTab] = useState<'overview' | 'intelligence' | 'logs' | 'control' | 'neon'>(() => {
+  const [activeTab, setActiveTab] = useState<'saas' | 'observability' | 'overview' | 'neon' | 'logs' | 'intelligence' | 'control'>(() => {
     const tab = searchParams.get('tab');
-    if (tab && ['overview', 'intelligence', 'logs', 'control', 'neon'].includes(tab)) {
+    if (tab && ['saas', 'observability', 'overview', 'neon', 'logs', 'intelligence', 'control'].includes(tab)) {
       return tab as any;
     }
-    return 'overview';
+    return 'saas';
   });
 
   useEffect(() => {
     const tab = searchParams.get('tab');
-    if (tab && ['overview', 'intelligence', 'logs', 'control', 'neon'].includes(tab)) {
+    if (tab && ['saas', 'observability', 'overview', 'neon', 'logs', 'intelligence', 'control'].includes(tab)) {
       setActiveTab(tab as any);
     }
   }, [searchParams]);
@@ -495,15 +497,15 @@ const SystemAudit: React.FC = () => {
       <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-6">
         <div className="space-y-1">
           <div className="flex items-center gap-3">
-             <div className="w-10 h-10 bg-blue-600 rounded-xl flex items-center justify-center text-white shadow-lg shadow-blue-600/20">
+             <div className="w-10 h-10 bg-rose-600 rounded-xl flex items-center justify-center text-white shadow-lg shadow-rose-600/20">
                <ShieldCheck size={24} />
              </div>
              <h1 className="text-3xl font-black text-slate-950 dark:text-white tracking-tighter uppercase leading-none">
-              {t('securityConsole')}
+               SaaS & Auditoria Global
              </h1>
           </div>
           <p className="text-slate-500 dark:text-slate-400 font-bold uppercase text-[9px] tracking-[0.2em] mt-2">
-            Monitoramento de Integridade & Auditoria Multi-Usuário
+            Controle SaaS Master • Observabilidade de Banco • Governança de Rede • Transações Globais • Auditoria de Logs
           </p>
         </div>
         
@@ -545,18 +547,20 @@ const SystemAudit: React.FC = () => {
       </div>
 
       {/* Main Tabs */}
-      <div className="flex bg-slate-100 dark:bg-slate-900/50 p-1.5 rounded-[2rem] border border-slate-200 dark:border-slate-800 w-fit overflow-x-auto">
+      <div className="flex bg-slate-100 dark:bg-slate-900/50 p-1.5 rounded-[2rem] border border-slate-200 dark:border-slate-800 w-full overflow-x-auto gap-1">
         {[
-          { id: 'overview', label: 'Monitoramento', icon: <Cpu size={16} /> },
-          { id: 'intelligence', label: t('userAccessCenter'), icon: <Fingerprint size={16} /> },
-          { id: 'logs', label: 'Histórico de Logs', icon: <Terminal size={16} /> },
-          { id: 'control', label: 'Master Control', icon: <Settings size={16} /> },
-          { id: 'neon', label: 'Neon Database Platform', icon: <Database size={16} /> }
+          { id: 'saas', label: 'Controle SaaS Master', icon: <ShieldCheck size={16} className="text-rose-500" /> },
+          { id: 'observability', label: 'Observabilidade SaaS', icon: <Activity size={16} className="text-indigo-500" /> },
+          { id: 'overview', label: 'Governança', icon: <ShieldCheck size={16} className="text-emerald-500" /> },
+          { id: 'neon', label: 'Transações Globais', icon: <Database size={16} className="text-cyan-500" /> },
+          { id: 'logs', label: 'Auditoria de Logs', icon: <Terminal size={16} className="text-gray-500" /> },
+          { id: 'intelligence', label: 'Portão de IA', icon: <Fingerprint size={16} className="text-blue-500" /> },
+          { id: 'control', label: 'Comandos Master', icon: <Settings size={16} className="text-slate-500" /> }
         ].map(tab => (
           <button
             key={tab.id}
             onClick={() => setActiveTab(tab.id as any)}
-            className={`flex items-center gap-2 px-8 py-4 rounded-3xl text-[10px] font-black uppercase tracking-widest transition-all ${
+            className={`flex items-center gap-2 px-6 py-4 rounded-3xl text-[10px] font-black uppercase tracking-widest transition-all ${
               activeTab === tab.id 
                 ? 'bg-white dark:bg-slate-800 text-blue-600 shadow-xl shadow-blue-500/10' 
                 : 'text-slate-400 hover:text-slate-600 dark:hover:text-slate-300'
@@ -569,6 +573,28 @@ const SystemAudit: React.FC = () => {
       </div>
 
       <AnimatePresence mode="wait">
+        {activeTab === 'saas' && (
+          <motion.div
+            key="saas"
+            initial={{ opacity: 0, scale: 0.98 }}
+            animate={{ opacity: 1, scale: 1 }}
+            exit={{ opacity: 0, scale: 0.98 }}
+          >
+            <SaaSControlCenter />
+          </motion.div>
+        )}
+
+        {activeTab === 'observability' && (
+          <motion.div
+            key="observability"
+            initial={{ opacity: 0, scale: 0.98 }}
+            animate={{ opacity: 1, scale: 1 }}
+            exit={{ opacity: 0, scale: 0.98 }}
+          >
+            <SystemObservability />
+          </motion.div>
+        )}
+
         {activeTab === 'overview' && (
           <motion.div 
             key="overview"

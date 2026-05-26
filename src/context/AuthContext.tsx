@@ -65,6 +65,18 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       }
     }
     setLoading(false);
+
+    // 🥋 OSS SENSEI: Registra listener de autolimpeza para sessões expiradas/403
+    const handleUnauthorized = () => {
+      setUser(null);
+      setRole(null);
+      setStudentCode(undefined);
+    };
+
+    window.addEventListener('oss_unauthorized', handleUnauthorized);
+    return () => {
+      window.removeEventListener('oss_unauthorized', handleUnauthorized);
+    };
   }, []);
 
   const login = async (email: string, pass: string) => {

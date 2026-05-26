@@ -64,18 +64,6 @@ if (typeof window !== "undefined" && !(window as any).__CUSTOM_WS__) {
       private _customOnClose: any = null;
 
       constructor(url: string | URL, protocols?: string | string[]) {
-        // 5. Encerrar conexões antigas antes de abrir novas
-        try {
-          for (const ws of activeSockets) {
-            if (ws && ws.readyState !== OriginalWebSocket.CLOSED) {
-              ws.close();
-            }
-          }
-          activeSockets.clear();
-        } catch (e) {
-          // Silencioso
-        }
-
         super(url, protocols);
         activeSockets.add(this);
 

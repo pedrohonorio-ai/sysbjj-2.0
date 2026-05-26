@@ -5,11 +5,9 @@ import { AppLanguage } from '../types.js';
 import { Check, Globe } from 'lucide-react';
 
 const languages = [
-  { code: AppLanguage.PORTUGUESE_BR, name: 'Português', native: 'Português (Brasil)', flag: '🇧🇷' },
-  { code: AppLanguage.ENGLISH_US, name: 'English', native: 'English (US)', flag: '🇺🇸' },
-  { code: AppLanguage.SPANISH_ES, name: 'Spanish', native: 'Español', flag: '🇪🇸' },
-  { code: AppLanguage.JAPANESE, name: 'Japanese', native: '日本語', flag: '🇯🇵' },
-  { code: AppLanguage.RUSSIAN, name: 'Russian', native: 'Русский', flag: '🇷🇺' }
+  { code: AppLanguage.PORTUGUESE_BR, name: 'Português', native: 'Português (Brasil)', flag: '🇧🇷', active: true, reason: 'Idioma padrão e recomendado do ecossistema SYSBJJ' },
+  { code: AppLanguage.ENGLISH_US, name: 'English', native: 'English (US)', flag: '🇺🇸', active: false, reason: 'Indisponível - Foco operacional em português do Brasil' },
+  { code: AppLanguage.SPANISH_ES, name: 'Spanish', native: 'Español', flag: '🇪🇸', active: false, reason: 'Indisponível - Foco operacional em português do Brasil' }
 ];
 
 const LanguageSelection: React.FC = () => {
@@ -22,32 +20,41 @@ const LanguageSelection: React.FC = () => {
           <Globe size={28} />
         </div>
         <div>
-          <h1 className="text-2xl font-bold dark:text-white">{t('settings.languageSelection')}</h1>
-          <p className="text-slate-500">{t('common.settings')} • {t('settings.languageSelection')}</p>
+          <h1 className="text-2xl font-bold dark:text-white">Idioma do Sistema</h1>
+          <p className="text-slate-500">Configurações • Diretriz de Idioma</p>
         </div>
       </div>
 
       <div className="bg-white dark:bg-slate-800 rounded-3xl border border-slate-200 dark:border-slate-700 shadow-sm overflow-hidden">
         <div className="divide-y divide-slate-100 dark:divide-slate-700">
           {languages.map((lang) => {
-            const isSelected = language === lang.code;
+            const isSelected = lang.active && language === lang.code;
             return (
               <button
                 key={lang.code}
-                onClick={() => setLanguage(lang.code)}
-                className="w-full p-6 flex items-center justify-between hover:bg-slate-50 dark:hover:bg-slate-700/50 transition-colors text-left group"
+                disabled={!lang.active}
+                onClick={() => {
+                  if (lang.active) {
+                    setLanguage(lang.code);
+                  }
+                }}
+                className={`w-full p-6 flex items-center justify-between transition-colors text-left group ${
+                  lang.active 
+                    ? 'hover:bg-slate-50 dark:hover:bg-slate-700/50 cursor-pointer' 
+                    : 'opacity-50 cursor-not-allowed bg-slate-50/50 dark:bg-slate-900/10'
+                }`}
               >
                 <div className="flex items-center gap-6">
-                  <span className="text-4xl">{lang.flag}</span>
+                  <span className="text-4xl filter grayscale-[40%]">{lang.flag}</span>
                   <div>
                     <p className={`font-bold text-lg ${isSelected ? 'text-blue-600' : 'text-slate-900 dark:text-white'}`}>
                       {lang.name}
                     </p>
-                    <p className="text-sm text-slate-500">{lang.native}</p>
+                    <p className="text-xs text-slate-500 mt-0.5">{lang.reason}</p>
                   </div>
                 </div>
                 <div className={`w-8 h-8 rounded-full border-2 flex items-center justify-center transition-all ${
-                  isSelected ? 'bg-blue-600 border-blue-600 text-white' : 'border-slate-200 group-hover:border-blue-300'
+                  isSelected ? 'bg-blue-600 border-blue-600 text-white' : 'border-slate-200'
                 }`}>
                   {isSelected && <Check size={18} />}
                 </div>
@@ -58,8 +65,11 @@ const LanguageSelection: React.FC = () => {
       </div>
       
       <div className="p-6 bg-blue-50 dark:bg-blue-900/10 rounded-2xl border border-blue-100 dark:border-blue-900/30">
-        <p className="text-sm text-blue-700 dark:text-blue-400 font-medium">
-          {t('settings.languageUpdateNote')}
+        <p className="text-sm text-blue-700 dark:text-blue-400 font-bold uppercase tracking-wider text-[10px]">
+          🥋 DIRETRIZ SENSEI:
+        </p>
+        <p className="text-sm text-slate-600 dark:text-slate-300 mt-2">
+          De acordo com as diretrizes do Master Sensei do SYSBJJ 2.0, o sistema foi padronizado e otimizado integralmente para o Português (Brasil). Isso garante que toda a terminologia técnica, de graduação, chamada, controle de mensalidades e fluxo financeiro dos dojos funcione perfeitamente sem falhas de tradução. OSS!
         </p>
       </div>
     </div>

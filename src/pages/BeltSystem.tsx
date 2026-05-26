@@ -209,6 +209,7 @@ const BeltSystem: React.FC = () => {
 
   // Cache/Memoization dos cálculos de graduação para evitar recálculo a cada render (Requisito 19)
   const calculatedMetrics = useMemo(() => {
+    if (!students || !Array.isArray(students)) return [];
     return students.map(student => {
       const isKid = !!student.isKid;
       const currentBelt = (student.belt || "Branca") as any;

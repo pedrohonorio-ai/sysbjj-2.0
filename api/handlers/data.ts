@@ -1,7 +1,7 @@
 import { Response } from 'express';
-import { prisma } from '../prisma/client.js';
-import { handleApiError } from './utils.js';
-import { AuthRequest } from './authMiddleware.js';
+import { prisma } from '../../prisma/client.js';
+import { handleApiError } from '../utils.js';
+import { AuthRequest } from '../authMiddleware.js';
 
 export const serializeData = (data: any) => {
   return JSON.parse(JSON.stringify(data, (k, v) => 
@@ -376,25 +376,62 @@ export async function dataHandler(req: AuthRequest, res: Response) {
           }
 
           // Trigger automatic upgrade if allowed or update state
-          import('./subscriptionService.js').then(m => m.updateSubscriptionPlan(uid));
+          import('../subscriptionService.js').then(m => m.updateSubscriptionPlan(uid));
           break;
         case 'presence':
+          const cleanEmail = String(payload.email || '');
+          const cleanDeviceId = String(payload.deviceId || 'default');
+          const cleanLastSeen = BigInt(payload.lastSeen || Date.now());
+          const cleanUserAgent = payload.userAgent ? String(payload.userAgent) : null;
+          const cleanRole = payload.role ? String(payload.role) : null;
+
           result = await prisma.presence.upsert({
             where: { 
               email_deviceId: { 
-                email: String(payload.email || ''), 
-                deviceId: String(payload.deviceId || 'default') 
+                email: cleanEmail, 
+                deviceId: cleanDeviceId 
               } 
             },
-            create: { ...payload, userId: uid, lastSeen: BigInt(payload.lastSeen || Date.now()) },
-            update: { ...payload, userId: uid, lastSeen: BigInt(payload.lastSeen || Date.now()) }
+            create: { 
+              userId: uid,
+              email: cleanEmail,
+              deviceId: cleanDeviceId,
+              role: cleanRole,
+              lastSeen: cleanLastSeen,
+              userAgent: cleanUserAgent
+            },
+            update: { 
+              role: cleanRole,
+              lastSeen: cleanLastSeen,
+              userAgent: cleanUserAgent
+            }
           });
           break;
         case 'profile':
+          const cleanProfilePayload = {
+            name: String(payload.name || ''),
+            academyName: String(payload.academyName || ''),
+            belt: String(payload.belt || 'Branca'),
+            stripes: Number(payload.stripes) || 0,
+            specialization: payload.specialization ? String(payload.specialization) : null,
+            avatarUrl: payload.avatarUrl ? String(payload.avatarUrl) : null,
+            pixKey: payload.pixKey ? String(payload.pixKey) : null,
+            pixName: payload.pixName ? String(payload.pixName) : null,
+            pixCity: payload.pixCity ? String(payload.pixCity) : null,
+            graduationRules: payload.graduationRules ? String(payload.graduationRules) : null,
+            customCriteria: payload.customCriteria || null,
+            logoUrl: payload.logoUrl ? String(payload.logoUrl) : null,
+            backgroundImageUrl: payload.backgroundImageUrl ? String(payload.backgroundImageUrl) : null,
+            technicalFocus: payload.technicalFocus ? String(payload.technicalFocus) : null,
+            technicalFocusDescription: payload.technicalFocusDescription ? String(payload.technicalFocusDescription) : null,
+            latitude: payload.latitude !== undefined && payload.latitude !== null ? Number(payload.latitude) : null,
+            longitude: payload.longitude !== undefined && payload.longitude !== null ? Number(payload.longitude) : null,
+            geofenceRadius: payload.geofenceRadius !== undefined && payload.geofenceRadius !== null ? Number(payload.geofenceRadius) : null,
+          };
           result = await prisma.professorProfile.upsert({
             where: { userId: uid },
-            create: { ...payload, userId: uid },
-            update: { ...payload, userId: uid }
+            create: { ...cleanProfilePayload, userId: uid },
+            update: { ...cleanProfilePayload, userId: uid }
           });
           break;
         case 'logs':

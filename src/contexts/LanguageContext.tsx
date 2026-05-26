@@ -14,37 +14,24 @@ interface LanguageContextType {
 const LanguageContext = createContext<LanguageContextType | undefined>(undefined);
 
 export const LanguageProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
-  const [language, setLanguageState] = useState<AppLanguage>(() => {
-    const saved = (localStorage.getItem('language') || localStorage.getItem('oss_language')) as AppLanguage;
-    const validLangs = [AppLanguage.PORTUGUESE_BR, AppLanguage.ENGLISH_US, AppLanguage.SPANISH_ES];
-    if (saved && validLangs.includes(saved)) {
-      return saved;
-    }
-    return AppLanguage.PORTUGUESE_BR;
-  });
+  const [language, setLanguageState] = useState<AppLanguage>(AppLanguage.PORTUGUESE_BR);
 
   useEffect(() => {
-    const savedLanguage = localStorage.getItem('language') || localStorage.getItem('oss_language') || 'pt';
-    const validLangs = ['pt', 'en', 'es'];
-    const activeLang = validLangs.includes(savedLanguage) ? savedLanguage : 'pt';
+    localStorage.setItem('language', 'pt');
+    localStorage.setItem('oss_language', 'pt');
     
-    // Force PT-BR as priority if invalid or general cleanup
-    localStorage.setItem('language', activeLang);
-    localStorage.setItem('oss_language', activeLang);
-    
-    if (i18n.language !== activeLang) {
-      i18n.changeLanguage(activeLang);
+    if (i18n.language !== 'pt') {
+      i18n.changeLanguage('pt');
     }
   }, [language]);
 
   const setLanguage = (lang: AppLanguage) => {
-    const validLangs = [AppLanguage.PORTUGUESE_BR, AppLanguage.ENGLISH_US, AppLanguage.SPANISH_ES];
-    const targetLang = validLangs.includes(lang) ? lang : AppLanguage.PORTUGUESE_BR;
-    
-    setLanguageState(targetLang);
-    localStorage.setItem('language', targetLang);
-    localStorage.setItem('oss_language', targetLang);
-    i18n.changeLanguage(targetLang);
+    setLanguageState(AppLanguage.PORTUGUESE_BR);
+    localStorage.setItem('language', 'pt');
+    localStorage.setItem('oss_language', 'pt');
+    if (i18n.language !== 'pt') {
+      i18n.changeLanguage('pt');
+    }
   };
 
   const t = (key: string, defaultValueOrData?: string | Record<string, string | number>): string => {

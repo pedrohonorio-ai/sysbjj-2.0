@@ -5,7 +5,8 @@ export const requireMaster = (req: AuthRequest, res: Response, next: NextFunctio
   if (!req.user || req.user.role !== "MASTER") {
     return res.status(403).json({
       success: false,
-      error: "Acesso restrito ao Sensei Master."
+      error: "Acesso restrito ao Sensei Master.",
+      code: 403
     });
   }
   next();
