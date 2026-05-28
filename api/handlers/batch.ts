@@ -1,7 +1,7 @@
 import { Response } from 'express';
 import { prisma } from '../../prisma/client.js';
 import { AuthRequest } from '../authMiddleware.js';
-import { SAFE_STUDENT_SELECT } from './data.js';
+import { SAFE_STUDENT_SELECT, enrichStudentsList } from './data.js';
 
 export default async function batchHandler(req: AuthRequest, res: Response) {
   const { collections } = req.query;
@@ -220,6 +220,10 @@ export default async function batchHandler(req: AuthRequest, res: Response) {
         results[collection] = [];
       }
     }));
+
+    if (results.students) {
+      results.students = enrichStudentsList(results.students);
+    }
 
     res.json(serializeData({
       success: true,

@@ -667,7 +667,7 @@
     "checkin": "Presença Rápida",
     "stripesCount": "Graus",
     "newSuccess": "Matrícula realizada com sucesso! OSS.",
-    "deleteConfirm": "Deseja realmente excluir este lançamento financeiro permanentemente?",
+    "deleteConfirm": "Sensei, deseja realmente excluir o cadastro deste atleta permanentemente? Esta ação apagará todo o histórico financeiro e de presença e é irreversível!",
     "contact": "Canais de Contato",
     "journey": "Histórico de Faixas",
     "matHistory": "Linha do Tempo de Aulas",

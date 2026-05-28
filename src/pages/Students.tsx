@@ -353,6 +353,7 @@ const NewStudentModal = ({ onClose, defaultIsKid }: { onClose: () => void, defau
         ...formData,
         stripes: Number(formData.stripes || 0),
         degrees: Number(formData.degrees || 0),
+        beltSince: formData.lastPromotionDate ? new Date(formData.lastPromotionDate + 'T12:00:00').toISOString() : new Date().toISOString(),
         attendanceCount: 0,
         history: [],
         techniques: [],
@@ -1264,7 +1265,12 @@ const StudentDetailsModal = ({ student, onClose }: { student: Student; onClose: 
       return;
     }
 
-    updateStudent(student.id, editFormData);
+    const updatedData = {
+      ...editFormData,
+      beltSince: editFormData.lastPromotionDate ? new Date(editFormData.lastPromotionDate + 'T12:00:00').toISOString() : undefined
+    };
+
+    updateStudent(student.id, updatedData);
     setShowSuccess(true);
     setTimeout(() => {
       setShowSuccess(false);
@@ -1760,6 +1766,19 @@ const StudentDetailsModal = ({ student, onClose }: { student: Student; onClose: 
 
                 <button type="submit" className="w-full mt-6 py-5 bg-blue-600 text-white rounded-[1.5rem] font-black uppercase tracking-widest text-xs shadow-xl active:scale-95 transition-all flex items-center justify-center gap-3">
                   {showSuccess ? <><ThumbsUp size={20} />{t('common.saveSuccess').toUpperCase()}</> : <><Save size={20} />{t('common.save').toUpperCase()}</>}
+                </button>
+
+                <button 
+                  type="button" 
+                  onClick={() => {
+                    if (confirm(t('students.deleteConfirm') || "Sensei, deseja realmente excluir o cadastro deste atleta permanentemente?")) {
+                      deleteStudent(student.id);
+                      onClose();
+                    }
+                  }}
+                  className="w-full mt-3 py-4 bg-red-600/10 hover:bg-red-600 hover:text-white text-red-600 dark:text-red-400 dark:hover:text-white rounded-[1.5rem] font-black uppercase tracking-widest text-xs active:scale-95 transition-all flex items-center justify-center gap-2 border border-red-500/20"
+                >
+                  <Trash2 size={16} /> {t('students.deleteBtn') || "Apagar Ficha de Aluno de Forma Definitiva"}
                 </button>
               </form>
             </div>

@@ -267,14 +267,19 @@ protectedRouter.delete("/data/:collection/:id", async (req: any, res: any) => {
     const userId = req.user?.id;
     if (!userId) return res.status(401).json({ error: "Unauthorized" });
 
-    // Proteção dupla de exclusão de alunos
+    // Proteção dupla de exclusão de alunos - Permite se for o dono do cadastro ou se for o administrador geral
     const lowerColl = collection.toLowerCase();
     if (lowerColl === 'student' || lowerColl === 'students') {
-        if (req.user?.role !== 'MASTER') {
-            return res.status(403).json({
-                success: false,
-                error: "Apenas o Sensei Master pode remover estudantes permanentemente."
-            });
+        try {
+            const student = await prisma.student.findUnique({ where: { id } });
+            if (student && student.userId !== String(userId) && req.user?.role !== 'MASTER') {
+                return res.status(403).json({
+                    success: false,
+                    error: "Acesso negado: Este aluno pertence a outra academia."
+                });
+            }
+        } catch (e) {
+            // Ignora erro de leitura e continua para o deleteMany seguro por userId
         }
     }
 

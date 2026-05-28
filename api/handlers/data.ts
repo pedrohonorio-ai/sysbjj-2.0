@@ -11,6 +11,52 @@ export const serializeData = (data: any) => {
   ));
 };
 
+export const enrichStudent = (s: any) => {
+  if (!s || typeof s !== 'object') return s;
+  
+  // Calculate time at current belt dynamically
+  let beltSinceDate = s.beltSince ? new Date(s.beltSince) : null;
+  if (!beltSinceDate && s.lastPromotionDate) {
+    beltSinceDate = new Date(s.lastPromotionDate + 'T12:00:00');
+  }
+  if (!beltSinceDate || isNaN(beltSinceDate.getTime())) {
+    beltSinceDate = s.joinedAt ? new Date(s.joinedAt) : new Date();
+  }
+
+  const rightNow = new Date();
+  const diffMonths = (rightNow.getFullYear() - beltSinceDate.getFullYear()) * 12 + (rightNow.getMonth() - beltSinceDate.getMonth());
+  
+  let minTime = 12;
+  const currentBelt = String(s.belt || 'Branca').toLowerCase();
+  if (currentBelt === "branca") minTime = 12;
+  else if (currentBelt === "azul") minTime = 24;
+  else if (currentBelt === "roxa") minTime = 18;
+  else if (currentBelt === "marrom") minTime = 12;
+
+  const isEligible = diffMonths >= minTime;
+
+  // Next Promotion Estimate
+  const estNextPromotion = new Date(beltSinceDate);
+  estNextPromotion.setMonth(estNextPromotion.getMonth() + minTime);
+
+  return {
+    ...s,
+    stripe: s.stripes !== undefined ? s.stripes : 0,
+    instructorId: s.userId || '',
+    graduationDate: s.graduationDate || s.beltSince || s.joinedAt || new Date().toISOString(),
+    graduationEligible: isEligible,
+    nextGraduationEstimate: s.nextPromotion || estNextPromotion.toISOString(),
+    beltHistory: s.beltHistory || []
+  };
+};
+
+export const enrichStudentsList = (data: any) => {
+  if (Array.isArray(data)) {
+    return data.map(enrichStudent);
+  }
+  return enrichStudent(data);
+};
+
 export const SAFE_STUDENT_SELECT = {
   id: true,
   userId: true,
@@ -220,7 +266,8 @@ export async function dataHandler(req: AuthRequest, res: Response) {
             return res.status(404).json({ error: `Coleção não encontrada: ${collection}` });
           }
       }
-      return res.json(serializeData(data));
+      const finalData = collection === 'students' ? enrichStudentsList(data) : data;
+      return res.json(serializeData(finalData));
     }
 
     if (req.method === 'POST') {
@@ -381,7 +428,20 @@ export async function dataHandler(req: AuthRequest, res: Response) {
         case 'presence':
           const cleanEmail = String(payload.email || '');
           const cleanDeviceId = String(payload.deviceId || 'default');
-          const cleanLastSeen = BigInt(payload.lastSeen || Date.now());
+          
+          let cleanLastSeen: bigint;
+          try {
+            const raw = payload.lastSeen;
+            const num = Number(raw);
+            if (raw !== undefined && raw !== null && !isNaN(num)) {
+              cleanLastSeen = BigInt(Math.floor(num));
+            } else {
+              cleanLastSeen = BigInt(Date.now());
+            }
+          } catch {
+            cleanLastSeen = BigInt(Date.now());
+          }
+
           const cleanUserAgent = payload.userAgent ? String(payload.userAgent) : null;
           const cleanRole = payload.role ? String(payload.role) : null;
 
@@ -435,10 +495,23 @@ export async function dataHandler(req: AuthRequest, res: Response) {
           });
           break;
         case 'logs':
+          let cleanTimestamp: bigint;
+          try {
+            const raw = payload.timestamp;
+            const num = Number(raw);
+            if (raw !== undefined && raw !== null && !isNaN(num)) {
+              cleanTimestamp = BigInt(Math.floor(num));
+            } else {
+              cleanTimestamp = BigInt(Date.now());
+            }
+          } catch {
+            cleanTimestamp = BigInt(Date.now());
+          }
+
           result = await prisma.systemLog.create({
             data: {
               ...payload,
-              timestamp: payload.timestamp ? BigInt(payload.timestamp) : BigInt(Date.now()),
+              timestamp: cleanTimestamp,
               userId: uid
             }
           });
@@ -467,7 +540,8 @@ export async function dataHandler(req: AuthRequest, res: Response) {
             return res.status(404).json({ error: `Coleção não suportada: ${collection}` });
           }
       }
-      return res.json(serializeData(result));
+      const finalResult = collection === 'students' ? enrichStudent(result) : result;
+      return res.json(serializeData(finalResult));
     }
   } catch (error: any) {
     handleApiError(res, error, collection);
