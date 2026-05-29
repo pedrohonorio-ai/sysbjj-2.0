@@ -28,10 +28,17 @@ export const enrichStudent = (s: any) => {
   
   let minTime = 12;
   const currentBelt = String(s.belt || 'Branca').toLowerCase();
-  if (currentBelt === "branca") minTime = 12;
-  else if (currentBelt === "azul") minTime = 24;
-  else if (currentBelt === "roxa") minTime = 18;
-  else if (currentBelt === "marrom") minTime = 12;
+  if (currentBelt.includes("branca") || currentBelt === "white") minTime = 12;
+  else if (currentBelt.includes("cinza") || currentBelt.includes("gray")) minTime = 12;
+  else if (currentBelt.includes("amarela") || currentBelt.includes("yellow")) minTime = 12;
+  else if (currentBelt.includes("laranja") || currentBelt.includes("orange")) minTime = 12;
+  else if (currentBelt.includes("verde") || currentBelt.includes("green")) minTime = 12;
+  else if (currentBelt === "azul" || currentBelt === "blue") minTime = 24;
+  else if (currentBelt === "roxa" || currentBelt === "purple") minTime = 18;
+  else if (currentBelt === "marrom" || currentBelt === "brown") minTime = 12;
+  else if (currentBelt === "preta" || currentBelt === "black") minTime = 36;
+  else if (currentBelt.includes("coral")) minTime = 84;
+  else if (currentBelt === "vermelha" || currentBelt === "red") minTime = 120;
 
   const isEligible = diffMonths >= minTime;
 

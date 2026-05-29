@@ -156,7 +156,7 @@ interface DataContextType {
   addPlan: (plan: Omit<Plan, 'id'>) => void;
   updatePlan: (id: string, updates: Partial<Plan>) => void;
   deletePlan: (id: string) => void;
-  approveGraduation: (studentId: string, newBelt: string) => void;
+  approveGraduation: (studentId: string, newBelt: string, newStripes?: number, promotedBy?: string, isOverride?: boolean, justification?: string) => void;
   exportData: () => void;
   importData: (jsonData: string) => void;
 }
@@ -797,29 +797,39 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     logAction('Horário Removido', `Aula ID ${id} excluída`, 'Security');
   };
 
-  const approveGraduation = useCallback((studentId: string, newBelt: string) => {
+  const approveGraduation = useCallback((studentId: string, newBelt: string, newStripes: number = 0, promotedBy: string = 'Sensei', isOverride: boolean = false, justification: string = '') => {
     const student = students.find(s => s.id === studentId);
     if (!student) return;
 
     const oldBelt = student.belt;
-    const oldStripes = student.stripes || 0;
+    const oldStripes = student.stripes || student.degrees || 0;
+    const isStripePromotion = oldBelt === newBelt && newStripes > oldStripes;
 
-    // 🥋 AO GRADUAR: reseta graus para 0 e atualiza datas de carência/estágio
     const nowDt = new Date();
+    
+    // Obter tempo mínimo oficial da faixa para estimativa de carência
+    // Se for promoção de listras, a carência para nova listra é menor (ex: 3-4 meses).
     let minMonths = 12;
-    const normalBeltLower = newBelt.toLowerCase();
-    if (normalBeltLower === "branca") minMonths = 12;
-    else if (normalBeltLower === "azul") minMonths = 24;
-    else if (normalBeltLower === "roxa") minMonths = 18;
-    else if (normalBeltLower === "marrom") minMonths = 12;
+    if (isStripePromotion) {
+      minMonths = student.isKid ? 3 : 4;
+    } else {
+      const normalBeltLower = newBelt.toLowerCase();
+      if (normalBeltLower === "branca") minMonths = 12;
+      else if (normalBeltLower === "azul") minMonths = 24;
+      else if (normalBeltLower === "roxa") minMonths = 18;
+      else if (normalBeltLower === "marrom") minMonths = 12;
+      else if (normalBeltLower === "preta" || normalBeltLower === "black") minMonths = 36;
+      else if (normalBeltLower.includes("coral") || normalBeltLower.includes("red-black") || normalBeltLower.includes("red-white")) minMonths = 84;
+      else if (normalBeltLower.includes("vermelha") || normalBeltLower === "red") minMonths = 120;
+    }
 
     const nPromotion = new Date(nowDt);
     nPromotion.setMonth(nPromotion.getMonth() + minMonths);
 
     const updates = { 
       belt: newBelt as any, 
-      stripes: 0,
-      degrees: 0,
+      stripes: newStripes,
+      degrees: newStripes,
       isReadyForPromotion: false,
       lastPromotionDate: nowDt.toISOString().split('T')[0],
       beltSince: nowDt,
@@ -841,11 +851,13 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
          previousBelt: oldBelt,
          newBelt: newBelt,
          previousStripes: oldStripes,
-         newStripes: 0,
+         newStripes: newStripes,
          promotedAt: nowDt.toISOString(),
-         promotedBy: user.email || 'Sensei',
-         notes: student.graduationNotes || 'Graduado com sucesso pelo Sensei.',
-         ibjjfValidated: true
+         promotedBy: promotedBy,
+         notes: justification || (isStripePromotion 
+           ? `Promovido ao ${newStripes}º Grau da Faixa ${newBelt}.` 
+           : `Graduado com sucesso de ${oldBelt} para ${newBelt} pelo Sensei.`),
+         ibjjfValidated: !isOverride
        };
 
        api.saveData('graduationHistory', user.id, newHist)
@@ -855,13 +867,20 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
          .catch(err => console.error("🥋 Falha ao salvar GraduationHistory:", err));
     }
 
-    logAction('Graduação Aprovada', `Aluno ${student.name} graduado de ${oldBelt} para ${newBelt}`, 'Security');
+    const logTitle = isStripePromotion ? 'Grau Aprovado' : 'Graduação Aprovada';
+    const logDesc = isStripePromotion 
+      ? `Aluno ${student.name} recebeu o ${newStripes}º Grau na faixa ${newBelt}`
+      : `Aluno ${student.name} graduado de ${oldBelt} para ${newBelt}`;
+
+    logAction(logTitle, logDesc, 'Security');
     
-    // Log to ledger for "Blockchain" financial/status audits
+    // Log to ledger for financial/status audits
     addLedgerEntry({
       type: 'StatusChange',
       amount: 0,
-      description: `Graduação: ${student.name} (${newBelt})`,
+      description: isStripePromotion 
+        ? `Grau: ${student.name} (${newStripes}º Grau na faixa ${newBelt})`
+        : `Graduação: ${student.name} (${newBelt})`,
       category: 'Graduação',
       method: 'Sistema',
       studentId: studentId

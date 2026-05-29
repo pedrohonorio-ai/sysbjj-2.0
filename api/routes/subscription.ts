@@ -6,10 +6,10 @@ const router = Router();
 
 // OS SENSEI: EMV Standard Static/Dynamic PIX Payload Generator with dynamic tag lengths & mathematical CRC16
 function generatePixPayload(pixKey: string, pixHolder: string, pixCity: string, price: number): string {
-  const normalizedKey = String(pixKey || "pedro.honorio@gm.rio").trim();
+  const normalizedKey = String(pixKey || "dashfire@gmail.com").trim();
   
   // Clean special characters from Holder and City to avoid banking app scanner failures
-  const normalizedHolder = String(pixHolder || "SYSBJJ 2.0 Tecnologia Ltda")
+  const normalizedHolder = String(pixHolder || "Pedro Paulo Honorio")
     .trim()
     .normalize("NFD")
     .replace(/[\u0300-\u036f]/g, "")
@@ -74,8 +74,8 @@ router.get("/admin/pix-config", authenticate as any, async (req: AuthRequest, re
 
     return res.json({
       success: true,
-      pixKey: masterSub?.pixKey || "pedro.honorio@gm.rio",
-      pixHolder: masterSub?.pixHolder || "SYSBJJ 2.0 Tecnologia Ltda",
+      pixKey: masterSub?.pixKey || "dashfire@gmail.com",
+      pixHolder: masterSub?.pixHolder || "Pedro Paulo Honorio",
       pixCity: masterSub?.pixCity || "Rio de Janeiro"
     });
   } catch (error: any) {
@@ -228,8 +228,8 @@ router.get("/current", authenticate as any, async (req: AuthRequest, res: Respon
       startedAt: sub.startedAt.toISOString(),
       createdAt: sub.createdAt.toISOString(),
       updatedAt: sub.updatedAt.toISOString(),
-      pixKey: masterSub?.pixKey || "pedro.honorio@gm.rio",
-      pixHolder: masterSub?.pixHolder || "SYSBJJ 2.0 Tecnologia Ltda",
+      pixKey: masterSub?.pixKey || "dashfire@gmail.com",
+      pixHolder: masterSub?.pixHolder || "Pedro Paulo Honorio",
       pixCity: masterSub?.pixCity || "Rio de Janeiro",
       usagePercent,
       canAddStudents: currentStudents < limitVal
@@ -254,8 +254,8 @@ router.get("/current", authenticate as any, async (req: AuthRequest, res: Respon
       monthlyPrice: 0,
       billingCycle: "FREE",
       expiresAt: null,
-      pixKey: "pedro.honorio@gm.rio",
-      pixHolder: "SYSBJJ 2.0 Tecnologia Ltda",
+      pixKey: "dashfire@gmail.com",
+      pixHolder: "Pedro Paulo Honorio",
       pixCity: "Rio de Janeiro",
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString(),
@@ -330,8 +330,8 @@ router.post("/upgrade", authenticate as any, async (req: AuthRequest, res: Respo
       where: { userId: masterUser.id }
     }) : null;
 
-    const PIX_KEY = masterSub?.pixKey || "pedro.honorio@gm.rio";
-    const PIX_HOLDER = masterSub?.pixHolder || "SYSBJJ 2.0 Tecnologia Ltda";
+    const PIX_KEY = masterSub?.pixKey || "dashfire@gmail.com";
+    const PIX_HOLDER = masterSub?.pixHolder || "Pedro Paulo Honorio";
     const PIX_CITY = masterSub?.pixCity || "Rio de Janeiro";
 
     const isFree = finalPrice === 0 || plan === "FREE" || plan === "SOCIAL_PROJECT";

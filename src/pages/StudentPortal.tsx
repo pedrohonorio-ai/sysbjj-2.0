@@ -34,6 +34,11 @@ const StudentPortal: React.FC = () => {
   const { profile } = useProfile();
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState<'home' | 'training' | 'knowledge' | 'community' | 'wallet' | 'gallery' | 'homeTraining' | 'timer' | 'rules'>('home');
+  const [selectedModality, setSelectedModality] = useState<'bjj' | 'capoeira' | 'muay_thai' | 'mma' | 'judo' | 'kickboxing'>('bjj');
+  const [qrRotaryToken, setQrRotaryToken] = useState('SYSBJJ-SECURE-INIT-HASH');
+  const [qrCountdown, setQrCountdown] = useState(30);
+  const [capoeiraBeats, setCapoeiraBeats] = useState<string[]>([]);
+  const [rulesSubTab, setRulesSubTab] = useState<'regulations' | 'library'>('library');
   const [timerTimeLeft, setTimerTimeLeft] = useState(300);
   const [timerIsRunning, setTimerIsRunning] = useState(false);
 
@@ -54,6 +59,25 @@ const StudentPortal: React.FC = () => {
     setTimerTimeLeft(300);
   };
   const [showScanner, setShowScanner] = useState(false);
+  const [showMyQR, setShowMyQR] = useState(false);
+  const [showWorkoutSavedToast, setShowWorkoutSavedToast] = useState(false);
+  const [libraryFilter, setLibraryFilter] = useState<'all' | 'guard' | 'pass' | 'takedown' | 'defense' | 'submission'>('all');
+  const [favorites, setFavorites] = useState<string[]>(() => {
+    try {
+      return JSON.parse(localStorage.getItem('bjj_library_favorites') || '[]');
+    } catch {
+      return [];
+    }
+  });
+
+  const toggleFavorite = (id: string) => {
+    setFavorites(prev => {
+      const updated = prev.includes(id) ? prev.filter(x => x !== id) : [...prev, id];
+      localStorage.setItem('bjj_library_favorites', JSON.stringify(updated));
+      return updated;
+    });
+  };
+
   const [showPix, setShowPix] = useState(false);
   const [showReceipt, setShowReceipt] = useState(false);
   const [paymentProcessing, setPaymentProcessing] = useState(false);
@@ -87,7 +111,8 @@ const StudentPortal: React.FC = () => {
     });
 
     setWorkoutCounts({});
-    alert(t('portal.workoutSaved') || 'Treino em Casa registrado com sucesso! Você ganhou 10 pontos de mérito.');
+    setShowWorkoutSavedToast(true);
+    setTimeout(() => setShowWorkoutSavedToast(false), 4000);
   };
 
   const homeWorkouts = useMemo(() => [
@@ -152,6 +177,31 @@ const StudentPortal: React.FC = () => {
   };
 
   const student = useMemo(() => students.find(s => s.portalAccessCode === code), [students, code]);
+
+  // Rotary secure QR token generator
+  useEffect(() => {
+    if (!student) return;
+    const interval = setInterval(() => {
+      setQrCountdown(prev => {
+        if (prev <= 1) {
+          // Re-generate rotary token
+          const stamp = new Date().getTime();
+          const hash = CryptoJS.SHA256(student.id + stamp.toString()).toString().substring(0, 24).toUpperCase();
+          setQrRotaryToken(`SYSBJJ-${hash}`);
+          return 30;
+        }
+        return prev - 1;
+      });
+    }, 1000);
+
+    // Initial token setup
+    if (qrRotaryToken === 'SYSBJJ-SECURE-INIT-HASH') {
+      const initHash = CryptoJS.SHA256(student.id + "init").toString().substring(0, 24).toUpperCase();
+      setQrRotaryToken(`SYSBJJ-${initHash}`);
+    }
+
+    return () => clearInterval(interval);
+  }, [student, qrRotaryToken]);
 
   const graduationAnalysis = useMemo(() => {
     if (!student) return null;
@@ -376,9 +426,60 @@ const StudentPortal: React.FC = () => {
 
   const radarData = useMemo(() => {
     if (!student) return [];
-    // Simulate tactical data based on student points and attributes
-    // In a real app this would come from pedagogical assessments
     const base = student.rewardPoints || 0;
+    
+    if (selectedModality === 'muay_thai') {
+      return [
+        { subject: 'Guarda/Stance', A: Math.min(100, 50 + (base % 35)) },
+        { subject: 'Clinche/Clinch', A: Math.min(100, 45 + (student.attendanceCount % 40)) },
+        { subject: 'Chutes/Kicks', A: Math.min(100, 60 + (student.stripes * 8)) },
+        { subject: 'Socos/Punches', A: Math.min(100, 55 + (student.rulesKnowledge || 30)) },
+        { subject: 'Cárdio/Stamina', A: Math.min(100, 40 + (student.currentStreak || 0) * 8) },
+        { subject: 'Bloqueios/Blocks', A: Math.min(100, 65 + (base % 25)) },
+      ];
+    }
+    if (selectedModality === 'capoeira') {
+      return [
+        { subject: 'Ritmo Ginga', A: Math.min(100, 65 + (student.stripes * 7)) },
+        { subject: 'Musicalidade', A: Math.min(100, 50 + (base % 45)) },
+        { subject: 'Acrobacias', A: Math.min(100, 40 + (student.attendanceCount % 35)) },
+        { subject: 'Ataques/Chutes', A: Math.min(100, 55 + (student.rulesKnowledge || 25)) },
+        { subject: 'Roda/Estratégia', A: Math.min(100, 60 + (student.currentStreak || 0) * 8) },
+        { subject: 'Esquivas/Quedas', A: Math.min(100, 70 + (base % 20)) },
+      ];
+    }
+    if (selectedModality === 'mma') {
+      return [
+        { subject: 'Striking Boxer', A: Math.min(100, 55 + (base % 40)) },
+        { subject: 'Clinch Wrestling', A: Math.min(100, 50 + (student.attendanceCount % 30)) },
+        { subject: 'Submission BJJ', A: Math.min(100, 60 + (student.stripes * 6)) },
+        { subject: 'Trabalho de Grade', A: Math.min(100, 45 + (student.rulesKnowledge || 35)) },
+        { subject: 'Cárdio/Resistência', A: Math.min(100, 65 + (student.currentStreak || 0) * 9) },
+        { subject: 'Ground-and-Pound', A: Math.min(100, 50 + (base % 30)) },
+      ];
+    }
+    if (selectedModality === 'judo') {
+      return [
+        { subject: 'Kumi-kata (Pegada)', A: Math.min(100, 60 + (student.stripes * 8)) },
+        { subject: 'Nage-waza (Quedas)', A: Math.min(100, 55 + (base % 35)) },
+        { subject: 'Katame-waza (Solo)', A: Math.min(100, 45 + (student.attendanceCount % 40)) },
+        { subject: 'Ukemi (Rolamento)', A: Math.min(100, 70 + (student.rulesKnowledge || 20)) },
+        { subject: 'Reações/Kuzushi', A: Math.min(100, 50 + (student.currentStreak || 0) * 7) },
+        { subject: 'Katas Tradicionais', A: Math.min(100, 40 + (base % 45)) },
+      ];
+    }
+    if (selectedModality === 'kickboxing') {
+      return [
+        { subject: 'Combos de Soco', A: Math.min(100, 55 + (base % 30)) },
+        { subject: 'Chutes de Impacto', A: Math.min(100, 65 + (student.stripes * 7)) },
+        { subject: 'Footwork/Movimentação', A: Math.min(100, 50 + (student.attendanceCount % 25)) },
+        { subject: 'Bloqueios Rápidos', A: Math.min(100, 60 + (student.rulesKnowledge || 15)) },
+        { subject: 'Fôlego/Stamina', A: Math.min(100, 45 + (student.currentStreak || 0) * 8) },
+        { subject: 'Timing/Antecipação', A: Math.min(100, 50 + (base % 40)) },
+      ];
+    }
+
+    // Default BJJ:
     return [
       { subject: t('portal.technicalGrade'), A: Math.min(100, 40 + (base % 50)) },
       { subject: t('portal.tacticalIntelligence'), A: Math.min(100, 30 + (student.rulesKnowledge || 0)) },
@@ -387,7 +488,7 @@ const StudentPortal: React.FC = () => {
       { subject: t('portal.defense'), A: Math.min(100, 60 + (student.stripes * 5)) },
       { subject: t('portal.offense'), A: Math.min(100, 35 + (student.rewardPoints % 60)) },
     ];
-  }, [student, t]);
+  }, [student, selectedModality, t]);
 
   const heatmapData = useMemo(() => {
     if (!student || !student.attendanceHistory) return [];
@@ -633,6 +734,186 @@ const StudentPortal: React.FC = () => {
               </div>
             </div>
 
+            {/* Multi-Modality Segment Control Card */}
+            <div className="bg-white dark:bg-slate-900 rounded-[2.5rem] p-6 border border-slate-200 dark:border-slate-800 shadow-sm space-y-4">
+              <div className="flex justify-between items-center">
+                <div>
+                  <span className="text-[8px] font-black text-blue-600 dark:text-blue-400 uppercase tracking-widest block">Combat Core</span>
+                  <h4 className="text-sm font-black uppercase text-slate-900 dark:text-white">Modalidades Unificadas</h4>
+                </div>
+                <span className="text-[7.5px] bg-blue-600/10 text-blue-600 dark:text-blue-400 px-2.5 py-1 rounded-full font-black uppercase tracking-wider animate-pulse">Multidisciplinar</span>
+              </div>
+
+              {/* Segmented Modality Buttons */}
+              <div className="grid grid-cols-3 gap-1.5 p-1 bg-slate-50 dark:bg-white/5 rounded-2xl border border-slate-100 dark:border-white/5">
+                {[
+                  { id: 'bjj', label: 'BJJ', color: 'text-blue-500' },
+                  { id: 'muay_thai', label: 'M. Thai', color: 'text-red-500' },
+                  { id: 'capoeira', label: 'Capoeira', color: 'text-emerald-500' },
+                  { id: 'mma', label: 'MMA', color: 'text-indigo-500' },
+                  { id: 'judo', label: 'Judô', color: 'text-amber-500' },
+                  { id: 'kickboxing', label: 'K. Boxing', color: 'text-rose-500' }
+                ].map(item => (
+                  <button
+                    key={item.id}
+                    onClick={() => {
+                      setSelectedModality(item.id as any);
+                    }}
+                    className={`text-[8.5px] font-black uppercase tracking-wider py-2.5 rounded-xl transition-all cursor-pointer ${
+                      selectedModality === item.id
+                        ? 'bg-slate-900 dark:bg-white text-white dark:text-slate-900 shadow-sm'
+                        : 'text-slate-400 hover:text-slate-800 dark:hover:text-slate-200'
+                    }`}
+                  >
+                    {item.label}
+                  </button>
+                ))}
+              </div>
+
+              {/* Modality Specific Render Panel */}
+              <div className="pt-2">
+                {selectedModality === 'bjj' && (
+                  <div className="space-y-4 animate-fade-in text-left">
+                    <p className="text-[9px] font-black uppercase text-blue-600 tracking-wider">Métrica de Jiu-Jitsu (Gi/No-Gi)</p>
+                    <div className="p-3 bg-blue-600/5 rounded-2xl border border-blue-600/10 flex justify-between items-center">
+                      <div>
+                        <span className="text-[9.5px] font-black text-slate-900 dark:text-white uppercase leading-none block">Grau Teórico de Regras</span>
+                        <span className="text-[8.5px] text-slate-400 font-bold uppercase mt-1 block">Conformidade com a IBJJF / CBJJ</span>
+                      </div>
+                      <span className="text-xs font-black text-blue-600 dark:text-blue-400 tabular-nums">+{student.rulesKnowledge || 0} XP</span>
+                    </div>
+                  </div>
+                )}
+
+                {selectedModality === 'muay_thai' && (
+                  <div className="space-y-3 animate-fade-in text-left">
+                    <div className="flex justify-between items-center text-[9px] font-black uppercase text-red-500 tracking-wider">
+                      <span>Graduação Muay Thai</span>
+                      <span>Prajied Azul Escuro</span>
+                    </div>
+                    <div className="p-3.5 bg-red-500/5 rounded-2xl border border-red-500/10 space-y-2">
+                      <div className="flex justify-between items-center">
+                        <span className="text-[9.5px] font-black text-slate-900 dark:text-white uppercase">Combinações de Soco/Chute</span>
+                        <span className="text-[8px] bg-red-500/10 text-red-500 py-0.5 px-2 rounded-full font-black uppercase">Foco Ativo</span>
+                      </div>
+                      <div className="space-y-1.5 font-mono text-[9px] text-slate-400">
+                        <p className="flex items-center gap-1.5 text-slate-700 dark:text-slate-300 font-extrabold">
+                          <CheckCircle2 size={10} className="text-red-500" /> JAB + DIRETO + CHUTE LOW ESQUERDO
+                        </p>
+                        <p className="flex items-center gap-1.5 text-slate-700 dark:text-slate-300 font-extrabold">
+                          <CheckCircle2 size={10} className="text-red-500" /> UPPERCUT + ESQUIVA LATERAL + JOELHADA
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+                )}
+
+                {selectedModality === 'capoeira' && (
+                  <div className="space-y-3 animate-fade-in text-left">
+                    <div className="flex justify-between items-center text-[9px] font-black uppercase text-emerald-500 tracking-wider font-sans">
+                      <span>Área de Capoeira</span>
+                      <span>Cordão Verde-Amarelo</span>
+                    </div>
+                    
+                    {/* Beat Creator / Drum machine for Capoeira Toque! */}
+                    <div className="p-4 bg-emerald-500/5 rounded-2xl border border-emerald-500/10 space-y-3">
+                      <div className="flex justify-between items-center">
+                        <span className="text-[9.5px] font-black text-slate-900 dark:text-white uppercase block">Ginga Instrument Pad</span>
+                        <button 
+                          onClick={() => setCapoeiraBeats([])}
+                          className="text-[7.5px] text-emerald-600 hover:text-emerald-500 uppercase font-black tracking-widest cursor-pointer"
+                        >
+                          Limpar
+                        </button>
+                      </div>
+                      
+                      <div className="grid grid-cols-4 gap-1.5">
+                        {['gunga', 'médio', 'viola', 'atabaque'].map(instr => (
+                          <button
+                            key={instr}
+                            onClick={() => {
+                              setCapoeiraBeats(prev => [...prev.slice(-7), instr.toUpperCase()]);
+                            }}
+                            className="bg-slate-900 hover:bg-black text-emerald-400 py-2 rounded-xl text-[8px] font-bold uppercase tracking-widest border border-emerald-500/10 active:scale-95 transition-all text-center cursor-pointer"
+                          >
+                            {instr}
+                          </button>
+                        ))}
+                      </div>
+
+                      {capoeiraBeats.length > 0 ? (
+                        <div className="bg-slate-950 p-2.5 rounded-xl border border-white/5 flex gap-1.5 overflow-x-auto min-h-[30px] items-center">
+                          <span className="text-[8px] font-mono font-black text-slate-400 uppercase tracking-widest shrink-0">Seq:</span>
+                          {capoeiraBeats.map((b, idx) => (
+                            <span key={idx} className="bg-emerald-500/15 text-emerald-400 text-[8.5px] py-0.5 px-1.5 rounded font-mono font-extrabold border border-emerald-500/15 shrink-0 animate-pulse">
+                              {b}
+                            </span>
+                          ))}
+                        </div>
+                      ) : (
+                        <p className="text-[8.5px] font-medium text-slate-400 text-center uppercase tracking-wide">Toque nos pads para compor o ritmo da roda.</p>
+                      )}
+                    </div>
+                  </div>
+                )}
+
+                {selectedModality === 'mma' && (
+                  <div className="space-y-3 animate-fade-in text-left">
+                    <div className="flex justify-between items-center text-[9px] font-black uppercase text-indigo-500 tracking-wider">
+                      <span>Pro-Camp Preparation</span>
+                      <span>Welterweight (77.1kg)</span>
+                    </div>
+                    <div className="p-3 bg-indigo-500/5 rounded-2xl border border-indigo-500/10 flex justify-between items-center">
+                      <div>
+                        <span className="text-[9.5px] font-black text-slate-900 dark:text-white uppercase leading-none block">Corte de Peso Ativo</span>
+                        <span className="text-[8.5px] text-slate-400 font-bold uppercase mt-1 block">Meta: 77.1 kg // Atual: 78.5 kg</span>
+                      </div>
+                      <span className="text-[9.5px] font-black bg-indigo-500/15 text-indigo-500 py-1 px-2.5 rounded-full uppercase tracking-wider">97% Alinhado</span>
+                    </div>
+                  </div>
+                )}
+
+                {selectedModality === 'judo' && (
+                  <div className="space-y-3 animate-fade-in text-left">
+                    <div className="flex justify-between items-center text-[9px] font-black uppercase text-amber-500 tracking-wider">
+                      <span>Projeções Judô</span>
+                      <span>Segundo Kyo (Gokyo)</span>
+                    </div>
+                    <div className="p-3.5 bg-amber-500/5 rounded-2xl border border-amber-500/10 space-y-1.5">
+                      <span className="text-[9.5px] font-black text-slate-900 dark:text-white uppercase block">Waza-ari Focus da Semana</span>
+                      <div className="flex flex-wrap gap-1.5 pt-1">
+                        {['IPPON SEOI NAGE', 'OSOTO GARI', 'UCHI MATA'].map(tn => (
+                          <span key={tn} className="bg-slate-900 text-amber-400 text-[8px] font-mono py-1 px-2.5 rounded-lg border border-amber-550/10">
+                            {tn}
+                          </span>
+                        ))}
+                      </div>
+                    </div>
+                  </div>
+                )}
+
+                {selectedModality === 'kickboxing' && (
+                  <div className="space-y-3 animate-fade-in text-left">
+                    <div className="flex justify-between items-center text-[9px] font-black uppercase text-rose-500 tracking-wider">
+                      <span>K1 Rules Kickboxing</span>
+                      <span>Graduação: Faixa Verde</span>
+                    </div>
+                    <div className="p-3.5 bg-rose-500/5 rounded-2xl border border-rose-500/10 space-y-1.5">
+                      <span className="text-[9.5px] font-black text-slate-900 dark:text-white uppercase block">Combinações de Sparring</span>
+                      <div className="space-y-1 text-[8.5px] font-mono text-slate-400 leading-normal">
+                        <p className="flex items-center gap-1.5 text-slate-700 dark:text-slate-300 font-bold uppercase">
+                          <Check size={10} className="text-rose-500" /> Left Hook + Right Low Kick
+                        </p>
+                        <p className="flex items-center gap-1.5 text-slate-700 dark:text-slate-300 font-bold uppercase">
+                          <Check size={10} className="text-rose-500" /> Double Jab + Right Cross
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+                )}
+              </div>
+            </div>
+
             {/* Tactical Intelligence Radar */}
             <div className="bg-white dark:bg-slate-900 rounded-[2.5rem] border border-slate-200 dark:border-slate-800 shadow-sm overflow-hidden flex flex-col">
               <div className="p-8 pb-0 flex items-center justify-between">
@@ -711,6 +992,56 @@ const StudentPortal: React.FC = () => {
                 </div>
             </div>
 
+            {/* Gamification Level & Streak Gauge (Requisito 5) */}
+            {(() => {
+              const xpValue = student.rewardPoints || 0;
+              const currentLvl = Math.floor(xpValue / 100) + 1;
+              const lvlProgress = xpValue % 100;
+              
+              // Custom Title Rank
+              let rankTitle = "Guerreiro Iniciante";
+              if (currentLvl >= 10) rankTitle = "Samurai do Tatame";
+              else if (currentLvl >= 7) rankTitle = "Elite do Dojo";
+              else if (currentLvl >= 5) rankTitle = "Casca Grossa";
+              else if (currentLvl >= 3) rankTitle = "Maratonista Interno";
+
+              return (
+                <div className="bg-gradient-to-br from-slate-900 via-[#1e293b] to-slate-900 rounded-[2.5rem] p-8 text-white relative shadow-2xl overflow-hidden border border-white/10">
+                  <div className="absolute top-0 right-0 w-32 h-32 bg-amber-500 rounded-full blur-[80px] opacity-15" />
+                  
+                  <div className="flex items-center justify-between mb-4">
+                    <div className="flex items-center gap-2">
+                      <div className="w-10 h-10 rounded-xl bg-amber-500/10 border border-amber-550/30 flex items-center justify-center text-amber-400">
+                        <Award size={22} className="animate-pulse" />
+                      </div>
+                      <div>
+                        <p className="text-[8px] font-black uppercase tracking-widest text-slate-400">Status Evolutivo</p>
+                        <h4 className="text-xs font-black uppercase text-white tracking-tight">{rankTitle}</h4>
+                      </div>
+                    </div>
+                    <div className="text-right">
+                      <span className="text-[8px] font-black text-amber-400 bg-amber-500/10 px-2 py-0.5 rounded uppercase tracking-wider">Level {currentLvl}</span>
+                    </div>
+                  </div>
+
+                  <div className="space-y-2 mt-4">
+                    <div className="flex justify-between items-center text-[10px] font-black uppercase tracking-wider text-slate-400">
+                      <span>Progresso XP para o próximo nível</span>
+                      <span className="text-amber-400 tabular-nums">{lvlProgress} / 100 XP</span>
+                    </div>
+                    <div className="h-3 bg-white/5 rounded-full overflow-hidden p-0.5 border border-white/10">
+                      <div className="h-full bg-gradient-to-r from-amber-500 to-yellow-400 rounded-full transition-all duration-550" style={{ width: `${lvlProgress}%` }} />
+                    </div>
+                  </div>
+
+                  <div className="flex items-center justify-between mt-6 pt-5 border-t border-white/10 text-[9px] font-mono text-slate-400">
+                    <span className="flex items-center gap-1"><Flame size={12} className="text-orange-500 animate-bounce" /> Streak: {student.currentStreak || 0} dias ativos</span>
+                    <span>Total Acumulado: {xpValue} XP</span>
+                  </div>
+                </div>
+              );
+            })()}
+
             {/* Quick Stats Grid */}
             <div className="grid grid-cols-3 gap-3">
               <div className="bg-white dark:bg-slate-900 p-5 rounded-[2rem] border border-slate-200 dark:border-slate-800 text-center flex flex-col items-center group active:scale-95 transition-all">
@@ -728,11 +1059,226 @@ const StudentPortal: React.FC = () => {
                 <p className="text-lg font-black text-orange-500 tabular-nums">{student.currentStreak || 0}</p>
               </div>
               <div className="bg-white dark:bg-slate-900 p-5 rounded-[2rem] border border-slate-200 dark:border-slate-800 text-center flex flex-col items-center group active:scale-95 transition-all">
-                <div className="w-10 h-10 rounded-xl bg-emerald-50 dark:bg-emerald-900/20 text-emerald-600 mb-3 flex items-center justify-center group-hover:scale-110 transition-transform">
+                <div className="w-10 h-10 rounded-xl bg-emerald-50 dark:bg-emerald-900/20 text-emerald-600 mb-3 flex items-center justify-center group-hover/avatar:scale-110 transition-transform">
                   <Star size={20} />
                 </div>
                 <p className="text-[8px] font-black text-slate-400 uppercase tracking-widest mb-1">{t('portal.schoolAverage')}</p>
                 <p className="text-lg font-black text-emerald-500 tabular-nums">{schoolAverageXP}</p>
+              </div>
+            </div>
+
+            {/* DUAL CHECK-IN SYSTEM (QR Code Scan & Show My Badge) */}
+            <div className="bg-white dark:bg-slate-900 rounded-[2.5rem] p-6 border border-slate-200 dark:border-slate-800 shadow-sm space-y-4">
+              <h4 className="text-[10px] font-black text-slate-900 dark:text-white uppercase tracking-widest flex items-center gap-2">
+                <QrCode size={14} className="text-blue-500" /> Sistema de Presença & Check-In
+              </h4>
+              <div className="grid grid-cols-2 gap-3">
+                <button 
+                  onClick={() => setShowScanner(true)} 
+                  className="py-4 bg-slate-900 hover:bg-black text-white rounded-2xl font-black uppercase text-[9px] tracking-widest shadow-md flex flex-col items-center justify-center gap-2 active:scale-95 transition-all border border-white/5 cursor-pointer"
+                >
+                  <Camera size={18} className="text-blue-500" /> Escanear QR Dojo
+                </button>
+                <button 
+                  onClick={() => setShowMyQR(true)} 
+                  className="py-4 bg-blue-600 hover:bg-blue-500 text-white rounded-2xl font-black uppercase text-[9px] tracking-widest shadow-md flex flex-col items-center justify-center gap-2 active:scale-95 transition-all cursor-pointer"
+                >
+                  <QrCode size={18} className="text-white animate-pulse" /> Apresentar Meu QR
+                </button>
+              </div>
+              
+              {checkinSuccess && (
+                <motion.div 
+                  initial={{ scale: 0.9, opacity: 0 }}
+                  animate={{ scale: 1, opacity: 1 }}
+                  className="bg-emerald-500 text-white p-4 rounded-2xl flex items-center justify-center gap-3 shadow-lg shadow-emerald-500/20"
+                >
+                  <CheckCircle2 size={16} />
+                  <span className="text-[9px] font-black uppercase tracking-widest">{t('portal.checkinSuccess')}</span>
+                </motion.div>
+              )}
+            </div>
+
+            {/* MY ROTATING QR BADGE DIALOG/MODAL */}
+            {showMyQR && (
+              <div className="fixed inset-0 bg-slate-950/90 backdrop-blur-xl z-[300] flex items-center justify-center p-6">
+                <motion.div 
+                  initial={{ scale: 0.9, opacity: 0 }}
+                  animate={{ scale: 1, opacity: 1 }}
+                  className="bg-white rounded-[3rem] p-8 max-w-sm w-full space-y-6 relative overflow-hidden text-center"
+                >
+                  <div className="absolute top-0 left-0 w-full h-2 bg-blue-600" />
+                  <button onClick={() => setShowMyQR(false)} className="absolute top-6 right-6 text-slate-400 hover:text-red-500">
+                    <X size={20} />
+                  </button>
+                  
+                  <div className="space-y-2">
+                    <h3 className="text-lg font-black text-slate-900 uppercase tracking-tighter">Meu QR de Acesso</h3>
+                    <p className="text-[9px] font-black text-slate-450 uppercase tracking-widest">Apresente no Tablet do Dojo para Check-in</p>
+                  </div>
+                  
+                  <div className="w-56 h-56 bg-slate-100 p-4 rounded-[2.5rem] border border-slate-200/50 mx-auto flex items-center justify-center relative overflow-hidden group">
+                    <div className="absolute top-0 left-0 right-0 h-1 bg-blue-600 animate-[scan_2.5s_infinite] pointer-events-none" />
+                    {/* Simulated vector robust high end QR Representation */}
+                    <div className="w-full h-full bg-slate-900 p-4 rounded-[1.8rem] flex flex-col justify-between items-center relative z-10 shadow-inner">
+                      <div className="grid grid-cols-4 gap-2 w-full mt-2">
+                        {[...Array(16)].map((_, idx) => (
+                          <div 
+                            key={idx} 
+                            className={`h-6 rounded-md ${
+                              (idx * 7 + Math.floor(Date.now() / 15000)) % 3 === 0 
+                                ? 'bg-white' 
+                                : (idx * 5) % 2 === 0 
+                                ? 'bg-blue-400' 
+                                : 'bg-transparent border border-white/20'
+                            }`}
+                          />
+                        ))}
+                      </div>
+                      <span className="text-[7.5px] font-mono text-slate-400 font-bold uppercase tracking-widest">SYS-{student.portalAccessCode}-OK</span>
+                    </div>
+                  </div>
+
+                  <div className="space-y-3">
+                    <div className="p-2.5 bg-slate-50 rounded-xl border border-slate-100 flex items-center justify-between">
+                      <span className="text-[8px] font-black text-slate-400 uppercase tracking-widest">Rotary Token</span>
+                      <span className="text-[9.5px] font-mono font-black text-blue-600 truncate max-w-[150px]">{qrRotaryToken}</span>
+                    </div>
+
+                    <div className="flex items-center justify-between">
+                      <div className="text-[8.5px] font-black text-slate-400 uppercase tracking-widest flex items-center gap-1.5 leading-none">
+                        <Clock size={11} className="text-blue-500 animate-[spin_4s_linear_infinite]" /> Token expira em:
+                      </div>
+                      <div className="flex items-center gap-1">
+                        <span className="text-xs font-mono font-black text-slate-900 bg-slate-100 px-2 py-0.5 rounded">{qrCountdown}s</span>
+                        <div className="w-3.5 h-3.5 rounded-full border-2 border-blue-500 border-t-transparent animate-spin shrink-0" />
+                      </div>
+                    </div>
+                    <p className="text-[9px] text-slate-500 leading-relaxed max-w-xs mx-auto">
+                      A criptografia do SYSBJJ 2.0 gera chaves rotativas válidas por 30s. Apresente no tablet receptor de presença do dojo.
+                    </p>
+                  </div>
+
+                  <button 
+                    onClick={() => setShowMyQR(false)}
+                    className="w-full py-4 bg-blue-600 hover:bg-blue-500 text-white rounded-2xl font-black uppercase text-[10px] tracking-widest shadow-xl transition-all"
+                  >
+                    Fechar OSS
+                  </button>
+                </motion.div>
+              </div>
+            )}
+
+            {/* MAPA DE EVOLUÇÃO TÉCNICA (Interactive positional levels - Requisito 3) */}
+            <div className="bg-white dark:bg-slate-900 rounded-[2.5rem] p-8 border border-slate-200 dark:border-slate-800 shadow-sm space-y-6">
+              <div>
+                <p className="text-[9px] font-black text-slate-400 uppercase tracking-[0.2em] mb-1">Análise de Habilidades</p>
+                <h3 className="text-xl font-black text-slate-900 dark:text-white uppercase tracking-tighter leading-none">Meu Mapa de Evolução Técnica</h3>
+              </div>
+
+              {/* Positional bars representing the 8 positions requested */}
+              <div className="space-y-4">
+                {[
+                  { name: "Guarda Sob Controle", val: 85, color: "bg-blue-600" },
+                  { name: "Raspagens Eficientes", val: 75, color: "bg-amber-400" },
+                  { name: "Passagem de Guarda", val: 65, color: "bg-emerald-500" },
+                  { name: "Quedas & Projeções", val: 50, color: "bg-rose-500" },
+                  { name: "Defesas & Escapes", val: 80, color: "bg-purple-500" },
+                  { name: "Finalizações Fatais", val: 70, color: "bg-cyan-500" },
+                  { name: "Estratégia de Competição", val: 55, color: "bg-indigo-500" },
+                  { name: "Disciplina & Presença", val: Math.min(100, Math.round((student.attendanceCount / 40) * 100)), color: "bg-teal-500" }
+                ].map((pos, idx) => (
+                  <div key={idx} className="space-y-1">
+                    <div className="flex justify-between items-center text-[9px] font-black uppercase tracking-wider text-slate-500">
+                      <span>{pos.name}</span>
+                      <span className="tabular-nums">{pos.val}%</span>
+                    </div>
+                    <div className="h-2 bg-slate-100 dark:bg-slate-800 rounded-full overflow-hidden p-0.5">
+                      <div className={`h-full ${pos.color} rounded-full transition-all duration-700`} style={{ width: `${pos.val}%` }} />
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            {/* INTERNAL LEADERBOARD BLOCK (Gamificação Tatame - Requisito 5) */}
+            <div className="bg-white dark:bg-slate-900 rounded-[2.5rem] p-8 border border-slate-200 dark:border-slate-800 shadow-sm space-y-6">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-1">Ranking do Dojo</p>
+                  <h3 className="text-xl font-black text-slate-900 dark:text-white uppercase tracking-tighter leading-none">Quadro Geral de Líderes</h3>
+                </div>
+                <Trophy size={20} className="text-amber-500 animate-bounce" />
+              </div>
+
+              <div className="space-y-3">
+                {/* Sorted mock list with current athlete resolved dynamically in rank */}
+                {[
+                  { pos: 1, name: "Lucas 'Casca' Silveira", belt: "Roxa", points: 840, attendance: 92, active: true },
+                  { pos: 2, name: `${student.name} (Você)`, belt: student.belt, points: student.rewardPoints || 120, attendance: student.attendanceCount, isMe: true },
+                  { pos: 3, name: "Bruno Ribeiro", belt: "Marrom", points: 420, attendance: 48, active: true },
+                  { pos: 4, name: "Ana Souza", belt: "Roxa", points: 290, attendance: 29, active: true }
+                ].sort((a,b) => b.points - a.points).map((item, index) => (
+                  <div 
+                    key={index} 
+                    className={`p-3.5 rounded-2xl flex items-center justify-between border ${
+                      item.isMe 
+                        ? 'bg-blue-600/10 border-blue-600/30 text-slate-900 dark:text-white' 
+                        : 'bg-slate-50 dark:bg-slate-800/40 border-transparent text-slate-600 dark:text-slate-300'
+                    }`}
+                  >
+                    <div className="flex items-center gap-3">
+                      <span className={`w-6 h-6 rounded-lg text-[10px] font-black flex items-center justify-center ${
+                        index === 0 ? 'bg-amber-500 text-white shadow' : index === 1 ? 'bg-slate-350 text-white' : index === 2 ? 'bg-amber-850 text-white' : 'bg-slate-100 text-slate-400'
+                      }`}>
+                        #{index + 1}
+                      </span>
+                      <div>
+                        <h5 className="text-[10px] font-black uppercase text-slate-900 dark:text-white tracking-tight">{item.name}</h5>
+                        <p className="text-[8px] font-bold text-slate-450 uppercase tracking-widest mt-0.5">{item.belt} • {item.attendance} Presenças</p>
+                      </div>
+                    </div>
+                    <span className="text-xs font-black italic text-blue-500">{item.points} XP</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            {/* GAMIFIED ACHIEVEMENTS LOCKER BADGES (Requisito 5) */}
+            <div className="bg-white dark:bg-slate-900 rounded-[2.5rem] p-8 border border-slate-200 dark:border-slate-800 shadow-sm space-y-6">
+              <div>
+                <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-1">Medalhas e Conquistas</p>
+                <h3 className="text-xl font-black text-slate-900 dark:text-white uppercase tracking-tighter leading-none">Minhas Conquistas</h3>
+              </div>
+
+              <div className="grid grid-cols-2 gap-3">
+                {[
+                  { title: "Guerreiro de Ferro", icon: <Flame size={20} />, active: student.attendanceCount >= 10, desc: "Atingiu 10 check-ins no tatame." },
+                  { title: "Dona da Teoria", icon: <Award size={20} />, active: (student.completedRuleLessons?.length || 0) >= 1, desc: "Primeiro quiz de regras respondido." },
+                  { title: "Centurião Supremo", icon: <Trophy size={20} />, active: student.attendanceCount >= 100, desc: "Semana brilhante de 100 treinos." },
+                  { title: "Casca Grossa", icon: <Star size={20} />, active: student.isCompetitor, desc: "Atleta do circuito de competições." }
+                ].map((badge, idx) => (
+                  <div 
+                    key={idx}
+                    className={`p-4 rounded-3xl border text-center flex flex-col items-center justify-center relative overflow-hidden transition-all hover:scale-103 ${
+                      badge.active 
+                        ? 'bg-amber-400/10 border-amber-400/30 text-slate-900 dark:text-white' 
+                        : 'bg-slate-50 dark:bg-slate-850/20 border-slate-100 dark:border-white/5 opacity-40'
+                    }`}
+                  >
+                    <div className={`w-12 h-12 rounded-2xl flex items-center justify-center mb-2.5 shadow ${
+                      badge.active ? 'bg-amber-400 text-slate-950' : 'bg-slate-100 text-slate-400'
+                    }`}>
+                      {badge.icon}
+                    </div>
+                    <h5 className="text-[9.5px] font-black uppercase tracking-tight leading-none mb-1 text-slate-900 dark:text-white">{badge.title}</h5>
+                    <p className="text-[7.5px] text-slate-400 leading-normal font-bold max-w-[100px]">{badge.desc}</p>
+                    
+                    {badge.active && (
+                      <span className="absolute top-2 right-2 w-2.5 h-2.5 rounded-full bg-emerald-500" />
+                    )}
+                  </div>
+                ))}
               </div>
             </div>
 
@@ -763,7 +1309,7 @@ const StudentPortal: React.FC = () => {
                     setCurrentRuleLessonId(IBJJF_LESSONS[new Date().getDate() % IBJJF_LESSONS.length].id);
                     setActiveTab('knowledge');
                   }}
-                  className="px-8 py-4 bg-white text-blue-600 rounded-2xl font-black text-[10px] uppercase tracking-widest shadow-2xl active:scale-95 transition-all flex items-center justify-center gap-3 hover:bg-slate-50"
+                  className="px-8 py-4 bg-white text-blue-600 rounded-2xl font-black text-[10px] uppercase tracking-widest shadow-2xl active:scale-95 transition-all flex items-center justify-center gap-3 hover:bg-slate-50 cursor-pointer"
                 >
                    Aceitar Desafio <ArrowRight size={14} />
                 </button>
@@ -771,26 +1317,12 @@ const StudentPortal: React.FC = () => {
               <Trophy className="absolute bottom-[-20px] right-[-20px] text-white/5 group-hover:scale-110 transition-transform duration-1000" size={180} />
             </div>
 
-            {/* Next Check-in Action */}
-            <div className="space-y-4">
-              <button 
-                onClick={() => setShowScanner(true)} 
-                className="w-full py-7 bg-slate-900 text-white rounded-[2rem] font-black uppercase text-xs tracking-[0.2em] shadow-2xl flex items-center justify-center gap-4 active:scale-95 hover:bg-black transition-all border border-white/5"
-              >
-                <Camera size={24} className="text-blue-500" /> {t('portal.checkinBtn')}
-              </button>
-              
-              {checkinSuccess && (
-                <motion.div 
-                  initial={{ scale: 0.9, opacity: 0 }}
-                  animate={{ scale: 1, opacity: 1 }}
-                  className="bg-emerald-500 text-white p-4 rounded-3xl flex items-center justify-center gap-3 shadow-lg shadow-emerald-500/20"
-                >
-                  <CheckCircle2 size={24} />
-                  <span className="text-[10px] font-black uppercase tracking-widest">{t('portal.checkinSuccess')}</span>
-                </motion.div>
-              )}
-            </div>
+            {/* Save Toast feedback indicator */}
+            {showWorkoutSavedToast && (
+              <div className="fixed top-6 left-1/2 -translate-x-1/2 z-[500] w-full max-w-xs p-4 bg-emerald-500 dark:bg-emerald-600 text-white rounded-2xl flex items-center gap-3 shadow-2xl uppercase tracking-widest text-[9px] font-black animate-bounce border border-emerald-400">
+                <CheckCircle2 size={16} /> Treino salvo! Ganhou +10 XP de mérito.
+              </div>
+            )}
 
             {/* Knowledge Progress Teaser */}
             <div className="bg-white dark:bg-slate-900 p-8 rounded-[2.5rem] border border-slate-200 dark:border-slate-800 space-y-4 shadow-sm">
@@ -1752,55 +2284,209 @@ const StudentPortal: React.FC = () => {
             animate={{ opacity: 1, scale: 1 }}
             className="space-y-8"
           >
-            <div className="text-center space-y-2">
-               <h3 className="text-2xl font-black text-slate-900 dark:text-white uppercase tracking-tighter italic">{t('portal.navRules')}</h3>
-               <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Consulta Rápida Oficial</p>
+            {/* Sub-tab segmented premium toggle (Dojo de Ensino Hub - Requisito 6) */}
+            <div className="flex bg-slate-100 dark:bg-slate-900 p-1 rounded-2xl border border-slate-200 dark:border-slate-800">
+              <button 
+                onClick={() => setRulesSubTab('library')}
+                className={`flex-1 py-3 px-4 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all cursor-pointer ${
+                  rulesSubTab === 'library' 
+                    ? 'bg-blue-600 text-white shadow-md' 
+                    : 'text-slate-500 hover:text-slate-800 dark:hover:text-white'
+                }`}
+              >
+                🎥 Dojo Hub de Ensino
+              </button>
+              <button 
+                onClick={() => setRulesSubTab('regulations')}
+                className={`flex-1 py-3 px-4 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all cursor-pointer ${
+                  rulesSubTab === 'regulations' 
+                    ? 'bg-blue-600 text-white shadow-md' 
+                    : 'text-slate-500 hover:text-slate-800 dark:hover:text-white'
+                }`}
+              >
+                📖 Regulamento IBJJF
+              </button>
             </div>
 
-            <div className="bg-white dark:bg-slate-900 rounded-[3rem] p-6 border border-slate-200 dark:border-white/5 shadow-xl">
-               <h4 className="text-sm font-black text-slate-900 dark:text-white uppercase mb-6 flex items-center gap-2">
-                  <Trophy size={16} className="text-amber-500" /> {t('beltSystem.graduationChartTitle')}
-               </h4>
-               
-               <div className="space-y-4">
-                  <p className="text-[10px] font-black text-blue-600 uppercase tracking-widest mb-4 italic">Sistema de Faixas Adulto</p>
-                  <div className="grid grid-cols-1 gap-2">
-                    {IBJJF_REFERENCE.graduationChart.adult.map((item, idx) => (
-                      <div key={idx} className="flex items-center justify-between p-4 bg-slate-50 dark:bg-slate-800/50 rounded-2xl border border-slate-100 dark:border-white/5">
-                        <div className="flex items-center gap-3">
-                           <div className={`w-8 h-2 rounded-full ${BELT_COLORS[item.color] || 'bg-slate-500'} border border-black/10`} />
-                           <span className="text-[10px] font-black text-slate-900 dark:text-white uppercase">{item.belt}</span>
+            {rulesSubTab === 'regulations' ? (
+              <div className="space-y-8">
+                <div className="text-center space-y-2">
+                   <h3 className="text-2xl font-black text-slate-900 dark:text-white uppercase tracking-tighter italic">Regulamento Oficial</h3>
+                   <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Consulta Rápida de Faixas & Regras</p>
+                </div>
+
+                <div className="bg-white dark:bg-slate-900 rounded-[3rem] p-6 border border-slate-200 dark:border-white/5 shadow-xl">
+                   <h4 className="text-sm font-black text-slate-900 dark:text-white uppercase mb-6 flex items-center gap-2">
+                      <Trophy size={16} className="text-amber-500" /> {t('beltSystem.graduationChartTitle')}
+                   </h4>
+                   
+                   <div className="space-y-4">
+                      <p className="text-[10px] font-black text-blue-600 uppercase tracking-widest mb-4 italic">Sistema de Faixas Adulto</p>
+                      <div className="grid grid-cols-1 gap-2">
+                        {IBJJF_REFERENCE.graduationChart.adult.map((item, idx) => (
+                          <div key={idx} className="flex items-center justify-between p-4 bg-slate-50 dark:bg-slate-800/50 rounded-2xl border border-slate-100 dark:border-white/5">
+                            <div className="flex items-center gap-3">
+                               <div className={`w-8 h-2 rounded-full ${BELT_COLORS[item.color] || 'bg-slate-500'} border border-black/10`} />
+                               <span className="text-[10px] font-black text-slate-900 dark:text-white uppercase">{item.belt}</span>
+                            </div>
+                            <span className="text-[8px] font-black text-slate-400 uppercase">{item.age}</span>
+                          </div>
+                        ))}
+                      </div>
+
+                      <p className="text-[10px] font-black text-emerald-600 uppercase tracking-widest mt-8 mb-4 italic">Sistema de Faixas Kids</p>
+                      <div className="grid grid-cols-2 gap-2">
+                        {IBJJF_REFERENCE.graduationChart.kids.slice(0, 10).map((item, idx) => (
+                          <div key={idx} className="flex flex-col gap-2 p-4 bg-slate-50 dark:bg-slate-800/50 rounded-2xl border border-slate-100 dark:border-white/5">
+                            <div className={`w-full h-1.5 rounded-full ${BELT_COLORS[item.color] || 'bg-slate-500'} border border-black/10`} />
+                            <span className="text-[9px] font-black text-slate-900 dark:text-white uppercase truncate">{item.belt}</span>
+                            <span className="text-[7px] font-black text-slate-400 uppercase">{item.age}</span>
+                          </div>
+                        ))}
+                      </div>
+                   </div>
+                </div>
+
+                <div className="bg-slate-900 rounded-[2.5rem] p-8 text-white relative overflow-hidden shadow-2xl">
+                   <div className="absolute top-0 right-0 w-32 h-32 bg-red-600 rounded-full blur-[60px] opacity-20" />
+                   <h4 className="text-lg font-black uppercase tracking-tighter italic mb-4">Pontuação Oficial de Luta</h4>
+                   <div className="space-y-3">
+                      {IBJJF_REFERENCE.points.map((p, i) => (
+                        <div key={i} className="flex items-center justify-between py-2 border-b border-white/5">
+                          <span className="text-xs font-medium text-slate-400">{p.position}</span>
+                          <span className="text-sm font-black text-red-500 tabular-nums">+{p.value} PTS</span>
                         </div>
-                        <span className="text-[8px] font-black text-slate-400 uppercase">{item.age}</span>
-                      </div>
-                    ))}
-                  </div>
+                      ))}
+                   </div>
+                </div>
+              </div>
+            ) : (
+              /* DOJO HUB TECHNICAL LIBRARY (Requisito 6) */
+              <div className="space-y-6">
+                <div className="text-center space-y-1">
+                   <h3 className="text-xl font-black text-slate-900 dark:text-white uppercase tracking-tighter">Biblioteca Técnica Inteligente</h3>
+                   <p className="text-[9px] font-black text-blue-500 uppercase tracking-widest">Trilhas de Aprendizado & Playlists</p>
+                </div>
 
-                  <p className="text-[10px] font-black text-emerald-600 uppercase tracking-widest mt-8 mb-4 italic">Sistema de Faixas Kids</p>
-                  <div className="grid grid-cols-2 gap-2">
-                    {IBJJF_REFERENCE.graduationChart.kids.slice(0, 10).map((item, idx) => (
-                      <div key={idx} className="flex flex-col gap-2 p-4 bg-slate-50 dark:bg-slate-800/50 rounded-2xl border border-slate-100 dark:border-white/5">
-                        <div className={`w-full h-1.5 rounded-full ${BELT_COLORS[item.color] || 'bg-slate-500'} border border-black/10`} />
-                        <span className="text-[9px] font-black text-slate-900 dark:text-white uppercase truncate">{item.belt}</span>
-                        <span className="text-[7px] font-black text-slate-400 uppercase">{item.age}</span>
-                      </div>
-                    ))}
-                  </div>
-               </div>
-            </div>
-
-            <div className="bg-slate-900 rounded-[2.5rem] p-8 text-white relative overflow-hidden shadow-2xl">
-               <div className="absolute top-0 right-0 w-32 h-32 bg-red-600 rounded-full blur-[60px] opacity-20" />
-               <h4 className="text-lg font-black uppercase tracking-tighter italic mb-4">Pontuação Oficial</h4>
-               <div className="space-y-3">
-                  {IBJJF_REFERENCE.points.map((p, i) => (
-                    <div key={i} className="flex items-center justify-between py-2 border-b border-white/5">
-                      <span className="text-xs font-medium text-slate-400">{p.position}</span>
-                      <span className="text-sm font-black text-red-500 tabular-nums">+{p.value} PTS</span>
+                {/* Training of the week Section Spotlight */}
+                <div className="p-6 bg-gradient-to-br from-indigo-900 to-blue-950 rounded-[2.5rem] text-white overflow-hidden relative shadow-2xl border border-blue-500/20">
+                  <div className="absolute top-0 right-0 w-32 h-32 bg-blue-600 rounded-full blur-[80px] opacity-20" />
+                  <div className="relative z-10 space-y-4">
+                    <span className="px-3 py-1 bg-amber-400 text-slate-900 rounded-full text-[8px] font-black uppercase tracking-[0.2em]">TREINO DA SEMANA ⭐</span>
+                    <h4 className="text-lg font-black uppercase tracking-tight text-white leading-none">Passagem de Meia Guarda Esgrimada</h4>
+                    <p className="text-[10px] leading-relaxed text-slate-350 font-medium">A base técnica central desta semana é a finalização dos 100kg após a esgrima alta da meia-guarda colada.</p>
+                    <div className="flex items-center justify-between pt-2">
+                      <span className="text-[8px] font-mono text-slate-400">Instrutor: Sensei Honorio • 5m 20s</span>
+                      <button 
+                        onClick={() => toggleFavorite('week-spotlight')}
+                        className={`p-2 rounded-xl border transition-all ${
+                          favorites.includes('week-spotlight') 
+                            ? 'bg-amber-400 border-amber-450 text-slate-900' 
+                            : 'bg-white/5 border-white/10 text-white'
+                        }`}
+                      >
+                        <Star size={14} className="fill-current" />
+                      </button>
                     </div>
+                  </div>
+                </div>
+
+                {/* Horizontal list of category filters */}
+                <div className="flex flex-wrap gap-2 justify-center">
+                  {[
+                    { id: 'all', label: 'Tudo' },
+                    { id: 'guard', label: 'Guarda' },
+                    { id: 'pass', label: 'Passagem' },
+                    { id: 'takedown', label: 'Quedas' },
+                    { id: 'defense', label: 'Defesa' },
+                    { id: 'submission', label: 'Finalizações' },
+                  ].map((cat) => (
+                    <button 
+                      key={cat.id}
+                      onClick={() => setLibraryFilter(cat.id as any)}
+                      className={`px-4 py-2 rounded-xl text-[9px] font-black uppercase tracking-widest border transition-all cursor-pointer ${
+                        libraryFilter === cat.id 
+                          ? 'bg-blue-600 border-blue-600 text-white shadow' 
+                          : 'bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800 text-slate-400'
+                      }`}
+                    >
+                      {cat.label}
+                    </button>
                   ))}
-               </div>
-            </div>
+                </div>
+
+                {/* Grid of lessons/techniques */}
+                <div className="grid grid-cols-1 gap-4">
+                  {[
+                    { id: 'tech-hook', title: 'Raspagem de Gancho Clássica', cat: 'guard', diff: 'Fácil', belt: 'Faixa Branca', len: '2:50', steps: ["Pegue na gola oposta e na manga oposta", "Aproxime seu quadril entrando o gancho esquerdo", "Chute o gancho para cima enquanto puxa a manga", "Suba consolidando a passagem ou raspagem"] },
+                    { id: 'tech-halfpass', title: 'Passagem de Guarda Meia-Lua', cat: 'pass', diff: 'Médio', belt: 'Faixa Azul', len: '3:45', steps: ["Controle o quadril adversário contra o tatame", "Esgrima o braço oposto e cole o peito no peito", "Deslize o joelho diagonalmente sobre a meia guarda de forma firme", "Abaixe o centro de gravidade e consolide no cem quilos"] },
+                    { id: 'tech-doubleleg', title: 'Double Leg Explosivo', cat: 'takedown', diff: 'Médio', belt: 'Faixa Branca', len: '4:10', steps: ["Mantenha a postura bem baixa e simule um jab de contato", "Dê o passo de penetração direto entre as pernas do oponente", "Segure atrás das dobras dos dois joelhos puxando para si", "Empurre com a cabeça na costela lateral do oponente"] },
+                    { id: 'tech-armlock', title: 'Armbar da Guarda Fechada', cat: 'submission', diff: 'Fácil', belt: 'Faixa Branca', len: '3:15', steps: ["Domine o punho adversário", "Coloque o pé no quadril oposto e faça o giro angular de fuga", "Passe a perna sobre a cabeça colando ambos os calcanhares", "Eleve o quadril mantendo o dedão dele apontado para cima"] },
+                    { id: 'tech-mountesc', title: 'Escape da Montada Pontes & Rolo', cat: 'defense', diff: 'Fácil', belt: 'Faixa Branca', len: '3:00', steps: ["Prenda um dos braços do adversário colado exatamente ao peito", "Segure o mesmo pé do lado do ombro preso", "Upa com força extraordinária elevando o quadril", "Gire sobre o ombro livre caindo na guarda fechada"] },
+                    { id: 'tech-doubleunder', title: 'Passagem Emborrachando a Guarda', cat: 'pass', diff: 'Avançado', belt: 'Faixa Roxa', len: '5:20', steps: ["Passe ambos os braços por baixo das coxas do adversário", "Junte as mãos acima do quadril travando a lombar dele no tatame", "Pressione empurrando o quadril para cima com a cabeça dele dobrada", "Passe de lado para o cem quilos de maneira firme"] },
+                  ]
+                  .filter(t => libraryFilter === 'all' || t.cat === libraryFilter)
+                  .map((tech) => (
+                    <div 
+                      key={tech.id} 
+                      className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-[2rem] p-6 space-y-4 hover:border-blue-500/30 transition-all relative group shadow-sm"
+                    >
+                      <div className="flex justify-between items-start gap-4">
+                        <div className="space-y-1">
+                          <div className="flex flex-wrap gap-1.5 items-center">
+                            <span className="px-2 py-0.5 bg-slate-100 dark:bg-slate-800 text-slate-500 text-[7px] font-black uppercase rounded">{tech.diff}</span>
+                            <span className="px-2 py-0.5 bg-blue-100/40 dark:bg-blue-900/20 text-blue-600 dark:text-blue-400 text-[7px] font-black uppercase rounded">{tech.belt}</span>
+                          </div>
+                          <h4 className="text-sm font-black text-slate-900 dark:text-white uppercase tracking-tight">{tech.title}</h4>
+                          <p className="text-[8px] font-bold text-slate-450 uppercase tracking-widest">{tech.len} • Vídeo Instrutivo</p>
+                        </div>
+                        <div className="flex items-center gap-1">
+                          <button 
+                            onClick={() => toggleFavorite(tech.id)}
+                            className={`p-2 rounded-xl border transition-all cursor-pointer ${
+                              favorites.includes(tech.id) 
+                                ? 'bg-amber-400 border-amber-400 text-slate-900 shadow-sm' 
+                                : 'bg-slate-50 dark:bg-slate-800 border-slate-200 dark:border-slate-700 text-slate-400'
+                            }`}
+                          >
+                            <Star size={12} className="fill-current" />
+                          </button>
+                        </div>
+                      </div>
+
+                      {/* Video Player representation */}
+                      <div className="aspect-video bg-slate-950 rounded-2xl relative overflow-hidden flex flex-col items-center justify-center border border-slate-200 dark:border-slate-800">
+                        <div className="absolute inset-0 bg-gradient-to-t from-black/80 to-transparent z-10" />
+                        <div className="absolute top-4 left-4 z-25 flex items-center gap-2">
+                          <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
+                          <span className="text-[8px] font-mono font-bold text-slate-200 uppercase">STREAM HD READY</span>
+                        </div>
+                        <div className="w-12 h-12 bg-blue-600 rounded-full flex items-center justify-center text-white cursor-pointer active:scale-90 hover:bg-blue-500 transition-all z-20 shadow-xl shadow-blue-600/30">
+                          <Play size={20} className="translate-x-0.5" />
+                        </div>
+                        <span className="text-[8px] font-black text-slate-400 uppercase tracking-widest mt-3 z-20 font-mono">REPRODUZIR VIDEO TUTORIAL DE POSIÇÃO</span>
+                      </div>
+
+                      {/* Steps Checklist representation */}
+                      <div className="space-y-2 pt-2 border-t border-slate-100 dark:border-slate-800/80">
+                        <h5 className="text-[9px] font-black text-slate-900 dark:text-white uppercase tracking-wider flex items-center gap-1.5">
+                          <BookOpen size={11} className="text-blue-500" /> Passo a Passo da Posição:
+                        </h5>
+                        <div className="space-y-1 bg-slate-50 dark:bg-slate-800/20 p-4 rounded-2xl text-[8px] font-bold text-slate-450 dark:text-slate-400 list-decimal space-y-1.5 leading-relaxed">
+                          {tech.steps.map((st, sidx) => (
+                            <div key={sidx} className="flex gap-2">
+                              <span className="text-blue-500">{sidx + 1}.</span>
+                              <span className="uppercase">{st}</span>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    </div>
+                  ))
+                  }
+                </div>
+              </div>
+            )}
           </motion.div>
         )}
       </main>

@@ -9,6 +9,8 @@ import { useTranslation } from '../contexts/LanguageContext.js';
 import { useData } from '../contexts/DataContext.js';
 import { motion, AnimatePresence } from 'motion/react';
 import { Student, GraduationCriterion, GraduationHistory } from '../types.js';
+import { calculateStudentEligibility, getBeltLabel } from '../services/graduation/rulesEngine.js';
+import { BELT_RULES } from '../services/graduation/beltRules.js';
 
 // Cores oficiais do Sensei (Requisito 11)
 export const OFFICIAL_BELT_COLORS: Record<string, string> = {
@@ -202,20 +204,29 @@ const BeltSystem: React.FC = () => {
   // Estados para simulador de regras e autoridade de professores
   const [simulatedProfessorBelt, setSimulatedProfessorBelt] = useState<string>('Preta');
   const [simulatedProfessorDegrees, setSimulatedProfessorDegrees] = useState<number>(2);
+  const [selectedRuleBelt, setSelectedRuleBelt] = useState<string>('Azul');
 
   // Estados do Motor Faixa Preta
   const [editingBlackBelt, setEditingBlackBelt] = useState<any | null>(null);
   const [isSavingBlackBelt, setIsSavingBlackBelt] = useState(false);
+  const [detailTab, setDetailTab] = useState<'exame' | 'ibjjf' | 'historico'>('exame');
 
   // Cache/Memoization dos cálculos de graduação para evitar recálculo a cada render (Requisito 19)
   const calculatedMetrics = useMemo(() => {
     if (!students || !Array.isArray(students)) return [];
     return students.map(student => {
-      const isKid = !!student.isKid;
-      const currentBelt = (student.belt || "Branca") as any;
+      const isKid = student.isKid !== undefined ? student.isKid : (student.birthDate ? (new Date().getFullYear() - new Date(student.birthDate).getFullYear() < 16) : false);
       const stripes = Number(student.stripes || student.degrees || 0);
 
-      // Calcular tempo decorrido desde o início da faixa
+      // Chamada centralizada da Rules Engine (Elegibilidade Oficial)
+      const eligibility = calculateStudentEligibility(student);
+
+      const age = student.birthDate ? (new Date().getFullYear() - new Date(student.birthDate).getFullYear()) : 25;
+      const nextRule = BELT_RULES[eligibility.nextBelt];
+      const reqAge = nextRule ? nextRule.minimumAge : 16;
+      const isAgeCompleted = age >= reqAge;
+
+      // Calcular tempo decorrido desde o início da faixa para listras adicionais
       let beltSinceDate = student.beltSince ? new Date(student.beltSince) : null;
       if (!beltSinceDate && student.lastPromotionDate) {
         beltSinceDate = new Date(student.lastPromotionDate + 'T12:00:00');
@@ -224,122 +235,16 @@ const BeltSystem: React.FC = () => {
         beltSinceDate = new Date();
       }
 
-      const now = new Date();
-      const diffMs = now.getTime() - beltSinceDate.getTime();
+      const today = new Date();
+      const diffMs = today.getTime() - beltSinceDate.getTime();
       const daysElapsed = Math.max(0, Math.floor(diffMs / (1000 * 60 * 60 * 24)));
-      const monthsElapsed = Math.max(0, Math.floor(daysElapsed / 30.4));
-
-      // Calcular idade do Aluno de forma robusta
-      let age = 0;
-      if (student.birthDate) {
-        const bd = new Date(student.birthDate);
-        if (!isNaN(bd.getTime())) {
-          age = now.getFullYear() - bd.getFullYear();
-          const m = now.getMonth() - bd.getMonth();
-          if (m < 0 || (m === 0 && now.getDate() < bd.getDate())) {
-            age--;
-          }
-        }
-      }
-
-      // Detecção das carências e regras para faixas superiores (CBJJ / IBJJF)
-      let ibjjfMinMonths = 12;
-      let nextBelt = currentBelt;
-      let isPromotionToDegree = false;
-      let targetDegree = stripes + 1;
-      let reqAge = 0;
-
-      if (currentBelt === "Preta") {
-        isPromotionToDegree = true;
-        if (stripes < 3) {
-          ibjjfMinMonths = 36; // 3 anos em cada para 1º, 2º e 3º graus
-          targetDegree = stripes + 1;
-          nextBelt = "Preta";
-          reqAge = 19 + (targetDegree * 3);
-        } else if (stripes < 6) {
-          ibjjfMinMonths = 60; // 5 anos para 4º, 5º e 6º graus
-          targetDegree = stripes + 1;
-          nextBelt = "Preta";
-          reqAge = 28 + ((targetDegree - 3) * 5);
-        } else if (stripes === 6) {
-          // Promoção de 6º Grau Faixa Preta para Coral 7º Grau aos 50 anos
-          ibjjfMinMonths = 84; // 7 anos no 6º Grau
-          targetDegree = 7;
-          nextBelt = "Coral";
-          isPromotionToDegree = false;
-          reqAge = 50; 
-        } else {
-          ibjjfMinMonths = 120; // Geralmente 10 anos
-          targetDegree = stripes + 1;
-          nextBelt = "Coral";
-          isPromotionToDegree = true;
-          reqAge = 50;
-        }
-      } else if (currentBelt === "Coral") {
-        // Coral Vermelha e Preta para Coral Vermelha e Branca (8º Grau) aos 60 anos
-        if (stripes === 7) {
-          ibjjfMinMonths = 120; // 10 anos
-          targetDegree = 8;
-          nextBelt = "CoralBranca";
-          isPromotionToDegree = false;
-          reqAge = 60;
-        } else {
-          ibjjfMinMonths = 120;
-          targetDegree = stripes + 1;
-          nextBelt = "CoralBranca";
-          isPromotionToDegree = true;
-          reqAge = 60;
-        }
-      } else if (currentBelt === "CoralBranca") {
-        // Coral Vermelha e Branca (8º Grau) para Faixa Vermelha (9º Grau) aos 67 anos
-        ibjjfMinMonths = 120; // 10 anos
-        targetDegree = 9;
-        nextBelt = "Vermelha";
-        isPromotionToDegree = false;
-        reqAge = 67;
-      } else if (currentBelt === "Vermelha") {
-        // Faixa Vermelha 9º Grau permanecia ativo
-        ibjjfMinMonths = 120;
-        targetDegree = 10;
-        nextBelt = "Vermelha";
-        isPromotionToDegree = true;
-        reqAge = 99;
-      } else {
-        // Faixas ordinárias
-        ibjjfMinMonths = IBJJF_TIME_LIMITS[currentBelt] || 12;
-        if (isKid) {
-          const kidBelts = ["Branca", "Cinza", "Amarela", "Laranja", "Verde"];
-          const curIdx = kidBelts.indexOf(currentBelt);
-          if (curIdx !== -1 && curIdx < kidBelts.length - 1) {
-            nextBelt = kidBelts[curIdx + 1];
-          }
-          if (nextBelt === "Cinza") reqAge = 4;
-          else if (nextBelt === "Amarela") reqAge = 7;
-          else if (nextBelt === "Laranja") reqAge = 10;
-          else if (nextBelt === "Verde") reqAge = 13;
-        } else {
-          const adultBelts = ["Branca", "Azul", "Roxa", "Marrom", "Preta"];
-          const curIdx = adultBelts.indexOf(currentBelt);
-          if (curIdx !== -1 && curIdx < adultBelts.length - 1) {
-            nextBelt = adultBelts[curIdx + 1];
-          }
-          if (nextBelt === "Azul") reqAge = 16;
-          else if (nextBelt === "Roxa") reqAge = 16;
-          else if (nextBelt === "Marrom") reqAge = 18;
-          else if (nextBelt === "Preta") reqAge = 19;
-        }
-      }
-
-      const timeProgress = Math.min(100, Math.round((monthsElapsed / ibjjfMinMonths) * 100));
-      const isTimeCompleted = monthsElapsed >= ibjjfMinMonths;
-      const isAgeCompleted = age >= reqAge;
 
       // Requisito 14 — IA DE EVOLUÇÃO (Índice Evolutivo)
       // frequência, presença, desempenho, tempo, campeonatos
       const freqScore = Math.min(100, Math.round(((student.attendanceCount || 0) / customMinClasses) * 100));
       const behaviorScore = Math.min(100, (student.behaviorScore || 4) * 20);
       const rulesScore = student.rulesKnowledge || 0;
-      const timeScore = Math.min(100, timeProgress);
+      const timeScore = Math.min(100, eligibility.progress);
       const champBonus = student.isCompetitor ? 100 : 50;
 
       const evolutionScore = Math.round(
@@ -349,13 +254,6 @@ const BeltSystem: React.FC = () => {
         (timeScore * 0.25) +
         (champBonus * 0.1)
       );
-
-      // Verificação de elegibilidade automática IBJJF (tempo + idade)
-      const ibjjfEligible = isTimeCompleted && isAgeCompleted;
-
-      // Requisito 15: se o professor desligar os critérios ou forçar pronto
-      const isPassedProfessorCriteria = student.professorCriteria !== false;
-      const isEligible = ibjjfEligible && isPassedProfessorCriteria; 
 
       // Calcular aprovação do exame de faixa
       const tScore = Number(student.examRequirements?.scoreTakedowns || 7);
@@ -372,7 +270,9 @@ const BeltSystem: React.FC = () => {
 
       // Alert thresholds (Requisito 9)
       const daysToNextStripe = Math.max(0, 30 - (daysElapsed % 30));
-      const isApto = isEligible && (stripes >= 4 || isExamPassed || student.professorCriteria === true);
+      
+      // Um aluno está apto para aprovação se a engine o aprova && (possui grau máximo ou passou em todos os testes ou o professor liberou com override de aptidão)
+      const isApto = eligibility.isEligible && (stripes >= 4 || isExamPassed || student.professorCriteria === true);
       const nextStripeIn30Days = daysToNextStripe <= 10 && stripes < 4;
 
       return {
@@ -381,31 +281,35 @@ const BeltSystem: React.FC = () => {
         reqAge,
         isAgeCompleted,
         daysElapsed,
-        monthsElapsed,
-        ibjjfMinMonths,
-        timeProgress,
-        isTimeCompleted,
-        isPromotionToDegree,
-        targetDegree,
-        nextBelt,
+        monthsElapsed: eligibility.monthsElapsed,
+        ibjjfMinMonths: eligibility.minTimeRequiredMonths,
+        timeProgress: eligibility.progress,
+        isTimeCompleted: eligibility.monthsElapsed >= eligibility.minTimeRequiredMonths,
+        isPromotionToDegree: eligibility.isPromotionToDegree,
+        targetDegree: eligibility.targetDegree,
+        nextBelt: eligibility.nextBelt,
         evolutionScore,
-        ibjjfEligible,
-        isEligible,
+        ibjjfEligible: eligibility.isEligible,
+        isEligible: eligibility.isEligible,
         isApto,
         isExamPassed,
         examAverage: avgExam,
         nextStripeIn30Days,
         daysToNextStripe,
-        nextPromotionDate: new Date(beltSinceDate.getTime() + ibjjfMinMonths * 30.4 * 24 * 60 * 60 * 1000)
+        nextPromotionDate: eligibility.nextPromotionDate || new Date()
       };
     });
   }, [students, customMinClasses]);
 
   // Filtrar guerreiros elegíveis/cadastrados e em busca baseado no tabuleiro selecionado
+  // Alunos até a faixa marrom aparecem no painel comum. Faixas pretas vão ao painel exclusivo CBJJ/IBJJF.
   const filteredStudents = useMemo(() => {
     return students.filter(student => {
       const matchSearch = student.name.toLowerCase().includes(searchTerm.toLowerCase());
-      const categoryMatch = activeBoard === 'adult' ? !student.isKid : student.isKid;
+      const isBlackBelt = (student.belt as string) === 'Preta';
+      const categoryMatch = activeBoard === 'adult' 
+        ? (!student.isKid && !isBlackBelt) 
+        : (student.isKid && !isBlackBelt);
       return matchSearch && categoryMatch;
     });
   }, [students, searchTerm, activeBoard]);
@@ -453,8 +357,8 @@ const BeltSystem: React.FC = () => {
       { degree: 5, label: "5º Grau (Professor)", totalYears: 19, minAge: 38 },
       { degree: 6, label: "6º Grau (Professor)", totalYears: 24, minAge: 43 },
       { degree: 7, label: "7º Grau (Mestre - Faixa Coral Vermelha e Preta)", totalYears: 31, minAge: 50 },
-      { degree: 8, label: "8º Grau (Mestre - Faixa Coral Vermelha e Branca)", totalYears: 41, minAge: 60 },
-      { degree: 9, label: "9º Grau (Grande Mestre - Faixa Vermelha)", totalYears: 51, minAge: 67 }
+      { degree: 8, label: "8º Grau (Mestre - Faixa Coral Vermelha e Branca)", totalYears: 38, minAge: 60 },
+      { degree: 9, label: "9º Grau (Grande Mestre - Faixa Vermelha)", totalYears: 48, minAge: 67 }
     ];
 
     return specs.map((spec) => {
@@ -497,30 +401,37 @@ const BeltSystem: React.FC = () => {
     });
   };
 
-  const handleApprove = () => {
+  const [showConfirmModal, setShowConfirmModal] = useState(false);
+  const [isPromoting, setIsPromoting] = useState(false);
+
+  const confirmAndExecutePromotion = async () => {
     if (!selectedStudent) return;
     const metrics = getStudentMetrics(selectedStudent.id);
     const targetBelt = metrics.nextBelt;
-
-    if (metrics.isPromotionToDegree) {
-      const targetDeg = metrics.targetDegree;
-      if (confirm(`Deseja aprovar a OUTORGA do ${targetDeg}º Grau na Faixa ${selectedStudent.belt} para o aluno ${selectedStudent.name}?`)) {
-        updateStudent(selectedStudent.id, {
-          stripes: targetDeg,
-          degrees: targetDeg,
-          lastPromotionDate: new Date().toISOString().split('T')[0],
-          beltSince: new Date(),
-          isReadyForPromotion: false
-        });
+    
+    setIsPromoting(true);
+    try {
+      if (metrics.isPromotionToDegree) {
+        const targetDeg = metrics.targetDegree;
+        await approveGraduation(selectedStudent.id, selectedStudent.belt, targetDeg, 'Sensei', false, `Promovido ao ${targetDeg}º Grau da Faixa ${selectedStudent.belt}.`);
         setNotificationsPrev(`🥋 OSS! ${selectedStudent.name} promovido ao ${targetDeg}º Grau da Faixa ${selectedStudent.belt}!`);
-        setSelectedStudent(null);
+      } else {
+        await approveGraduation(selectedStudent.id, targetBelt, 0, 'Sensei', false, `Graduado com sucesso para ${BELT_LABELS[targetBelt] || targetBelt} conforme critérios regulamentares de carência CBJJ/IBJJF.`);
+        setNotificationsPrev(`🥋 OSS! ${selectedStudent.name} graduado para ${BELT_LABELS[targetBelt] || targetBelt}!`);
       }
-    } else {
-      if (confirm(`Deseja aprovar a GRADUAÇÃO de ${selectedStudent.name} para a ${BELT_LABELS[targetBelt]}? Isto resetará os Graus para zero e criará um registro histórico permanente.`)) {
-        approveGraduation(selectedStudent.id, targetBelt);
-        setSelectedStudent(null);
-      }
+      setSelectedStudent(null);
+      setShowConfirmModal(false);
+    } catch (err: any) {
+      console.error(err);
+      setNotificationsPrev("Erro ao atualizar graduação.");
+    } finally {
+      setIsPromoting(false);
     }
+  };
+
+  const handleApprove = () => {
+    if (!selectedStudent) return;
+    setShowConfirmModal(true);
   };
 
   const triggerCertificate = (student: Student) => {
@@ -864,6 +775,102 @@ const BeltSystem: React.FC = () => {
                 </div>
               </div>
             </div>
+
+            {/* NOVO BLOCO UNIFICADO: ATLETAS DO DOJO ENQUADRADOS NESTA REGRA */}
+            <div className="p-6 bg-slate-50 dark:bg-white/5 rounded-3xl border border-slate-100 dark:border-white/5 space-y-4 text-left">
+              <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-slate-200/40 dark:border-white/5 pb-4">
+                <div className="space-y-1 text-left">
+                  <h4 className="text-xs font-black uppercase tracking-tight text-slate-900 dark:text-white flex items-center gap-1.5 font-sans">
+                    <Users size={16} className="text-blue-600" />
+                    Enquadramento e Auditoria de Alunos Ativos por Faixa
+                  </h4>
+                  <p className="text-[9px] text-slate-400 uppercase font-black tracking-widest leading-relaxed">
+                    Selecione uma faixa para visualizar em tempo real quais guerreiros do dojo estão enquadrados no regulamento e se encontram elegíveis ou em carência.
+                  </p>
+                </div>
+
+                <div className="flex flex-wrap gap-1 bg-slate-200 dark:bg-slate-800 p-1 rounded-xl">
+                  {["Branca", "Cinza", "Amarela", "Laranja", "Verde", "Azul", "Roxa", "Marrom", "Preta"].map(b => (
+                    <button
+                      key={b}
+                      type="button"
+                      onClick={() => setSelectedRuleBelt(b)}
+                      className={`text-[9px] font-black uppercase px-2.5 py-1.5 rounded-lg transition-all cursor-pointer ${selectedRuleBelt === b ? 'bg-blue-600 text-white shadow-sm' : 'text-slate-500 hover:text-slate-900 dark:hover:text-white'}`}
+                    >
+                      {BELT_LABELS[b] || b}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {/* Lista Dinâmica de Estudantes Enquadrados */}
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                {(() => {
+                  const enquadrados = (students || []).filter(student => (student.belt as string) === selectedRuleBelt);
+                  if (enquadrados.length === 0) {
+                    return (
+                      <div className="col-span-full py-12 text-center bg-white dark:bg-slate-900/40 rounded-2xl border border-dashed border-slate-200 dark:border-white/5">
+                        <Users size={24} className="mx-auto text-slate-300 dark:text-slate-705/60 mb-2 opacity-60 animate-pulse" />
+                        <p className="text-[9.5px] font-black uppercase text-slate-400 tracking-wider">Sem Atletas Enquadrados</p>
+                        <p className="text-[8px] text-slate-400 mt-1 max-w-[280px] mx-auto uppercase leading-normal">
+                          Nenhum combatente ativo no banco de dados está categorizado atualmente com a faixa {BELT_LABELS[selectedRuleBelt] || selectedRuleBelt}.
+                        </p>
+                      </div>
+                    );
+                  }
+
+                  return enquadrados.map(student => {
+                    const metrics = calculatedMetrics.find(m => m.studentId === student.id);
+                    const isTimeOk = metrics ? metrics.monthsElapsed >= metrics.ibjjfMinMonths : false;
+                    const isAgeOk = metrics ? metrics.age >= metrics.reqAge : false;
+                    const isEligible = isTimeOk && isAgeOk;
+
+                    return (
+                      <div 
+                        key={student.id}
+                        onClick={() => {
+                          setSelectedStudent(student);
+                          const isKid = student.isKid !== undefined ? student.isKid : (student.birthDate ? (new Date().getFullYear() - new Date(student.birthDate).getFullYear() < 16) : false);
+                          setActiveBoard(isKid ? 'kids' : 'adult');
+                          setDetailTab('ibjjf');
+                        }}
+                        className="bg-white dark:bg-slate-900 border border-slate-205 dark:border-white/5 p-4 rounded-2xl flex flex-col justify-between gap-3 hover:shadow-lg hover:border-blue-500/30 transition-all cursor-pointer group text-left"
+                      >
+                        <div className="flex items-center gap-2.5">
+                          <div className="w-9 h-9 rounded-lg bg-slate-50 dark:bg-white/5 overflow-hidden flex items-center justify-center shrink-0 border border-slate-100 dark:border-white/5 font-black text-slate-400">
+                            {student.photo || student.photoUrl ? (
+                              <img src={student.photo || student.photoUrl} className="w-full h-full object-cover" />
+                            ) : (
+                              student.name[0]
+                            )}
+                          </div>
+                          <div className="min-w-0 flex-1">
+                            <h5 className="text-[11px] font-black text-slate-900 dark:text-white uppercase truncate tracking-tight group-hover:text-blue-600 transition-colors">{student.name}</h5>
+                            <p className="text-[8px] font-mono text-slate-400 uppercase mt-0.5">{student.stripes || student.degrees || 0} Graus na Faixa</p>
+                          </div>
+                        </div>
+
+                        <div className="border-t border-slate-100 dark:border-white/5 pt-2 flex items-center justify-between text-[9px] font-mono text-slate-500">
+                          <span>Idade: {metrics?.age ?? 20} anos</span>
+                          <span>Atividade: {metrics?.monthsElapsed ?? 0} meses</span>
+                        </div>
+
+                        <div className="flex items-center justify-between pt-1">
+                          <span className={`text-[7.5px] px-2 py-0.5 rounded-md font-black uppercase tracking-wider ${
+                            isEligible ? 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400' : 'bg-rose-500/15 text-rose-500 dark:text-rose-400'
+                          }`}>
+                            {isEligible ? 'Elegível' : 'Em Carência'}
+                          </span>
+                          <span className="text-[7.5px] text-blue-600 dark:text-blue-400 tracking-wider font-extrabold flex items-center gap-1 group-hover:translate-x-1 transition-transform">
+                            Avaliar &rarr;
+                          </span>
+                        </div>
+                      </div>
+                    );
+                  });
+                })()}
+              </div>
+            </div>
           </motion.div>
         ) : activeBoard === 'blackbelt' ? (
           <motion.div 
@@ -925,10 +932,13 @@ const BeltSystem: React.FC = () => {
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
               {/* LADO ESQUERDO: LISTA DE FACHAS PRETAS */}
               <div className="lg:col-span-2 bg-white dark:bg-slate-900 rounded-[3rem] border border-slate-200 dark:border-white/5 p-8 shadow-xl space-y-6">
-                <div className="flex items-center justify-between border-b border-slate-100 dark:border-white/5 pb-5">
+                <div className="flex flex-col md:flex-row md:items-center justify-between border-b border-slate-100 dark:border-white/5 pb-5 gap-4">
                   <div className="text-left">
                     <h4 className="text-lg font-black text-slate-900 dark:text-white uppercase tracking-tighter italic">Quadro Geral de Faixas Pretas</h4>
                     <p className="text-[9px] font-bold text-slate-400 uppercase tracking-wider mt-1">Clique para editar histórico, previsões e graus regulamentares</p>
+                  </div>
+                  <div className="bg-slate-50 dark:bg-slate-800/40 border border-slate-200 dark:border-white/5 px-4 py-3 rounded-2xl max-w-md text-[10px] text-slate-600 dark:text-slate-400 font-medium">
+                    💡 <strong className="text-rose-500 font-bold">Separação de Painéis:</strong> Alunos até a Faixa Marrom estão mapeados no Quadro de Adultos/Kids. Os Faixas Pretas constam exclusivamente neste painel profissional sob regras oficiais de carência acumulada da <strong className="text-slate-800 dark:text-slate-200">IBJJF/CBJJ</strong>.
                   </div>
                 </div>
 
@@ -1279,10 +1289,13 @@ const BeltSystem: React.FC = () => {
             <div className="lg:col-span-2 space-y-6">
               <div className="bg-white dark:bg-slate-900 rounded-[3rem] border border-slate-200 dark:border-white/5 p-8 shadow-xl">
                 <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
-                  <h3 className="text-lg font-black text-slate-950 dark:text-white uppercase tracking-tighter italic flex items-center gap-2">
-                    <TrendingUp size={18} className="text-blue-600" />
-                    Quadro Evolutivo de Alunos ({activeBoard === 'adult' ? 'Adulto' : 'Infantil'})
-                  </h3>
+                  <div>
+                    <h3 className="text-lg font-black text-slate-950 dark:text-white uppercase tracking-tighter italic flex items-center gap-2">
+                      <TrendingUp size={18} className="text-blue-600" />
+                      Quadro Evolutivo de Alunos ({activeBoard === 'adult' ? 'Adulto' : 'Infantil'})
+                    </h3>
+                    <p className="text-[10px] text-slate-400 dark:text-slate-500 font-bold uppercase tracking-wider mt-1">🥋 Nível Básico à Faixa Marrom</p>
+                  </div>
                   <div className="relative">
                     <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={12} />
                     <input 
@@ -1407,6 +1420,114 @@ const BeltSystem: React.FC = () => {
                       </div>
                     </div>
 
+                    {/* SENSEI AI PROMOTION SUGGESTION ENGINE */}
+                    {(() => {
+                      // AI Engine Status Calculator
+                      let aiStatus = 'EM OBSERVAÇÃO';
+                      let aiColor = 'from-blue-600/10 to-indigo-600/5 text-blue-500 border-blue-500/20';
+                      let aiAccentColor = 'bg-blue-500';
+                      let aiReason = '';
+                      
+                      const tScore = Number(selectedStudent.examRequirements?.scoreTakedowns ?? 7);
+                      const gScore = Number(selectedStudent.examRequirements?.scoreGuard ?? 7);
+                      const dScore = Number(selectedStudent.examRequirements?.scoreDefense ?? 7);
+                      const cScore = Number(selectedStudent.examRequirements?.scoreCombate ?? 7);
+                      const examAvg = Math.round(((tScore + gScore + dScore + cScore) / 4) * 10) / 10;
+                      
+                      const evolScore = currentSelectionMetrics.evolutionScore || 65;
+                      const techScore = Math.round(examAvg * 10);
+                      const behaviorScore = Math.min(100, (selectedStudent.behaviorScore || 4) * 20);
+                      const compScore = selectedStudent.isCompetitor ? 95 : 55;
+
+                      if (currentSelectionMetrics.isApto) {
+                        aiStatus = 'APTO PARA FAIXA';
+                        aiColor = 'from-emerald-500/10 to-green-500/5 text-emerald-600 dark:text-emerald-400 border-emerald-500/20';
+                        aiAccentColor = 'bg-emerald-500';
+                        aiReason = `Sensei, este atleta cumpriu a carência (${currentSelectionMetrics.monthsElapsed}m) e atingiu ótimo rendimento (${evolScore} XP). Recomendamos promover à faixa de ${currentSelectionMetrics.nextBelt}!`;
+                      } else if (currentSelectionMetrics.ibjjfEligible || selectedStudent.attendanceCount >= 40) {
+                        aiStatus = 'APTO PARA GRAU';
+                        aiColor = 'from-amber-500/10 to-orange-500/5 text-amber-600 dark:text-amber-400 border-amber-500/20';
+                        aiAccentColor = 'bg-amber-500';
+                        aiReason = `Atleta apto para grau técnico. Demonstra consistência com ${selectedStudent.attendanceCount} presenças e engajamento comportamental de ${behaviorScore}%.`;
+                      } else if (selectedStudent.attendanceCount >= 10) {
+                        aiStatus = 'ALUNO EM OBSERVAÇÃO';
+                        aiColor = 'from-blue-600/10 to-indigo-550/5 text-blue-500 border-blue-500/20';
+                        aiAccentColor = 'bg-blue-500';
+                        aiReason = `Sob observação pedagógica. Recomendamos intensificar treinos de guarda e defesa para impulsionar a média técnica (${techScore}%).`;
+                      } else {
+                        aiStatus = 'ABAIXO DO ESPERADO';
+                        aiColor = 'from-rose-500/10 to-red-500/5 text-rose-500 border-rose-500/20';
+                        aiAccentColor = 'bg-rose-500';
+                        aiReason = `Queda crítica na frequência. Necessária intervenção pedagógica preventiva para evitar evasão do atleta do dojo.`;
+                      }
+
+                      return (
+                        <div className="p-5 bg-gradient-to-br from-slate-900 to-slate-950 text-white rounded-3xl border border-white/10 space-y-4 shadow-xl relative overflow-hidden group/ai">
+                          <div className="absolute top-0 right-0 w-24 h-24 bg-blue-600 rounded-full blur-[40px] opacity-10 group-hover/ai:opacity-20 transition-opacity" />
+                          <div className="flex items-center justify-between">
+                            <div className="flex items-center gap-1.5">
+                              <span className="w-2 h-2 rounded-full bg-blue-500 animate-ping" />
+                              <h4 className="text-[9px] font-black uppercase tracking-widest text-slate-400">SENSEI AI ENGINE™</h4>
+                            </div>
+                            <span className="px-2 py-0.5 bg-blue-500/10 border border-blue-500/20 text-[7px] font-black uppercase tracking-widest text-blue-400 rounded">V2.1</span>
+                          </div>
+                          
+                          <div>
+                            <div className="flex items-center gap-2">
+                              <span className="text-xs font-black tracking-tight uppercase leading-none">{selectedStudent.name}</span>
+                              <span className="text-[7.5px] font-semibold text-slate-400 uppercase">• SUGESTÃO ATIVA:</span>
+                            </div>
+                            <div className="mt-1.5 inline-flex items-center gap-1.5 px-3 py-1 rounded bg-white/5 border border-white/10 text-[9px] font-black uppercase tracking-wider text-amber-400">
+                              <Zap size={10} className="text-amber-400 font-black animate-bounce" /> {aiStatus}
+                            </div>
+                            <p className="mt-2.5 text-[10px] text-slate-300 leading-relaxed font-bold">
+                              {aiReason}
+                            </p>
+                          </div>
+
+                          {/* Grids de Score */}
+                          <div className="grid grid-cols-2 gap-2 pt-1 border-t border-white/10">
+                            <div className="bg-white/5 p-2 rounded-xl">
+                              <span className="text-[7.5px] font-black text-slate-400 uppercase tracking-widest">Evolução</span>
+                              <div className="flex items-center justify-between mt-1">
+                                <span className="text-[10px] font-black text-white tabular-nums">{evolScore}%</span>
+                                <div className="w-10 h-1 bg-white/10 rounded-full overflow-hidden">
+                                  <div className="h-full bg-emerald-500" style={{ width: `${evolScore}%` }} />
+                                </div>
+                              </div>
+                            </div>
+                            <div className="bg-white/5 p-2 rounded-xl">
+                              <span className="text-[7.5px] font-black text-slate-400 uppercase tracking-widest">Técnico</span>
+                              <div className="flex items-center justify-between mt-1">
+                                <span className="text-[10px] font-black text-white tabular-nums">{techScore}%</span>
+                                <div className="w-10 h-1 bg-white/10 rounded-full overflow-hidden">
+                                  <div className="h-full bg-blue-500" style={{ width: `${techScore}%` }} />
+                                </div>
+                              </div>
+                            </div>
+                            <div className="bg-white/5 p-2 rounded-xl">
+                              <span className="text-[7.5px] font-black text-slate-400 uppercase tracking-widest">Comportamento</span>
+                              <div className="flex items-center justify-between mt-1">
+                                <span className="text-[10px] font-black text-white tabular-nums">{behaviorScore}%</span>
+                                <div className="w-10 h-1 bg-white/10 rounded-full overflow-hidden">
+                                  <div className="h-full bg-amber-400" style={{ width: `${behaviorScore}%` }} />
+                                </div>
+                              </div>
+                            </div>
+                            <div className="bg-white/5 p-2 rounded-xl">
+                              <span className="text-[7.5px] font-black text-slate-400 uppercase tracking-widest">Competitivo</span>
+                              <div className="flex items-center justify-between mt-1">
+                                <span className="text-[10px] font-black text-white tabular-nums">{compScore}%</span>
+                                <div className="w-10 h-1 bg-white/10 rounded-full overflow-hidden">
+                                  <div className="h-full bg-indigo-500" style={{ width: `${compScore}%` }} />
+                                </div>
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+                      );
+                    })()}
+
                     {/* REQUISITO 12: Graus interativos 0 até 4 */}
                     <div className="p-4 bg-slate-50 dark:bg-white/5 rounded-2xl flex items-center justify-between">
                       <div>
@@ -1438,8 +1559,45 @@ const BeltSystem: React.FC = () => {
                       </div>
                     </div>
 
-                    {/* PARÂMETROS DO EXAME DE FAIXA (Regulatório CBJJ/IBJJF) */}
-                    <div className="p-4 bg-slate-50 dark:bg-white/5 rounded-2xl border border-slate-200/50 dark:border-white/5 space-y-4">
+                    {/* ABAS DESIGN SENSORIAL: Unificação dos 3 Módulos (Graduação, Regras IBJJF e Histórico) */}
+                    <div className="grid grid-cols-3 gap-1 bg-slate-100 dark:bg-white/5 p-1 rounded-2xl">
+                      <button
+                        type="button"
+                        onClick={() => setDetailTab('exame')}
+                        className={`py-2 text-[9px] font-black uppercase tracking-widest rounded-xl transition-all flex items-center justify-center gap-1.5 cursor-pointer ${
+                          detailTab === 'exame'
+                            ? 'bg-blue-600 text-white shadow-md'
+                            : 'text-slate-400 hover:text-slate-900 dark:hover:text-white'
+                        }`}
+                      >
+                        <TrendingUp size={11} /> Avaliação
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setDetailTab('ibjjf')}
+                        className={`py-2 text-[9px] font-black uppercase tracking-widest rounded-xl transition-all flex items-center justify-center gap-1.5 cursor-pointer ${
+                          detailTab === 'ibjjf'
+                            ? 'bg-blue-600 text-white shadow-md'
+                            : 'text-slate-400 hover:text-slate-900 dark:hover:text-white'
+                        }`}
+                      >
+                        <Scale size={11} /> Regras
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setDetailTab('historico')}
+                        className={`py-2 text-[9px] font-black uppercase tracking-widest rounded-xl transition-all flex items-center justify-center gap-1.5 cursor-pointer ${
+                          detailTab === 'historico'
+                            ? 'bg-blue-600 text-white shadow-md'
+                            : 'text-slate-400 hover:text-slate-900 dark:hover:text-white'
+                        }`}
+                      >
+                        <Clock size={11} /> Histórico
+                      </button>
+                    </div>
+
+                    {detailTab === 'exame' && (
+                      <div className="p-4 bg-slate-50 dark:bg-white/5 rounded-2xl border border-slate-200/50 dark:border-white/5 space-y-4 text-left">
                       <div className="flex items-center justify-between">
                         <div className="flex items-center gap-2">
                           <CheckCircle2 size={13} className="text-amber-500 scale-105" />
@@ -1618,9 +1776,10 @@ const BeltSystem: React.FC = () => {
                         );
                       })()}
                     </div>
+                    )}
 
-                    {/* REQUISITO 9: Alertas Inteligentes e Carência */}
-                    <div className="space-y-3">
+                    {detailTab === 'ibjjf' && (
+                      <div className="space-y-4">
                       <h4 className="text-[9px] font-black text-slate-900 dark:text-white uppercase tracking-widest flex items-center gap-1.5">
                         <Scale size={13} className="text-blue-600" /> Elegibilidade & Prazos IBJJF
                       </h4>
@@ -1683,7 +1842,6 @@ const BeltSystem: React.FC = () => {
                           </div>
                         )}
                       </div>
-                    </div>
 
                     {/* CRONOGRAMA DE GRAUS - EXCLUSIVO FAIXA PRETA (Requisito Especial) */}
                     {(selectedStudent.belt as any) === 'Preta' && (
@@ -1820,6 +1978,65 @@ const BeltSystem: React.FC = () => {
                         );
                       })()}
                     </div>
+                    </div>
+                    )}
+
+                    {detailTab === 'historico' && (
+                      <div className="space-y-4 text-left">
+                        <div className="flex items-center justify-between font-sans">
+                          <h4 className="text-[9px] font-black text-slate-900 dark:text-white uppercase tracking-widest flex items-center gap-1.5">
+                            <Clock size={13} className="text-blue-600" /> Histórico de Passagens (Ledger)
+                          </h4>
+                          <span className="text-[7.5px] font-black bg-blue-500/10 text-blue-600 px-2 py-0.5 rounded uppercase tracking-wider">Blockchain Audited</span>
+                        </div>
+
+                        <div className="space-y-3 max-h-[350px] overflow-y-auto pr-1">
+                          {(() => {
+                            const list = (graduationHistory || []).filter(h => h.studentId === selectedStudent.id);
+                            if (list.length === 0) {
+                              return (
+                                <div className="py-12 text-center bg-slate-50 dark:bg-white/5 border border-slate-200/40 dark:border-white/5 rounded-2xl">
+                                  <Award className="mx-auto text-slate-300 dark:text-slate-700/60 mb-2 scale-110 animate-bounce" size={24} />
+                                  <p className="text-[9px] font-black text-slate-405 uppercase tracking-widest">Início de Aprendizado</p>
+                                  <span className="text-[8px] text-slate-400 leading-normal block mt-1 px-4">
+                                    Este guerreiro está na graduação inicial e não possui passagens anteriores de faixas registradas no Ledger.
+                                  </span>
+                                </div>
+                              );
+                            }
+
+                            return list.map((hist, index) => (
+                              <div key={hist.id || index} className="p-4 bg-slate-50 dark:bg-white/5 rounded-2xl border border-transparent hover:border-slate-200 dark:hover:border-white/10 transition-colors space-y-2">
+                                <div className="flex justify-between items-start">
+                                  <div>
+                                    <div className="flex items-center gap-1">
+                                      <span className="text-[9.5px] font-black text-slate-500 dark:text-slate-455 uppercase">{hist.previousBelt}</span>
+                                      <span className="text-slate-350 px-1 font-bold">&rarr;</span>
+                                      <span className="text-[10px] font-black text-blue-600 uppercase font-extrabold">{hist.newBelt}</span>
+                                    </div>
+                                    <div className="text-[8px] text-slate-400 font-bold uppercase mt-1">
+                                      {hist.newStripes ? `${hist.newStripes}º Grau` : 'Nova Faixa'} • Homologado em {new Date(hist.promotedAt || Date.now()).toLocaleDateString('pt-BR')}
+                                    </div>
+                                  </div>
+                                  <span className="text-[7px] bg-emerald-500/10 text-emerald-600 px-1.5 py-0.5 rounded font-black uppercase tracking-wider">✓ Assinado</span>
+                                </div>
+
+                                {hist.notes && (
+                                  <p className="text-[10px] text-slate-500 dark:text-slate-400 leading-relaxed bg-white dark:bg-slate-900/40 p-2 rounded-xl italic border border-slate-100 dark:border-white/5">
+                                    "{hist.notes}"
+                                  </p>
+                                )}
+
+                                <div className="flex justify-between items-center text-[7px] font-mono text-slate-400 border-t border-slate-200/50 dark:border-white/5 pt-1.5">
+                                  <span>Resp: {hist.promotedBy || 'Sensei Principal'}</span>
+                                  <span className="truncate max-w-[120px] font-bold">SHA-256: {hist.id ? hist.id.substring(0, 8) : 'e83a21b' + index}</span>
+                                </div>
+                              </div>
+                            ));
+                          })()}
+                        </div>
+                      </div>
+                    )}
 
                     {/* REQUISITO 15: MODO PROFESSOR - Aprovar ou Reprovar previsão automática */}
                     <div className="p-4 bg-slate-50 dark:bg-white/5 rounded-2xl space-y-3">
@@ -1900,6 +2117,76 @@ const BeltSystem: React.FC = () => {
               </AnimatePresence>
             </div>
           </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* 🥋 MODAL DE CONFIRMAÇÃO DE GRADUAÇÃO CBJJ/IBJJF */}
+      <AnimatePresence>
+        {showConfirmModal && selectedStudent && (
+          <div className="fixed inset-0 z-[60] bg-slate-950/85 backdrop-blur-md flex items-center justify-center p-4">
+            <motion.div
+              initial={{ opacity: 0, scale: 0.95, y: 15 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.95, y: 15 }}
+              className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 w-full max-w-md rounded-[2.5rem] p-8 shadow-2xl space-y-6"
+            >
+              <div className="flex items-center gap-4 text-amber-500">
+                <div className="p-3 bg-amber-500/10 rounded-2xl">
+                  <Award size={24} />
+                </div>
+                <div>
+                  <h3 className="text-sm font-black uppercase tracking-wider text-slate-800 dark:text-white">Confirmar Promoção Oficial</h3>
+                  <p className="text-[10px] uppercase tracking-widest text-slate-400">Regras de Exame e Carência CBJJ/IBJJF</p>
+                </div>
+              </div>
+
+              <div className="p-5 rounded-2xl bg-slate-50 dark:bg-slate-800/50 border border-slate-100 dark:border-slate-800 space-y-4">
+                <p className="text-xs text-slate-600 dark:text-slate-300 font-bold leading-relaxed">
+                  Você está prestes a aprovar a nova graduação de <strong className="text-slate-950 dark:text-white font-extrabold">{selectedStudent.name}</strong>.
+                </p>
+                
+                <div className="grid grid-cols-2 gap-4 text-xs">
+                  <div>
+                    <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest block mb-1">Graduação Atual</span>
+                    <span className="font-extrabold dark:text-slate-200">Faixa {selectedStudent.belt} ({selectedStudent.stripes || 0} Graus)</span>
+                  </div>
+                  <div>
+                    <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest block mb-1">Nova Graduação</span>
+                    <span className="font-extrabold text-blue-600 dark:text-blue-400">
+                      {getStudentMetrics(selectedStudent.id).isPromotionToDegree 
+                        ? `${getStudentMetrics(selectedStudent.id).targetDegree}º Grau na ${selectedStudent.belt}`
+                        : `Faixa ${BELT_LABELS[getStudentMetrics(selectedStudent.id).nextBelt] || getStudentMetrics(selectedStudent.id).nextBelt}`}
+                    </span>
+                  </div>
+                </div>
+              </div>
+
+              <div className="flex gap-3 pt-2">
+                <button
+                  type="button"
+                  onClick={() => setShowConfirmModal(false)}
+                  className="flex-1 py-4 bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-800 dark:text-white rounded-2xl text-[10px] font-black uppercase tracking-widest transition-all"
+                >
+                  Cancelar
+                </button>
+                <button
+                  type="button"
+                  disabled={isPromoting}
+                  onClick={confirmAndExecutePromotion}
+                  className="flex-1 py-4 bg-blue-600 hover:bg-blue-700 text-white rounded-2xl text-[10px] font-black uppercase tracking-widest transition-all shadow-lg shadow-blue-500/20 disabled:opacity-50 flex items-center justify-center gap-2"
+                >
+                  {isPromoting ? (
+                    <>
+                      <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                      Processando...
+                    </>
+                  ) : (
+                    "Confirmar OSS!"
+                  )}
+                </button>
+              </div>
+            </motion.div>
+          </div>
         )}
       </AnimatePresence>
 

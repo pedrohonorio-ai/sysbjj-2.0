@@ -1,6 +1,6 @@
 import React, { useState, useEffect, lazy, Suspense } from 'react';
 import { Routes, Route, Link, useLocation, useNavigate, Navigate } from 'react-router-dom';
-import { Menu, X, Bell, Sun, Moon, Search, Shield, LogOut, Clock, CheckCircle2, Instagram, ChevronRight, ShieldCheck, Lock, ArrowUpRight, CalendarCheck, Timer, Monitor, Activity, Users, Cpu, Award, Settings as SettingsIcon } from 'lucide-react';
+import { Menu, X, Bell, Sun, Moon, Search, Shield, LogOut, Clock, CheckCircle2, Instagram, ChevronRight, ShieldCheck, Lock, ArrowUpRight, CalendarCheck, Timer, Monitor, Activity, Users, Cpu, Award, BookOpenCheck, CreditCard, Trophy, BarChart3, Settings as SettingsIcon } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { NAVIGATION_ITEMS, BELT_COLORS, MASTER_ADMINS } from './constants/index.js';
 
@@ -28,6 +28,11 @@ const SubscriptionManager = lazy(() => import('./pages/subscription/Subscription
 const BillingCenter = lazy(() => import('./pages/subscription/BillingCenter.js'));
 const SaaSControlCenter = lazy(() => import('./pages/admin/SaaSControlCenter.js'));
 
+const DojoHub = lazy(() => import('./pages/DojoHub.js'));
+const Agenda = lazy(() => import('./pages/Agenda.js'));
+const Competitions = lazy(() => import('./pages/Competitions.js'));
+const Reports = lazy(() => import('./pages/Reports.js'));
+
 import NotificationCenter from './components/NotificationCenter.js';
 import DatabaseWarning from './components/DatabaseWarning.js';
 import { useTranslation } from './contexts/LanguageContext.js';
@@ -49,12 +54,11 @@ const Sidebar = ({ isOpen, toggle, onLogout, isMasterAdmin }: { isOpen: boolean,
     return true;
   });
 
-  const coreItems = filteredItems.filter(item => ['dashboard', 'students', 'teaching-hub', 'performance', 'business', 'attendance', 'timer'].includes(item.id));
-  const footerItems = filteredItems.filter(item => ['promotions', 'ibjjf-rules', 'history'].includes(item.id));
+  const coreItems = filteredItems.filter(item => ['dashboard', 'students', 'promotions', 'dojo', 'finances', 'agenda', 'reports'].includes(item.id));
+  const footerItems = filteredItems.filter(item => ['settings'].includes(item.id));
 
   const masterLinksList = [
     { id: 'audit', path: '/audit', label: 'SaaS & Auditoria Global', icon: <ShieldCheck size={20} className="text-rose-500" /> },
-    { id: 'settings', path: '/settings', label: t('common.settings'), icon: <SettingsIcon size={20} className="text-slate-500" /> },
   ];
 
   const renderMasterLink = (item: { id: string, path: string, label: string, icon: React.ReactNode }) => {
@@ -93,18 +97,18 @@ const Sidebar = ({ isOpen, toggle, onLogout, isMasterAdmin }: { isOpen: boolean,
       >
         <div className={`shrink-0 transition-all duration-500 ${isActive ? 'scale-110' : 'group-hover:scale-110 group-hover:-rotate-3 opacity-70'}`}>{item.icon}</div>
         <span className={`font-black tracking-[0.15em] uppercase text-[9px] truncate transition-all duration-700 flex-1 min-w-0 ${isOpen ? 'opacity-100 translate-x-0' : 'opacity-0 -translate-x-4'}`}>
-          {t(`common.${item.id}`)}
+          {t(`common.${item.id}`, item.label)}
         </span>
         {isActive && (
           <motion.div 
-            layoutId="active-indicator"
+            layoutId="active-indigo-indicator"
             className="absolute left-0 w-1 h-5 bg-blue-500 dark:bg-blue-600 rounded-full ml-0.5"
             transition={{ type: "spring", stiffness: 300, damping: 30 }}
           />
         )}
         {!isOpen && (
           <div className="absolute left-full ml-4 px-4 py-2 bg-slate-900 dark:bg-slate-800 text-white text-[10px] font-black uppercase tracking-[0.2em] rounded-xl shadow-2xl opacity-0 group-hover:opacity-100 pointer-events-none transition-all z-50 whitespace-nowrap lg:block hidden border border-slate-800 dark:border-slate-700">
-            {t(`common.${item.id}`)}
+            {t(`common.${item.id}`, item.label)}
           </div>
         )}
       </Link>
@@ -178,7 +182,7 @@ const Sidebar = ({ isOpen, toggle, onLogout, isMasterAdmin }: { isOpen: boolean,
             </div>
           </div>
 
-          {isMasterAdmin ? (
+          {isMasterAdmin && (
             <div className={!isOpen ? 'opacity-0' : 'opacity-100 transition-opacity duration-300'}>
               <div className="mb-3 px-4 flex items-center gap-3">
                  <span className="text-[10px] font-black text-rose-500 uppercase tracking-[0.25em] whitespace-nowrap">{t('audit.governanceMaster', 'Governança Master')}</span>
@@ -186,16 +190,6 @@ const Sidebar = ({ isOpen, toggle, onLogout, isMasterAdmin }: { isOpen: boolean,
               </div>
               <div className="space-y-1">
                 {masterLinksList.map(renderMasterLink)}
-              </div>
-            </div>
-          ) : (
-            <div className={!isOpen ? 'opacity-0' : 'opacity-100 transition-opacity duration-300'}>
-              <div className="mb-3 px-4 flex items-center gap-3">
-                 <span className="text-[10px] font-black text-slate-400 uppercase tracking-[0.25em] whitespace-nowrap">{t('common.options', 'Opções')}</span>
-                 <div className="h-px bg-slate-100 dark:bg-slate-800/50 flex-1" />
-              </div>
-              <div className="space-y-1">
-                {renderNavItem({ id: 'settings', label: t('common.settings'), icon: <SettingsIcon size={20} className="text-slate-500" /> })}
               </div>
             </div>
           )}
@@ -255,11 +249,11 @@ const BottomNav = ({ onLogout, isMasterAdmin }: { onLogout: () => void, isMaster
   const { t } = useTranslation();
   
   const bottomItems = [
-    { id: 'dashboard', icon: <Monitor size={20} />, label: t('common.dashboard') },
-    { id: 'attendance', icon: <CalendarCheck size={20} />, label: t('common.attendance') },
-    { id: 'timer', icon: <Timer size={20} />, label: t('common.timer') },
-    { id: 'business', icon: <Activity size={20} />, label: t('common.business') },
-    { id: 'students', icon: <Users size={20} />, label: t('common.students') }
+    { id: 'dashboard', icon: <Monitor size={20} />, label: t('common.dashboard', 'Painel') },
+    { id: 'students', icon: <Users size={20} />, label: t('common.students', 'Alunos') },
+    { id: 'promotions', icon: <Trophy size={20} />, label: t('common.promotions', 'Graduação') },
+    { id: 'dojo', icon: <BookOpenCheck size={20} />, label: t('common.dojo', 'Dojo de Ensino') },
+    { id: 'finances', icon: <CreditCard size={20} />, label: t('common.finances', 'Financeiro') }
   ];
 
   if (location.pathname.startsWith('/portal/')) return null;
@@ -633,14 +627,20 @@ const App: React.FC = () => {
                     <Route path="/" element={<Dashboard />} />
                     <Route path="/dashboard" element={<Dashboard />} />
                     <Route path="/students" element={<Students />} />
-                    <Route path="/teaching-hub" element={<CurriculumHub />} />
-                    <Route path="/performance" element={<PerformanceAnalytics />} />
-                    <Route path="/ibjjf-rules" element={<IBJJFRules />} />
-                    <Route path="/business" element={<BusinessHub />} />
-                    <Route path="/attendance" element={<AttendancePage />} />
-                    <Route path="/finances" element={<Navigate to="/business?tab=finances" replace />} />
-                    <Route path="/history" element={<AttendanceHistory />} />
                     <Route path="/promotions" element={<BeltSystem />} />
+                    <Route path="/dojo" element={<DojoHub />} />
+                    <Route path="/finances" element={<Finances />} />
+                    <Route path="/agenda" element={<Agenda />} />
+                    <Route path="/reports" element={<Reports />} />
+                    <Route path="/competitions" element={<Competitions />} />
+                    
+                    {/* Redirects/Backward Compatibility for old paths */}
+                    <Route path="/teaching-hub" element={<Navigate to="/dojo" replace />} />
+                    <Route path="/performance" element={<Navigate to="/dojo" replace />} />
+                    <Route path="/ibjjf-rules" element={<IBJJFRules />} />
+                    <Route path="/business" element={<Navigate to="/finances" replace />} />
+                    <Route path="/attendance" element={<Navigate to="/dojo" replace />} />
+                    <Route path="/history" element={<Navigate to="/dojo" replace />} />
                     <Route path="/language" element={<LanguageSelection />} />
                     <Route path="/timer" element={<FightTimer />} />
                     <Route path="/plans" element={<Navigate to="/business?tab=saas-plans" replace />} />

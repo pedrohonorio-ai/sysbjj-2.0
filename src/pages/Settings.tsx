@@ -5,7 +5,7 @@ import { useProfile } from '../contexts/ProfileContext.js';
 import { useData } from '../contexts/DataContext.js';
 import { useAuth } from '../context/AuthContext.js';
 import { AppLanguage } from '../types.js';
-import { Check, Globe, User, Save, Shield, Database, Download, Upload, Trash2, CreditCard, Mail, BookOpen, MapPin, Monitor, Activity, Users, TrendingUp, Trophy, ShieldCheck } from 'lucide-react';
+import { Check, Globe, User, Save, Shield, Database, Download, Upload, Trash2, CreditCard, Mail, BookOpen, MapPin, Monitor, Activity, Users, TrendingUp, Trophy, ShieldCheck, Palette } from 'lucide-react';
 import { api } from '../services/api.js';
 import { enterpriseApi } from '../services/enterpriseApi.js';
 import { compressImage } from '../services/imageUtils.js';
@@ -229,7 +229,7 @@ const Settings: React.FC = () => {
       <div className="bg-white dark:bg-slate-900 rounded-[2rem] sm:rounded-[2.5rem] border border-slate-200 dark:border-slate-800 shadow-sm overflow-hidden transition-all">
         <div className="p-6 sm:p-8 border-b border-slate-100 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-800/50 flex items-center justify-between">
           <h3 className="text-xs sm:text-sm font-black text-slate-400 uppercase tracking-[0.3em] flex items-center gap-3">
-            <Globe size={18} className="text-blue-600" /> {t('settings.visualIdentity')}
+            <Palette size={18} className="text-blue-600" /> {t('settings.visualIdentity')}
           </h3>
           <button onClick={handleSave} className="flex items-center gap-2 bg-blue-600 text-white px-4 py-2 rounded-xl font-black uppercase text-[10px] tracking-widest shadow-lg hover:bg-blue-700 transition-all">
             <Save size={14} /> {t('settings.save')}

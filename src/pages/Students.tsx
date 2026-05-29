@@ -1136,6 +1136,11 @@ const StudentDetailsModal = ({ student, onClose }: { student: Student; onClose: 
   const [editCons, setEditCons] = useState(student.cons || '');
   const [showSuccess, setShowSuccess] = useState(false);
   const [showAddVideo, setShowAddVideo] = useState(false);
+  const [confirmModal, setConfirmModal] = useState<{
+    message: string;
+    onConfirm: () => void;
+    title?: string;
+  } | null>(null);
   const [newVideo, setNewVideo] = useState({ title: '', videoUrl: '', description: '' });
 
   const handleAddPositionVideo = () => {
@@ -1213,15 +1218,28 @@ const StudentDetailsModal = ({ student, onClose }: { student: Student; onClose: 
     let minTimeMonths = student.isKid ? 4 : (IBJJF_BELT_RULES[student.belt as string]?.minTimeMonths ?? 0);
     
     // IBJJF Exception: Purple belt minimum time is 12 months if the athlete is 17 years old
-    if (!student.isKid && student.belt === BeltColor.PURPLE) {
+    const currentBeltStr = String(student.belt);
+    if (!student.isKid && (currentBeltStr === 'Purple' || currentBeltStr === 'Roxa')) {
       const age = calculateCBJJCategory(student.birthDate) === CBJJCategory.JUVENIL_2 ? 17 : 18; // Simplified age check
       if (age === 17) minTimeMonths = 12;
     }
 
-    // Adult white belts don't have a minimum time requirement in IBJJF rules
-    if (!student.isKid && student.belt === BeltColor.WHITE) return null;
+    let lastPromotionDate = student.lastPromotionDate;
+    if (!lastPromotionDate && student.beltSince) {
+      if (student.beltSince instanceof Date) {
+        lastPromotionDate = student.beltSince.toISOString().split('T')[0];
+      } else {
+        lastPromotionDate = String(student.beltSince).split('T')[0];
+      }
+    }
+    if (!lastPromotionDate) {
+      lastPromotionDate = student.joinedAt ? student.joinedAt.split('T')[0] : new Date().toISOString().split('T')[0];
+    }
 
-    const lastPromotion = new Date(student.lastPromotionDate + 'T12:00:00');
+    let lastPromotion = new Date(lastPromotionDate + 'T12:00:00');
+    if (isNaN(lastPromotion.getTime())) {
+      lastPromotion = new Date();
+    }
     const today = new Date();
     
     let diffMonths = (today.getFullYear() - lastPromotion.getFullYear()) * 12 + (today.getMonth() - lastPromotion.getMonth());
@@ -1233,7 +1251,36 @@ const StudentDetailsModal = ({ student, onClose }: { student: Student; onClose: 
     const progress = minTimeMonths > 0 ? Math.min(100, (diffMonths / minTimeMonths) * 100) : 100;
     const isEligible = diffMonths >= minTimeMonths;
 
-    return { diffMonths, minTime: minTimeMonths, progress, isEligible };
+    // Formatting "Tempo atual" string
+    const yearsSpent = Math.floor(diffMonths / 12);
+    const monthsSpent = diffMonths % 12;
+    let timeSpentStr = '';
+    if (yearsSpent === 0) {
+      timeSpentStr = `${monthsSpent} ${monthsSpent === 1 ? 'mês' : 'meses'}`;
+    } else {
+      const yearsStr = yearsSpent === 1 ? '1 ano' : `${yearsSpent} anos`;
+      const monthsStr = monthsSpent > 0 ? ` e ${monthsSpent} ${monthsSpent === 1 ? 'mês' : 'meses'}` : '';
+      timeSpentStr = `${yearsStr}${monthsStr}`;
+    }
+
+    // Formatting "Elegibilidade" string
+    let eligibleStr = '';
+    if (isEligible) {
+      eligibleStr = 'Elegível para graduação ✔';
+    } else {
+      const remaining = minTimeMonths - diffMonths;
+      const remYears = Math.floor(remaining / 12);
+      const remMonths = remaining % 12;
+      if (remYears === 0) {
+        eligibleStr = `Elegível para graduação em: ${remMonths} ${remMonths === 1 ? 'mês' : 'meses'}`;
+      } else {
+        const yearsStr = remYears === 1 ? '1 ano' : `${remYears} anos`;
+        const monthsStr = remMonths > 0 ? ` e ${remMonths} ${remMonths === 1 ? 'mês' : 'meses'}` : '';
+        eligibleStr = `Elegível para graduação em: ${yearsStr}${monthsStr}`;
+      }
+    }
+
+    return { diffMonths, minTime: minTimeMonths, progress, isEligible, timeSpentStr, eligibleStr };
   };
 
   const beltAnalysis = useMemo(() => getBeltTimeAnalysis(), [student]);
@@ -1771,10 +1818,13 @@ const StudentDetailsModal = ({ student, onClose }: { student: Student; onClose: 
                 <button 
                   type="button" 
                   onClick={() => {
-                    if (confirm(t('students.deleteConfirm') || "Sensei, deseja realmente excluir o cadastro deste atleta permanentemente?")) {
-                      deleteStudent(student.id);
-                      onClose();
-                    }
+                    setConfirmModal({
+                      message: t('students.deleteConfirm') || "Sensei, deseja realmente excluir o cadastro deste atleta permanentemente?",
+                      onConfirm: () => {
+                        deleteStudent(student.id);
+                        onClose();
+                      }
+                    });
                   }}
                   className="w-full mt-3 py-4 bg-red-600/10 hover:bg-red-600 hover:text-white text-red-600 dark:text-red-400 dark:hover:text-white rounded-[1.5rem] font-black uppercase tracking-widest text-xs active:scale-95 transition-all flex items-center justify-center gap-2 border border-red-500/20"
                 >
@@ -2459,30 +2509,41 @@ const StudentDetailsModal = ({ student, onClose }: { student: Student; onClose: 
                     ) : (
                       beltAnalysis && (
                         <section className="space-y-4">
-                          <h3 className="text-[10px] font-black text-slate-400 uppercase tracking-widest flex items-center gap-2"><Clock size={14} /> {t('students.beltAnalysis')}</h3>
-                          <div className="p-8 rounded-[2.5rem] bg-slate-100 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-700">
-                            <div className="flex justify-between items-center mb-6">
+                          <h3 className="text-[10px] font-black text-slate-400 uppercase tracking-widest flex items-center gap-2"><Clock size={14} /> CONTROLE DE CARÊNCIA & TEMPO DE FAIXA</h3>
+                          <div className="p-8 rounded-[2.5rem] bg-slate-100 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-700 space-y-4">
+                            <div>
+                              <p className="text-[10px] font-black uppercase tracking-widest text-slate-400">Tempo de Carência Oficial IBJJF</p>
+                              <div className="flex justify-between items-baseline mt-2">
+                                <span className="text-2xl font-black text-slate-950 dark:text-white tracking-tight">Faixa {student.belt}</span>
+                                <span className={`px-4 py-1.5 rounded-xl text-[10px] font-black uppercase tracking-widest ${beltAnalysis.isEligible ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-950/20 dark:text-emerald-400' : 'bg-amber-100 text-amber-700 dark:bg-amber-950/20 dark:text-amber-400'}`}>
+                                  {beltAnalysis.isEligible ? "Elegível" : "Em carência"}
+                                </span>
+                              </div>
+                            </div>
+                            
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 py-4 border-t border-b border-slate-200 dark:border-slate-700">
                               <div>
-                                <p className="text-xs font-black uppercase tracking-widest text-slate-500">{t('students.timeInBelt')}</p>
-                                <p className="text-3xl font-black text-slate-900 dark:text-white tracking-tighter">{beltAnalysis.diffMonths} <span className="text-base text-slate-400">/ {beltAnalysis.minTime} {t('common.months')}</span></p>
+                                <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest leading-none mb-1">Tempo atual</p>
+                                <p className="text-sm font-extrabold text-slate-800 dark:text-slate-200">{beltAnalysis.timeSpentStr}</p>
                               </div>
-                              <div className={`px-5 py-2.5 rounded-2xl text-[10px] font-black uppercase tracking-widest ${beltAnalysis.isEligible ? 'bg-emerald-100 text-emerald-700 shadow-emerald-100/50 shadow-lg' : 'bg-orange-100 text-orange-700 shadow-orange-100/50 shadow-lg'}`}>
-                                {beltAnalysis.isEligible ? t('students.eligible') : t('students.inGracePeriod')}
+                              <div>
+                                <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest leading-none mb-1">Status de Elegibilidade</p>
+                                <p className="text-sm font-extrabold text-slate-800 dark:text-slate-200">{beltAnalysis.eligibleStr}</p>
                               </div>
                             </div>
-                            <div className="w-full h-4 bg-slate-200 dark:bg-slate-700 rounded-full overflow-hidden shadow-inner">
-                              <motion.div 
-                                initial={{ width: 0 }}
-                                animate={{ width: `${beltAnalysis.progress}%` }}
-                                className={`h-full transition-all duration-1000 ${beltAnalysis.isEligible ? 'bg-emerald-500' : 'bg-blue-600'} shadow-[0_0_12px_rgba(59,130,246,0.3)]`}
-                              />
-                            </div>
-                            <div className="mt-6 p-4 bg-white dark:bg-slate-900 rounded-2xl border border-slate-100 dark:border-slate-800">
-                              <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest leading-relaxed">
-                                {beltAnalysis.isEligible 
-                                  ? t('common.readyForEvaluation')
-                                  : t('common.missingMonths', { months: (beltAnalysis.minTime - beltAnalysis.diffMonths) })}
-                              </p>
+
+                            <div className="space-y-2">
+                              <div className="flex justify-between text-[10px] font-black uppercase tracking-wider text-slate-400">
+                                <span>Progresso da Carência</span>
+                                <span>{beltAnalysis.diffMonths} / {beltAnalysis.minTime} meses</span>
+                              </div>
+                              <div className="w-full h-4 bg-slate-200 dark:bg-slate-700 rounded-full overflow-hidden shadow-inner">
+                                <motion.div 
+                                  initial={{ width: 0 }}
+                                  animate={{ width: `${beltAnalysis.progress}%` }}
+                                  className={`h-full transition-all duration-1000 ${beltAnalysis.isEligible ? 'bg-emerald-500 shadow-[0_0_12px_rgba(16,185,129,0.3)]' : 'bg-blue-600 shadow-[0_0_12px_rgba(59,130,246,0.3)]'}`}
+                                />
+                              </div>
                             </div>
                           </div>
                         </section>
@@ -2631,7 +2692,14 @@ const StudentDetailsModal = ({ student, onClose }: { student: Student; onClose: 
                             <h4 className="font-black text-slate-900 dark:text-white uppercase text-sm leading-tight">{video.title}</h4>
                             <button 
                               onClick={() => {
-                                if(confirm(t('common.confirmDeleteVideo') || 'Excluir este vídeo?')) {
+                                setConfirmModal({
+                                  message: t('common.confirmDeleteVideo') || 'Excluir este vídeo?',
+                                  onConfirm: () => {
+                                    const updated = student.positionVideos?.filter(v => v.id !== video.id);
+                                    updateStudent(student.id, { positionVideos: updated });
+                                  }
+                                });
+                                if (false) {
                                   const updated = student.positionVideos?.filter(v => v.id !== video.id);
                                   updateStudent(student.id, { positionVideos: updated });
                                 }
@@ -2822,11 +2890,69 @@ const StudentDetailsModal = ({ student, onClose }: { student: Student; onClose: 
                   <p className="text-sm text-red-400 mt-1">{t('students.deleteWarning')}</p>
                 </div>
                 <button 
-                  onClick={() => { if(confirm(t('students.deleteConfirm'))) { deleteStudent(student.id); onClose(); } }} 
+                  onClick={() => {
+                    setConfirmModal({
+                      message: t('students.deleteConfirm') || "Deseja excluir este aluno permanentemente?",
+                      onConfirm: () => {
+                        deleteStudent(student.id);
+                        onClose();
+                      }
+                    });
+                  }} 
                   className="px-12 py-5 bg-red-600 text-white rounded-[1.5rem] font-black uppercase text-xs tracking-widest hover:bg-red-700 shadow-2xl flex items-center gap-3 mx-auto transition-all"
                 >
                   <Trash2 size={20} /> {t('students.deleteBtn').toUpperCase()}
                 </button>
+              </div>
+            </div>
+          )}
+          
+          {confirmModal && (
+            <div className="fixed inset-0 z-[110] flex items-center justify-center p-4 bg-slate-950/80 backdrop-blur-md animate-in fade-in duration-300">
+              <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-white/10 rounded-[2.5rem] max-w-sm w-full p-8 shadow-2xl relative overflow-hidden animate-in zoom-in-95 duration-300 text-left">
+                <div className="absolute top-0 right-0 p-4">
+                  <button 
+                    onClick={() => setConfirmModal(null)} 
+                    className="p-2 text-slate-400 hover:text-slate-600 dark:hover:text-white rounded-full transition-colors"
+                  >
+                    <X size={18} />
+                  </button>
+                </div>
+                
+                <div className="flex flex-col items-center text-center space-y-4">
+                  <div className="w-16 h-16 rounded-3xl bg-red-600/10 dark:bg-red-500/15 flex items-center justify-center text-red-600 dark:text-red-400 border border-red-500/20">
+                    <ShieldAlert size={32} />
+                  </div>
+                  
+                  <div>
+                    <h3 className="text-lg font-black uppercase text-slate-900 dark:text-white tracking-tight">
+                      Confirmar Alta Segurança
+                    </h3>
+                    <p className="text-[11px] text-slate-500 dark:text-slate-400 mt-2 font-bold leading-normal">
+                      {confirmModal.message}
+                    </p>
+                  </div>
+                  
+                  <div className="grid grid-cols-2 gap-3 w-full pt-4">
+                    <button
+                      type="button"
+                      onClick={() => setConfirmModal(null)}
+                      className="px-4 py-3 bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 rounded-xl font-black uppercase text-[9px] tracking-widest hover:bg-slate-200 dark:hover:bg-slate-700 transition-all cursor-pointer"
+                    >
+                      Cancelar
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        confirmModal.onConfirm();
+                        setConfirmModal(null);
+                      }}
+                      className="px-4 py-3 bg-red-650 hover:bg-red-700 dark:bg-red-500/20 dark:hover:bg-red-500/35 text-white dark:text-red-300 rounded-xl font-black uppercase text-[9px] tracking-widest transition-all cursor-pointer border border-red-500/30"
+                    >
+                      Confirmar
+                    </button>
+                  </div>
+                </div>
               </div>
             </div>
           )}
@@ -2971,8 +3097,13 @@ const Students: React.FC = () => {
   const { t } = useTranslation();
   const { user } = useAuth();
   const isMasterAdmin = MASTER_ADMINS.includes(user?.email || '');
-  const { students, schedules, deleteStudent } = useData();
+  const { students, schedules, deleteStudent, updateStudent } = useData();
   const { profile } = useProfile();
+  const [confirmModal, setConfirmModal] = useState<{
+    message: string;
+    onConfirm: () => void;
+    title?: string;
+  } | null>(null);
   const [searchTerm, setSearchTerm] = useState('');
   const [classFilter, setClassFilter] = useState('');
   const [beltFilter, setBeltFilter] = useState('');
@@ -3307,9 +3438,10 @@ const Students: React.FC = () => {
                           <button 
                             onClick={(e) => {
                               e.stopPropagation();
-                              if(confirm(t('students.deleteConfirm'))) {
-                                deleteStudent(student.id);
-                              }
+                              setConfirmModal({
+                                message: t('students.deleteConfirm') || "Sensei, deseja realmente excluir o cadastro deste atleta permanentemente?",
+                                onConfirm: () => deleteStudent(student.id)
+                              });
                             }}
                             className="p-2 text-slate-400 hover:text-red-500 transition-colors"
                             title={t('students.deleteTitle')}
@@ -3346,9 +3478,10 @@ const Students: React.FC = () => {
                     <button 
                       onClick={(e) => {
                         e.stopPropagation();
-                        if(confirm(t('students.deleteConfirm'))) {
-                          deleteStudent(student.id);
-                        }
+                        setConfirmModal({
+                          message: t('students.deleteConfirm') || "Sensei, deseja realmente excluir o cadastro deste atleta permanentemente?",
+                          onConfirm: () => deleteStudent(student.id)
+                        });
                       }}
                       className="p-2 bg-slate-900/40 lg:bg-white/10 backdrop-blur-md rounded-full text-slate-100 opacity-100 lg:opacity-0 lg:group-hover:opacity-100 hover:bg-red-500 transition-all shadow-lg"
                     >
@@ -3493,6 +3626,56 @@ const Students: React.FC = () => {
       {selectedStudent && currentSelectedStudent && <StudentDetailsModal student={currentSelectedStudent} onClose={() => setSelectedStudent(null)} />}
       {isAddingStudent && <NewStudentModal defaultIsKid={activeView === 'kids'} onClose={() => setIsAddingStudent(false)} />}
       {isSelectingCompetitors && <CompetitorSelectorModal onClose={() => setIsSelectingCompetitors(false)} />}
+
+      {confirmModal && (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-slate-950/80 backdrop-blur-md animate-in fade-in duration-300">
+          <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-white/10 rounded-[2.5rem] max-w-sm w-full p-8 shadow-2xl relative overflow-hidden animate-in zoom-in-95 duration-300 text-left">
+            <div className="absolute top-0 right-0 p-4">
+              <button 
+                onClick={() => setConfirmModal(null)} 
+                className="p-2 text-slate-400 hover:text-slate-600 dark:hover:text-white rounded-full transition-colors"
+              >
+                <X size={18} />
+              </button>
+            </div>
+            
+            <div className="flex flex-col items-center text-center space-y-4">
+              <div className="w-16 h-16 rounded-3xl bg-red-600/10 dark:bg-red-500/15 flex items-center justify-center text-red-600 dark:text-red-400 border border-red-500/20">
+                <ShieldAlert size={32} />
+              </div>
+              
+              <div>
+                <h3 className="text-lg font-black uppercase text-slate-900 dark:text-white tracking-tight">
+                  Confirmar Exclusão
+                </h3>
+                <p className="text-[11px] text-slate-500 dark:text-slate-400 mt-2 font-bold leading-normal">
+                  {confirmModal.message}
+                </p>
+              </div>
+              
+              <div className="grid grid-cols-2 gap-3 w-full pt-4">
+                <button
+                  type="button"
+                  onClick={() => setConfirmModal(null)}
+                  className="px-4 py-3 bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 rounded-xl font-black uppercase text-[9px] tracking-widest hover:bg-slate-200 dark:hover:bg-slate-700 transition-all cursor-pointer"
+                >
+                  Cancelar
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    confirmModal.onConfirm();
+                    setConfirmModal(null);
+                  }}
+                  className="px-4 py-3 bg-red-650 hover:bg-red-700 dark:bg-red-500/20 dark:hover:bg-red-500/35 text-white dark:text-red-300 rounded-xl font-black uppercase text-[9px] tracking-widest transition-all cursor-pointer border border-red-500/30"
+                >
+                  Confirmar
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

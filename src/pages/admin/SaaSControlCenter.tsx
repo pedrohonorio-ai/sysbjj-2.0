@@ -477,7 +477,7 @@ export const SaaSControlCenter: React.FC = () => {
             <input
               type="text"
               required
-              placeholder="Ex: pedro.honorio@gm.rio ou CPF/CNPJ"
+              placeholder="Ex: dashfire@gmail.com"
               value={pixKey}
               onChange={(e) => setPixKey(e.target.value)}
               className="w-full bg-slate-950 border border-slate-850 rounded-xl py-2.5 px-4 text-xs text-white placeholder-slate-600 focus:outline-none focus:border-cyan-500 font-sans"
@@ -489,7 +489,7 @@ export const SaaSControlCenter: React.FC = () => {
             <input
               type="text"
               required
-              placeholder="Ex: SYSBJJ 2.0 Tecnologia Ltda"
+              placeholder="Ex: Pedro Paulo Honorio"
               value={pixHolder}
               onChange={(e) => setPixHolder(e.target.value)}
               className="w-full bg-slate-950 border border-slate-850 rounded-xl py-2.5 px-4 text-xs text-white placeholder-slate-600 focus:outline-none focus:border-cyan-500 font-sans"

@@ -67,8 +67,8 @@ export const BillingCenter: React.FC = () => {
   const [receipts, setReceipts] = useState<any[]>([]);
 
   // PIX Credentials Configuration loaded dynamically from master admin setup
-  const PIX_KEY = sub?.pixKey || "pedro.honorio@gm.rio";
-  const PIX_BENEFICIARY = sub?.pixHolder || "SYSBJJ 2.0 Tecnologia Ltda";
+  const PIX_KEY = sub?.pixKey || "dashfire@gmail.com";
+  const PIX_BENEFICIARY = sub?.pixHolder || "Pedro Paulo Honorio";
   const PIX_CITY = sub?.pixCity || "Rio de Janeiro";
 
   // Fetch current subscription & history
