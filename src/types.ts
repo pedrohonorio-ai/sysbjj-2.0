@@ -320,6 +320,7 @@ export interface Student {
   lastPaymentDate?: string;
   isKid: boolean;
   isInstructor: boolean;
+  isClassProfessor?: boolean;
   attendanceCount: number;
   behaviorScore?: number;
   rewardPoints?: number;
@@ -424,6 +425,8 @@ export interface SystemLog {
   deviceInfo: string;
   previousHash?: string;
   hash?: string;
+  integrityStatus?: 'VALID' | 'WARNING' | 'CORRUPTED';
+  integrityFailed?: boolean;
 }
 
 export interface PaymentReceipt {

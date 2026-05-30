@@ -11,6 +11,7 @@ import { motion, AnimatePresence } from 'motion/react';
 import { Student, GraduationCriterion, GraduationHistory } from '../types.js';
 import { calculateStudentEligibility, getBeltLabel } from '../services/graduation/rulesEngine.js';
 import { BELT_RULES } from '../services/graduation/beltRules.js';
+import { getNextBlackBeltProgression, canPromoteBlackBelt, getBlackBeltTitle } from '../utils/graduation/blackBeltEngine.js';
 
 // Cores oficiais do Sensei (Requisito 11)
 export const OFFICIAL_BELT_COLORS: Record<string, string> = {
@@ -52,15 +53,15 @@ export const IBJJF_TIME_LIMITS: Record<string, number> = {
 };
 
 export const BLACK_BELT_RULES: Record<number, number> = {
-  0: 3,
-  1: 3,
-  2: 3,
-  3: 5,
-  4: 5,
-  5: 5,
-  6: 7,
-  7: 7,
-  8: 10
+  0: 36, // em meses para o primeiro grau
+  1: 36,
+  2: 36,
+  3: 60, // 5 anos para 4º grau
+  4: 60, // 5 anos para 5º grau
+  5: 60, // 5 anos para 6º grau
+  6: 84, // 7 anos (coral vermelha e preta)
+  7: 84, // 7 anos (coral vermelha e branca)
+  8: 120 // 10 anos (faixa vermelha 9º grau)
 };
 
 export function calculateBlackBeltProgress(student: any) {
@@ -80,94 +81,249 @@ export function calculateBlackBeltProgress(student: any) {
   if (!bbDateStr) return null;
 
   const today = new Date();
-  let currentDegree = 0;
-  let currentDate = new Date(bbDateStr);
-  if (isNaN(currentDate.getTime())) {
-    currentDate = new Date();
+  
+  // Grau atual do Faixa Preta cadastrado
+  const currentDegree = Number(student.blackBeltDegree !== undefined ? student.blackBeltDegree : (student.degrees || student.stripes || 0));
+  
+  let baseDate = new Date(bbDateStr);
+  if (isNaN(baseDate.getTime())) {
+    baseDate = new Date();
   }
 
-  while (true) {
-    const yearsRequired = BLACK_BELT_RULES[currentDegree];
-    if (!yearsRequired) break;
+  // Busca características da próxima graduação no motor oficial
+  const progression = getNextBlackBeltProgression(currentDegree);
+  const displayBelt = getBlackBeltTitle(currentDegree);
+  const timeSpentYears = today.getFullYear() - baseDate.getFullYear();
 
-    const eligibleDate = new Date(currentDate);
-    eligibleDate.setFullYear(eligibleDate.getFullYear() + yearsRequired);
+  if (!progression) {
+    return {
+      currentDegree,
+      nextDegree: currentDegree,
+      eligibleDate: today,
+      yearsRemaining: 0,
+      monthsRemaining: 0,
+      displayBelt,
+      timeSpentYears,
+      status: 'Graduação Máxima',
+      isAgeEligible: true,
+      minAgeRequired: 67
+    };
+  }
 
-    if (today >= eligibleDate) {
-      currentDegree++;
-      currentDate = eligibleDate;
-    } else {
-      const yearsRemaining = eligibleDate.getFullYear() - today.getFullYear();
-      const msDiff = eligibleDate.getTime() - today.getTime();
-      const monthsRemaining = Math.max(1, Math.round(msDiff / (1000 * 60 * 60 * 24 * 30.4)));
+  // Carência definida para o próximo grau (em meses)
+  const reqMonths = progression.monthsRequired;
 
-      let displayBelt = "Preta";
-      if (currentDegree >= 8) {
-        displayBelt = "Coral Vermelha/Branca";
-      } else if (currentDegree >= 7) {
-        displayBelt = "Coral Vermelha/Preta";
+  // Em qual data o atleta foi graduado ao seu grau atual? 
+  // Padrão: usamos lastPromotionDate ou a data original de faixa preta
+  let lastPromoDate = student.lastPromotionDate ? new Date(student.lastPromotionDate) : baseDate;
+  if (student.lastDegreeDate) {
+    lastPromoDate = new Date(student.lastDegreeDate);
+  }
+  if (isNaN(lastPromoDate.getTime())) {
+    lastPromoDate = baseDate;
+  }
+
+  const eligibleDate = new Date(lastPromoDate.getTime());
+  eligibleDate.setMonth(eligibleDate.getMonth() + reqMonths);
+
+  // Verificação de idade regulamentar segundo a IBJJF
+  const birthDate = student.birthDate ? new Date(student.birthDate) : null;
+  let isAgeEligible = true;
+  
+  const ageSpecs: Record<number, number> = {
+    1: 22, 2: 25, 3: 28, 4: 33, 5: 38, 6: 43, 7: 50, 8: 57, 9: 67
+  };
+  const nextDeg = progression.nextDegree;
+  const minAgeRequired = ageSpecs[nextDeg] || 19;
+
+  if (birthDate && !isNaN(birthDate.getTime())) {
+    const studentAge = today.getFullYear() - birthDate.getFullYear();
+    if (studentAge < minAgeRequired) {
+      isAgeEligible = false;
+      const birthYearEligible = birthDate.getFullYear() + minAgeRequired;
+      if (birthYearEligible > eligibleDate.getFullYear()) {
+        eligibleDate.setFullYear(birthYearEligible);
       }
-
-      const birthDate = student.birthDate ? new Date(student.birthDate) : null;
-      let isAgeEligible = true;
-      let minAgeRequired = 19; // Default starting age limit for Black Belt
-      
-      // Determine biological age rules:
-      const ageSpecs: Record<number, number> = {
-        1: 22, 2: 25, 3: 28, 4: 33, 5: 38, 6: 43, 7: 50, 8: 60, 9: 67
-      };
-      const nextDeg = currentDegree + 1;
-      if (ageSpecs[nextDeg]) {
-        minAgeRequired = ageSpecs[nextDeg];
-      }
-      
-      if (birthDate && !isNaN(birthDate.getTime())) {
-        const studentAge = today.getFullYear() - birthDate.getFullYear();
-        if (studentAge < minAgeRequired) {
-          isAgeEligible = false;
-          // Projected eligible date will shift due to age constraint:
-          const birthYearEligible = birthDate.getFullYear() + minAgeRequired;
-          if (birthYearEligible > eligibleDate.getFullYear()) {
-            eligibleDate.setFullYear(birthYearEligible);
-          }
-        }
-      }
-
-      return {
-        currentDegree,
-        nextDegree: currentDegree + 1,
-        eligibleDate,
-        yearsRemaining: Math.max(0, eligibleDate.getFullYear() - today.getFullYear()),
-        monthsRemaining: Math.max(1, Math.round((eligibleDate.getTime() - today.getTime()) / (1000 * 60 * 60 * 24 * 30.4))),
-        displayBelt,
-        timeSpentYears: today.getFullYear() - new Date(bbDateStr).getFullYear(),
-        status: (today >= eligibleDate && isAgeEligible) ? 'Elegível' : 'Em Progressão',
-        isAgeEligible,
-        minAgeRequired
-      };
     }
   }
 
-  let finalBelt = "Preta";
-  if (currentDegree >= 8) {
-    finalBelt = "Coral Vermelha/Branca";
-  } else if (currentDegree >= 7) {
-    finalBelt = "Coral Vermelha/Preta";
+  const msDiff = eligibleDate.getTime() - today.getTime();
+  const daysRemaining = Math.max(0, Math.ceil(msDiff / (1000 * 60 * 60 * 24)));
+  const monthsRemaining = Math.max(0, Math.round(daysRemaining / 30.4));
+  const yearsRemaining = Math.max(0, Math.floor(monthsRemaining / 12));
+
+  const isEligible = today >= eligibleDate && isAgeEligible;
+
+  // Tempo acumulado na faixa preta
+  const monthsAccumulated = Math.max(0, (today.getFullYear() - baseDate.getFullYear()) * 12 + (today.getMonth() - baseDate.getMonth()));
+  const yearsAccumulated = Math.floor(monthsAccumulated / 12);
+  const remMonthsAccumulated = monthsAccumulated % 12;
+  const accumulatedStr = yearsAccumulated === 0
+    ? `${monthsAccumulated} ${monthsAccumulated === 1 ? 'mês' : 'meses'}`
+    : `${yearsAccumulated} ${yearsAccumulated === 1 ? 'ano' : 'anos'}${remMonthsAccumulated > 0 ? ` e ${remMonthsAccumulated} ${remMonthsAccumulated === 1 ? 'mês' : 'meses'}` : ''}`;
+
+  // Localized remaining string
+  let remainingStr = '';
+  if (yearsRemaining === 0) {
+    remainingStr = `${monthsRemaining} ${monthsRemaining === 1 ? 'mês' : 'meses'}`;
+  } else {
+    const remMonths = monthsRemaining % 12;
+    remainingStr = `${yearsRemaining} ${yearsRemaining === 1 ? 'ano' : 'anos'}${remMonths > 0 ? ` e ${remMonths} ${remMonths === 1 ? 'mês' : 'meses'}` : ''}`;
   }
+
+  // Future belt type and next title
+  let futureBeltType = 'Preta';
+  const nextTitle = progression.nextTitle;
+  const nextDegNum = progression.nextDegree;
+  if (nextDegNum === 7) futureBeltType = 'Coral (Vermelha/Preta)';
+  else if (nextDegNum === 8) futureBeltType = 'Coral (Vermelha/Branca)';
+  else if (nextDegNum === 9) futureBeltType = 'Vermelha';
 
   return {
     currentDegree,
-    nextDegree: currentDegree + 1,
-    eligibleDate: new Date(),
-    yearsRemaining: 0,
-    monthsRemaining: 0,
-    displayBelt: finalBelt,
-    timeSpentYears: today.getFullYear() - new Date(bbDateStr).getFullYear(),
-    status: 'Graduação Máxima',
-    isAgeEligible: true,
-    minAgeRequired: 67
+    nextDegree: progression.nextDegree,
+    eligibleDate,
+    yearsRemaining,
+    monthsRemaining,
+    displayBelt,
+    timeSpentYears,
+    status: isEligible ? 'Elegível' : 'Em Progressão',
+    isAgeEligible,
+    minAgeRequired,
+    accumulatedStr,
+    remainingStr,
+    nextTitle,
+    futureBeltType
   };
 }
+
+// 🥋 COMPONENTE DE VISUALIZAÇÃO DE FAIXA DE ALTA FIDELIDADE — IBJJF/CBJJ
+export const BJJBeltVisual: React.FC<{ belt: string; stripesOrDegrees: number }> = ({ belt, stripesOrDegrees }) => {
+  const isBlackBeltType = String(belt || '').toLowerCase() === 'preta' || String(belt || '').toLowerCase() === 'black' || String(belt || '').includes('Preta');
+  
+  let mainBeltStyle = "bg-[#111111]";
+  let isPatterned: 'solid' | 'coral-red-black' | 'coral-red-white' | 'red' = 'solid';
+  let barBg = "bg-rose-600";
+  let stripeColor = "bg-white";
+  const totalStripes = stripesOrDegrees;
+  let beltNameStr = belt;
+
+  if (isBlackBeltType) {
+    if (stripesOrDegrees >= 9) {
+      isPatterned = 'red';
+      mainBeltStyle = "bg-red-600";
+      barBg = "bg-amber-400"; // gold bar
+      stripeColor = "bg-white";
+      beltNameStr = "Faixa Vermelha Grande Mestre (9º Grau)";
+    } else if (stripesOrDegrees === 8) {
+      isPatterned = 'coral-red-white';
+      barBg = "bg-[#111111]";
+      stripeColor = "bg-white";
+      beltNameStr = "Coral Mestre Vermelha e Branca (8º Grau)";
+    } else if (stripesOrDegrees === 7) {
+      isPatterned = 'coral-red-black';
+      barBg = "bg-white";
+      stripeColor = "bg-white";
+      beltNameStr = "Coral Mestre Vermelha e Preta (7º Grau)";
+    } else {
+      isPatterned = 'solid';
+      mainBeltStyle = "bg-[#111111]";
+      barBg = "bg-rose-600 border-y border-white/20";
+      stripeColor = "bg-white";
+      beltNameStr = `Faixa Preta ${stripesOrDegrees > 0 ? `${stripesOrDegrees}º Grau` : 'Base'}`;
+    }
+  } else {
+    stripeColor = "bg-white";
+    barBg = "bg-slate-950 border-r border-[#111111]/30";
+    if (belt === 'Branca' || belt === 'White') {
+      mainBeltStyle = "bg-slate-50 border border-slate-300";
+      barBg = "bg-slate-900";
+    } else if (belt === 'Cinza' || belt === 'Gray') {
+      mainBeltStyle = "bg-slate-400";
+    } else if (belt === 'Amarela' || belt === 'Yellow') {
+      mainBeltStyle = "bg-yellow-400";
+    } else if (belt === 'Laranja' || belt === 'Orange') {
+      mainBeltStyle = "bg-orange-500";
+    } else if (belt === 'Verde' || belt === 'Green') {
+      mainBeltStyle = "bg-emerald-600";
+    } else if (belt === 'Azul' || belt === 'Blue') {
+      mainBeltStyle = "bg-blue-600";
+    } else if (belt === 'Roxa' || belt === 'Purple') {
+      mainBeltStyle = "bg-[#7C3AED]";
+    } else if (belt === 'Marrom' || belt === 'Brown') {
+      mainBeltStyle = "bg-[#78350F]";
+    }
+  }
+
+  return (
+    <div className="flex flex-col items-center justify-center p-3.5 bg-slate-50 dark:bg-white/5 rounded-2xl border border-slate-200/50 dark:border-white/5 w-full">
+      <div className="text-[8px] font-black uppercase tracking-widest text-slate-400 dark:text-slate-500 mb-2">Visual Oficial do Nível Ativo</div>
+      
+      <div className="relative w-full max-w-[240px] h-6 rounded border border-black/10 shadow-inner overflow-hidden flex items-center justify-between">
+        {isPatterned === 'solid' && (
+          <div className={`absolute inset-0 ${mainBeltStyle}`} />
+        )}
+        
+        {isPatterned === 'coral-red-black' && (
+          <div className="absolute inset-0 flex">
+            {Array.from({ length: 12 }).map((_, i) => (
+              <div 
+                key={i} 
+                className={`flex-1 h-full ${i % 2 === 0 ? 'bg-red-600' : 'bg-[#111111]'}`} 
+              />
+            ))}
+          </div>
+        )}
+
+        {isPatterned === 'coral-red-white' && (
+          <div className="absolute inset-0 flex">
+            {Array.from({ length: 12 }).map((_, i) => (
+              <div 
+                key={i} 
+                className={`flex-1 h-full ${i % 2 === 0 ? 'bg-red-600' : 'bg-slate-100'}`} 
+              />
+            ))}
+          </div>
+        )}
+
+        {isPatterned === 'red' && (
+          <div className="absolute inset-0 bg-red-600" />
+        )}
+
+        <div className="absolute top-1/2 left-0 right-0 h-[1px] border-t border-black/5 pointer-events-none" />
+
+        <div className="absolute right-4 w-12 h-full flex items-center justify-center pointer-events-none">
+          <div className={`absolute inset-0 ${barBg}`} />
+          
+          <div className="absolute inset-0 flex items-center justify-around px-1 gap-0.5">
+            {Array.from({ length: Math.min(6, totalStripes) }).map((_, idx) => (
+              <div 
+                key={idx} 
+                className={`w-0.5 h-3/4 rounded-sm ${stripeColor} shadow-sm border border-black/5`} 
+              />
+            ))}
+            {totalStripes > 6 && (
+              <div className="flex gap-0.5">
+                {Array.from({ length: totalStripes - 6 }).map((_, idx) => (
+                  <div 
+                    key={idx} 
+                    className="w-0.5 h-3/4 rounded-sm bg-yellow-300 shadow-sm border border-black/5" 
+                  />
+                ))}
+              </div>
+            )}
+          </div>
+        </div>
+
+        <div className="absolute left-4 w-0.5 h-full bg-black/10" />
+      </div>
+
+      <div className="mt-2 text-[9px] font-black text-slate-800 dark:text-slate-200 uppercase tracking-wider">
+        {beltNameStr} {(!isBlackBeltType || totalStripes === 0) && totalStripes > 0 ? `• ${totalStripes} Graus` : ''}
+      </div>
+    </div>
+  );
+};
 
 const BeltSystem: React.FC = () => {
   const { t } = useTranslation();
@@ -306,7 +462,11 @@ const BeltSystem: React.FC = () => {
   const filteredStudents = useMemo(() => {
     return students.filter(student => {
       const matchSearch = student.name.toLowerCase().includes(searchTerm.toLowerCase());
-      const isBlackBelt = (student.belt as string) === 'Preta';
+      const isBlackBelt = String(student.belt || '').toLowerCase() === 'preta' || 
+                          String(student.belt || '').toLowerCase() === 'black' || 
+                          String(student.belt || '').toLowerCase().includes('preta') ||
+                          String(student.belt || '').toLowerCase().includes('black') ||
+                          ['coral', 'red-black', 'red-white', 'red', 'vermelha', 'vermelho'].includes(String(student.belt || '').toLowerCase());
       const categoryMatch = activeBoard === 'adult' 
         ? (!student.isKid && !isBlackBelt) 
         : (student.isKid && !isBlackBelt);
@@ -353,12 +513,12 @@ const BeltSystem: React.FC = () => {
       { degree: 1, label: "1º Grau (Instrutor/Professor)", totalYears: 3, minAge: 22 },
       { degree: 2, label: "2º Grau (Professor)", totalYears: 6, minAge: 25 },
       { degree: 3, label: "3º Grau (Professor)", totalYears: 9, minAge: 28 },
-      { degree: 4, label: "4º Grau (Professor)", totalYears: 14, minAge: 33 },
-      { degree: 5, label: "5º Grau (Professor)", totalYears: 19, minAge: 38 },
-      { degree: 6, label: "6º Grau (Professor)", totalYears: 24, minAge: 43 },
-      { degree: 7, label: "7º Grau (Mestre - Faixa Coral Vermelha e Preta)", totalYears: 31, minAge: 50 },
-      { degree: 8, label: "8º Grau (Mestre - Faixa Coral Vermelha e Branca)", totalYears: 38, minAge: 60 },
-      { degree: 9, label: "9º Grau (Grande Mestre - Faixa Vermelha)", totalYears: 48, minAge: 67 }
+      { degree: 4, label: "4º Grau (Professor)", totalYears: 12, minAge: 31 },
+      { degree: 5, label: "5º Grau (Professor)", totalYears: 15, minAge: 34 },
+      { degree: 6, label: "6º Grau (Professor)", totalYears: 18, minAge: 37 },
+      { degree: 7, label: "7º Grau (Mestre - Faixa Coral Vermelha e Preta)", totalYears: 25, minAge: 50 },
+      { degree: 8, label: "8º Grau (Mestre - Faixa Coral Vermelha e Branca)", totalYears: 32, minAge: 60 },
+      { degree: 9, label: "9º Grau (Grande Mestre - Faixa Vermelha)", totalYears: 42, minAge: 67 }
     ];
 
     return specs.map((spec) => {
@@ -445,12 +605,27 @@ const BeltSystem: React.FC = () => {
     setNotificationsPrev(`Critério do Professor alterado para ${value ? 'Aprovado' : 'Reprovado'} com sucesso!`);
   };
 
-  // Alteridades manuais para Graus
+  // Alteridades manuais para Graus (Suporta até 9 para faixas pretas e especiais)
   const changeStripesManually = (studentId: string, current: number, direction: 'up' | 'down') => {
+    const studentObj = students.find(s => s.id === studentId);
+    const isBB = studentObj ? (
+      String(studentObj.belt || '').toLowerCase() === 'preta' || 
+      String(studentObj.belt || '').toLowerCase() === 'black' || 
+      String(studentObj.belt || '').toLowerCase().includes('preta') ||
+      String(studentObj.belt || '').toLowerCase().includes('black') ||
+      ['coral', 'red-black', 'red-white', 'red', 'vermelha', 'vermelho'].includes(String(studentObj.belt || '').toLowerCase())
+    ) : false;
+    
+    const maxDegrees = isBB ? 9 : 4;
     let nextVal = direction === 'up' ? current + 1 : current - 1;
     if (nextVal < 0) nextVal = 0;
-    if (nextVal > 4) nextVal = 4;
-    updateStudent(studentId, { stripes: nextVal, degrees: nextVal });
+    if (nextVal > maxDegrees) nextVal = maxDegrees;
+    
+    const updates: any = { stripes: nextVal, degrees: nextVal };
+    if (isBB) {
+      updates.blackBeltDegree = nextVal;
+    }
+    updateStudent(studentId, updates);
   };
 
   // Auxiliar para disparar alertas
@@ -885,7 +1060,7 @@ const BeltSystem: React.FC = () => {
                 <div className="space-y-1 text-left">
                   <span className="text-[8px] font-black uppercase tracking-widest text-slate-400">Total Faixas Pretas</span>
                   <h3 className="text-3xl font-black italic text-white tracking-tight">
-                    {students.filter(s => (s.belt as any) === 'Preta').length}
+                    {students.filter(s => String(s.belt || '').toLowerCase() === 'preta' || String(s.belt || '').toLowerCase() === 'black' || String(s.belt || '').includes('Preta')).length}
                   </h3>
                   <p className="text-[9px] font-bold text-red-400 uppercase">Profissionais Cadastrados</p>
                 </div>
@@ -899,7 +1074,8 @@ const BeltSystem: React.FC = () => {
                   <span className="text-[8px] font-black uppercase tracking-widest text-slate-400">Elegíveis (IBJJF)</span>
                   <h3 className="text-3xl font-black italic text-emerald-400 tracking-tight">
                     {students.filter(s => {
-                      if ((s.belt as any) !== 'Preta') return false;
+                      const isBB = String(s.belt || '').toLowerCase() === 'preta' || String(s.belt || '').toLowerCase() === 'black' || String(s.belt || '').includes('Preta');
+                      if (!isBB) return false;
                       const prog = calculateBlackBeltProgress(s);
                       return prog && prog.status === 'Elegível';
                     }).length}
@@ -916,7 +1092,12 @@ const BeltSystem: React.FC = () => {
                   <span className="text-[8px] font-black uppercase tracking-widest text-slate-400">Evolução em Breve</span>
                   <h3 className="text-3xl font-black italic text-blue-400 tracking-tight">
                     {students.filter(s => {
-                      if ((s.belt as any) !== 'Preta') return false;
+                      const isBB = String(s.belt || '').toLowerCase() === 'preta' || 
+                                   String(s.belt || '').toLowerCase() === 'black' || 
+                                   String(s.belt || '').toLowerCase().includes('preta') ||
+                                   String(s.belt || '').toLowerCase().includes('black') ||
+                                   ['coral', 'red-black', 'red-white', 'red', 'vermelha', 'vermelho'].includes(String(s.belt || '').toLowerCase());
+                      if (!isBB) return false;
                       const prog = calculateBlackBeltProgress(s);
                       return prog && prog.status === 'Em Progressão' && prog.monthsRemaining <= 12;
                     }).length}
@@ -943,13 +1124,27 @@ const BeltSystem: React.FC = () => {
                 </div>
 
                 <div className="space-y-4">
-                  {students.filter(s => (s.belt as any) === 'Preta').length === 0 ? (
+                  {students.filter(s => {
+                    const isBB = String(s.belt || '').toLowerCase() === 'preta' || 
+                                 String(s.belt || '').toLowerCase() === 'black' || 
+                                 String(s.belt || '').toLowerCase().includes('preta') ||
+                                 String(s.belt || '').toLowerCase().includes('black') ||
+                                 ['coral', 'red-black', 'red-white', 'red', 'vermelha', 'vermelho'].includes(String(s.belt || '').toLowerCase());
+                    return isBB && s.name.toLowerCase().includes(searchTerm.toLowerCase());
+                  }).length === 0 ? (
                     <div className="p-12 text-center text-slate-400 text-xs font-semibold">
                       <Award size={48} className="mx-auto text-slate-300 dark:text-white/10 mb-4" />
-                      Nenhum aluno cadastrado com Faixa Preta no momento. OSS!
+                      Nenhum aluno cadastrado com Faixa Preta ou correspondente ao termo de busca no momento. OSS!
                     </div>
                   ) : (
-                    students.filter(s => (s.belt as any) === 'Preta').map((student) => {
+                    students.filter(s => {
+                      const isBB = String(s.belt || '').toLowerCase() === 'preta' || 
+                                   String(s.belt || '').toLowerCase() === 'black' || 
+                                   String(s.belt || '').toLowerCase().includes('preta') ||
+                                   String(s.belt || '').toLowerCase().includes('black') ||
+                                   ['coral', 'red-black', 'red-white', 'red', 'vermelha', 'vermelho'].includes(String(s.belt || '').toLowerCase());
+                      return isBB && s.name.toLowerCase().includes(searchTerm.toLowerCase());
+                    }).map((student) => {
                       const prog = calculateBlackBeltProgress(student);
                       const isSelected = editingBlackBelt?.id === student.id;
 
@@ -1081,13 +1276,13 @@ const BeltSystem: React.FC = () => {
                             const cleanDate = editingBlackBelt.blackBeltDate ? new Date(editingBlackBelt.blackBeltDate) : null;
                             const cleanLastDate = editingBlackBelt.lastDegreeDate ? new Date(editingBlackBelt.lastDegreeDate) : null;
                             
-                            // Calcula previsões automaticamente com base nas regras de carência
-                            const reqYears = BLACK_BELT_RULES[editingBlackBelt.blackBeltDegree || 0] || 3;
+                            // Calcula previsões automaticamente com base nas regras de carência (em meses)
+                            const reqMonths = BLACK_BELT_RULES[editingBlackBelt.blackBeltDegree || 0] || 36;
                             let forecastDate = cleanDate ? new Date(cleanDate) : new Date();
                             if (cleanLastDate) {
                               forecastDate = new Date(cleanLastDate);
                             }
-                            forecastDate.setFullYear(forecastDate.getFullYear() + reqYears);
+                            forecastDate.setMonth(forecastDate.getMonth() + reqMonths);
 
                             await updateStudent(editingBlackBelt.id, {
                               blackBeltDegree: editingBlackBelt.blackBeltDegree || 0,
@@ -1136,6 +1331,43 @@ const BeltSystem: React.FC = () => {
                       </button>
                     </div>
 
+                    {/* PRÉVIA DE ELEGIBILIDADE FAIXA PRETA (IBJJF) */}
+                    {(() => {
+                      const editingProg = calculateBlackBeltProgress(editingBlackBelt);
+                      if (!editingProg) return null;
+                      return (
+                        <div className="p-5 rounded-2xl bg-slate-900 border border-red-500/30 text-white space-y-4">
+                          <p className="text-[9px] font-black text-red-500 uppercase tracking-widest flex items-center gap-1.5 border-b border-white/5 pb-2">
+                            <Award size={12} className="text-red-500 animate-pulse" /> PRÉVIA DE ELEGIBILIDADE (FAIXA PRETA)
+                          </p>
+                          <div className="grid grid-cols-2 gap-x-4 gap-y-3.5 text-[10px]">
+                            <div>
+                              <p className="text-slate-500 font-extrabold uppercase tracking-wider mb-0.5">Tempo Acumulado</p>
+                              <p className="text-xs font-black text-slate-200">{editingProg.accumulatedStr || '--'}</p>
+                            </div>
+                            <div>
+                              <p className="text-slate-500 font-extrabold uppercase tracking-wider mb-0.5">Próximo Grau</p>
+                              <p className="text-xs font-black text-blue-400">{editingProg.nextTitle || `${(editingBlackBelt.blackBeltDegree || 0) + 1}º Grau`}</p>
+                            </div>
+                            <div>
+                              <p className="text-slate-500 font-extrabold uppercase tracking-wider mb-0.5">Faixa Futura</p>
+                              <p className="text-xs font-black text-amber-500">{editingProg.futureBeltType || 'Preta'}</p>
+                            </div>
+                            <div>
+                              <p className="text-slate-500 font-extrabold uppercase tracking-wider mb-0.5">Data Prevista</p>
+                              <p className="text-xs font-black text-slate-200">{editingProg.eligibleDate ? new Date(editingProg.eligibleDate).toLocaleDateString() : '--'}</p>
+                            </div>
+                          </div>
+                          <div className="pt-2.5 border-t border-white/5 flex justify-between items-center text-[10px] bg-slate-950/20 px-1">
+                            <span className="text-slate-400 font-extrabold uppercase tracking-wider">Tempo Restante</span>
+                            <span className={`font-black uppercase tracking-wider text-xs px-2 py-0.5 rounded ${editingProg.status === 'Elegível' ? 'text-emerald-400 bg-emerald-500/10 border border-emerald-500/20' : 'text-rose-400 bg-rose-500/10 border border-rose-500/20'}`}>
+                              {editingProg.status === 'Elegível' ? 'Apto' : editingProg.remainingStr || '--'}
+                            </span>
+                          </div>
+                        </div>
+                      );
+                    })()}
+
                     {/* INTERACTIVE TIMELINE DEGREE PATH */}
                     <div className="pt-4 border-t border-white/5 space-y-4">
                       <h5 className="text-[8px] font-black uppercase text-slate-400 tracking-widest flex items-center gap-1">
@@ -1147,8 +1379,8 @@ const BeltSystem: React.FC = () => {
                           const isNext = deg === (editingBlackBelt.blackBeltDegree || 0) + 1;
                           
                           let name = `${deg}º Grau`;
-                          if (deg >= 8) name = `Mestre Coral ${deg}º Grau (Vermelha/Branca)`;
-                          else if (deg >= 7) name = `Mestre Coral ${deg}º Grau (Vermelha/Preta)`;
+                          if (deg === 7) name = `Mestre Coral ${deg}º Grau (Vermelha/Preta)`;
+                          else if (deg === 8) name = `Mestre Coral ${deg}º Grau (Vermelha/Branca)`;
                           else if (deg === 9) name = `Grande Mestre ${deg}º Grau (Vermelha)`;
 
                           return (
@@ -1171,7 +1403,7 @@ const BeltSystem: React.FC = () => {
                                 </p>
                                 {isNext && (
                                   <p className="text-[7.5px] font-extrabold text-slate-400 uppercase tracking-widest mt-0.5">
-                                    Requer mais {BLACK_BELT_RULES[editingBlackBelt.blackBeltDegree || 0] || 3} anos neste grau
+                                    Requer mais {(BLACK_BELT_RULES[editingBlackBelt.blackBeltDegree || 0] || 36) / 12} anos neste grau
                                   </p>
                                 )}
                               </div>
@@ -1418,6 +1650,16 @@ const BeltSystem: React.FC = () => {
                         <h4 className="text-lg font-black text-slate-950 dark:text-white uppercase tracking-tight truncate">{selectedStudent.name}</h4>
                         <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mt-0.5">Membro Ativo • Registro Oficial</p>
                       </div>
+                      
+                      <div className="pt-1 select-none">
+                        <BJJBeltVisual 
+                          belt={selectedStudent.belt} 
+                          stripesOrDegrees={String(selectedStudent.belt || '').toLowerCase() === 'preta' || String(selectedStudent.belt || '').toLowerCase() === 'black' || String(selectedStudent.belt || '').includes('Preta')
+                            ? Number(selectedStudent.blackBeltDegree !== undefined ? selectedStudent.blackBeltDegree : (selectedStudent.degrees || selectedStudent.stripes || 0))
+                            : Number(selectedStudent.stripes || 0)
+                          } 
+                        />
+                      </div>
                     </div>
 
                     {/* SENSEI AI PROMOTION SUGGESTION ENGINE */}
@@ -1528,36 +1770,55 @@ const BeltSystem: React.FC = () => {
                       );
                     })()}
 
-                    {/* REQUISITO 12: Graus interativos 0 até 4 */}
-                    <div className="p-4 bg-slate-50 dark:bg-white/5 rounded-2xl flex items-center justify-between">
-                      <div>
-                        <p className="text-[8px] font-black text-slate-400 uppercase tracking-widest">Graus na Faixa Atual</p>
-                        <div className="flex gap-1.5 mt-1.5">
-                          {[1, 2, 3, 4].map((idx) => (
-                            <div 
-                              key={idx} 
-                              className={`w-6 h-6 border rounded flex items-center justify-center text-xs font-black ${idx <= (selectedStudent.stripes || selectedStudent.degrees || 0) ? 'bg-amber-500 border-amber-500 text-white' : 'bg-white dark:bg-slate-800 border-slate-200 dark:border-white/5 text-slate-400'}`}
-                            >
-                              {idx}
+                    {/* REQUISITO 12: Graus interativos 0 até 4 ou 9 para faixas pretas e especiais */}
+                    {(() => {
+                      const selectedIsBB = selectedStudent ? (
+                        String(selectedStudent.belt || '').toLowerCase() === 'preta' || 
+                        String(selectedStudent.belt || '').toLowerCase() === 'black' || 
+                        String(selectedStudent.belt || '').toLowerCase().includes('preta') ||
+                        String(selectedStudent.belt || '').toLowerCase().includes('black') ||
+                        ['coral', 'red-black', 'red-white', 'red', 'vermelha', 'vermelho'].includes(String(selectedStudent.belt || '').toLowerCase())
+                      ) : false;
+                      
+                      const maxDegrees = selectedIsBB ? 9 : 4;
+                      const currentVal = selectedStudent ? Number(selectedIsBB && selectedStudent.blackBeltDegree !== undefined 
+                        ? selectedStudent.blackBeltDegree 
+                        : (selectedStudent.degrees || selectedStudent.stripes || 0)) : 0;
+
+                      return (
+                        <div className="p-4 bg-slate-50 dark:bg-white/5 rounded-2xl flex items-center justify-between">
+                          <div>
+                            <p className="text-[8px] font-black text-slate-400 uppercase tracking-widest">
+                              {selectedIsBB ? 'Graus CBJJ na Faixa Preta' : 'Graus na Faixa Atual'}
+                            </p>
+                            <div className="flex flex-wrap gap-1 mt-1.5 max-w-[200px]">
+                              {Array.from({ length: maxDegrees }, (_, i) => i + 1).map((idx) => (
+                                <div 
+                                  key={idx} 
+                                  className={`w-6 h-6 border rounded flex items-center justify-center text-xs font-black transition-all ${idx <= currentVal ? 'bg-red-500 border-red-500 text-white shadow-sm shadow-red-500/25' : 'bg-white dark:bg-slate-800 border-slate-200 dark:border-white/5 text-slate-400'}`}
+                                >
+                                  {idx}
+                                </div>
+                              ))}
                             </div>
-                          ))}
+                          </div>
+                          <div className="flex gap-1 shrink-0">
+                            <button 
+                              onClick={() => changeStripesManually(selectedStudent.id, currentVal, 'down')}
+                              className="w-8 h-8 rounded-lg bg-white dark:bg-slate-800 border border-slate-200 dark:border-white/5 flex items-center justify-center hover:bg-rose-500/10 hover:text-rose-500 transition-colors pointer-events-auto"
+                            >
+                              -
+                            </button>
+                            <button 
+                              onClick={() => changeStripesManually(selectedStudent.id, currentVal, 'up')}
+                              className="w-8 h-8 rounded-lg bg-white dark:bg-slate-800 border border-slate-200 dark:border-white/5 flex items-center justify-center hover:bg-emerald-500/10 hover:text-emerald-500 transition-colors pointer-events-auto"
+                            >
+                              +
+                            </button>
+                          </div>
                         </div>
-                      </div>
-                      <div className="flex gap-1 shrink-0">
-                        <button 
-                          onClick={() => changeStripesManually(selectedStudent.id, selectedStudent.stripes || 0, 'down')}
-                          className="w-8 h-8 rounded-lg bg-white dark:bg-slate-800 border border-slate-200 dark:border-white/5 flex items-center justify-center hover:bg-rose-500/10 hover:text-rose-500 transition-colors"
-                        >
-                          -
-                        </button>
-                        <button 
-                          onClick={() => changeStripesManually(selectedStudent.id, selectedStudent.stripes || 0, 'up')}
-                          className="w-8 h-8 rounded-lg bg-white dark:bg-slate-800 border border-slate-200 dark:border-white/5 flex items-center justify-center hover:bg-emerald-500/10 hover:text-emerald-500 transition-colors"
-                        >
-                          +
-                        </button>
-                      </div>
-                    </div>
+                      );
+                    })()}
 
                     {/* ABAS DESIGN SENSORIAL: Unificação dos 3 Módulos (Graduação, Regras IBJJF e Histórico) */}
                     <div className="grid grid-cols-3 gap-1 bg-slate-100 dark:bg-white/5 p-1 rounded-2xl">
@@ -1844,7 +2105,7 @@ const BeltSystem: React.FC = () => {
                       </div>
 
                     {/* CRONOGRAMA DE GRAUS - EXCLUSIVO FAIXA PRETA (Requisito Especial) */}
-                    {(selectedStudent.belt as any) === 'Preta' && (
+                    {(String(selectedStudent.belt || '').toLowerCase() === 'preta' || String(selectedStudent.belt || '').toLowerCase() === 'black' || String(selectedStudent.belt || '').includes('Preta')) && (
                       <div className="space-y-3 p-5 bg-gradient-to-br from-slate-950 to-slate-900 text-white rounded-[2rem] border border-red-500/20 shadow-2xl relative overflow-hidden">
                         {/* Background subtle elements */}
                         <div className="absolute right-0 top-0 w-24 h-24 bg-red-600/10 rounded-full blur-[30px] pointer-events-none" />
@@ -2097,7 +2358,7 @@ const BeltSystem: React.FC = () => {
                         <div className="p-3 bg-slate-50 dark:bg-slate-800 rounded-lg flex items-center justify-between">
                           <span className="font-bold text-slate-500">Ano Estimado Faixa Preta</span>
                           <span className="font-black text-rose-500">
-                            {new Date().getFullYear() + ((selectedStudent.belt as string) === 'Preta' || (selectedStudent.belt as string) === 'Black' ? 0 : 5)}
+                            {new Date().getFullYear() + (String(selectedStudent.belt || '').toLowerCase() === 'preta' || String(selectedStudent.belt || '').toLowerCase() === 'black' || String(selectedStudent.belt || '').includes('Preta') ? 0 : 5)}
                           </span>
                         </div>
                       </div>

@@ -1,3 +1,4 @@
+import './utils/socketGuard.js';
 import React, { StrictMode } from 'react';
 import { createRoot } from 'react-dom/client';
 import { BrowserRouter } from 'react-router-dom';
@@ -21,8 +22,8 @@ const originalLog = console.log;
 const originalWarn = console.warn;
 const originalError = console.error;
 
-const shouldSilenceLog = (message: string): boolean => {
-  const lowercaseMsg = String(message).toLowerCase();
+const shouldSilenceLog = (val: any): boolean => {
+  const lowercaseMsg = String(val?.stack || val?.message || val || "").toLowerCase();
   return (
     lowercaseMsg.includes('vite') ||
     lowercaseMsg.includes('websocket') ||
@@ -32,22 +33,23 @@ const shouldSilenceLog = (message: string): boolean => {
     lowercaseMsg.includes('render') ||
     lowercaseMsg.includes('api') ||
     lowercaseMsg.includes('connection') ||
-    lowercaseMsg.includes('closed')
+    lowercaseMsg.includes('closed') ||
+    lowercaseMsg.includes('sockjs')
   );
 };
 
 console.log = (...args) => {
-  if (typeof args[0] === 'string' && shouldSilenceLog(args[0])) return;
+  if (args.some(shouldSilenceLog)) return;
   originalLog.apply(console, args);
 };
 
 console.warn = (...args) => {
-  if (typeof args[0] === 'string' && shouldSilenceLog(args[0])) return;
+  if (args.some(shouldSilenceLog)) return;
   originalWarn.apply(console, args);
 };
 
 console.error = (...args) => {
-  if (typeof args[0] === 'string' && shouldSilenceLog(args[0])) return;
+  if (args.some(shouldSilenceLog)) return;
   originalError.apply(console, args);
 };
 
@@ -64,7 +66,68 @@ if (typeof window !== "undefined" && !(window as any).__CUSTOM_WS__) {
       private _customOnClose: any = null;
 
       constructor(url: string | URL, protocols?: string | string[]) {
-        super(url, protocols);
+        const isDev = import.meta.env.DEV;
+        
+        if (!isDev) {
+          const stub = {
+            url: String(url),
+            readyState: 3, // CLOSED
+            bufferedAmount: 0,
+            extensions: "",
+            protocol: "",
+            binaryType: "blob",
+            send: () => {},
+            close: () => {},
+            addEventListener: () => {},
+            removeEventListener: () => {},
+            dispatchEvent: () => true,
+            onopen: null,
+            onclose: null,
+            onerror: null,
+            onmessage: null,
+          };
+          Object.setPrototypeOf(stub, ResilientWebSocket.prototype);
+          return stub as any;
+        }
+
+        let finalUrl = String(url);
+        if (window.location.protocol === 'https:' && finalUrl.startsWith('ws://')) {
+          finalUrl = finalUrl.replace(/^ws:\/\//i, 'wss://');
+        }
+
+        const stack = new Error().stack || "";
+        let callerFile = "Vite HMR Client";
+        const matches = stack.match(/(https?:\/\/[^\s)]+)/g);
+        if (matches && matches.length > 1) {
+          callerFile = matches[1];
+        }
+        console.log("WS CREATE", callerFile);
+
+        try {
+          super(finalUrl, protocols);
+        } catch (error) {
+          console.warn('🥋 Safe WebSocket Guard prevented constructor crash:', error);
+          const stub = {
+            url: finalUrl,
+            readyState: 3, // CLOSED
+            bufferedAmount: 0,
+            extensions: "",
+            protocol: "",
+            binaryType: "blob",
+            send: () => {},
+            close: () => {},
+            addEventListener: () => {},
+            removeEventListener: () => {},
+            dispatchEvent: () => true,
+            onopen: null,
+            onclose: null,
+            onerror: null,
+            onmessage: null,
+          };
+          Object.setPrototypeOf(stub, ResilientWebSocket.prototype);
+          return stub as any;
+        }
+
         activeSockets.add(this);
 
         // Tratamento interno de escuta para blindar o console de ruídos de erro
@@ -105,12 +168,11 @@ if (typeof window !== "undefined" && !(window as any).__CUSTOM_WS__) {
           } catch (e) {
             // Engole erro de envio em socket fechado prematuramente
           }
-        } else {
-          // Silencioso, não dispara erros não tratados no topo da aplicação
         }
       }
 
       close(code?: number, reason?: string) {
+        console.log("WS CLOSE", this.readyState);
         if (this.readyState === OriginalWebSocket.OPEN) {
           try {
             super.close(code, reason);
@@ -154,17 +216,24 @@ window.addEventListener('error', (e: any) => {
 
 // Intercepta Rejeições Não Tratadas (comum em erros de WebSocket fechado prematuramente ou reentradas)
 window.addEventListener('unhandledrejection', (event) => {
-  const msg = String(event.reason || event.reason?.message || "");
+  const reason = event.reason;
+  const msg = String(reason?.stack || reason?.message || reason || "").toLowerCase();
+  
   if (
-    msg.includes("WebSocket closed without opened") ||
-    msg.includes("WebSocket") ||
+    msg.includes("websocket") ||
+    msg.includes("ws") ||
+    msg.includes("closed without opened") ||
     msg.includes("closed") ||
-    msg.includes("Connection closed")
+    msg.includes("connection closed")
   ) {
+    console.warn('🥋 WebSocket rejection intercepted safely.');
     event.preventDefault();
     event.stopPropagation();
     return;
   }
+  
+  // Registrar outros erros sem interromper a aplicação
+  console.error(reason);
 }, true);
 
 // Desabilitar Websockets em Produção

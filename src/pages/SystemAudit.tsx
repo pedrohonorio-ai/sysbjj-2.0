@@ -54,7 +54,7 @@ import { SystemObservability } from './admin/SystemObservability.js';
 const SystemAudit: React.FC = () => {
   const { t } = useTranslation();
   const { profile } = useProfile();
-  const { logs, students, ledger, verifyLedgerIntegrity, verifyAuditIntegrity, presence, updateStudent, payments } = useData();
+  const { logs, students, ledger, verifyLedgerIntegrity, verifyAuditIntegrity, presence, updateStudent, payments, blockchainAuditResult, runBlockchainAudit } = useData();
   const [searchTerm, setSearchTerm] = useState('');
   const [categoryFilter, setCategoryFilter] = useState<SystemLog['category'] | 'All'>('All');
   const [dateRange, setDateRange] = useState<'Today' | 'Week' | 'Month' | 'All'>('Week');
@@ -66,6 +66,11 @@ const SystemAudit: React.FC = () => {
     }
     return 'saas';
   });
+
+  useEffect(() => {
+    // OSS SENSEI: Executa a auditoria apenas no momento em que abre a Central de Auditoria
+    runBlockchainAudit();
+  }, [runBlockchainAudit]);
 
   useEffect(() => {
     const tab = searchParams.get('tab');
@@ -393,13 +398,13 @@ const SystemAudit: React.FC = () => {
     // Simulate intense calculation
     await new Promise(resolve => setTimeout(resolve, 2000));
     
-    const isValid = verifyAuditIntegrity();
+    const auditRes = runBlockchainAudit();
     setVerifyingChain(false);
     setChainResult({
-      success: isValid,
-      message: isValid 
-        ? "Corrente de custódia verificada com sucesso. Todos os hashes conferem." 
-        : "AVISO: Inconsistência detectada na corrente de hashes. Verifique logs manuais."
+      success: auditRes.isValid,
+      message: auditRes.isValid 
+        ? `Corrente de custódia verificada. Todos os ${auditRes.totalLogs} hashes conferem.` 
+        : `AVISO: ${auditRes.corruptedLogs} inconsistência(s) detectada(s) na corrente de hashes. Verifique logs.`
     });
   };
 
@@ -668,6 +673,54 @@ const SystemAudit: React.FC = () => {
                   </p>
                 </div>
               ))}
+            </div>
+
+            {/* SAÚDE DA BLOCKCHAIN PANEL (Requirement 3) */}
+            <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-[2.5rem] p-8 shadow-sm">
+              <div className="flex flex-col md:flex-row items-center justify-between border-b border-slate-100 dark:border-slate-800 pb-6 mb-6 gap-4">
+                <div className="flex items-center gap-4">
+                  <div className="w-12 h-12 bg-blue-100 dark:bg-blue-900/10 rounded-2xl flex items-center justify-center text-blue-600 dark:text-blue-400 font-bold">
+                    <ShieldCheck size={26} />
+                  </div>
+                  <div>
+                    <h3 className="text-xl font-black text-slate-800 dark:text-white uppercase tracking-tighter">Saúde da Blockchain</h3>
+                    <p className="text-xs text-slate-400 font-bold uppercase tracking-widest mt-0.5">Integridade profunda dos dados criptográficos</p>
+                  </div>
+                </div>
+                
+                <div className="flex flex-wrap items-center gap-4">
+                  <p className="text-[10px] text-slate-400 font-black uppercase tracking-widest bg-slate-50 dark:bg-slate-800/50 px-4 py-2.5 rounded-xl border border-slate-100 dark:border-slate-800">
+                    Último Diagnóstico: <span className="text-blue-600 dark:text-blue-400 font-extrabold">{blockchainAuditResult.lastAuditTime || 'Não executada'}</span>
+                  </p>
+                  <button
+                    onClick={performChainVerification}
+                    disabled={verifyingChain}
+                    className="px-6 py-2.5 bg-blue-600 hover:bg-blue-500 text-white rounded-xl text-[10px] font-black uppercase tracking-widest transition-all active:scale-95 disabled:opacity-50 flex items-center gap-2 cursor-pointer"
+                  >
+                    {verifyingChain ? <RefreshCw className="animate-spin" size={14} /> : <Zap size={14} />}
+                    Executar Auditoria
+                  </button>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-6 font-sans">
+                <div className="py-2 px-4 rounded-3xl bg-slate-50 dark:bg-slate-800/40 border border-slate-100 dark:border-slate-800 flex flex-col">
+                  <span className="text-[9px] font-black tracking-widest text-slate-400 uppercase">Auditados</span>
+                  <span className="text-3xl font-black text-slate-800 dark:text-white mt-1 tabular-nums">{blockchainAuditResult.totalLogs}</span>
+                </div>
+                <div className="py-2 px-4 rounded-3xl bg-green-500/10 border border-green-500/20 flex flex-col">
+                  <span className="text-[9px] font-black tracking-widest text-green-500 uppercase">Válidos</span>
+                  <span className="text-3xl font-black text-green-600 dark:text-green-400 mt-1 tabular-nums">{blockchainAuditResult.validLogs}</span>
+                </div>
+                <div className="py-2 px-4 rounded-3xl bg-amber-500/10 border border-amber-500/20 flex flex-col">
+                  <span className="text-[9px] font-black tracking-widest text-amber-500 uppercase">Alertas</span>
+                  <span className="text-3xl font-black text-amber-500 mt-1 tabular-nums">{blockchainAuditResult.warningLogs}</span>
+                </div>
+                <div className="py-2 px-4 rounded-3xl bg-red-500/10 border border-red-500/25 flex flex-col">
+                  <span className="text-[9px] font-black tracking-widest text-red-500 uppercase">Corrompidos</span>
+                  <span className="text-3xl font-black text-red-600 dark:text-red-400 mt-1 tabular-nums">{blockchainAuditResult.corruptedLogs}</span>
+                </div>
+              </div>
             </div>
 
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">

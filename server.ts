@@ -25,8 +25,8 @@ process.on('uncaughtException', (err) => {
   console.error("🥋 OS SENSEI! UNCAUGHT EXCEPTION:", err);
 });
 
-process.on('unhandledRejection', (reason) => {
-  console.error("🥋 OS SENSEI! UNHANDLED REJECTION:", reason);
+process.on("unhandledRejection", (reason) => {
+  console.error(reason);
 });
 
 const __filename = fileURLToPath(import.meta.url);

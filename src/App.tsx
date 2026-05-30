@@ -32,6 +32,7 @@ const DojoHub = lazy(() => import('./pages/DojoHub.js'));
 const Agenda = lazy(() => import('./pages/Agenda.js'));
 const Competitions = lazy(() => import('./pages/Competitions.js'));
 const Reports = lazy(() => import('./pages/Reports.js'));
+const CertificatesHub = lazy(() => import('./pages/CertificatesHub.js'));
 
 import NotificationCenter from './components/NotificationCenter.js';
 import DatabaseWarning from './components/DatabaseWarning.js';
@@ -54,7 +55,7 @@ const Sidebar = ({ isOpen, toggle, onLogout, isMasterAdmin }: { isOpen: boolean,
     return true;
   });
 
-  const coreItems = filteredItems.filter(item => ['dashboard', 'students', 'promotions', 'dojo', 'finances', 'agenda', 'reports'].includes(item.id));
+  const coreItems = filteredItems.filter(item => ['dashboard', 'students', 'promotions', 'dojo', 'finances', 'agenda', 'reports', 'certificates'].includes(item.id));
   const footerItems = filteredItems.filter(item => ['settings'].includes(item.id));
 
   const masterLinksList = [
@@ -565,6 +566,21 @@ const App: React.FC = () => {
   }
 
   if (!role) {
+    if (window.location.search.includes('verify=')) {
+      return (
+        <div className="min-h-screen bg-slate-950 text-slate-100 flex flex-col font-sans">
+          <Suspense fallback={
+            <div className="min-h-screen bg-slate-950 flex items-center justify-center">
+              <div className="w-12 h-12 border-4 border-blue-600/20 border-t-blue-600 rounded-full animate-spin animate-pulse" />
+            </div>
+          }>
+            <div className="p-4 sm:p-8 lg:p-12 max-w-4xl mx-auto w-full flex-1 flex flex-col justify-center">
+              <CertificatesHub />
+            </div>
+          </Suspense>
+        </div>
+      );
+    }
     return (
       <Suspense fallback={
         <div className="min-h-screen bg-slate-950 flex items-center justify-center">
@@ -633,6 +649,7 @@ const App: React.FC = () => {
                     <Route path="/agenda" element={<Agenda />} />
                     <Route path="/reports" element={<Reports />} />
                     <Route path="/competitions" element={<Competitions />} />
+                    <Route path="/certificates" element={<CertificatesHub />} />
                     
                     {/* Redirects/Backward Compatibility for old paths */}
                     <Route path="/teaching-hub" element={<Navigate to="/dojo" replace />} />

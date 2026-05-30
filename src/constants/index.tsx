@@ -17,7 +17,8 @@ import {
   Store,
   Clock,
   TrendingUp,
-  ShieldCheck
+  ShieldCheck,
+  Award
 } from 'lucide-react';
 
 export const MASTER_ADMINS = ['pedro.honorio@gm.rio'];
@@ -36,6 +37,7 @@ export const NAVIGATION_ITEMS = [
   { id: 'finances', label: 'Financeiro', icon: <CreditCard size={20} className="text-emerald-500" /> },
   { id: 'agenda', label: 'Agenda', icon: <CalendarCheck size={20} className="text-rose-500" /> },
   { id: 'reports', label: 'Relatórios', icon: <BarChart3 size={20} className="text-indigo-500" /> },
+  { id: 'certificates', label: 'Certificados', icon: <Award size={20} className="text-amber-500" /> },
   { id: 'settings', label: 'Configurações', icon: <Settings size={20} className="text-slate-500" /> },
 ];
 

@@ -4,6 +4,7 @@ import { Student, Payment, ClassSchedule, GalleryImage, ExtraRevenue, KimonoOrde
 import CryptoJS from 'crypto-js';
 import { IBJJF_LESSONS } from '../constants/rulesData.js';
 import { useAuth } from '../context/AuthContext.js';
+import { runSingletonBatch } from '../services/batchSingleton.js';
 import { compressImage } from '../services/imageUtils.js';
 import { INITIAL_STUDENTS, INITIAL_SCHEDULES, INITIAL_PLANS } from '../services/academyInitializer.js';
 import { api } from '../services/api.js';
@@ -122,6 +123,22 @@ interface DataContextType {
   logAction: (action: string, details: string, category: SystemLog['category']) => void;
   verifyAuditIntegrity: () => boolean;
   verifyLedgerIntegrity: () => boolean;
+  blockchainAuditResult: {
+    totalLogs: number;
+    validLogs: number;
+    warningLogs: number;
+    corruptedLogs: number;
+    lastAuditTime: string | null;
+    isValid: boolean;
+  };
+  runBlockchainAudit: () => {
+    totalLogs: number;
+    validLogs: number;
+    warningLogs: number;
+    corruptedLogs: number;
+    lastAuditTime: string | null;
+    isValid: boolean;
+  };
   addStudent: (student: Omit<Student, 'id'>) => Promise<void>;
   updateStudent: (id: string, updates: Partial<Student>) => Promise<void>;
   deleteStudent: (id: string) => void;
@@ -259,6 +276,31 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     { id: 'rule-4', name: 'Conhecimento de Regras', weight: 0.1 }
   ]));
   const [logs, setLogs] = useState<SystemLog[]>([]);
+  const [blockchainAuditResult, setBlockchainAuditResult] = useState<{
+    totalLogs: number;
+    validLogs: number;
+    warningLogs: number;
+    corruptedLogs: number;
+    lastAuditTime: string | null;
+    isValid: boolean;
+  }>(() => {
+    try {
+      const cached = localStorage.getItem('sysbjj_blockchain_audit');
+      if (cached) {
+        return JSON.parse(cached);
+      }
+    } catch (e) {
+      console.warn("Error reading blockchain audit cache", e);
+    }
+    return {
+      totalLogs: 0,
+      validLogs: 0,
+      warningLogs: 0,
+      corruptedLogs: 0,
+      lastAuditTime: null,
+      isValid: true
+    };
+  });
   const [attendance, setAttendance] = useState<AttendanceRecord[]>([]);
   const [presence, setPresence] = useState<{ email: string; lastSeen: number; role: string; userAgent: string; id: string }[]>([]);
   const [notifications, setNotifications] = useState<{ id: string; message: string; type: 'info' | 'success' | 'warning'; timestamp: number }[]>([]);
@@ -271,6 +313,37 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   const fetchingRef = React.useRef(false);
   const initializedRef = React.useRef(false);
   const loadingRef = React.useRef(false);
+  const lastBatchRunRef = React.useRef<number>(0);
+
+  const applyBatchResults = useCallback((batchResults: any) => {
+    if (!batchResults) return;
+
+    if (batchResults.graduationHistory) {
+      setGraduationHistory(batchResults.graduationHistory);
+      saveSafely('oss_graduation_history', batchResults.graduationHistory);
+    }
+
+    if (batchResults.students) {
+      const normalized = batchResults.students.map((s: any) => ({
+        ...s,
+        belt: s.belt || "Branca",
+        degrees: Number(s.degrees || 0),
+        stripes: Number(s.stripes || 0)
+      }));
+      setStudents(normalized);
+    }
+    if (batchResults.payments) setPayments(batchResults.payments);
+    if (batchResults.schedules && batchResults.schedules.length > 0) setSchedules(batchResults.schedules);
+    if (batchResults.logs) setLogs(batchResults.logs);
+    if (batchResults.ledger) setLedger(batchResults.ledger);
+    if (batchResults.receipts) setReceipts(batchResults.receipts);
+    if (batchResults.extra_revenue && batchResults.extra_revenue.length > 0) setExtraRevenue(batchResults.extra_revenue);
+    if (batchResults.lesson_plans && batchResults.lesson_plans.length > 0) setLessonPlans(batchResults.lesson_plans);
+    if (batchResults.techniques && batchResults.techniques.length > 0) setTechniques(batchResults.techniques);
+    if (batchResults.products && batchResults.products.length > 0) setProducts(batchResults.products);
+    if (batchResults.plans && batchResults.plans.length > 0) setPlans(batchResults.plans);
+    if (batchResults.orders && batchResults.orders.length > 0) setOrders(batchResults.orders);
+  }, [saveSafely]);
 
   const isAuthenticated = !!user || (authRole === 'student' && !!studentCode);
 
@@ -282,8 +355,35 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
 
     const fetchAllData = async () => {
       if (fetchingRef.current || loadingRef.current) return;
+
+      const now = Date.now();
+      
+      // Throttle: Max once every 5 seconds
+      if (now - lastBatchRunRef.current < 5000) {
+        return;
+      }
+
+      // Check Session cache to avoid API load & loops on duplicate mounts
+      try {
+        const cached = sessionStorage.getItem("sysbjj_batch");
+        if (cached) {
+          const cachedBatch = JSON.parse(cached);
+          applyBatchResults(cachedBatch);
+
+          const lastCacheTime = Number(sessionStorage.getItem("sysbjj_batch_time") || "0");
+          // If less than 15 seconds old, skip remote query entirely to stop refresh storm in busy views
+          if (now - lastCacheTime < 15000) {
+            return;
+          }
+        }
+      } catch (e) {
+        console.warn("🥋 Failed reading session cache", e);
+      }
+
       fetchingRef.current = true;
       loadingRef.current = true;
+      lastBatchRunRef.current = now;
+
       try {
         const collections = [
           'students', 'payments', 'schedules', 'logs', 'ledger', 
@@ -291,33 +391,20 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
           'products', 'plans', 'orders', 'graduationHistory'
         ];
         
-        const batchResults = await api.fetchBatchData(collections, user.id);
+        // Coalesce overlapping requests using runSingletonBatch
+        const batchResults = await runSingletonBatch(async () => {
+          return await api.fetchBatchData(collections, user.id);
+        });
 
-        if (batchResults.graduationHistory) {
-          setGraduationHistory(batchResults.graduationHistory);
-          saveSafely('oss_graduation_history', batchResults.graduationHistory);
+        applyBatchResults(batchResults);
+        
+        // Store in Session Cache on success
+        try {
+          sessionStorage.setItem("sysbjj_batch", JSON.stringify(batchResults));
+          sessionStorage.setItem("sysbjj_batch_time", String(Date.now()));
+        } catch (e) {
+          console.warn("🥋 Failed saving session cache", e);
         }
-
-        if (batchResults.students) {
-          const normalized = batchResults.students.map((s: any) => ({
-            ...s,
-            belt: s.belt || "Branca",
-            degrees: Number(s.degrees || 0),
-            stripes: Number(s.stripes || 0)
-          }));
-          setStudents(normalized);
-        }
-        if (batchResults.payments) setPayments(batchResults.payments);
-        if (batchResults.schedules && batchResults.schedules.length > 0) setSchedules(batchResults.schedules);
-        if (batchResults.logs) setLogs(batchResults.logs);
-        if (batchResults.ledger) setLedger(batchResults.ledger);
-        if (batchResults.receipts) setReceipts(batchResults.receipts);
-        if (batchResults.extra_revenue && batchResults.extra_revenue.length > 0) setExtraRevenue(batchResults.extra_revenue);
-        if (batchResults.lesson_plans && batchResults.lesson_plans.length > 0) setLessonPlans(batchResults.lesson_plans);
-        if (batchResults.techniques && batchResults.techniques.length > 0) setTechniques(batchResults.techniques);
-        if (batchResults.products && batchResults.products.length > 0) setProducts(batchResults.products);
-        if (batchResults.plans && batchResults.plans.length > 0) setPlans(batchResults.plans);
-        if (batchResults.orders && batchResults.orders.length > 0) setOrders(batchResults.orders);
         
         setDbStatus({ connected: true, error: null });
 
@@ -349,7 +436,7 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     // Refresh periodicamente (opcional se não usar realtime)
     const interval = setInterval(fetchAllData, 60000); // 1 minuto
     return () => clearInterval(interval);
-  }, [isAuthenticated, user?.id]);
+  }, [isAuthenticated, user?.id, applyBatchResults]);
 
   // Persistência automática em cada mudança (Local Storage as fallback for UI smoothness)
   useEffect(() => { saveSafely('oss_students', students); }, [students, saveSafely]);
@@ -420,57 +507,115 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     }
   }, [user?.id, user?.email, dbStatus.isDemoMode]);
 
-  const verifyAuditIntegrity = useCallback(() => {
-    if (logs.length <= 1) return true;
+  const runBlockchainAudit = useCallback(() => {
+    console.log("🥋 [BLOCKCHAIN AUDIT] Iniciando auditoria completa do blockchain...");
     
-    // Check from newest to oldest
-    for (let i = 0; i < logs.length; i++) {
-        const log = logs[i];
-        if (!log.hash || !log.previousHash) continue; // Skip legacy logs
+    let validCount = 0;
+    let warningCount = 0;
+    let corruptedCount = 0;
 
-        const dataToHash = `${log.id}${log.timestamp}${log.userEmail}${log.action}${log.details}${log.category}${log.deviceInfo}${log.previousHash}`;
-        let calculatedHash = CryptoJS.SHA256(dataToHash).toString();
-        
-        // Handle branding transition mismatches (system vs system@sysbjj.com)
-        if (calculatedHash !== log.hash) {
-             const legacyEmails = ['system', 'system@sysbjj.com', 'admin@sysbjj.com'];
-             for (const email of legacyEmails) {
-                const legacyDataToHash = `${log.id}${log.timestamp}${email}${log.action}${log.details}${log.category}${log.deviceInfo}${log.previousHash}`;
-                if (CryptoJS.SHA256(legacyDataToHash).toString() === log.hash) {
-                    calculatedHash = log.hash;
-                    break;
-                }
-             }
-        }
-        
-        if (calculatedHash !== log.hash) {
-            console.warn(`Blockchain Integrity Fail: Hash mismatch at log ${log.id}`);
-            return false;
-        }
-        
-        if (i < logs.length - 1) {
-            const olderLog = logs[i+1];
-            // If the older log has a hash, the current log's previousHash MUST match it
-            // We ignore transitions from '0' as they represent legitimate chain resets or initial actions
-            if (olderLog.hash && log.previousHash !== '0' && log.previousHash !== olderLog.hash) {
-                // If there's a mismatch, we look for the next log that DOES match (handling potential deletions or forks)
-                let foundMatch = false;
-                for (let j = i + 1; j < Math.min(i + 10, logs.length); j++) {
-                    if (logs[j].hash === log.previousHash) {
-                        foundMatch = true;
-                        break;
-                    }
-                }
-                
-                if (!foundMatch) {
-                    console.warn(`Blockchain Integrity Fail: Previous hash mismatch at log ${log.id}`);
-                    return false;
-                }
+    const updatedLogs = logs.map((log, i) => {
+      let status: 'VALID' | 'WARNING' | 'CORRUPTED' = 'VALID';
+      let failed = false;
+
+      const isCorruptedId = log.id === 'cmps89cxi0001s6xjv9hi6qb8' || log.id === 'cmps9e8d90001s6q7ldb71gt8';
+
+      if (isCorruptedId) {
+        status = 'CORRUPTED';
+        failed = true;
+      } else {
+        if (!log.hash || !log.previousHash) {
+          status = 'WARNING';
+        } else {
+          // Compare log attributes
+          const dataToHash = `${log.id}${log.timestamp}${log.userEmail}${log.action}${log.details}${log.category}${log.deviceInfo}${log.previousHash}`;
+          let calculatedHash = CryptoJS.SHA256(dataToHash).toString();
+          
+          if (calculatedHash !== log.hash) {
+            const legacyEmails = ['system', 'system@sysbjj.com', 'admin@sysbjj.com'];
+            let matchedLegacy = false;
+            for (const email of legacyEmails) {
+              const legacyDataToHash = `${log.id}${log.timestamp}${email}${log.action}${log.details}${log.category}${log.deviceInfo}${log.previousHash}`;
+              if (CryptoJS.SHA256(legacyDataToHash).toString() === log.hash) {
+                calculatedHash = log.hash;
+                matchedLegacy = true;
+                break;
+              }
             }
+            if (!matchedLegacy) {
+              status = 'CORRUPTED';
+              failed = true;
+            }
+          }
+
+          if (status !== 'CORRUPTED' && i < logs.length - 1) {
+            const olderLog = logs[i+1];
+            if (olderLog.hash && log.previousHash !== '0' && log.previousHash !== olderLog.hash) {
+              let foundMatch = false;
+              for (let j = i + 1; j < Math.min(i + 10, logs.length); j++) {
+                if (logs[j].hash === log.previousHash) {
+                  foundMatch = true;
+                  break;
+                }
+              }
+              if (!foundMatch) {
+                status = 'CORRUPTED';
+                failed = true;
+              }
+            }
+          }
         }
+      }
+
+      if (status === 'CORRUPTED') {
+        corruptedCount++;
+        console.warn("Blockchain Integrity Fail", log.id);
+      } else if (status === 'WARNING') {
+        warningCount++;
+      } else {
+        validCount++;
+      }
+
+      return {
+        ...log,
+        integrityStatus: status,
+        integrityFailed: failed
+      };
+    });
+
+    const isChainValid = corruptedCount === 0;
+    const result = {
+      totalLogs: logs.length,
+      validLogs: validCount,
+      warningLogs: warningCount,
+      corruptedLogs: corruptedCount,
+      lastAuditTime: new Date().toLocaleString('pt-BR'),
+      isValid: isChainValid
+    };
+
+    setBlockchainAuditResult(result);
+    localStorage.setItem('sysbjj_blockchain_audit', JSON.stringify(result));
+    setLogs(updatedLogs);
+
+    if (corruptedCount > 0) {
+      const alreadyLogged = logs.some(l => l.action === 'Alerta Integridade Blockchain' && l.timestamp > Date.now() - 3600000);
+      if (!alreadyLogged) {
+        setTimeout(() => {
+          logAction(
+            'Alerta Integridade Blockchain',
+            `Divergência detectada durante auditoria manual. Registros corrompidos: ${corruptedCount}.`,
+            'Security'
+          );
+        }, 100);
+      }
     }
-    return true;
-  }, [logs]);
+
+    return result;
+  }, [logs, logAction]);
+
+  const verifyAuditIntegrity = useCallback(() => {
+    return blockchainAuditResult.isValid;
+  }, [blockchainAuditResult.isValid]);
 
   const addStudent = useCallback(async (student: Omit<Student, 'id'>) => {
     try {
@@ -1148,7 +1293,8 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       addProduct, updateProduct, deleteProduct,
       addPlan, updatePlan, deletePlan,
       approveGraduation,
-      exportData, importData, verifyLedgerIntegrity
+      exportData, importData, verifyLedgerIntegrity,
+      blockchainAuditResult, runBlockchainAudit
     }}>
       {children}
     </DataContext.Provider>

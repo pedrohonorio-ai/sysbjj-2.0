@@ -7,6 +7,7 @@ import {
   KIDS_BELT_LABELS, 
   ADULT_BELT_LABELS 
 } from './beltRules.js';
+import { getNextBlackBeltProgression } from '../../utils/graduation/blackBeltEngine.js';
 
 export interface EligibilityResult {
   isEligible: boolean;
@@ -21,6 +22,12 @@ export interface EligibilityResult {
   reasons: string[];
   recommendedStripe?: number;
   nextPromotionDate?: Date;
+  yearsRemaining?: number;
+  monthsRemaining?: number;
+  accumulatedStr?: string;
+  nextTitle?: string;
+  futureBeltType?: string;
+  remainingStr?: string;
 }
 
 // Map para obter o rótulo legível de qualquer faixa
@@ -29,6 +36,44 @@ export const getBeltLabel = (belt: string, isKid: boolean = false): string => {
     return KIDS_BELT_LABELS[belt] || ADULT_BELT_LABELS[belt] || belt;
   }
   return ADULT_BELT_LABELS[belt] || KIDS_BELT_LABELS[belt] || belt;
+};
+
+// Normalização inteligente de faixas para garantir que regras de negócio rodem corretamente em multi-idioma ou typos
+export const normalizeBeltForRules = (belt: string): string => {
+  const b = String(belt || '').trim().toLowerCase();
+  if (b === 'preta' || b === 'black' || b.includes('preta') || b.includes('black')) return 'Black';
+  if (b === 'red-black' || b === 'coral' || b.includes('coral') || b.includes('vermelha e preta') || b.includes('rojo y negro') || b.includes('red and black')) return 'Red-Black';
+  if (b === 'red-white' || b.includes('vermelha e branca') || b.includes('rojo y blanco') || b.includes('red and white')) return 'Red-White';
+  if (b === 'vermelha' || b === 'red' || b === 'rojo') return 'Red';
+  if (b === 'branca' || b === 'white' || b === 'blanco') return 'White';
+  if (b === 'azul' || b === 'blue') return 'Blue';
+  if (b === 'roxa' || b === 'purple') return 'Purple';
+  if (b === 'marrom' || b === 'brown') return 'Brown';
+  
+  // Kids
+  if (b.includes('cinza') || b.includes('gray')) {
+    if (b.includes('preta') || b.includes('black')) return 'Gray-Black';
+    if (b.includes('branca') || b.includes('white')) return 'White-Gray';
+    return 'Gray';
+  }
+  if (b.includes('amarela') || b.includes('yellow')) {
+    if (b.includes('preta') || b.includes('black')) return 'Black-Yellow';
+    if (b.includes('branca') || b.includes('white')) return 'White-Yellow';
+    return 'Yellow';
+  }
+  if (b.includes('laranja') || b.includes('orange')) {
+    if (b.includes('preta') || b.includes('black')) return 'Black-Orange';
+    if (b.includes('branca') || b.includes('white')) return 'White-Orange';
+    return 'Orange';
+  }
+  if (b.includes('verde') || b.includes('green')) {
+    if (b.includes('preta') || b.includes('black')) return 'Black-Green';
+    if (b.includes('branca') || b.includes('white')) return 'White-Green';
+    return 'Green';
+  }
+  
+  const capitalized = b.charAt(0).toUpperCase() + b.slice(1);
+  return capitalized;
 };
 
 // Cache interno em memória para otimizar cálculos de elegibilidade repetitivos (Requisito: Cache de Elegibilidade)
@@ -56,24 +101,58 @@ export const calculateStudentEligibility = (student: Student, forceRefresh = fal
   // Forçar definição de se é criança com base na idade se não definido
   const isKid = student.isKid !== undefined ? student.isKid : (age < 16);
   const currentBelt = String(student.belt || 'Branca');
-  const currentStripes = student.stripes || student.degrees || 0;
+  const normalizedBelt = normalizeBeltForRules(currentBelt);
+  const currentStripes = Number(student.blackBeltDegree !== undefined ? student.blackBeltDegree : (student.degrees || student.stripes || 0));
 
-  // 1. Determinação da Próxima Faixa
+  // 1. Determinação da Próxima Faixa / Grau
   let nextBelt = '';
   let isPromotionToDegree = false;
   let targetDegree = 0;
   
-  // Se o aluno já tem listras acumuladas, até 4, antes de ir para a próxima faixa ele pode estar ganhando listras
-  if (currentStripes < 4 && currentBelt !== 'Preta' && currentBelt !== 'Black' && currentBelt !== 'Red-Black' && currentBelt !== 'Red-White' && currentBelt !== 'Red') {
+  const isBlackBeltBelt = normalizedBelt === 'Black';
+  const isCoralBeltBelt = normalizedBelt === 'Red-Black' || normalizedBelt === 'Red-White';
+  const isRedBeltBelt = normalizedBelt === 'Red';
+
+  if (isBlackBeltBelt) {
+    // Para faixa preta, até 6º grau, ganha graus adicionais (6º para 7º é Coral)
+    if (currentStripes < 6) {
+      isPromotionToDegree = true;
+      targetDegree = currentStripes + 1;
+      nextBelt = 'Black';
+    } else {
+      isPromotionToDegree = false;
+      nextBelt = 'Red-Black'; // Promoves to Coral
+    }
+  } else if (isCoralBeltBelt) {
+    if (normalizedBelt === 'Red-Black' && currentStripes < 7) {
+      isPromotionToDegree = true;
+      targetDegree = 7;
+      nextBelt = 'Red-Black';
+    } else if (normalizedBelt === 'Red-Black' && currentStripes === 7) {
+      isPromotionToDegree = false;
+      nextBelt = 'Red-White';
+    } else if (normalizedBelt === 'Red-White' && currentStripes < 8) {
+      isPromotionToDegree = true;
+      targetDegree = 8;
+      nextBelt = 'Red-White';
+    } else if (normalizedBelt === 'Red-White' && currentStripes === 8) {
+      isPromotionToDegree = false;
+      nextBelt = 'Red';
+    } else {
+      isPromotionToDegree = true;
+      targetDegree = currentStripes + 1;
+      nextBelt = normalizedBelt;
+    }
+  } else if (currentStripes < 4 && normalizedBelt !== 'Red') {
     // É uma promoção de Grau/Listra dentro da faixa atual
     isPromotionToDegree = true;
     targetDegree = currentStripes + 1;
-    nextBelt = currentBelt;
+    nextBelt = normalizedBelt;
   } else {
     // É uma promoção de FAIXA
     isPromotionToDegree = false;
     if (isKid) {
-      const currentIdx = KIDS_BELT_SEQUENCE.indexOf(currentBelt as any);
+      const currentIdx = KIDS_BELT_SEQUENCE.indexOf(normalizedBelt as any);
       if (currentIdx !== -1 && currentIdx < KIDS_BELT_SEQUENCE.length - 1) {
         nextBelt = KIDS_BELT_SEQUENCE[currentIdx + 1];
       } else {
@@ -81,7 +160,7 @@ export const calculateStudentEligibility = (student: Student, forceRefresh = fal
         nextBelt = BeltColor.BLUE;
       }
     } else {
-      const currentIdx = ADULT_BELT_SEQUENCE.indexOf(currentBelt as any);
+      const currentIdx = ADULT_BELT_SEQUENCE.indexOf(normalizedBelt as any);
       if (currentIdx !== -1 && currentIdx < ADULT_BELT_SEQUENCE.length - 1) {
         nextBelt = ADULT_BELT_SEQUENCE[currentIdx + 1];
       } else {
@@ -91,21 +170,50 @@ export const calculateStudentEligibility = (student: Student, forceRefresh = fal
   }
 
   // 2. Cálculo do Tempo Oficial decorrido na faixa
-  let lastPromoDateStr = student.lastPromotionDate;
-  if (!lastPromoDateStr && student.beltSince) {
-    if (student.beltSince instanceof Date) {
-      lastPromoDateStr = student.beltSince.toISOString().split('T')[0];
-    } else {
-      lastPromoDateStr = String(student.beltSince).split('T')[0];
+  let lastPromoDate: Date;
+  
+  if (isBlackBeltBelt || isCoralBeltBelt || isRedBeltBelt) {
+    let baseDateStr = student.blackBeltDate || student.lastPromotionDate || student.beltSince;
+    if (baseDateStr instanceof Date) {
+      baseDateStr = baseDateStr.toISOString().split('T')[0];
+    } else if (baseDateStr) {
+      baseDateStr = String(baseDateStr).split('T')[0];
     }
-  }
-  if (!lastPromoDateStr) {
-    lastPromoDateStr = new Date().toISOString().split('T')[0]; // Safe fallback
-  }
+    
+    let baseDate = baseDateStr ? new Date(baseDateStr + 'T12:00:00') : new Date();
+    if (isNaN(baseDate.getTime())) {
+      baseDate = new Date();
+    }
+    
+    lastPromoDate = baseDate;
+    if (student.lastDegreeDate) {
+      const dDate = new Date(student.lastDegreeDate);
+      if (!isNaN(dDate.getTime())) {
+        lastPromoDate = dDate;
+      }
+    } else if (student.lastPromotionDate) {
+      const pDate = new Date(student.lastPromotionDate);
+      if (!isNaN(pDate.getTime())) {
+        lastPromoDate = pDate;
+      }
+    }
+  } else {
+    let lastPromoDateStr = student.lastPromotionDate;
+    if (!lastPromoDateStr && student.beltSince) {
+      if (student.beltSince instanceof Date) {
+        lastPromoDateStr = student.beltSince.toISOString().split('T')[0];
+      } else {
+        lastPromoDateStr = String(student.beltSince).split('T')[0];
+      }
+    }
+    if (!lastPromoDateStr) {
+      lastPromoDateStr = new Date().toISOString().split('T')[0]; // Safe fallback
+    }
 
-  let lastPromoDate = new Date(lastPromoDateStr + 'T12:00:00');
-  if (isNaN(lastPromoDate.getTime())) {
-    lastPromoDate = new Date();
+    lastPromoDate = new Date(lastPromoDateStr + 'T12:00:00');
+    if (isNaN(lastPromoDate.getTime())) {
+      lastPromoDate = new Date();
+    }
   }
 
   const diffYears = today.getFullYear() - lastPromoDate.getFullYear();
@@ -114,36 +222,42 @@ export const calculateStudentEligibility = (student: Student, forceRefresh = fal
 
   // 3. Determinação de Carência Mínima (Tempos CBJJ/IBJJF oficiais)
   let minTimeMonths = 0;
-  if (isPromotionToDegree) {
+  if (isPromotionToDegree && !isBlackBeltBelt && !isCoralBeltBelt && !isRedBeltBelt) {
     // Entre graus infantis ou adultos normais: 3-4 meses recomendados
     minTimeMonths = isKid ? 3 : 4;
   } else {
-    // Carência oficial de Faixa para Faixa (Tratamento especial para White_Kid)
-    const ruleKey = (currentBelt === 'White' || currentBelt === 'Branca') && isKid ? 'White_Kid' : currentBelt;
-    const rule = BELT_RULES[ruleKey];
-    if (rule) {
-      minTimeMonths = rule.minimumTimeMonths;
+    if (isBlackBeltBelt) {
+      // Carência de graus (0 a 6º grau)
+      const currentDegree = currentStripes;
+      const progression = getNextBlackBeltProgression(currentDegree);
+      minTimeMonths = progression ? progression.monthsRequired : 36;
+    } else if (isCoralBeltBelt) {
+      // Coral Vermelha e Preta ou Vermelha e Branca: carência de 7 anos (84 meses)
+      const currentDegree = currentStripes;
+      const progression = getNextBlackBeltProgression(currentDegree);
+      minTimeMonths = progression ? progression.monthsRequired : 84;
+    } else if (isRedBeltBelt) {
+      // Vermelha (9º/10º graus): carência de 10 anos (120 meses)
+      minTimeMonths = 120;
     } else {
-      // Regras para faixa preta e coral (Baseado em Graus)
-      if (currentBelt === 'Preta' || currentBelt === 'Black') {
-        minTimeMonths = 36; // 3 anos (36 meses) para graus da faixa preta
-      } else if (currentBelt === 'Red-Black' || currentBelt === 'Red-White') {
-        minTimeMonths = 84; // 7 anos (84 meses) para graus avançados / Coral
-      } else if (currentBelt === 'Red') {
-        minTimeMonths = 120; // 10 anos (120 meses) para grandes mestres
+      // Carência oficial de Faixa para Faixa (Tratamento especial para White_Kid)
+      const ruleKey = (normalizedBelt === 'White') && isKid ? 'White_Kid' : normalizedBelt;
+      const rule = BELT_RULES[ruleKey];
+      if (rule) {
+        minTimeMonths = rule.minimumTimeMonths;
       } else {
         minTimeMonths = isKid ? 4 : 12; // Geral
       }
     }
 
     // Exceção oficial IBJJF: Faixa roxa com 17 anos possui carência reduzida para 12 meses
-    if (!isKid && currentBelt === 'Purple' && age === 17) {
+    if (!isKid && normalizedBelt === 'Purple' && age === 17) {
       minTimeMonths = 12;
     }
   }
 
-  // Se for Branca Adulto, não há carência oficial regulamentar CBJJ por idade para Azul (embora o professor exija exames/atrito)
-  if (!isKid && (currentBelt === 'White' || currentBelt === 'Branca') && !isPromotionToDegree) {
+  // Se for Branca Adulto, não há carência oficial regulamentar CBJJ por idade para Azul
+  if (!isKid && normalizedBelt === 'White' && !isPromotionToDegree) {
     minTimeMonths = 0;
   }
 
@@ -151,27 +265,23 @@ export const calculateStudentEligibility = (student: Student, forceRefresh = fal
   let isAgeOk = true;
   const reasons: string[] = [];
   
-  if (!isPromotionToDegree) {
+  if (!isPromotionToDegree || isBlackBeltBelt || isCoralBeltBelt || isRedBeltBelt) {
     const nextRule = BELT_RULES[nextBelt];
-    if (nextRule) {
+    if (nextRule && !isBlackBeltBelt && !isCoralBeltBelt && !isRedBeltBelt) {
       if (age < nextRule.minimumAge) {
         isAgeOk = false;
         reasons.push(`Idade mínima para ${getBeltLabel(nextBelt, isKid)} é de ${nextRule.minimumAge} anos (Atleta possui ${age} anos).`);
       }
     } else {
       // Regras de idade para Preta, Coral e Vermelha
-      if (nextBelt === 'Black' && age < 19) {
+      const nextDegreeNum = targetDegree || (currentStripes + 1);
+      const ageSpecs: Record<number, number> = {
+        1: 22, 2: 25, 3: 28, 4: 33, 5: 38, 6: 43, 7: 50, 8: 57, 9: 67
+      };
+      const minAgeRequired = ageSpecs[nextDegreeNum] || 19;
+      if (age < minAgeRequired) {
         isAgeOk = false;
-        reasons.push('Idade mínima exigida pela CBJJ para outorga de Faixa Preta é de 19 anos.');
-      } else if (nextBelt === 'Red-Black' && age < 50) {
-        isAgeOk = false;
-        reasons.push('Idade mínima para a Faixa Coral Vermelha e Preta (7º Grau) é de 50 anos.');
-      } else if (nextBelt === 'Red-White' && age < 60) {
-        isAgeOk = false;
-        reasons.push('Idade mínima para a Faixa Coral Vermelha e Branca (8º Grau) é de 60 anos.');
-      } else if (nextBelt === 'Red' && age < 67) {
-        isAgeOk = false;
-        reasons.push('Idade mínima para a Faixa Vermelha (9º Grau Grande Mestre) é de 67 anos.');
+        reasons.push(`Idade mínima exigida pela CBJJ para o ${nextDegreeNum}º Grau / Faixa correspondente é de ${minAgeRequired} anos (Atleta possui ${age} anos).`);
       }
     }
   }
@@ -227,6 +337,54 @@ export const calculateStudentEligibility = (student: Student, forceRefresh = fal
   const nextPromotionDate = new Date(lastPromoDate);
   nextPromotionDate.setMonth(nextPromotionDate.getMonth() + minTimeMonths);
 
+  // Black belt custom properties
+  let yearsRemaining = 0;
+  let monthsRemaining = 0;
+  let accumulatedStr = '';
+  let nextTitle = '';
+  let futureBeltType = 'Preta';
+  let remainingStr = '';
+
+  if (isBlackBeltBelt || isCoralBeltBelt || isRedBeltBelt) {
+    const remainingMonths = Math.max(0, minTimeMonths - monthsElapsed);
+    monthsRemaining = remainingMonths;
+    yearsRemaining = Math.floor(remainingMonths / 12);
+    
+    if (yearsRemaining === 0) {
+      remainingStr = `${monthsRemaining} ${monthsRemaining === 1 ? 'mês' : 'meses'}`;
+    } else {
+      const remMonths = monthsRemaining % 12;
+      remainingStr = `${yearsRemaining} ${yearsRemaining === 1 ? 'ano' : 'anos'}${remMonths > 0 ? ` e ${remMonths} ${remMonths === 1 ? 'mês' : 'meses'}` : ''}`;
+    }
+
+    let baseDateStr = student.blackBeltDate || student.lastPromotionDate || student.beltSince;
+    if (baseDateStr instanceof Date) {
+      baseDateStr = baseDateStr.toISOString().split('T')[0];
+    } else if (baseDateStr) {
+      baseDateStr = String(baseDateStr).split('T')[0];
+    }
+    const baseDate = baseDateStr ? new Date(baseDateStr + 'T12:00:00') : new Date();
+    const monthsAccumulated = Math.max(0, (today.getFullYear() - baseDate.getFullYear()) * 12 + (today.getMonth() - baseDate.getMonth()));
+    const yearsAccumulated = Math.floor(monthsAccumulated / 12);
+    const remMonthsAccumulated = monthsAccumulated % 12;
+    accumulatedStr = yearsAccumulated === 0
+      ? `${monthsAccumulated} ${monthsAccumulated === 1 ? 'mês' : 'meses'}`
+      : `${yearsAccumulated} ${yearsAccumulated === 1 ? 'ano' : 'anos'}${remMonthsAccumulated > 0 ? ` e ${remMonthsAccumulated} ${remMonthsAccumulated === 1 ? 'mês' : 'meses'}` : ''}`;
+
+    const progression = getNextBlackBeltProgression(currentStripes);
+    if (progression) {
+      nextTitle = progression.nextTitle;
+      const nextDeg = progression.nextDegree;
+      if (nextDeg === 7) futureBeltType = 'Coral (Vermelha e Preta)';
+      else if (nextDeg === 8) futureBeltType = 'Coral (Vermelha e Branca)';
+      else if (nextDeg === 9) futureBeltType = 'Vermelha';
+      else futureBeltType = 'Preta';
+    } else {
+      nextTitle = 'Graduação Máxima';
+      futureBeltType = 'Vermelha';
+    }
+  }
+
   const result: EligibilityResult = {
     isEligible,
     nextBelt,
@@ -238,7 +396,13 @@ export const calculateStudentEligibility = (student: Student, forceRefresh = fal
     timeSpentStr,
     eligibleStr,
     reasons,
-    nextPromotionDate
+    nextPromotionDate,
+    yearsRemaining,
+    monthsRemaining,
+    accumulatedStr,
+    nextTitle,
+    futureBeltType,
+    remainingStr
   };
 
   // Salvar no cache antes de retornar

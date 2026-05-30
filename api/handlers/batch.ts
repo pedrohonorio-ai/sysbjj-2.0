@@ -3,6 +3,9 @@ import { prisma } from '../../prisma/client.js';
 import { AuthRequest } from '../authMiddleware.js';
 import { SAFE_STUDENT_SELECT, enrichStudentsList } from './data.js';
 
+const BATCH_COOLDOWN = 1500;
+let lastBatchExecution = 0;
+
 export default async function batchHandler(req: AuthRequest, res: Response) {
   const { collections } = req.query;
   const userId = req.user?.id;
@@ -15,6 +18,17 @@ export default async function batchHandler(req: AuthRequest, res: Response) {
       code: 401
     });
   }
+
+  const now = Date.now();
+  if (now - lastBatchExecution < BATCH_COOLDOWN) {
+    return res.status(429).json({
+      success: false,
+      error: "Batch cooldown protection enabled (Mantenha a guarda!).",
+      message: "Batch cooldown protection enabled",
+      code: 429
+    });
+  }
+  lastBatchExecution = now;
 
   if (!collections || typeof collections !== 'string') {
     return res.status(400).json({ 

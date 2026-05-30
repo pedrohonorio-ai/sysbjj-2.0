@@ -50,6 +50,7 @@ import { useProfile } from '../contexts/ProfileContext.js';
 import { useAuth } from '../context/AuthContext.js';
 import { calculateCBJJCategory, calculateWeightClass } from '../services/cbjj.js';
 import { compressImage } from '../services/imageUtils.js';
+import { calculateStudentEligibility } from '../services/graduation/rulesEngine.js';
 
 const formatCPF = (value: string) => {
   return value
@@ -234,6 +235,7 @@ const NewStudentModal = ({ onClose, defaultIsKid }: { onClose: () => void, defau
     lastPromotionDate: new Date().toISOString().split('T')[0],
     blackBeltDate: undefined as string | Date | undefined,
     isInstructor: false,
+    isClassProfessor: false,
     isKid: defaultIsKid,
     isCompetitor: false,
     technicalNotes: '',
@@ -774,6 +776,24 @@ const NewStudentModal = ({ onClose, defaultIsKid }: { onClose: () => void, defau
                       <input type="checkbox" checked={formData.isInstructor} onChange={e => setFormData({...formData, isInstructor: e.target.checked})} className="w-5 h-5 rounded border-slate-300 text-blue-600" />
                       <span className="text-[10px] font-black uppercase dark:text-white">{t('common.instructor')}</span>
                     </label>
+                    {(String(formData.belt || '').toLowerCase() === 'preta' || 
+                      String(formData.belt || '').toLowerCase() === 'black' || 
+                      String(formData.belt || '').toLowerCase().includes('preta') ||
+                      String(formData.belt || '').toLowerCase().includes('black') ||
+                      ['coral', 'red-black', 'red-white', 'red', 'vermelha', 'vermelho'].includes(String(formData.belt || '').toLowerCase())) && (
+                      <label className="flex items-center gap-3 cursor-pointer border-l-2 border-red-500 pl-4">
+                        <input 
+                          type="checkbox" 
+                          checked={formData.isClassProfessor || false} 
+                          onChange={e => setFormData({...formData, isClassProfessor: e.target.checked})} 
+                          className="w-5 h-5 rounded border-red-300 text-red-600 focus:ring-red-500" 
+                        />
+                        <div className="flex flex-col">
+                          <span className="text-[10px] font-black uppercase text-red-600 dark:text-red-400">Professor de Turma 🥋</span>
+                          <span className="text-[8px] font-bold text-slate-400 uppercase tracking-wider">Habilitar outorgas e liderança das aulas</span>
+                        </div>
+                      </label>
+                    )}
                     <label className="flex items-center gap-3 cursor-pointer">
                       <input type="checkbox" checked={formData.isCompetitor} onChange={e => setFormData({...formData, isCompetitor: e.target.checked})} className="w-5 h-5 rounded border-slate-300 text-blue-600" />
                       <span className="text-[10px] font-black uppercase dark:text-white">{t('students.isCompetitor')}</span>
@@ -1215,72 +1235,15 @@ const StudentDetailsModal = ({ student, onClose }: { student: Student; onClose: 
   };
 
   const getBeltTimeAnalysis = () => {
-    let minTimeMonths = student.isKid ? 4 : (IBJJF_BELT_RULES[student.belt as string]?.minTimeMonths ?? 0);
-    
-    // IBJJF Exception: Purple belt minimum time is 12 months if the athlete is 17 years old
-    const currentBeltStr = String(student.belt);
-    if (!student.isKid && (currentBeltStr === 'Purple' || currentBeltStr === 'Roxa')) {
-      const age = calculateCBJJCategory(student.birthDate) === CBJJCategory.JUVENIL_2 ? 17 : 18; // Simplified age check
-      if (age === 17) minTimeMonths = 12;
-    }
-
-    let lastPromotionDate = student.lastPromotionDate;
-    if (!lastPromotionDate && student.beltSince) {
-      if (student.beltSince instanceof Date) {
-        lastPromotionDate = student.beltSince.toISOString().split('T')[0];
-      } else {
-        lastPromotionDate = String(student.beltSince).split('T')[0];
-      }
-    }
-    if (!lastPromotionDate) {
-      lastPromotionDate = student.joinedAt ? student.joinedAt.split('T')[0] : new Date().toISOString().split('T')[0];
-    }
-
-    let lastPromotion = new Date(lastPromotionDate + 'T12:00:00');
-    if (isNaN(lastPromotion.getTime())) {
-      lastPromotion = new Date();
-    }
-    const today = new Date();
-    
-    let diffMonths = (today.getFullYear() - lastPromotion.getFullYear()) * 12 + (today.getMonth() - lastPromotion.getMonth());
-    if (today.getDate() < lastPromotion.getDate()) {
-      diffMonths--;
-    }
-    diffMonths = Math.max(0, diffMonths);
-    
-    const progress = minTimeMonths > 0 ? Math.min(100, (diffMonths / minTimeMonths) * 100) : 100;
-    const isEligible = diffMonths >= minTimeMonths;
-
-    // Formatting "Tempo atual" string
-    const yearsSpent = Math.floor(diffMonths / 12);
-    const monthsSpent = diffMonths % 12;
-    let timeSpentStr = '';
-    if (yearsSpent === 0) {
-      timeSpentStr = `${monthsSpent} ${monthsSpent === 1 ? 'mês' : 'meses'}`;
-    } else {
-      const yearsStr = yearsSpent === 1 ? '1 ano' : `${yearsSpent} anos`;
-      const monthsStr = monthsSpent > 0 ? ` e ${monthsSpent} ${monthsSpent === 1 ? 'mês' : 'meses'}` : '';
-      timeSpentStr = `${yearsStr}${monthsStr}`;
-    }
-
-    // Formatting "Elegibilidade" string
-    let eligibleStr = '';
-    if (isEligible) {
-      eligibleStr = 'Elegível para graduação ✔';
-    } else {
-      const remaining = minTimeMonths - diffMonths;
-      const remYears = Math.floor(remaining / 12);
-      const remMonths = remaining % 12;
-      if (remYears === 0) {
-        eligibleStr = `Elegível para graduação em: ${remMonths} ${remMonths === 1 ? 'mês' : 'meses'}`;
-      } else {
-        const yearsStr = remYears === 1 ? '1 ano' : `${remYears} anos`;
-        const monthsStr = remMonths > 0 ? ` e ${remMonths} ${remMonths === 1 ? 'mês' : 'meses'}` : '';
-        eligibleStr = `Elegível para graduação em: ${yearsStr}${monthsStr}`;
-      }
-    }
-
-    return { diffMonths, minTime: minTimeMonths, progress, isEligible, timeSpentStr, eligibleStr };
+    const eligibility = calculateStudentEligibility(student);
+    return {
+      diffMonths: eligibility.monthsElapsed,
+      minTime: eligibility.minTimeRequiredMonths,
+      progress: eligibility.progress,
+      isEligible: eligibility.isEligible,
+      timeSpentStr: eligibility.timeSpentStr,
+      eligibleStr: eligibility.eligibleStr
+    };
   };
 
   const beltAnalysis = useMemo(() => getBeltTimeAnalysis(), [student]);
@@ -1368,6 +1331,11 @@ const StudentDetailsModal = ({ student, onClose }: { student: Student; onClose: 
                   {student.isCompetitor && (
                     <span className="px-4 py-1.5 sm:px-6 sm:py-2.5 rounded-xl text-[9px] sm:text-[11px] font-black uppercase tracking-widest bg-blue-600 text-white flex items-center gap-2">
                       <Medal size={14} /> {t('students.isCompetitor').toUpperCase()}
+                    </span>
+                  )}
+                  {student.isClassProfessor && (
+                    <span className="px-4 py-1.5 sm:px-6 sm:py-2.5 rounded-xl text-[9px] sm:text-[11px] font-black uppercase tracking-widest bg-red-600 text-white flex items-center gap-2">
+                      <Award size={14} /> PROFESSOR DE TURMA 🥋
                     </span>
                   )}
                 </div>
@@ -1591,6 +1559,21 @@ const StudentDetailsModal = ({ student, onClose }: { student: Student; onClose: 
                           <input type="checkbox" checked={editFormData.isInstructor} onChange={e => setEditFormData({...editFormData, isInstructor: e.target.checked})} className="w-4 h-4 text-blue-600" />
                           <span className="text-[10px] font-black uppercase dark:text-white">{t('common.instructor')}</span>
                         </label>
+                        {(String(editFormData.belt || '').toLowerCase() === 'preta' || 
+                          String(editFormData.belt || '').toLowerCase() === 'black' || 
+                          String(editFormData.belt || '').toLowerCase().includes('preta') ||
+                          String(editFormData.belt || '').toLowerCase().includes('black') ||
+                          ['coral', 'red-black', 'red-white', 'red', 'vermelha', 'vermelho'].includes(String(editFormData.belt || '').toLowerCase())) && (
+                          <label className="flex items-center gap-2 cursor-pointer border-l-2 border-red-500 pl-3">
+                            <input 
+                              type="checkbox" 
+                              checked={editFormData.isClassProfessor || false} 
+                              onChange={e => setEditFormData({...editFormData, isClassProfessor: e.target.checked})} 
+                              className="w-4 h-4 text-red-600 focus:ring-red-500" 
+                            />
+                            <span className="text-[10px] font-black uppercase text-red-600 dark:text-red-400">Professor de Turma 🥋</span>
+                          </label>
+                        )}
                         <label className="flex items-center gap-2 cursor-pointer">
                           <input type="checkbox" checked={editFormData.isKid} onChange={e => setEditFormData({...editFormData, isKid: e.target.checked})} className="w-4 h-4 text-blue-600" />
                           <span className="text-[10px] font-black uppercase dark:text-white">{t('common.kid')}</span>
@@ -2420,6 +2403,12 @@ const StudentDetailsModal = ({ student, onClose }: { student: Student; onClose: 
                             const bbInfo = calculateBlackBeltGraduation(student.blackBeltDate);
                             if (!bbInfo) return null;
 
+                            // Determinação de faixa futura e sua categoria mestre/grande mestre
+                            let futureBeltCategory = "Faixa Preta com Graus";
+                            if (bbInfo.nextDegree === 7) futureBeltCategory = "Coral Vermelha e Preta";
+                            else if (bbInfo.nextDegree === 8) futureBeltCategory = "Coral Vermelha e Branca";
+                            else if (bbInfo.nextDegree >= 9) futureBeltCategory = "Faixa Vermelha";
+
                             return (
                               <div className="space-y-6">
                                 <div className="p-8 rounded-[2.5rem] bg-slate-900 dark:bg-slate-950 border border-slate-800 text-white shadow-xl space-y-6">
@@ -2428,7 +2417,7 @@ const StudentDetailsModal = ({ student, onClose }: { student: Student; onClose: 
                                       <p className="text-[9px] font-black text-red-500 uppercase tracking-widest">SISTEMA PREDITIVO DE GRAUS</p>
                                       <h4 className="text-xl font-black uppercase tracking-tight">{bbInfo.currentDegree === 0 ? "Faixa Preta Lisa" : `Faixa Preta ${bbInfo.currentDegree}º Grau`}</h4>
                                       <p className="text-[10px] text-slate-400 uppercase font-black tracking-widest mt-1">
-                                        Tempo de Faixa Preta: {bbInfo.diffYears.toFixed(1)} Anos
+                                        Tempo de Faixa Preta Acumulado: {bbInfo.diffYears.toFixed(1)} Anos
                                       </p>
                                     </div>
                                     <div className="px-4 py-2 bg-red-600 text-white rounded-xl text-[9px] font-black uppercase tracking-widest whitespace-nowrap">
@@ -2436,23 +2425,33 @@ const StudentDetailsModal = ({ student, onClose }: { student: Student; onClose: 
                                     </div>
                                   </div>
 
-                                  <div className="grid grid-cols-2 gap-4 pt-4 border-t border-slate-800">
-                                    <div>
-                                      <p className="text-[8px] font-black text-slate-500 uppercase tracking-widest mb-1">PRÓXIMA GRADUAÇÃO</p>
-                                      <p className="text-xs font-black uppercase tracking-wider text-red-400">
-                                        {bbInfo.nextDegree}º Grau
-                                      </p>
-                                      <p className="text-[9px] text-slate-400 mt-1 max-w-[150px] truncate">{bbInfo.nextBelt}</p>
+                                  {/* PRÉVIA DE ELEGIBILIDADE ENRIQUECIDA EM GRID DE 2 COLUNAS */}
+                                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pt-4 border-t border-slate-800 text-xs">
+                                    <div className="p-3.5 bg-slate-950/40 rounded-xl space-y-1 text-left">
+                                      <p className="text-[8px] font-black text-slate-500 uppercase tracking-widest">Tempo Acumulado</p>
+                                      <p className="text-sm font-black text-slate-200">{bbInfo.diffYears.toFixed(1)} anos na Faixa Preta</p>
                                     </div>
-                                    <div>
-                                      <p className="text-[8px] font-black text-slate-500 uppercase tracking-widest mb-1">PREVISÃO ESTIMADA</p>
-                                      <p className="text-xs font-black text-slate-300">
+                                    <div className="p-3.5 bg-slate-950/40 rounded-xl space-y-1 text-left">
+                                      <p className="text-[8px] font-black text-slate-500 uppercase tracking-widest">Próximo Grau</p>
+                                      <p className="text-sm font-black text-red-500">{bbInfo.nextDegree}º Grau</p>
+                                    </div>
+                                    <div className="p-3.5 bg-slate-950/40 rounded-xl space-y-1 text-left">
+                                      <p className="text-[8px] font-black text-slate-500 uppercase tracking-widest">Data Prevista de Carência</p>
+                                      <p className="text-sm font-black text-slate-100">
                                         {bbInfo.nextPromotionDate ? new Date(bbInfo.nextPromotionDate).toLocaleDateString() : "--"}
                                       </p>
-                                      <p className="text-[9px] text-slate-500 font-bold mt-1">
-                                        Faltam {bbInfo.yearsRemaining.toFixed(1)} anos
-                                      </p>
                                     </div>
+                                    <div className="p-3.5 bg-slate-950/40 rounded-xl space-y-1 text-left">
+                                      <p className="text-[8px] font-black text-slate-500 uppercase tracking-widest">Faixa Futura / Destino</p>
+                                      <p className="text-sm font-black text-amber-500">{futureBeltCategory}</p>
+                                    </div>
+                                  </div>
+
+                                  <div className="pt-2 flex justify-between items-center text-[10px] bg-slate-950/60 p-4 rounded-2xl border border-white/5">
+                                    <span className="text-slate-400 font-extrabold uppercase tracking-wider">Tempo Restante de Carência</span>
+                                    <span className="font-black uppercase tracking-wider text-xs text-rose-400">
+                                      {bbInfo.yearsRemaining <= 0 ? 'CARÊNCIA CONCLUÍDA' : `Faltam ${bbInfo.yearsRemaining.toFixed(1)} anos`}
+                                    </span>
                                   </div>
                                 </div>
 

@@ -8,9 +8,25 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
 export default defineConfig(({ command, mode }) => {
+    const isBuild = command === 'build';
     return {
       base: '/',
       plugins: [react(), tailwindcss()],
+      ...(isBuild ? {} : {
+        server: {
+          port: 3000,
+          host: '0.0.0.0',
+          strictPort: true,
+          hmr: {
+            protocol: 'wss',
+            host: process.env.HMR_HOST || 'localhost',
+            clientPort: 443
+          },
+          watch: {
+            usePolling: false,
+          },
+        },
+      }),
       resolve: {
         alias: {
           'react': path.resolve(__dirname, 'node_modules/react'),
@@ -31,28 +47,10 @@ export default defineConfig(({ command, mode }) => {
             assetFileNames: 'assets/[name]-[hash][extname]',
             chunkFileNames: 'assets/[name]-[hash].js',
             entryFileNames: 'assets/[name]-[hash].js',
-            manualChunks(id) {
-              if (id.includes('node_modules')) {
-                if (id.includes('react') || id.includes('react-dom') || id.includes('react-router') || id.includes('scheduler')) {
-                  return 'react-core';
-                }
-                if (id.includes('recharts') || id.includes('d3')) {
-                  return 'recharts';
-                }
-                if (id.includes('jspdf') || id.includes('jspdf-autotable')) {
-                  return 'pdf';
-                }
-                if (id.includes('lucide-react')) {
-                  return 'icons';
-                }
-                if (id.includes('motion') || id.includes('framer-motion')) {
-                  return 'motion';
-                }
-                if (id.includes('@google/genai')) {
-                  return 'gemini';
-                }
-                return 'vendor';
-              }
+            manualChunks: {
+              react: ['react', 'react-dom', 'react-router-dom'],
+              charts: ['recharts'],
+              pdf: ['jspdf', 'jspdf-autotable']
             }
           }
         }
