@@ -497,57 +497,8 @@ try {
       "🚨 [PRISMA UPSERT CRITICAL] Safe student upsert also failed:",
       fallbackError.message
     );
-    throw fallbackError;
-  }
-}
-
-// Trigger automatic upgrade if allowed or update state
-try {
-  const subModule = await import('../subscriptionService.js');
-
-  if (subModule?.updateSubscriptionPlan) {
-    await subModule.updateSubscriptionPlan(uid);
-  }
-} catch (err) {
-  console.error('🥋 [SUBSCRIPTION UPDATE ERROR]', err);
-}
-
-break;
-    "⚠️ [PRISMA UPSERT FALLBACK] Failed, stripping fields:",
-    upsertError.message
-
-  const {
-    graduationDate,
-    nextDegreeDate,
-    estimatedCoralDate,
-    estimatedRedDate,
-    ...safePayload
-  } = cleanPayload;
-
-  try {
-    if (id) {
-      result = await prisma.student.update({
-        where: { id },
-        data: {
-          ...safePayload,
-          userId: uid
-        }
-      });
-    } else {
-      result = await prisma.student.create({
-        data: {
-          ...safePayload,
-          userId: uid
-        }
-      });
-    }
-  } catch (fallbackError: any) {
-    console.error(
-      "🚨 [PRISMA UPSERT CRITICAL]",
-      fallbackError.message
-    );
-    throw fallbackError;
-  }
+} catch (fallbackError: any) {
+  throw fallbackError;
 }
 
 // 🔥 subscription sync
@@ -562,171 +513,251 @@ try {
 }
 
 break;
-          const cleanUserAgent = payload.userAgent ? String(payload.userAgent) : null;
-          const cleanRole = payload.role ? String(payload.role) : null;
 
-          try {
-            result = await prisma.presence.upsert({
-              where: { 
-                email_deviceId: { 
-                  email: cleanEmail, 
-                  deviceId: cleanDeviceId 
-                } 
-              },
-              create: { 
-                userId: uid,
-                email: cleanEmail,
-                deviceId: cleanDeviceId,
-                role: cleanRole,
-                lastSeen: cleanLastSeen,
-                userAgent: cleanUserAgent
-              },
-              update: { 
-                role: cleanRole,
-                lastSeen: cleanLastSeen,
-                userAgent: cleanUserAgent
-              }
-            });
-          } catch (upsertPresenceError: any) {
-            console.error("🥋 [PRESENCE UPSERT ERROR] Suppressed gracefully:", upsertPresenceError.message || upsertPresenceError);
-            result = {
-              id: `PRES-${Date.now()}`,
-              userId: uid,
-              email: cleanEmail,
-              deviceId: cleanDeviceId,
-              role: cleanRole,
-              lastSeen: String(cleanLastSeen),
-              userAgent: cleanUserAgent,
-              success: true
-            };
-          }
-          break;
-        case 'profile':
-          const cleanProfilePayload = {
-            name: String(payload.name || ''),
-            academyName: String(payload.academyName || ''),
-            belt: String(payload.belt || 'Branca'),
-            stripes: Number(payload.stripes) || 0,
-            specialization: payload.specialization ? String(payload.specialization) : null,
-            avatarUrl: payload.avatarUrl ? String(payload.avatarUrl) : null,
-            pixKey: payload.pixKey ? String(payload.pixKey) : null,
-            pixName: payload.pixName ? String(payload.pixName) : null,
-            pixCity: payload.pixCity ? String(payload.pixCity) : null,
-            graduationRules: payload.graduationRules ? String(payload.graduationRules) : null,
-            customCriteria: payload.customCriteria || null,
-            logoUrl: payload.logoUrl ? String(payload.logoUrl) : null,
-            backgroundImageUrl: payload.backgroundImageUrl ? String(payload.backgroundImageUrl) : null,
-            technicalFocus: payload.technicalFocus ? String(payload.technicalFocus) : null,
-            technicalFocusDescription: payload.technicalFocusDescription ? String(payload.technicalFocusDescription) : null,
-            latitude: payload.latitude !== undefined && payload.latitude !== null ? Number(payload.latitude) : null,
-            longitude: payload.longitude !== undefined && payload.longitude !== null ? Number(payload.longitude) : null,
-            geofenceRadius: payload.geofenceRadius !== undefined && payload.geofenceRadius !== null ? Number(payload.geofenceRadius) : null,
-          };
-          try {
-            result = await prisma.professorProfile.upsert({
-              where: { userId: uid },
-              create: { ...cleanProfilePayload, userId: uid },
-              update: { ...cleanProfilePayload, userId: uid }
-            });
-          } catch (profilePostErr: any) {
-            console.error("🥋 [PROFILE POST FAIL] Upsert falhou. Retornando objeto local de contingência para evitar travar:", profilePostErr.stack || profilePostErr.message || profilePostErr);
-            result = {
-              id: `PROF-${Date.now()}`,
-              userId: uid,
-              ...cleanProfilePayload,
-              success: true,
-              isFallback: true
-            };
-          }
-          break;
-        case 'logs':
-          let cleanTimestamp: bigint;
-          try {
-            const raw = payload.timestamp;
-            const num = Number(raw);
-            if (raw !== undefined && raw !== null && !isNaN(num)) {
-              cleanTimestamp = BigInt(Math.floor(num));
-            } else {
-              cleanTimestamp = BigInt(Date.now());
-            }
-          } catch {
-            cleanTimestamp = BigInt(Date.now());
-          }
+// ⚠️ fallback log (corrigido — era string solta antes)
+console.warn(
+  "⚠️ [PRISMA UPSERT FALLBACK] Failed, stripping fields:",
+  upsertError.message
+);
 
-          result = await prisma.systemLog.create({
-            data: {
-              ...payload,
-              timestamp: cleanTimestamp,
-              userId: uid
-            }
-          });
-          break;
-        default:
-          if (anyPrisma[collection]) {
-           try {
-  if (id && id !== 'new-stu' && id !== 'new') {
+const {
+  graduationDate,
+  nextDegreeDate,
+  estimatedCoralDate,
+  estimatedRedDate,
+  ...safePayload
+} = cleanPayload;
+
+let result;
+
+try {
+  if (id) {
     result = await prisma.student.update({
       where: { id },
       data: {
-        ...cleanPayload,
+        ...safePayload,
         userId: uid
       }
     });
   } else {
     result = await prisma.student.create({
       data: {
-        ...cleanPayload,
+        ...safePayload,
         userId: uid
       }
     });
   }
-} catch (upsertError: any) {
-  console.warn(
-    "⚠️ [PRISMA STUDENT SAVE FALLBACK]",
-    upsertError.message
+} catch (fallbackError: any) {
+  console.error(
+    "🚨 [PRISMA UPSERT CRITICAL]",
+    fallbackError.message
+  );
+  throw fallbackError;
+}
+
+// 🔥 subscription sync (mantido apenas uma vez)
+try {
+  const subModule = await import('../subscriptionService.js');
+
+  if (subModule?.updateSubscriptionPlan) {
+    await subModule.updateSubscriptionPlan(uid);
+  }
+} catch (err) {
+  console.error('🥋 [SUBSCRIPTION UPDATE ERROR]', err);
+}
+
+break;
+
+// 👇 presence upsert (continuação)
+const cleanUserAgent = payload.userAgent ? String(payload.userAgent) : null;
+const cleanRole = payload.role ? String(payload.role) : null;
+
+try {
+  result = await prisma.presence.upsert({
+    where: {
+      email_deviceId: {
+        email: cleanEmail,
+          deviceId: cleanDeviceId
+      }
+    },
+    create: {
+      userId: uid,
+      email: cleanEmail,
+      deviceId: cleanDeviceId,
+      role: cleanRole,
+      lastSeen: cleanLastSeen,
+      userAgent: cleanUserAgent
+    },
+    update: {
+      role: cleanRole,
+      lastSeen: cleanLastSeen,
+      userAgent: cleanUserAgent
+    }
+  });
+
+} catch (upsertPresenceError: any) {
+  console.error(
+    "🥋 [PRESENCE UPSERT ERROR] Suppressed gracefully:",
+    upsertPresenceError.message || upsertPresenceError
   );
 
-  const {
-    graduationDate,
-    nextDegreeDate,
-    estimatedCoralDate,
-    estimatedRedDate,
-    ...safePayload
-  } = cleanPayload;
+  result = {
+    id: `PRES-${Date.now()}`,
+    userId: uid,
+    email: cleanEmail,
+    deviceId: cleanDeviceId,
+    role: cleanRole,
+    lastSeen: String(cleanLastSeen),
+    userAgent: cleanUserAgent,
+    success: true,
+    isFallback: true
+  };
+}
+
+break;
+
+case 'profile':
+  const cleanProfilePayload = {
+    name: String(payload.name || ''),
+    academyName: String(payload.academyName || ''),
+    belt: String(payload.belt || 'Branca'),
+    stripes: Number(payload.stripes) || 0,
+    specialization: payload.specialization ? String(payload.specialization) : null,
+    avatarUrl: payload.avatarUrl ? String(payload.avatarUrl) : null,
+    pixKey: payload.pixKey ? String(payload.pixKey) : null,
+    pixName: payload.pixName ? String(payload.pixName) : null,
+    pixCity: payload.pixCity ? String(payload.pixCity) : null,
+    graduationRules: payload.graduationRules ? String(payload.graduationRules) : null,
+    customCriteria: payload.customCriteria || null,
+    logoUrl: payload.logoUrl ? String(payload.logoUrl) : null,
+    backgroundImageUrl: payload.backgroundImageUrl ? String(payload.backgroundImageUrl) : null,
+    technicalFocus: payload.technicalFocus ? String(payload.technicalFocus) : null,
+    technicalFocusDescription: payload.technicalFocusDescription ? String(payload.technicalFocusDescription) : null,
+    latitude:
+      payload.latitude !== undefined && payload.latitude !== null
+        ? Number(payload.latitude)
+        : null,
+    longitude:
+      payload.longitude !== undefined && payload.longitude !== null
+        ? Number(payload.longitude)
+        : null,
+    geofenceRadius:
+      payload.geofenceRadius !== undefined && payload.geofenceRadius !== null
+        ? Number(payload.geofenceRadius)
+        : null
+  };
 
   try {
-    if (id && id !== 'new-stu' && id !== 'new') {
-      result = await prisma.student.update({
-        where: { id },
-        data: {
-          ...safePayload,
-          userId: uid
-        }
-      });
-    } else {
-      result = await prisma.student.create({
-        data: {
-          ...safePayload,
-          userId: uid
-        }
-      });
-    }
-  } catch (fallbackError: any) {
+    result = await prisma.professorProfile.upsert({
+      where: { userId: uid },
+      create: { ...cleanProfilePayload, userId: uid },
+      update: { ...cleanProfilePayload, userId: uid }
+    });
+  } catch (profilePostErr: any) {
     console.error(
-      "🚨 [PRISMA STUDENT SAVE CRITICAL]",
-      fallbackError.message
+      "🥋 [PROFILE POST FAIL] Upsert fallback:",
+      profilePostErr.stack || profilePostErr.message || profilePostErr
     );
-        throw fallbackError;
-    }
-  } catch (err) {
-    console.error('🥋 [SUBSCRIPTION UPDATE ERROR]', err);
+
+    result = {
+      id: `PROF-${Date.now()}`,
+      userId: uid,
+      ...cleanProfilePayload,
+      success: true,
+      isFallback: true
+    };
   }
 
   break;
 
-  default:
-    break;
-} // <- fecha switch (se existir)
+case 'logs':
+  let cleanTimestamp: bigint;
+
+  try {
+    const raw = payload.timestamp;
+    const num = Number(raw);
+
+    if (raw !== undefined && raw !== null && !isNaN(num)) {
+      cleanTimestamp = BigInt(Math.floor(num));
+    } else {
+      cleanTimestamp = BigInt(Date.now());
+    }
+  } catch {
+    cleanTimestamp = BigInt(Date.now());
+  }
+
+  result = await prisma.systemLog.create({
+    data: {
+      ...payload,
+      timestamp: cleanTimestamp,
+      userId: uid
+    }
+  });
+
+  break;
+
+default:
+  if (anyPrisma[collection]) {
+    try {
+      if (id && id !== 'new-stu' && id !== 'new') {
+        result = await prisma.student.update({
+          where: { id },
+          data: {
+            ...cleanPayload,
+            userId: uid
+          }
+        });
+      } else {
+        result = await prisma.student.create({
+          data: {
+            ...cleanPayload,
+            userId: uid
+          }
+        });
+      }
+    } catch (upsertError: any) {
+      console.warn(
+        "⚠️ [PRISMA STUDENT SAVE FALLBACK]",
+        upsertError.message
+      );
+
+      const {
+        graduationDate,
+        nextDegreeDate,
+        estimatedCoralDate,
+        estimatedRedDate,
+        ...safePayload
+      } = cleanPayload;
+
+      try {
+        if (id && id !== 'new-stu' && id !== 'new') {
+          result = await prisma.student.update({
+            where: { id },
+            data: {
+              ...safePayload,
+              userId: uid
+            }
+          });
+        } else {
+          result = await prisma.student.create({
+            data: {
+              ...safePayload,
+              userId: uid
+            }
+          });
+        }
+      } catch (fallbackError: any) {
+        console.error(
+          "🚨 [PRISMA STUDENT SAVE CRITICAL]",
+          fallbackError.message
+        );
+        throw fallbackError;
+      }
+    }
+  }
+
+  break;
+}
 
 } catch (err) {
   console.error('🥋 [HANDLER ERROR]', err);
