@@ -436,14 +436,14 @@ const cleanPayload = {
   nextPromotion: nPromotion,
   ibjjfEligible,
   lastPromotionDate: bSince.toISOString().split('T')[0],
-  blackBeltDate: blackBeltDateParsed,
-  graduationDate: graduationDateParsed,
-  blackBeltDegree: blackBeltDegreeParsed,
-  lastDegreeDate: lastDegreeDateParsed,
-  nextDegreeDate: nextDegreeDateParsed,
-  graduationEligibleDate: graduationEligibleDateParsed,
-  estimatedCoralDate: estimatedCoralDateParsed,
-  estimatedRedDate: estimatedRedDateParsed
+
+  blackBeltDate: blackBeltDateParsed ?? null,
+  graduationDate: graduationDateParsed ?? null,
+  lastDegreeDate: lastDegreeDateParsed ?? null,
+  nextDegreeDate: nextDegreeDateParsed ?? null,
+  graduationEligibleDate: graduationEligibleDateParsed ?? null,
+  estimatedCoralDate: estimatedCoralDateParsed ?? null,
+  estimatedRedDate: estimatedRedDateParsed ?? null
 };
 
 try {
@@ -460,9 +460,10 @@ try {
       userId: uid
     }
   });
+
 } catch (upsertError: any) {
   console.warn(
-    "⚠️ [PRISMA UPSERT FALLBACK] Failed to upsert student with full graduation fields, stripping them:",
+    "⚠️ [PRISMA UPSERT FALLBACK] Failed, stripping fields:",
     upsertError.message
   );
 
@@ -493,14 +494,14 @@ try {
     }
   } catch (fallbackError: any) {
     console.error(
-      "🚨 [PRISMA UPSERT CRITICAL] Safe student upsert also failed:",
+      "🚨 [PRISMA UPSERT CRITICAL]",
       fallbackError.message
     );
     throw fallbackError;
   }
 }
 
-// Trigger automatic upgrade if allowed or update state
+// 🔥 subscription sync
 try {
   const subModule = await import('../subscriptionService.js');
 
@@ -512,22 +513,6 @@ try {
 }
 
 break;
-
-case 'presence':
-          
-          let cleanLastSeen: bigint;
-          try {
-            const raw = payload.lastSeen;
-            const num = Number(raw);
-            if (raw !== undefined && raw !== null && !isNaN(num)) {
-              cleanLastSeen = BigInt(Math.floor(num));
-            } else {
-              cleanLastSeen = BigInt(Date.now());
-            }
-          } catch {
-            cleanLastSeen = BigInt(Date.now());
-          }
-
           const cleanUserAgent = payload.userAgent ? String(payload.userAgent) : null;
           const cleanRole = payload.role ? String(payload.role) : null;
 
