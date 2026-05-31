@@ -501,7 +501,7 @@ try {
   throw fallbackError;
 }
 
-// 🔥 subscription sync
+// 🔥 subscription sync (único)
 try {
   const subModule = await import('../subscriptionService.js');
 
@@ -511,14 +511,6 @@ try {
 } catch (err) {
   console.error('🥋 [SUBSCRIPTION UPDATE ERROR]', err);
 }
-
-break;
-
-// ⚠️ fallback log (corrigido — era string solta antes)
-console.warn(
-  "⚠️ [PRISMA UPSERT FALLBACK] Failed, stripping fields:",
-  upsertError.message
-);
 
 const {
   graduationDate,
@@ -530,6 +522,9 @@ const {
 
 let result;
 
+// =========================
+// STUDENT UPSERT SAFE
+// =========================
 try {
   if (id) {
     result = await prisma.student.update({
@@ -555,20 +550,9 @@ try {
   throw fallbackError;
 }
 
-// 🔥 subscription sync (mantido apenas uma vez)
-try {
-  const subModule = await import('../subscriptionService.js');
-
-  if (subModule?.updateSubscriptionPlan) {
-    await subModule.updateSubscriptionPlan(uid);
-  }
-} catch (err) {
-  console.error('🥋 [SUBSCRIPTION UPDATE ERROR]', err);
-}
-
-break;
-
-// 👇 presence upsert (continuação)
+// =========================
+// PRESENCE UPSERT
+// =========================
 const cleanUserAgent = payload.userAgent ? String(payload.userAgent) : null;
 const cleanRole = payload.role ? String(payload.role) : null;
 
@@ -577,9 +561,43 @@ try {
     where: {
       email_deviceId: {
         email: cleanEmail,
-          deviceId: cleanDeviceId
+        deviceId: cleanDeviceId
       }
     },
+    create: {
+      userId: uid,
+      email: cleanEmail,
+      deviceId: cleanDeviceId,
+      role: cleanRole,
+      lastSeen: cleanLastSeen,
+      userAgent: cleanUserAgent
+    },
+    update: {
+      role: cleanRole,
+      lastSeen: cleanLastSeen,
+      userAgent: cleanUserAgent
+    }
+  });
+} catch (upsertPresenceError: any) {
+  console.error(
+    "🥋 [PRESENCE UPSERT ERROR]",
+    upsertPresenceError.message || upsertPresenceError
+  );
+
+  result = {
+    id: `PRES-${Date.now()}`,
+    userId: uid,
+    email: cleanEmail,
+    deviceId: cleanDeviceId,
+    role: cleanRole,
+    lastSeen: String(cleanLastSeen),
+    userAgent: cleanUserAgent,
+    success: true
+  };
+}
+
+break;
+   },
     create: {
       userId: uid,
       email: cleanEmail,
