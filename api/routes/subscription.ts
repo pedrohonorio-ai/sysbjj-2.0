@@ -150,32 +150,38 @@ router.post("/admin/pix-config", authenticate as any, async (req: AuthRequest, r
 // Endpoint: GET /api/subscription/current
 router.get("/current", authenticate as any, async (req: AuthRequest, res: Response): Promise<any> => {
   const userId = req.user?.id;
+  
+  console.log('[API START]', req.originalUrl || req.url);
+  console.log('[USER]', userId);
+  console.log('[BODY]', req.body);
+
   if (!userId) {
     return res.status(401).json({ success: false, error: "Usuário não autenticado." });
   }
 
   try {
-    let sub = await prisma.subscription.findUnique({
-      where: { userId: String(userId) }
-    });
+    let sub = null;
+    let currentStudents = 0;
 
-    const currentStudents = await prisma.student.count({
-      where: { userId: String(userId) }
-    });
+    try {
+      sub = await prisma.subscription.findUnique({
+        where: { userId: String(userId) }
+      });
+      currentStudents = await prisma.student.count({
+        where: { userId: String(userId) }
+      });
+    } catch (dbErr) {
+      console.error("🥋 [DB SELECT ERROR] Failed to fetch subscription / students statistics:", dbErr);
+      return res.status(200).json({
+        active: false,
+        plan: "FREE"
+      });
+    }
 
     if (!sub) {
-      sub = await prisma.subscription.create({
-        data: {
-          userId: String(userId),
-          plan: "FREE",
-          studentLimit: 20,
-          maxStudents: 20,
-          monthlyPrice: 0,
-          paymentStatus: "ACTIVE",
-          active: true,
-          billingCycle: "FREE",
-          status: "FREE_GRANTED"
-        }
+      return res.status(200).json({
+        active: false,
+        plan: "FREE"
       });
     }
 
@@ -185,10 +191,14 @@ router.get("/current", authenticate as any, async (req: AuthRequest, res: Respon
       // Except for Lifetime or persistent plans, flag as expired
       if (sub.billingCycle !== "LIFETIME" && sub.plan !== "SOCIAL_PROJECT" && currentStatus === "ACTIVE") {
         currentStatus = "EXPIRED";
-        await prisma.subscription.update({
-          where: { id: sub.id },
-          data: { status: "EXPIRED", active: false }
-        });
+        try {
+          await prisma.subscription.update({
+            where: { id: sub.id },
+            data: { status: "EXPIRED", active: false }
+          });
+        } catch (updErr) {
+          console.error("🥋 Failed to auto-flag expired subscription:", updErr);
+        }
         sub.status = "EXPIRED";
         sub.active = false;
       }
@@ -197,13 +207,26 @@ router.get("/current", authenticate as any, async (req: AuthRequest, res: Respon
     const limitVal = sub.studentLimit || sub.maxStudents || 20;
     const usagePercent = limitVal > 0 ? Math.min(100, Math.round((currentStudents / limitVal) * 100)) : 100;
 
-    // Load global PIX config of the Master admin
-    const masterUser = await prisma.user.findUnique({
-      where: { email: "pedro.honorio@gm.rio" }
-    });
-    const masterSub = masterUser ? await prisma.subscription.findUnique({
-      where: { userId: masterUser.id }
-    }) : null;
+    // Load global PIX config of the Master admin safely
+    let PIX_KEY = "dashfire@gmail.com";
+    let PIX_HOLDER = "Pedro Paulo Honorio";
+    let PIX_CITY = "Rio de Janeiro";
+
+    try {
+      const masterUser = await prisma.user.findUnique({
+        where: { email: "pedro.honorio@gm.rio" }
+      });
+      const masterSub = masterUser ? await prisma.subscription.findUnique({
+        where: { userId: masterUser.id }
+      }) : null;
+      if (masterSub) {
+        PIX_KEY = masterSub.pixKey || PIX_KEY;
+        PIX_HOLDER = masterSub.pixHolder || PIX_HOLDER;
+        PIX_CITY = masterSub.pixCity || PIX_CITY;
+      }
+    } catch (masterErr) {
+      console.warn("🥋 master subscription load warning inside current:", masterErr);
+    }
 
     const responseData = {
       id: sub.id,
@@ -225,12 +248,12 @@ router.get("/current", authenticate as any, async (req: AuthRequest, res: Respon
       socialProjectName: sub.socialProjectName,
       socialDescription: sub.socialDescription,
       approvedBy: sub.approvedBy,
-      startedAt: sub.startedAt.toISOString(),
-      createdAt: sub.createdAt.toISOString(),
-      updatedAt: sub.updatedAt.toISOString(),
-      pixKey: masterSub?.pixKey || "dashfire@gmail.com",
-      pixHolder: masterSub?.pixHolder || "Pedro Paulo Honorio",
-      pixCity: masterSub?.pixCity || "Rio de Janeiro",
+      startedAt: sub.startedAt ? sub.startedAt.toISOString() : new Date().toISOString(),
+      createdAt: sub.createdAt ? sub.createdAt.toISOString() : new Date().toISOString(),
+      updatedAt: sub.updatedAt ? sub.updatedAt.toISOString() : new Date().toISOString(),
+      pixKey: PIX_KEY,
+      pixHolder: PIX_HOLDER,
+      pixCity: PIX_CITY,
       usagePercent,
       canAddStudents: currentStudents < limitVal
     };
@@ -240,32 +263,12 @@ router.get("/current", authenticate as any, async (req: AuthRequest, res: Respon
       plan: responseData,
       subscription: responseData
     });
-  } catch (error: any) {
-    console.error("🥋 ERROR FETCHING CURRENT SUBSCRIPTION:", error);
-    const mockResponse = {
-      id: "fallback-sub-id",
-      userId: String(userId),
-      plan: "FREE",
-      active: true,
-      status: "ACTIVE",
-      studentLimit: 20,
-      maxStudents: 20,
-      currentStudents: 0,
-      monthlyPrice: 0,
-      billingCycle: "FREE",
-      expiresAt: null,
-      pixKey: "dashfire@gmail.com",
-      pixHolder: "Pedro Paulo Honorio",
-      pixCity: "Rio de Janeiro",
-      createdAt: new Date().toISOString(),
-      updatedAt: new Date().toISOString(),
-      usagePercent: 0,
-      canAddStudents: true
-    };
-    return res.json({
-      success: true,
-      plan: mockResponse,
-      subscription: mockResponse
+  } catch (error) {
+    console.error('[API ERROR] /current', error);
+
+    return res.status(200).json({
+      active: false,
+      plan: "FREE"
     });
   }
 });

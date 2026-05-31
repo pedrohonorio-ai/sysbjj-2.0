@@ -105,6 +105,8 @@ if (typeof window !== "undefined" && !(window as any).__CUSTOM_WS__) {
 
         try {
           super(finalUrl, protocols);
+          this.onerror = () => {};
+          this.onclose = () => {};
         } catch (error) {
           console.warn('🥋 Safe WebSocket Guard prevented constructor crash:', error);
           const stub = {

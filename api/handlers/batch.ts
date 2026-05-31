@@ -7,17 +7,30 @@ const BATCH_COOLDOWN = 1500;
 let lastBatchExecution = 0;
 
 export default async function batchHandler(req: AuthRequest, res: Response) {
-  const { collections } = req.query;
   const userId = req.user?.id;
   const userEmail = req.user?.email || "Unknown";
   
-  if (!userId) {
+  console.log('[API START]', req.originalUrl || req.url);
+  console.log('[USER]', userId);
+  console.log('[BODY]', req.body);
+
+  if (!userId || !req.user) {
     return res.status(401).json({ 
       success: false,
       error: "Sessão expirada ou usuário não autenticado.",
       code: 401
     });
   }
+
+  if (!req.query) {
+    return res.status(400).json({
+      success: false,
+      error: "Parâmetros de requisição ausentes.",
+      code: 400
+    });
+  }
+
+  const { collections } = req.query;
 
   const now = Date.now();
   if (now - lastBatchExecution < BATCH_COOLDOWN) {
@@ -30,7 +43,7 @@ export default async function batchHandler(req: AuthRequest, res: Response) {
   }
   lastBatchExecution = now;
 
-  if (!collections || typeof collections !== 'string') {
+  if (collections === undefined || typeof collections !== 'string') {
     return res.status(400).json({ 
       success: false,
       error: "Coleções de dados são obrigatórias.",
@@ -173,7 +186,11 @@ export default async function batchHandler(req: AuthRequest, res: Response) {
             data = await prisma.presence.findMany({ where: { userId: uid }, take: 50 }); 
             break;
           case 'profile': 
-            data = await prisma.professorProfile.findUnique({ where: { userId: uid } }); 
+            try {
+              data = await prisma.professorProfile.findUnique({ where: { userId: uid } });
+            } catch {
+              data = null;
+            }
             break;
           case 'plans': 
             data = await prisma.plan.findMany({ where: { userId: uid } }); 
@@ -204,7 +221,7 @@ export default async function batchHandler(req: AuthRequest, res: Response) {
             }
             break;
           default: 
-            if (anyPrisma[collection]) {
+            if (anyPrisma[collection] && typeof anyPrisma[collection].findMany === 'function') {
               try {
                 data = await anyPrisma[collection].findMany({ where: { userId: uid }, take: 30 });
               } catch (e1) {
@@ -243,12 +260,13 @@ export default async function batchHandler(req: AuthRequest, res: Response) {
       success: true,
       ...results
     }));
-  } catch (error: any) {
-    console.error(`🚨 [BATCH COMPREHENSIVE CRASH]:`, error);
-    res.status(500).json({ 
-      success: false, 
-      error: error.message || "Erro na transação em lote (Batch)", 
-      code: 500 
+  } catch (error) {
+    console.error('[API ERROR]', error);
+
+    return res.status(500).json({
+      success: false,
+      error: error instanceof Error ? error.message : String(error),
+      stack: process.env.NODE_ENV === 'development' ? (error as Error).stack : undefined
     });
   }
 }

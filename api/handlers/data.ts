@@ -165,16 +165,26 @@ export const SAFE_STUDENT_SELECT = {
 };
 
 export async function dataHandler(req: AuthRequest, res: Response) {
-  const { collection } = req.params;
-  
-  // OSS SENSEI: SEGURANÇA MÁXIMA - ID extraído do Token, nunca do Body/Query
   const userId = req.user?.id;
   
+  console.log('[API START]', req.originalUrl || req.url);
+  console.log('[USER]', userId);
+  console.log('[BODY]', req.body);
+
   if (!userId) {
     return res.status(401).json({ 
       error: "Sessão inválida",
       sensei_tip: "O Tatame está fechado para este usuário. Reconecte-se." 
     });
+  }
+
+  const { collection } = req.params;
+  if (!collection) {
+    return res.status(400).json({ error: "O parâmetro COLLECTION é obrigatório." });
+  }
+
+  if (req.body === undefined) {
+    return res.status(400).json({ error: "O parâmetro BODY é obrigatório." });
   }
 
   const uid = String(userId);
@@ -232,7 +242,21 @@ export async function dataHandler(req: AuthRequest, res: Response) {
         case 'payments': data = await prisma.payment.findMany({ where: { userId: uid }, orderBy: { timestamp: 'desc' }, take: 200 }); break;
         case 'schedules': data = await prisma.classSchedule.findMany({ where: { userId: uid } }); break;
         case 'logs': data = await prisma.systemLog.findMany({ where: { userId: uid }, orderBy: { timestamp: 'desc' }, take: 100 }); break;
-        case 'profile': data = await prisma.professorProfile.findUnique({ where: { userId: uid } }); break;
+        case 'presence':
+          try {
+            data = await prisma.presence.findMany({ where: { userId: uid }, take: 100 });
+          } catch {
+            data = [];
+          }
+          break;
+        case 'profile':
+          try {
+            data = await prisma.professorProfile.findUnique({ where: { userId: uid } });
+          } catch (profileErr) {
+            console.warn("⚠️ ProfessorProfile find failed, returning null:", profileErr);
+            data = null;
+          }
+          break;
         default: 
           if (anyPrisma[collection]) {
             if (collection.toLowerCase() === 'graduationhistory') {
@@ -550,7 +574,13 @@ export async function dataHandler(req: AuthRequest, res: Response) {
       const finalResult = collection === 'students' ? enrichStudent(result) : result;
       return res.json(serializeData(finalResult));
     }
-  } catch (error: any) {
-    handleApiError(res, error, collection);
+  } catch (error) {
+    console.error('[API ERROR]', error);
+
+    return res.status(500).json({
+      success: false,
+      error: error instanceof Error ? error.message : String(error),
+      stack: process.env.NODE_ENV === 'development' ? (error as Error).stack : undefined
+    });
   }
 }

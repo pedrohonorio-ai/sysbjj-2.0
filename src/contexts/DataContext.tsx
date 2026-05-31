@@ -531,7 +531,7 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
           const dataToHash = `${log.id}${log.timestamp}${log.userEmail}${log.action}${log.details}${log.category}${log.deviceInfo}${log.previousHash}`;
           let calculatedHash = CryptoJS.SHA256(dataToHash).toString();
           
-          if (calculatedHash !== log.hash) {
+          if (log.hash !== calculatedHash) {
             const legacyEmails = ['system', 'system@sysbjj.com', 'admin@sysbjj.com'];
             let matchedLegacy = false;
             for (const email of legacyEmails) {
@@ -543,6 +543,7 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
               }
             }
             if (!matchedLegacy) {
+              console.warn('Blockchain Integrity Warning');
               status = 'CORRUPTED';
               failed = true;
             }
