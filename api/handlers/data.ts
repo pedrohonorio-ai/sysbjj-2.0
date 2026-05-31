@@ -593,15 +593,7 @@ try {
     userAgent: cleanUserAgent,
     success: true
   };
-}
-break;
-    where: {
-      email_deviceId: {
-        email: cleanEmail,
-        deviceId: cleanDeviceId
-      }
-    },
-    create: {
+      create: {
       userId: uid,
       email: cleanEmail,
       deviceId: cleanDeviceId,
