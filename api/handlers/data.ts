@@ -594,26 +594,6 @@ try {
     success: true
   };
   
-break;
-
-case 'profile':
-  const cleanProfilePayload = {
-    name: String(payload.name || ''),
-    academyName: String(payload.academyName || ''),
-    belt: String(payload.belt || 'Branca'),
-    stripes: Number(payload.stripes) || 0,
-    specialization: payload.specialization ? String(payload.specialization) : null,
-    avatarUrl: payload.avatarUrl ? String(payload.avatarUrl) : null,
-    pixKey: payload.pixKey ? String(payload.pixKey) : null,
-    pixName: payload.pixName ? String(payload.pixName) : null,
-    pixCity: payload.pixCity ? String(payload.pixCity) : null,
-    graduationRules: payload.graduationRules ? String(payload.graduationRules) : null,
-    customCriteria: payload.customCriteria || null,
-    logoUrl: payload.logoUrl ? String(payload.logoUrl) : null,
-    backgroundImageUrl: payload.backgroundImageUrl ? String(payload.backgroundImageUrl) : null,
-    technicalFocus: payload.technicalFocus ? String(payload.technicalFocus) : null,
-    technicalFocusDescription: payload.technicalFocusDescription ? String(payload.technicalFocusDescription) : null,
-    latitude:
       payload.latitude !== undefined && payload.latitude !== null
         ? Number(payload.latitude)
         : null,
