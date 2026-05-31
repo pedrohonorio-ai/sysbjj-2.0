@@ -557,26 +557,28 @@ const cleanRole = payload.role ? String(payload.role) : null;
 
 try {
   result = await prisma.presence.upsert({
-    where: {
-      email_deviceId: {
-        email: cleanEmail,
-        deviceId: cleanDeviceId
-      }
-    },
-    create: {
-      userId: uid,
+  where: {
+    email_deviceId: {
       email: cleanEmail,
-      deviceId: cleanDeviceId,
-      role: cleanRole,
-      lastSeen: cleanLastSeen,
-      userAgent: cleanUserAgent
-    },
-    update: {
-      role: cleanRole,
-      lastSeen: cleanLastSeen,
-      userAgent: cleanUserAgent
+      deviceId: cleanDeviceId
     }
-  });
+  },
+  create: {
+    userId: uid,
+    email: cleanEmail,
+    deviceId: cleanDeviceId,
+    role: cleanRole,
+    lastSeen: cleanLastSeen,
+    userAgent: cleanUserAgent
+  },
+  update: {
+    role: cleanRole,
+    lastSeen: cleanLastSeen,
+    userAgent: cleanUserAgent
+  }
+});
+
+break;
 } catch (upsertPresenceError: any) {
   console.error(
     "🥋 [PRESENCE UPSERT ERROR]",
