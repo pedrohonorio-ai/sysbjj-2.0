@@ -453,43 +453,54 @@ export async function dataHandler(req: AuthRequest, res: Response) {
             estimatedRedDate: estimatedRedDateParsed
           };
 
-          try {
-            result = await prisma.student.upsert({
-              where: {
-  id: id ?? ''
-},if
-                (id) {
-  result = await prisma.student.update(...)
-} else {
-  result = await prisma.student.create(...)
-}
-              create: { ...cleanPayload, userId: uid },
-              update: { ...cleanPayload, userId: uid }
-            });
-          } catch (upsertError: any) {
-            console.warn("⚠️ [PRISMA UPSERT FALLBACK] Failed to upsert student with full graduation fields, stripping them:", upsertError.message);
-            // Exclude fields: graduationDate, nextDegreeDate, estimatedCoralDate, estimatedRedDate
-            const { graduationDate, nextDegreeDate, estimatedCoralDate, estimatedRedDate, ...safePayload } = cleanPayload;
-            try {
-              if (id) {
-  result = await prisma.student.update({
-  where: { id },
-  data: {
-    ...safePayload,
-    userId: uid
+try {
+ try {
+  result = await prisma.student.upsert({
+    where: {
+      id: id ?? ''
+    },
+    update: studentData,
+    create: studentData
+  });
+} catch (upsertError: any) {
+  console.warn(
+    "⚠️ [PRISMA UPSERT FALLBACK] Failed to upsert student with full graduation fields, stripping them:",
+    upsertError.message
+  );
+
+  const {
+    graduationDate,
+    nextDegreeDate,
+    estimatedCoralDate,
+    estimatedRedDate,
+    ...safePayload
+  } = cleanPayload;
+
+  try {
+    if (id) {
+      result = await prisma.student.update({
+        where: { id },
+        data: {
+          ...safePayload,
+          userId: uid
+        }
+      });
+    } else {
+      result = await prisma.student.create({
+        data: {
+          ...safePayload,
+          userId: uid
+        }
+      });
+    }
+  } catch (fallbackError: any) {
+    console.error(
+      "🚨 [PRISMA UPSERT CRITICAL] Safe student upsert also failed:",
+      fallbackError.message
+    );
+    throw fallbackError;
   }
-});
-} else {
-result = await prisma.student.create({
-  data: {
-    ...safePayload,
-    userId: uid
-  }
-});
 }
-            } catch (fallbackError: any) {
-              console.error("🚨 [PRISMA UPSERT CRITICAL] Safe student upsert also failed:", fallbackError.message);
-              throw fallbackError;
             }
           }
 
