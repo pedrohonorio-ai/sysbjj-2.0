@@ -497,10 +497,9 @@ try {
       "🚨 [PRISMA UPSERT CRITICAL] Safe student upsert also failed:",
       fallbackError.message
     );
-} catch (fallbackError: any) {
-  throw fallbackError;
+    throw fallbackError;
+  }
 }
-
 // 🔥 subscription sync (único)
 try {
   const subModule = await import('../subscriptionService.js');
