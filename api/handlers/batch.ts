@@ -4,7 +4,9 @@ import { AuthRequest } from '../authMiddleware.js';
 import { SAFE_STUDENT_SELECT, enrichStudentsList } from './data.js';
 
 const BATCH_COOLDOWN = 1500;
-let lastBatchExecution = 0;
+
+// Controle por usuário para não bloquear outros usuários
+const batchExecutionMap = new Map<string, number>();
 
 export default async function batchHandler(req: AuthRequest, res: Response) {
   const userId = req.user?.id;
@@ -32,16 +34,20 @@ export default async function batchHandler(req: AuthRequest, res: Response) {
 
   const { collections } = req.query;
 
-  const now = Date.now();
-  if (now - lastBatchExecution < BATCH_COOLDOWN) {
-    return res.status(429).json({
-      success: false,
-      error: "Batch cooldown protection enabled (Mantenha a guarda!).",
-      message: "Batch cooldown protection enabled",
-      code: 429
-    });
-  }
-  lastBatchExecution = now;
+const now = Date.now();
+
+const lastExecution = batchExecutionMap.get(userId) || 0;
+
+if (now - lastExecution < BATCH_COOLDOWN) {
+  return res.status(429).json({
+    success: false,
+    error: "Batch cooldown protection enabled (Mantenha a guarda!).",
+    message: "Batch cooldown protection enabled",
+    code: 429
+  });
+}
+
+batchExecutionMap.set(userId, now);
 
   if (collections === undefined || typeof collections !== 'string') {
     return res.status(400).json({ 
