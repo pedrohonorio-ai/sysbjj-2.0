@@ -581,9 +581,7 @@ try {
   console.error(
     "🥋 [PRESENCE UPSERT ERROR]",
     upsertPresenceError.message || upsertPresenceError
-  );
-  try {
-    result = await prisma.professorProfile.upsert({
+     result = await prisma.professorProfile.upsert({
       where: { userId: uid },
       create: { ...cleanProfilePayload, userId: uid },
       update: { ...cleanProfilePayload, userId: uid }
