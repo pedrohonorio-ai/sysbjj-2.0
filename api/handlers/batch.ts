@@ -216,6 +216,19 @@ export default async function batchHandler(req: AuthRequest, res: Response) {
           case 'plans': 
             data = await prisma.plan.findMany({ where: { userId: uid } }); 
             break;
+          case 'notifications':
+          case 'notification':
+            try {
+              data = await prisma.notification.findMany({
+                where: { userId: uid },
+                orderBy: { createdAt: 'desc' },
+                take: 100
+              });
+            } catch (err: any) {
+              console.warn("⚠️ [BATCH SENSEI] Error reading notifications:", err.message);
+              data = [];
+            }
+            break;
           case 'graduationhistory':
             try {
               data = await prisma.graduationHistory.findMany({

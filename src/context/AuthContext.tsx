@@ -46,6 +46,14 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   };
 
   useEffect(() => {
+    // Check if recovery token is present in the URL
+    const params = new URLSearchParams(window.location.search);
+    const token = params.get('token');
+    if (token) {
+      console.log("🥋 [PASSWORD_RESET] Token de recuperação localizado na URL. Ativando modo de redefinição.");
+      setIsRecovering(true);
+    }
+
     // Restore session from localStorage
     const saved = localStorage.getItem('oss_auth');
     const parsed = safeParse(saved);
@@ -180,8 +188,34 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   };
 
   const resetPassword = async (email: string) => {
-    if (import.meta.env.DEV) {
-      console.log("Reset password requested for", email);
+    console.log(`🥋 [PASSWORD_RESET] Solicitando redefinição via API para: ${email}`);
+    try {
+      const response = await fetch('/api/auth/forgot-password', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email })
+      });
+
+      const contentType = response.headers.get('content-type');
+      if (!contentType || !contentType.includes('application/json')) {
+        const text = await response.text();
+        console.error('🥋 [PASSWORD_RESET] Resposta não-JSON do servidor de forgot-password:', text.substring(0, 100));
+        throw new Error('O servidor de autenticação respondeu de forma inválida. Tente novamente.');
+      }
+
+      const result = await response.json();
+      if (!response.ok) {
+        throw new Error(result.error || 'Erro ao processar solicitação de redefinição de senha.');
+      }
+
+      if (result.warning) {
+        // Se houver alerta de e-mail SMTP ausente, exibe o alerta administrativo completo
+        console.warn("🥋 [SYSTEM ALERT]", result.warning);
+        alert(`OSS SENSEI!\n\n${result.warning}`);
+      }
+    } catch (e: any) {
+      console.error(`🥋 [PASSWORD_RESET] Exceção capturada no fluxo de recuperação:`, e);
+      throw e;
     }
   };
 

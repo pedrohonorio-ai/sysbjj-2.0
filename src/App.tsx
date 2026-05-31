@@ -486,6 +486,13 @@ const App: React.FC = () => {
   // Track Online Status
   const { dbStatus } = useData();
 
+  // Reset/close mobile sidebar automatically when navigating routes
+  useEffect(() => {
+    if (window.innerWidth < 1024) {
+      setSidebarOpen(false);
+    }
+  }, [location.pathname]);
+
   // Dynamic favicon and apple-touch-icon update based on custom account branding
   useEffect(() => {
     if (profile?.logoUrl) {

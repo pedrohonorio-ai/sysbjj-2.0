@@ -178,9 +178,12 @@ export async function dataHandler(req: AuthRequest, res: Response) {
     });
   }
 
-  const { collection } = req.params;
+  let { collection } = req.params;
   if (!collection) {
     return res.status(400).json({ error: "O parâmetro COLLECTION é obrigatório." });
+  }
+  if (collection === 'notifications') {
+    collection = 'notification';
   }
 
   if (req.body === undefined) {

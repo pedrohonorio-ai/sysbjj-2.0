@@ -10,7 +10,7 @@ import healthHandler from "./api/handlers/health.js";
 import healthDbHandler from "./api/handlers/health-db.js";
 import healthDbRlsHandler from "./api/handlers/health-db-rls.js";
 import biHandler from "./api/handlers/bi.js";
-import { loginHandler, registerHandler } from "./api/handlers/auth.js";
+import { loginHandler, registerHandler, forgotPasswordHandler, resetPasswordHandler } from "./api/handlers/auth.js";
 import { authenticate, AuthRequest } from "./api/authMiddleware.js";
 import batchHandler from "./api/handlers/batch.js";
 import { dataHandler } from "./api/handlers/data.js";
@@ -123,6 +123,8 @@ async function startServer() {
   // Auth Routes
   apiRouter.post("/auth/login", loginHandler);
   apiRouter.post("/auth/register", registerHandler);
+  apiRouter.post("/auth/forgot-password", forgotPasswordHandler);
+  apiRouter.post("/auth/reset-password", resetPasswordHandler);
 
   // Protected Routes - OSS! Acesso apenas com Cinto Preto (JWT)
   apiRouter.use(authenticate as any);

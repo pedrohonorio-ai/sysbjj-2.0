@@ -98,7 +98,36 @@ const Login: React.FC = () => {
         setSuccess('E-mail de recuperação enviado!');
         setTimeout(() => setMode('login'), 3000);
       } else if (mode === 'update_pass') {
-        setSuccess('Funcionalidade de troca de senha em implementação para o novo backend.');
+        const urlParams = new URLSearchParams(window.location.search);
+        const tokenToken = urlParams.get('token') || '';
+        if (!tokenToken) {
+          throw new Error('Token de redefinição não encontrado na URL. Utilize o link enviado por e-mail.');
+        }
+        if (!newPassword || newPassword.length < 6) {
+          throw new Error('A nova senha deve ter pelo menos 6 caracteres.');
+        }
+
+        const resToken = await fetch('/api/auth/reset-password', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ token: tokenToken, password: newPassword })
+        });
+
+        const contentType = resToken.headers.get('content-type');
+        if (!contentType || !contentType.includes('application/json')) {
+          const text = await resToken.text();
+          console.error('Resposta não-JSON do servidor de reset-password:', text.substring(0, 100));
+          throw new Error('O servidor respondeu de forma inválida. Tente novamente.');
+        }
+
+        const resultJson = await resToken.json();
+        if (!resToken.ok) {
+          throw new Error(resultJson.error || 'Erro ao redefinir a senha.');
+        }
+
+        setSuccess('Sua nova senha foi redefinida com sucesso! OSS!');
+        // Limpar os parâmetros de URL para deixar limpo
+        window.history.replaceState({}, document.title, window.location.pathname);
         setTimeout(() => setMode('login'), 3000);
       }
     } catch (err: any) {

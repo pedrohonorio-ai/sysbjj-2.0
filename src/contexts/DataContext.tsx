@@ -358,6 +358,18 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     if (batchResults.products && batchResults.products.length > 0) setProducts(batchResults.products);
     if (batchResults.plans && batchResults.plans.length > 0) setPlans(batchResults.plans);
     if (batchResults.orders && batchResults.orders.length > 0) setOrders(batchResults.orders);
+    if (batchResults.notifications) {
+      const normalizedNotifs = batchResults.notifications.map((n: any) => ({
+        id: n.id,
+        message: n.message,
+        type: n.type === 'warning' ? 'warning' : (n.type === 'success' ? 'success' : 'info'),
+        read: n.read ?? false,
+        category: n.title ? n.title.toLowerCase() : 'sistema',
+        priority: n.priority ? n.priority.toLowerCase() : 'medium',
+        timestamp: n.createdAt ? new Date(n.createdAt).getTime() : Date.now()
+      }));
+      setNotifications(normalizedNotifs);
+    }
   }, [saveSafely]);
 
   const isAuthenticated = !!user || (authRole === 'student' && !!studentCode);
@@ -510,7 +522,7 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         const collections = [
           'students', 'payments', 'schedules', 'logs', 'ledger', 
           'receipts', 'extra_revenue', 'lesson_plans', 'techniques', 
-          'products', 'plans', 'orders', 'graduationHistory'
+          'products', 'plans', 'orders', 'graduationHistory', 'notifications'
         ];
         
         // Coalesce overlapping requests using runSingletonBatch
@@ -973,19 +985,75 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     } else {
       toast.info(message);
     }
-  }, []);
+
+    // Sync to PostgreSQL database
+    if (user?.id && !dbStatus.isDemoMode) {
+      api.saveData('notification', user.id, {
+        id,
+        title: (category || 'sistema').toUpperCase(),
+        message,
+        type,
+        priority: (priority || 'medium').toUpperCase(),
+        read: false
+      }).catch(err => {
+        console.warn("⚠️ Failed saving notification to database", err);
+      });
+    }
+  }, [user?.id, dbStatus.isDemoMode]);
 
   const markNotificationAsRead = useCallback((id: string) => {
-    setNotifications(prev => prev.map(n => n.id === id ? { ...n, read: true } : n));
-  }, []);
+    setNotifications(prev => prev.map(n => {
+      if (n.id === id) {
+        // Sync single read to PostgreSQL Database
+        if (user?.id && !dbStatus.isDemoMode) {
+          api.saveData('notification', user.id, {
+            id,
+            title: (n.category || 'sistema').toUpperCase(),
+            message: n.message,
+            type: n.type,
+            priority: (n.priority || 'medium').toUpperCase(),
+            read: true
+          }).catch(err => {
+            console.warn("⚠️ Failed updating read status in database", err);
+          });
+        }
+        return { ...n, read: true };
+      }
+      return n;
+    }));
+  }, [user?.id, dbStatus.isDemoMode]);
 
   const markAllNotificationsAsRead = useCallback(() => {
-    setNotifications(prev => prev.map(n => ({ ...n, read: true })));
-  }, []);
+    setNotifications(prev => prev.map(n => {
+      if (!n.read) {
+        // Sync to PostgreSQL Database
+        if (user?.id && !dbStatus.isDemoMode) {
+          api.saveData('notification', user.id, {
+            id: n.id,
+            title: (n.category || 'sistema').toUpperCase(),
+            message: n.message,
+            type: n.type,
+            priority: (n.priority || 'medium').toUpperCase(),
+            read: true
+          }).catch(err => {
+            console.warn("⚠️ Failed batch updating notifications as read", err);
+          });
+        }
+        return { ...n, read: true };
+      }
+      return n;
+    }));
+  }, [user?.id, dbStatus.isDemoMode]);
 
   const clearNotification = useCallback((id: string) => {
     setNotifications(prev => prev.filter(n => n.id !== id));
-  }, []);
+    // Sync to PostgreSQL Database
+    if (user?.id && !dbStatus.isDemoMode) {
+      api.deleteData('notification', id, user.id).catch(err => {
+        console.warn("⚠️ Failed deleting notification from database", err);
+      });
+    }
+  }, [user?.id, dbStatus.isDemoMode]);
 
   const verifyLedgerIntegrity = useCallback(() => {
     if (ledger.length === 0) return true;
