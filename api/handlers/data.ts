@@ -447,6 +447,7 @@ const cleanPayload = {
 };
 
 try {
+ try {
   result = await prisma.student.upsert({
     where: {
       id: id ?? ''
@@ -460,9 +461,58 @@ try {
       userId: uid
     }
   });
-
 } catch (upsertError: any) {
   console.warn(
+    "⚠️ [PRISMA UPSERT FALLBACK] Failed to upsert student with full graduation fields, stripping them:",
+    upsertError.message
+  );
+
+  const {
+    graduationDate,
+    nextDegreeDate,
+    estimatedCoralDate,
+    estimatedRedDate,
+    ...safePayload
+  } = cleanPayload;
+
+  try {
+    if (id) {
+      result = await prisma.student.update({
+        where: { id },
+        data: {
+          ...safePayload,
+          userId: uid
+        }
+      });
+    } else {
+      result = await prisma.student.create({
+        data: {
+          ...safePayload,
+          userId: uid
+        }
+      });
+    }
+  } catch (fallbackError: any) {
+    console.error(
+      "🚨 [PRISMA UPSERT CRITICAL] Safe student upsert also failed:",
+      fallbackError.message
+    );
+    throw fallbackError;
+  }
+}
+
+// Trigger automatic upgrade if allowed or update state
+try {
+  const subModule = await import('../subscriptionService.js');
+
+  if (subModule?.updateSubscriptionPlan) {
+    await subModule.updateSubscriptionPlan(uid);
+  }
+} catch (err) {
+  console.error('🥋 [SUBSCRIPTION UPDATE ERROR]', err);
+}
+
+break;
     "⚠️ [PRISMA UPSERT FALLBACK] Failed, stripping fields:",
     upsertError.message
   );
