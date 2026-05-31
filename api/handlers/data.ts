@@ -515,7 +515,6 @@ try {
 break;
     "⚠️ [PRISMA UPSERT FALLBACK] Failed, stripping fields:",
     upsertError.message
-  );
 
   const {
     graduationDate,
