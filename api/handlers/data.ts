@@ -435,10 +435,10 @@ export async function dataHandler(req: AuthRequest, res: Response) {
           const blackBeltDegreeParsed = isNaN(Number(payload.blackBeltDegree)) ? 0 : Math.round(Number(payload.blackBeltDegree));
 
           const cleanPayload = {
-            ...payload,
-            belt: normalizedBelt,
-            stripes: normalizedStripes,
-            degrees: normalizedStripes, // mantém stripes e degrees em sincronia para segurança
+  ...payload,
+  belt: normalizedBelt,
+  stripes: normalizedStripes,
+  degrees: normalizedDegrees,
             beltSince: bSince,
             nextPromotion: nPromotion,
             ibjjfEligible: ibjjfEligible,
@@ -464,11 +464,22 @@ export async function dataHandler(req: AuthRequest, res: Response) {
             // Exclude fields: graduationDate, nextDegreeDate, estimatedCoralDate, estimatedRedDate
             const { graduationDate, nextDegreeDate, estimatedCoralDate, estimatedRedDate, ...safePayload } = cleanPayload;
             try {
-              result = await prisma.student.upsert({
-                where: { id: id || 'new-stu' },
-                create: { ...safePayload, userId: uid },
-                update: { ...safePayload, userId: uid }
-              });
+              if (id) {
+  result = await prisma.student.update({
+    where: { id },
+    data: {
+      ...cleanPayload,
+      userId: uid
+    }
+  });
+} else {
+  result = await prisma.student.create({
+    data: {
+      ...cleanPayload,
+      userId: uid
+    }
+  });
+}
             } catch (fallbackError: any) {
               console.error("🚨 [PRISMA UPSERT CRITICAL] Safe student upsert also failed:", fallbackError.message);
               throw fallbackError;
@@ -476,8 +487,18 @@ export async function dataHandler(req: AuthRequest, res: Response) {
           }
 
           // Trigger automatic upgrade if allowed or update state
-          import('../subscriptionService.js').then(m => m.updateSubscriptionPlan(uid));
-          break;
+          try {
+  const subModule = await import('../subscriptionService.js');
+
+  if (subModule?.updateSubscriptionPlan) {
+    await subModule.updateSubscriptionPlan(uid);
+  }
+} catch (err) {
+  console.error(
+    '🥋 [SUBSCRIPTION UPDATE ERROR]',
+    err
+  );
+}
         case 'presence':
           const cleanEmail = String(payload.email || '');
           const cleanDeviceId = String(payload.deviceId || 'default');
