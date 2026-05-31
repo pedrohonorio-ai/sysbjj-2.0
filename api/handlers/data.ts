@@ -667,6 +667,19 @@ break;
       "🚨 [PRISMA STUDENT SAVE CRITICAL]",
       fallbackError.message
     );
-    throw fallbackError;
+        throw fallbackError;
+    }
+  } catch (err) {
+    console.error('🥋 [SUBSCRIPTION UPDATE ERROR]', err);
   }
+
+  break;
+
+  default:
+    break;
+} // <- fecha switch (se existir)
+
+} catch (err) {
+  console.error('🥋 [HANDLER ERROR]', err);
+  throw err;
 }
