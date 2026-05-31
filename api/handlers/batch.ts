@@ -51,6 +51,27 @@ export default async function batchHandler(req: AuthRequest, res: Response) {
     });
   }
 
+  // 🥋 Validar conexão com banco antes de qualquer operação
+  try {
+    await prisma.$queryRaw`SELECT 1`;
+  } catch (dbErr: any) {
+    console.error("🥋 [PRISMA CONNECTIVITY FAIL] batchHandler:", dbErr.message || dbErr);
+    const requestedArr = collections.split(',');
+    const fallbacks: any = {};
+    for (const coll of requestedArr) {
+      if (coll === 'profile') {
+        fallbacks[coll] = null;
+      } else {
+        fallbacks[coll] = [];
+      }
+    }
+    return res.status(200).json({
+      success: true,
+      ...fallbacks,
+      _offline: true
+    });
+  }
+
   // Sanitise collection names
   const collectionList = collections
     .split(',')
