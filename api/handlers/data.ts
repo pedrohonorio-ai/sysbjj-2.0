@@ -594,10 +594,9 @@ try {
     success: true
   };
 }
-
 break;
-   },
-    create: {
+  } 
+  create: {
       userId: uid,
       email: cleanEmail,
       deviceId: cleanDeviceId,
