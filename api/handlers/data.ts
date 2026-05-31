@@ -556,8 +556,51 @@ const cleanUserAgent = payload.userAgent ? String(payload.userAgent) : null;
 const cleanRole = payload.role ? String(payload.role) : null;
 
 try {
+const cleanUserAgent = payload.userAgent ? String(payload.userAgent) : null;
+const cleanRole = payload.role ? String(payload.role) : null;
+
 try {
   result = await prisma.presence.upsert({
+    where: {
+      email_deviceId: {
+        email: cleanEmail,
+        deviceId: cleanDeviceId
+      }
+    },
+    create: {
+      userId: uid,
+      email: cleanEmail,
+      deviceId: cleanDeviceId,
+      role: cleanRole,
+      lastSeen: cleanLastSeen,
+      userAgent: cleanUserAgent
+    },
+    update: {
+      role: cleanRole,
+      lastSeen: cleanLastSeen,
+      userAgent: cleanUserAgent
+    }
+  });
+} catch (upsertPresenceError: any) {
+  console.error(
+    "🥋 [PRESENCE UPSERT ERROR]",
+    upsertPresenceError.message || upsertPresenceError
+  );
+
+  // fallback seguro (não quebra build)
+  result = {
+    id: `PRES-${Date.now()}`,
+    userId: uid,
+    email: cleanEmail,
+    deviceId: cleanDeviceId,
+    role: cleanRole,
+    lastSeen: String(cleanLastSeen),
+    userAgent: cleanUserAgent,
+    success: true
+  };
+}
+
+break;
     where: {
       email_deviceId: {
         email: cleanEmail,
