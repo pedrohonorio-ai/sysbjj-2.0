@@ -593,24 +593,7 @@ try {
     userAgent: cleanUserAgent,
     success: true
   };
-}
-break;
-  } 
-  create: {
-      userId: uid,
-      email: cleanEmail,
-      deviceId: cleanDeviceId,
-      role: cleanRole,
-      lastSeen: cleanLastSeen,
-      userAgent: cleanUserAgent
-    },
-    update: {
-      role: cleanRole,
-      lastSeen: cleanLastSeen,
-      userAgent: cleanUserAgent
-    }
-  });
-
+  
 } catch (upsertPresenceError: any) {
   console.error(
     "🥋 [PRESENCE UPSERT ERROR] Suppressed gracefully:",
