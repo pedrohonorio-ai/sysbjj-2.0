@@ -427,87 +427,95 @@ export async function dataHandler(req: AuthRequest, res: Response) {
           }
 
           let estimatedRedDateParsed: Date | null = null;
-          if (payload.estimatedRedDate) {
-            const d = new Date(payload.estimatedRedDate);
-            if (!isNaN(d.getTime())) estimatedRedDateParsed = d;
-          }
-          
-          const blackBeltDegreeParsed = isNaN(Number(payload.blackBeltDegree)) ? 0 : Math.round(Number(payload.blackBeltDegree));
-
-          const cleanPayload = {
-  ...payload,
-  belt: normalizedBelt,
-  stripes: normalizedStripes,
-  degrees: normalizedDegrees,
-            beltSince: bSince,
-            nextPromotion: nPromotion,
-            ibjjfEligible: ibjjfEligible,
-            lastPromotionDate: bSince.toISOString().split('T')[0],
-            blackBeltDate: blackBeltDateParsed,
-            graduationDate: graduationDateParsed,
-            blackBeltDegree: blackBeltDegreeParsed,
-            lastDegreeDate: lastDegreeDateParsed,
-            nextDegreeDate: nextDegreeDateParsed,
-            graduationEligibleDate: graduationEligibleDateParsed,
-            estimatedCoralDate: estimatedCoralDateParsed,
-            estimatedRedDate: estimatedRedDateParsed
-          };
+const cleanPayload = {
+...payload,
+belt: normalizedBelt,
+stripes: normalizedStripes,
+degrees: normalizedDegrees,
+beltSince: bSince,
+nextPromotion: nPromotion,
+ibjjfEligible,
+lastPromotionDate: bSince.toISOString().split('T')[0],
+blackBeltDate: blackBeltDateParsed,
+graduationDate: graduationDateParsed,
+blackBeltDegree: blackBeltDegreeParsed,
+lastDegreeDate: lastDegreeDateParsed,
+nextDegreeDate: nextDegreeDateParsed,
+graduationEligibleDate: graduationEligibleDateParsed,
+estimatedCoralDate: estimatedCoralDateParsed,
+estimatedRedDate: estimatedRedDateParsed
+};
 
 try {
- try {
-  result = await prisma.student.upsert({
-    where: {
-      id: id ?? ''
-    },
-    update: studentData,
-    create: studentData
-  });
+result = await prisma.student.upsert({
+where: {
+id: id ?? ''
+},
+update: {
+...cleanPayload,
+userId: uid
+},
+create: {
+...cleanPayload,
+userId: uid
+}
+});
 } catch (upsertError: any) {
-  console.warn(
-    "⚠️ [PRISMA UPSERT FALLBACK] Failed to upsert student with full graduation fields, stripping them:",
-    upsertError.message
-  );
+console.warn(
+"⚠️ [PRISMA UPSERT FALLBACK] Failed to upsert student with full graduation fields, stripping them:",
+upsertError.message
+);
 
-  const {
-    graduationDate,
-    nextDegreeDate,
-    estimatedCoralDate,
-    estimatedRedDate,
-    ...safePayload
-  } = cleanPayload;
+const {
+graduationDate,
+nextDegreeDate,
+estimatedCoralDate,
+estimatedRedDate,
+...safePayload
+} = cleanPayload;
 
-  try {
-    if (id) {
-      result = await prisma.student.update({
-        where: { id },
-        data: {
-          ...safePayload,
-          userId: uid
-        }
-      });
-    } else {
-      result = await prisma.student.create({
-        data: {
-          ...safePayload,
-          userId: uid
-        }
-      });
-    }
-  } catch (fallbackError: any) {
-    console.error(
-      "🚨 [PRISMA UPSERT CRITICAL] Safe student upsert also failed:",
-      fallbackError.message
-    );
-    throw fallbackError;
-  }
-                           
-  // Trigger automatic upgrade if allowed or update state
 try {
-  const subModule = await import('../subscriptionService.js');
+if (id) {
+result = await prisma.student.update({
+where: { id },
+data: {
+...safePayload,
+userId: uid
+}
+});
+} else {
+result = await prisma.student.create({
+data: {
+...safePayload,
+userId: uid
+}
+});
+}
+} catch (fallbackError: any) {
+console.error(
+"🚨 [PRISMA UPSERT CRITICAL] Safe student upsert also failed:",
+fallbackError.message
+);
+throw fallbackError;
+}
+}
 
-  if (subModule?.updateSubscriptionPlan) {
-    await subModule.updateSubscriptionPlan(uid);
-  }
+// Trigger automatic upgrade if allowed or update state
+try {
+const subModule = await import('../subscriptionService.js');
+
+if (subModule?.updateSubscriptionPlan) {
+await subModule.updateSubscriptionPlan(uid);
+}
+} catch (err) {
+console.error(
+'🥋 [SUBSCRIPTION UPDATE ERROR]',
+err
+);
+}
+
+break;
+
 } catch (err) {
   console.error(
     '🥋 [SUBSCRIPTION UPDATE ERROR]',
