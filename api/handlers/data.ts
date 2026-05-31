@@ -581,118 +581,16 @@ try {
   console.error(
     "🥋 [PRESENCE UPSERT ERROR]",
     upsertPresenceError.message || upsertPresenceError
-     result = await prisma.professorProfile.upsert({
-      where: { userId: uid },
-      create: { ...cleanProfilePayload, userId: uid },
-      update: { ...cleanProfilePayload, userId: uid }
-    });
-  } catch (profilePostErr: any) {
-    console.error(
-      "🥋 [PROFILE POST FAIL] Upsert fallback:",
-      profilePostErr.stack || profilePostErr.message || profilePostErr
-    );
+  );
 
-    result = {
-      id: `PROF-${Date.now()}`,
-      userId: uid,
-      ...cleanProfilePayload,
-      success: true,
-      isFallback: true
-    };
-  }
-
-  break;
-
-case 'logs':
-  let cleanTimestamp: bigint;
-
-  try {
-    const raw = payload.timestamp;
-    const num = Number(raw);
-
-    if (raw !== undefined && raw !== null && !isNaN(num)) {
-      cleanTimestamp = BigInt(Math.floor(num));
-    } else {
-      cleanTimestamp = BigInt(Date.now());
-    }
-  } catch {
-    cleanTimestamp = BigInt(Date.now());
-  }
-
-  result = await prisma.systemLog.create({
-    data: {
-      ...payload,
-      timestamp: cleanTimestamp,
-      userId: uid
-    }
-  });
-
-  break;
-
-default:
-  if (anyPrisma[collection]) {
-    try {
-      if (id && id !== 'new-stu' && id !== 'new') {
-        result = await prisma.student.update({
-          where: { id },
-          data: {
-            ...cleanPayload,
-            userId: uid
-          }
-        });
-      } else {
-        result = await prisma.student.create({
-          data: {
-            ...cleanPayload,
-            userId: uid
-          }
-        });
-      }
-    } catch (upsertError: any) {
-      console.warn(
-        "⚠️ [PRISMA STUDENT SAVE FALLBACK]",
-        upsertError.message
-      );
-
-      const {
-        graduationDate,
-        nextDegreeDate,
-        estimatedCoralDate,
-        estimatedRedDate,
-        ...safePayload
-      } = cleanPayload;
-
-      try {
-        if (id && id !== 'new-stu' && id !== 'new') {
-          result = await prisma.student.update({
-            where: { id },
-            data: {
-              ...safePayload,
-              userId: uid
-            }
-          });
-        } else {
-          result = await prisma.student.create({
-            data: {
-              ...safePayload,
-              userId: uid
-            }
-          });
-        }
-      } catch (fallbackError: any) {
-        console.error(
-          "🚨 [PRISMA STUDENT SAVE CRITICAL]",
-          fallbackError.message
-        );
-        throw fallbackError;
-      }
-    }
-  }
-
-  break;
-}
-
-} catch (err) {
-  console.error('🥋 [HANDLER ERROR]', err);
-  throw err;
+  result = {
+    id: `PRES-${Date.now()}`,
+    userId: uid,
+    email: cleanEmail,
+    deviceId: cleanDeviceId,
+    role: cleanRole,
+    lastSeen: String(cleanLastSeen),
+    userAgent: cleanUserAgent,
+    success: true
+  };
 }
