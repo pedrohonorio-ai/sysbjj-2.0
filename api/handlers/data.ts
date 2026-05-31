@@ -556,6 +556,7 @@ const cleanUserAgent = payload.userAgent ? String(payload.userAgent) : null;
 const cleanRole = payload.role ? String(payload.role) : null;
 
 try {
+try {
   result = await prisma.presence.upsert({
     where: {
       email_deviceId: {
@@ -583,6 +584,7 @@ try {
     upsertPresenceError.message || upsertPresenceError
   );
 
+  // fallback seguro
   result = {
     id: `PRES-${Date.now()}`,
     userId: uid,
