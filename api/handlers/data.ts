@@ -495,6 +495,7 @@ result = await prisma.student.create({
 
           // Trigger automatic upgrade if allowed or update state
           try {
+ try {
   const subModule = await import('../subscriptionService.js');
 
   if (subModule?.updateSubscriptionPlan) {
@@ -508,7 +509,8 @@ result = await prisma.student.create({
 }
 
 break;
-        case 'presence':
+
+case 'presence':
           const cleanEmail = String(payload.email || '');
           const cleanDeviceId = String(payload.deviceId || 'default');
           
