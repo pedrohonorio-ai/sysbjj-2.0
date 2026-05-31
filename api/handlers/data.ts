@@ -626,38 +626,59 @@ break;
           break;
         default:
           if (anyPrisma[collection]) {
-            try {
-              result = await anyPrisma[collection].upsert({
-                where: { id: id || 'new' },
-                create: { ...payload, userId: uid },
-                update: { ...payload, userId: uid }
-              });
-            } catch (e1) {
-              try {
-                // Tenta sem o campo userId caso a tabela não tenha essa coluna
-                result = await anyPrisma[collection].upsert({
-                  where: { id: id || 'new' },
-                  create: payload,
-                  update: payload
-                });
-              } catch (e2: any) {
-                return res.status(500).json({ error: `Erro ao operar coleção dinâmica: ${e2.message}` });
-              }
-            }
-          } else {
-            return res.status(404).json({ error: `Coleção não suportada: ${collection}` });
-          }
+           try {
+  if (id && id !== 'new-stu' && id !== 'new') {
+    result = await prisma.student.update({
+      where: { id },
+      data: {
+        ...cleanPayload,
+        userId: uid
       }
-      const finalResult = collection === 'students' ? enrichStudent(result) : result;
-      return res.json(serializeData(finalResult));
-    }
-  } catch (error) {
-    console.error('[API ERROR]', error);
-
-    return res.status(500).json({
-      success: false,
-      error: error instanceof Error ? error.message : String(error),
-      stack: process.env.NODE_ENV === 'development' ? (error as Error).stack : undefined
     });
+  } else {
+    result = await prisma.student.create({
+      data: {
+        ...cleanPayload,
+        userId: uid
+      }
+    });
+  }
+} catch (upsertError: any) {
+  console.warn(
+    "⚠️ [PRISMA STUDENT SAVE FALLBACK]",
+    upsertError.message
+  );
+
+  const {
+    graduationDate,
+    nextDegreeDate,
+    estimatedCoralDate,
+    estimatedRedDate,
+    ...safePayload
+  } = cleanPayload;
+
+  try {
+    if (id && id !== 'new-stu' && id !== 'new') {
+      result = await prisma.student.update({
+        where: { id },
+        data: {
+          ...safePayload,
+          userId: uid
+        }
+      });
+    } else {
+      result = await prisma.student.create({
+        data: {
+          ...safePayload,
+          userId: uid
+        }
+      });
+    }
+  } catch (fallbackError: any) {
+    console.error(
+      "🚨 [PRISMA STUDENT SAVE CRITICAL]",
+      fallbackError.message
+    );
+    throw fallbackError;
   }
 }
