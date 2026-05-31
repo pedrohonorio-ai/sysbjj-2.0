@@ -289,10 +289,7 @@ batchExecutionMap.set(userId, now);
       const timeoutPromise = new Promise((_, reject) => {
         setTimeout(() => reject(new Error("Timeout")), QUERY_TIMEOUT_MS);
       });
-      const timeoutPromise: Promise<never> = new Promise((_, reject) => {
-  setTimeout(() => reject(new Error("Timeout")), QUERY_TIMEOUT_MS);
-});
-
+     
       try {
         const fetchResponse = await Promise.race([fetchPromise, timeoutPromise]);
         results[collection] = fetchResponse;
