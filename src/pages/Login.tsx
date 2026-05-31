@@ -6,6 +6,7 @@ import { useTranslation } from '../contexts/LanguageContext.js';
 import { useProfile } from '../contexts/ProfileContext.js';
 import { useData } from '../contexts/DataContext.js';
 import { useAuth } from '../context/AuthContext.js';
+import { toast } from '../utils/toast.js';
 
 const Login: React.FC = () => {
   const { t } = useTranslation();
@@ -24,6 +25,7 @@ const Login: React.FC = () => {
   
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+  const [loginError, setLoginError] = useState('');
   const [success, setSuccess] = useState('');
   const [cooldown, setCooldown] = useState(0);
 
@@ -64,6 +66,7 @@ const Login: React.FC = () => {
     e.preventDefault();
     setLoading(true);
     setError('');
+    setLoginError('');
 
     try {
       if (mode === 'login') {
@@ -100,25 +103,75 @@ const Login: React.FC = () => {
       }
     } catch (err: any) {
       console.error(err);
-      const errorMessage = err.message || '';
+      const errorMessage = err.message || String(err);
       const errorCode = err.code || '';
+      const lowercaseErr = errorMessage.toLowerCase();
       
-      if (errorMessage.includes('Invalid login credentials') || errorCode === 'invalid_credentials') {
-        setError('E-mail ou senha incorretos. Verifique suas credenciais.');
-      } else if (errorMessage.includes('User already registered') || errorCode === 'user_already_exists' || (err.status === 400 && errorMessage.toLowerCase().includes('already registered'))) {
-        setError('Este e-mail já está cadastrado no sistema. Por favor, faça login.');
+      let userFriendlyMessage = 'Erro na autenticação. Tente novamente.';
+
+      if (
+        lowercaseErr.includes('senha incorreta') || 
+        lowercaseErr.includes('senha') ||
+        lowercaseErr.includes('credenciais inválidas') || 
+        lowercaseErr.includes('invalid credentials') || 
+        errorCode === 'invalid_credentials'
+      ) {
+        userFriendlyMessage = errorMessage.includes('Senha incorreta') || errorMessage.includes('senha incorreta')
+          ? 'Senha incorreta. Verifique suas credenciais.'
+          : 'Email ou senha incorretos.';
+      } else if (
+        lowercaseErr.includes('usuário não encontrado') || 
+        lowercaseErr.includes('usuario nao encontrado') || 
+        lowercaseErr.includes('not found') || 
+        lowercaseErr.includes('user_not_found') ||
+        lowercaseErr.includes('não cadastrado')
+      ) {
+        userFriendlyMessage = 'Usuário não encontrado.';
+      } else if (
+        lowercaseErr.includes('conta inativa') || 
+        lowercaseErr.includes('inativo') || 
+        lowercaseErr.includes('inactive') || 
+        lowercaseErr.includes('disabled')
+      ) {
+        userFriendlyMessage = 'Sua conta está desativada.';
+      } else if (
+        lowercaseErr.includes('sessão expirada') || 
+        lowercaseErr.includes('sessao expirada') || 
+        lowercaseErr.includes('expired')
+      ) {
+        userFriendlyMessage = 'Sessão expirada. Faça login novamente.';
+      } else if (
+        lowercaseErr.includes('500') || 
+        lowercaseErr.includes('internal server error') || 
+        lowercaseErr.includes('erro interno')
+      ) {
+        userFriendlyMessage = 'Erro interno do servidor. Tente novamente em alguns instantes.';
+      } else if (
+        lowercaseErr.includes('fetch') || 
+        lowercaseErr.includes('network') || 
+        lowercaseErr.includes('sem conexão') || 
+        lowercaseErr.includes('conexão') || 
+        lowercaseErr.includes('failed to fetch')
+      ) {
+        userFriendlyMessage = 'Sem conexão com o servidor.';
+      } else if (errorMessage.includes('User already registered') || errorCode === 'user_already_exists' || (err.status === 400 && lowercaseErr.includes('already registered'))) {
+        userFriendlyMessage = 'Este e-mail já está cadastrado no sistema. Por favor, faça login.';
         setMode('login');
-      } else if (errorMessage.toLowerCase().includes('email not confirmed')) {
-        setError('E-mail ainda não confirmado. Verifique sua caixa de entrada.');
-      } else if (errorMessage.toLowerCase().includes('rate limit')) {
-        setError('O limite de requisições foi atingido. Aguarde alguns minutos.');
+      } else if (lowercaseErr.includes('email not confirmed')) {
+        userFriendlyMessage = 'E-mail ainda não confirmado. Verifique sua caixa de entrada.';
+      } else if (lowercaseErr.includes('rate limit')) {
+        userFriendlyMessage = 'O limite de requisições foi atingido. Aguarde alguns minutos.';
         setCooldown(60);
-      } else if (errorMessage.includes('after 50 seconds') || errorMessage.includes('too many requests')) {
-        setError('Acesso bloqueado temporariamente por excesso de tentativas. Aguarde 60 segundos.');
+      } else if (errorMessage.includes('after 50 seconds') || lowercaseErr.includes('too many requests')) {
+        userFriendlyMessage = 'Acesso bloqueado temporariamente por excesso de tentativas. Aguarde 60 segundos.';
         setCooldown(60);
       } else {
-        setError(errorMessage || 'Erro na autenticação');
+        userFriendlyMessage = errorMessage || 'Erro na autenticação';
       }
+
+      setError(userFriendlyMessage);
+      setLoginError(userFriendlyMessage);
+      toast.error(userFriendlyMessage);
     } finally {
       setLoading(false);
     }
@@ -293,6 +346,11 @@ const Login: React.FC = () => {
                     <div className="p-4 bg-red-500/10 border border-red-500/20 rounded-xl text-red-500 text-[10px] font-black uppercase text-center leading-relaxed">
                       {error}
                     </div>
+                  </div>
+                )}
+                {loginError && (
+                  <div className="bg-red-50 border border-red-300 text-red-700 p-3 rounded-md mt-3 text-center text-xs font-bold">
+                    {loginError}
                   </div>
                 )}
                 {success && <div className="p-4 bg-emerald-500/10 border border-emerald-500/20 rounded-xl text-emerald-500 text-[10px] font-black uppercase text-center">{success}</div>}

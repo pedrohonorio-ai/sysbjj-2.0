@@ -81,7 +81,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const login = async (email: string, pass: string) => {
     setLoading(true);
+    console.log(`🥋 [DIAGNOSTICO LOGIN] Início da autenticação no Frontend para: ${email}`);
     try {
+      console.log(`🥋 [DIAGNOSTICO LOGIN] Enviando requisição de login ao servidor...`);
       const response = await fetch('/api/auth/login', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -91,20 +93,24 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       const contentType = response.headers.get('content-type');
       if (!contentType || !contentType.includes('application/json')) {
         const text = await response.text();
-        console.error('🥋 [AUTH LOGIN FAIL] Resposta não-JSON:', text.substring(0, 100));
+        console.error('🥋 [DIAGNOSTICO LOGIN FAIL] Resposta não-JSON do servidor de login:', text.substring(0, 100));
         throw new Error('O servidor de autenticação respondeu em um formato inválido. Tente novamente.');
       }
 
       const result = await response.json();
 
       if (!response.ok) {
+        console.error('🥋 [DIAGNOSTICO LOGIN FAIL] Resposta de erro do servidor de login:', result.error || 'Erro desconhecido');
         throw new Error(result.error || 'Erro ao fazer login');
       }
 
       const loggedUser = result.user;
+      console.log(`🥋 [DIAGNOSTICO LOGIN] Resposta do login recebida com sucesso. Usuário ID: ${loggedUser?.id}`);
       
       setUser(loggedUser);
       setRole('admin');
+      
+      console.log(`🥋 [DIAGNOSTICO LOGIN] Salvando sessão e token em localStorage...`);
       localStorage.setItem('oss_auth', JSON.stringify({ 
         isLoggedIn: true, 
         role: 'admin', 
@@ -112,9 +118,11 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         userId: loggedUser.id,
         token: result.token
       }));
+      console.log(`🥋 [DIAGNOSTICO LOGIN] Sessão criada localmente e persistida com sucesso.`);
       
       return { data: { user: loggedUser }, error: null };
     } catch (error: any) {
+      console.error(`🥋 [DIAGNOSTICO LOGIN FAIL] Exceção capturada no fluxo de login Frontend:`, error.stack || error.message || error);
       return { data: null, error };
     } finally {
       setLoading(false);

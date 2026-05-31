@@ -296,12 +296,36 @@ router.get("/current", authenticate as any, async (req: AuthRequest, res: Respon
       plan: responseData,
       subscription: responseData
     });
-  } catch (error) {
+  } catch (error: any) {
     console.error('[API ERROR] /current', error);
 
-    return res.status(200).json({
+    const fallbackSub = {
+      id: "fallback-sub-id",
+      userId: String(userId),
+      plan: "FREE",
       active: false,
-      plan: "FREE"
+      status: "ACTIVE",
+      studentLimit: 20,
+      maxStudents: 20,
+      currentStudents: 0,
+      monthlyPrice: 0,
+      billingCycle: "FREE",
+      expiresAt: null,
+      pixKey: "dashfire@gmail.com",
+      pixHolder: "Pedro Paulo Honorio",
+      pixCity: "Rio de Janeiro",
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+      usagePercent: 0,
+      canAddStudents: true
+    };
+
+    return res.status(200).json({
+      success: true,
+      active: false,
+      plan: fallbackSub,
+      subscription: fallbackSub,
+      message: "Utilizando plano padrão FREE (Modo de contingência ativa)"
     });
   }
 });

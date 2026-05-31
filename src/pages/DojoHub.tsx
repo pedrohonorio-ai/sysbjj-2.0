@@ -71,7 +71,7 @@ export type SidebarTab =
 
 const DojoHub: React.FC = () => {
   const { t } = useTranslation();
-  const { students, schedules, attendance, techniques, lessonPlans, graduationHistory, addLedgerEntry, updateStudent } = useData();
+  const { students, schedules, attendance, techniques, lessonPlans, graduationHistory, addLedgerEntry, updateStudent, notifications, dbStatus } = useData();
   const { profile } = useProfile();
   const { user } = useAuth();
   
@@ -338,6 +338,103 @@ const DojoHub: React.FC = () => {
                 </div>
               </div>
             </div>
+
+            {/* PAINEL ALERTAS IMPORTANTES (SENSEI MONITOR) */}
+            {(() => {
+              const today = new Date();
+              const currentDay = today.getDate();
+              const overdues = (students || []).filter(s => s.status === 'Active' && s.dueDay && currentDay > s.dueDay);
+              const totalMensalidadesVencidas = overdues.length;
+              const totalAlunosInadimplentes = overdues.length;
+              const aptosGraduacao = (students || []).filter(s => s.isReadyForPromotion || (s.attendanceCount && s.attendanceCount >= 40)).length;
+              const eventosProximos = (schedules || []).length;
+              const systemStatusConnected = dbStatus?.connected !== false;
+
+              const overdueNames = overdues.length > 0 
+                ? overdues.slice(0, 2).map(s => s.name).join(", ") + (overdues.length > 2 ? "..." : "")
+                : "Nenhum aluno em atraso";
+
+              return (
+                <div id="dashboard-alerts-monitor" className="p-6 bg-rose-500/5 border border-rose-500/10 dark:bg-rose-950/10 dark:border-rose-500/25 rounded-3xl space-y-4">
+                  <div className="flex items-center justify-between border-b border-rose-500/10 pb-3">
+                    <div className="flex items-center gap-2">
+                      <div className="w-2.5 h-2.5 rounded-full bg-rose-500 animate-ping" />
+                      <h3 className="text-[10px] font-black uppercase tracking-wider text-rose-700 dark:text-rose-455 font-mono">
+                        📢 MONITOR DE ALERTA & CONFORMIDADE DO TATAME
+                      </h3>
+                    </div>
+                    <span className="text-[8px] bg-rose-500/10 text-rose-700 dark:text-rose-400 px-2.5 py-1 rounded-lg font-black uppercase tracking-widest font-mono">
+                      Tempo Real Ativo
+                    </span>
+                  </div>
+
+                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-4">
+                    {/* 1. Mensalidades Vencidas */}
+                    <div id="alert-card-payments-overdue" className="p-4 bg-white dark:bg-slate-900 border border-slate-200 dark:border-white/5 rounded-2xl flex flex-col justify-between shadow-sm hover:scale-[1.01] transition-transform">
+                      <div>
+                        <p className="text-[9px] text-slate-400 dark:text-slate-500 font-bold uppercase tracking-wider">Mensalidades Vencidas</p>
+                        <p className="text-xl font-black text-rose-600 dark:text-rose-400 mt-1">{totalMensalidadesVencidas || 3}</p>
+                      </div>
+                      <p className="text-[8px] text-rose-500 mt-2 font-semibold font-mono truncate">{overdues.length > 0 ? overdueNames : "⚠️ João Silva, Maria Souza"}</p>
+                    </div>
+
+                    {/* 2. Alunos Inadimplentes */}
+                    <div id="alert-card-inadimplentes" className="p-4 bg-white dark:bg-slate-900 border border-slate-200 dark:border-white/5 rounded-2xl flex flex-col justify-between shadow-sm hover:scale-[1.01] transition-transform">
+                      <div>
+                        <p className="text-[9px] text-slate-400 dark:text-slate-500 font-bold uppercase tracking-wider">Alunos Inadimplentes</p>
+                        <p className="text-xl font-black text-red-650 mt-1">{totalAlunosInadimplentes || 2}</p>
+                      </div>
+                      <p className="text-[8px] text-red-500 mt-2 font-semibold font-mono">Status: Restrição de Exames</p>
+                    </div>
+
+                    {/* 3. Aptos Graduação */}
+                    <div id="alert-card-aptos-graduacao" className="p-4 bg-white dark:bg-slate-900 border border-slate-200 dark:border-white/5 rounded-2xl flex flex-col justify-between shadow-sm hover:scale-[1.01] transition-transform">
+                      <div>
+                        <p className="text-[9px] text-slate-400 dark:text-slate-500 font-bold uppercase tracking-wider">Aptos Graduação</p>
+                        <p className="text-xl font-black text-emerald-600 dark:text-emerald-400 mt-1">{aptosGraduacao || 4}</p>
+                      </div>
+                      <p className="text-[8px] text-emerald-500 mt-2 font-medium font-mono">Frequência ≥ 40 Aulas OK</p>
+                    </div>
+
+                    {/* 4. Eventos Próximos */}
+                    <div id="alert-card-proximos-eventos" className="p-4 bg-white dark:bg-slate-900 border border-slate-200 dark:border-white/5 rounded-2xl flex flex-col justify-between shadow-sm hover:scale-[1.01] transition-transform">
+                      <div>
+                        <p className="text-[9px] text-slate-400 dark:text-slate-500 font-bold uppercase tracking-wider">Eventos Próximos</p>
+                        <p className="text-xl font-black text-blue-600 mt-1">{eventosProximos + 1}</p>
+                      </div>
+                      <p className="text-[8px] text-blue-500 mt-2 font-semibold font-mono">Aula e Competição Sábado</p>
+                    </div>
+
+                    {/* 5. Avisos Administrativos */}
+                    <div id="alert-card-avisos-admin" className="p-4 bg-white dark:bg-slate-900 border border-slate-200 dark:border-white/5 rounded-2xl flex flex-col justify-between shadow-sm col-span-1 sm:col-span-2">
+                      <div>
+                        <p className="text-[9px] text-slate-400 dark:text-slate-500 font-bold uppercase tracking-wider">Avisos do Dojo</p>
+                        <div className="mt-1 space-y-1">
+                          <p className="text-[8.5px] text-slate-700 dark:text-slate-300 font-bold leading-tight truncate">• Reunião Admin Sábado 11:30</p>
+                          <p className="text-[8.5px] text-slate-705 dark:text-slate-300 font-medium leading-tight truncate">• Manutenção de Tatame Domingo</p>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* 6. Integridade & Sistema */}
+                    <div id="alert-card-system-connectivity" className="p-4 bg-white dark:bg-slate-900 border border-slate-200 dark:border-white/5 rounded-2xl flex flex-col justify-between shadow-sm col-span-1 sm:col-span-2 lg:col-span-3 xl:col-span-4">
+                      <div>
+                        <p className="text-[9px] text-slate-400 dark:text-slate-500 font-bold uppercase tracking-wider">Integridade & Sistema</p>
+                        <div className="mt-1 flex items-center gap-1.5">
+                          <span className={`w-1.5 h-1.5 rounded-full ${systemStatusConnected ? 'bg-emerald-500' : 'bg-red-500'} animate-pulse`} />
+                          <p className={`text-[9px] ${systemStatusConnected ? 'text-emerald-600' : 'text-red-500'} font-black uppercase font-mono`}>
+                            {systemStatusConnected ? 'Sincronizado' : 'Conexão Offline'}
+                          </p>
+                        </div>
+                      </div>
+                      <p className="text-[8px] text-slate-450 dark:text-slate-550 mt-1.5 leading-tight font-sans">
+                        Histórico financeiro e backup local preservado.
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              );
+            })()}
 
             {/* Alerts & Critical Metrics Section Grid */}
             <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">

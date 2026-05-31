@@ -50,16 +50,20 @@ export const ProfileProvider: React.FC<{ children: ReactNode }> = ({ children })
     }
 
     const fetchProfile = async () => {
+      console.log("🥋 [DIAGNOSTICO LOGIN] Carregamento do perfil - Iniciado");
       try {
         const cloudProfile = await api.fetchData('profile', user.id);
         if (cloudProfile && !Array.isArray(cloudProfile)) {
+          console.log("🥋 [DIAGNOSTICO LOGIN] Carregamento do perfil - Concluido com sucesso");
           setProfile(cloudProfile);
           localStorage.setItem('oss_profile', JSON.stringify(cloudProfile));
         } else if (!cloudProfile || (Array.isArray(cloudProfile) && cloudProfile.length === 0)) {
            // Initialize if not exists
            await api.saveData('profile', user.id, profile);
+           console.log("🥋 [DIAGNOSTICO LOGIN] Carregamento do perfil - Inicializado novo perfil padrao");
         }
-      } catch (error) {
+      } catch (error: any) {
+        console.error("🥋 [DIAGNOSTICO LOGIN FAIL] Falha ao carregar perfil:", error.stack || error.message || error);
         handleApiError(error, OperationType.GET, 'profile', setNotifications, setDbStatus);
       } finally {
         setIsLoading(false);

@@ -29,18 +29,22 @@ const Dashboard: React.FC = () => {
   const [subscription, setSubscription] = useState<any>(null);
 
   useEffect(() => {
+    console.log("🥋 [DIAGNOSTICO LOGIN] Carregamento do dashboard - Iniciado");
     let active = true;
     const fetchSub = async () => {
+      console.log("🥋 [DIAGNOSTICO LOGIN] Carregamento da assinatura - Iniciado");
       try {
         const res = await api.fetchSubscription();
         if (res && active) {
+          console.log("🥋 [DIAGNOSTICO LOGIN] Carregamento da assinatura - Concluido com sucesso");
           setSubscription(res.subscription || res.plan || res);
         }
-      } catch (e) {
-        console.warn("⚠️ Error fetching subscription on dashboard state:", e);
+      } catch (e: any) {
+        console.error("🥋 [DIAGNOSTICO LOGIN FAIL] Falha ao carregar assinatura:", e.stack || e.message || e);
       }
     };
     fetchSub();
+    console.log("🥋 [DIAGNOSTICO LOGIN] Carregamento do dashboard - Concluido");
     return () => {
       active = false;
     };

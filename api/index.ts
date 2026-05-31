@@ -15,6 +15,15 @@ import neonStatusHandler from "./admin/neon-status.js";
 import resetSystemMetricsHandler from "./admin/reset-system-metrics.js";
 import systemMetricsHandler from "./admin/system-metrics.js";
 
+// 🥋 GLOBAL PROCESS EXCEPTION & REJECTION GUARD FOR PRODUCTION ULTRA RESILIENCE
+process.on('unhandledRejection', (reason: any, promise: Promise<any>) => {
+  console.error("🥋 [FATAL EXTREME UNHANDLED REJECTION]: Prevented crash.", reason?.stack || reason);
+});
+
+process.on('uncaughtException', (error: Error) => {
+  console.error("🥋 [FATAL EXTREME UNCAUGHT EXCEPTION]: Prevented crash.", error?.stack || error);
+});
+
 const app = express();
 
 // Body parser

@@ -67,10 +67,17 @@ if (typeof window !== "undefined" && !(window as any).__CUSTOM_WS__) {
 
       constructor(url: string | URL, protocols?: string | string[]) {
         const isDev = import.meta.env.DEV;
+        const now = Date.now();
+        const wsUrl = String(url);
+
+        // 🥋 Rate limit connection attempts to the same URL to prevent duplicated reconnect loops
+        const lastConnUrl = (window as any)._lastWSUrl || "";
+        const lastConnTime = (window as any)._lastWSConnTime || 0;
         
-        if (!isDev) {
+        if (wsUrl === lastConnUrl && now - lastConnTime < 1500) {
+          console.warn("🥋 [WS GUARD] Cancelada conexão duplicada recorrente rápida de WebSocket para:", wsUrl);
           const stub = {
-            url: String(url),
+            url: wsUrl,
             readyState: 3, // CLOSED
             bufferedAmount: 0,
             extensions: "",
@@ -90,7 +97,32 @@ if (typeof window !== "undefined" && !(window as any).__CUSTOM_WS__) {
           return stub as any;
         }
 
-        let finalUrl = String(url);
+        (window as any)._lastWSUrl = wsUrl;
+        (window as any)._lastWSConnTime = now;
+
+        if (!isDev) {
+          const stub = {
+            url: wsUrl,
+            readyState: 3, // CLOSED
+            bufferedAmount: 0,
+            extensions: "",
+            protocol: "",
+            binaryType: "blob",
+            send: () => {},
+            close: () => {},
+            addEventListener: () => {},
+            removeEventListener: () => {},
+            dispatchEvent: () => true,
+            onopen: null,
+            onclose: null,
+            onerror: null,
+            onmessage: null,
+          };
+          Object.setPrototypeOf(stub, ResilientWebSocket.prototype);
+          return stub as any;
+        }
+
+        let finalUrl = wsUrl;
         if (window.location.protocol === 'https:' && finalUrl.startsWith('ws://')) {
           finalUrl = finalUrl.replace(/^ws:\/\//i, 'wss://');
         }
@@ -175,11 +207,13 @@ if (typeof window !== "undefined" && !(window as any).__CUSTOM_WS__) {
 
       close(code?: number, reason?: string) {
         console.log("WS CLOSE", this.readyState);
-        if (this.readyState === OriginalWebSocket.OPEN) {
+        // Permite chamar close se estiver abrindo ou já aberto, engolindo qualquer exceção prematura
+        if (this.readyState === OriginalWebSocket.OPEN || this.readyState === OriginalWebSocket.CONNECTING) {
           try {
             super.close(code, reason);
-          } catch (e) {
-            // Silencioso para evitar erro Unhandled Rejection: WebSocket fechado sem estar aberto
+          } catch (e: any) {
+            // Silencioso para evitar erro "WebSocket closed without opened"
+            console.debug("🥋 [WS CLOSE GUARD] Ignorado fechamento silencioso do WebSocket:", e.message || e);
           }
         }
       }

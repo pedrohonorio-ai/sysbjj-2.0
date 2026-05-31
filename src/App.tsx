@@ -36,6 +36,7 @@ const CertificatesHub = lazy(() => import('./pages/CertificatesHub.js'));
 
 import NotificationCenter from './components/NotificationCenter.js';
 import DatabaseWarning from './components/DatabaseWarning.js';
+import { Toaster } from './components/ui/Toaster.js';
 import { useTranslation } from './contexts/LanguageContext.js';
 import { useTheme } from './contexts/ThemeContext.js';
 import { useProfile } from './contexts/ProfileContext.js';
@@ -47,6 +48,29 @@ const Sidebar = ({ isOpen, toggle, onLogout, isMasterAdmin }: { isOpen: boolean,
   const location = useLocation();
   const { t } = useTranslation();
   const { profile } = useProfile();
+
+  // State inside Sidebar for touch support
+  const [touchStart, setTouchStart] = useState<number | null>(null);
+  const [touchEnd, setTouchEnd] = useState<number | null>(null);
+
+  const handleTouchStart = (e: React.TouchEvent) => {
+    setTouchStart(e.targetTouches[0].clientX);
+  };
+
+  const handleTouchMove = (e: React.TouchEvent) => {
+    setTouchEnd(e.targetTouches[0].clientX);
+  };
+
+  const handleTouchEnd = () => {
+    if (!touchStart || !touchEnd) return;
+    const distance = touchStart - touchEnd;
+    const isLeftSwipe = distance > 55; // threshold of 55px
+    if (isLeftSwipe && isOpen) {
+      toggle();
+    }
+    setTouchStart(null);
+    setTouchEnd(null);
+  };
 
   if (location.pathname.startsWith('/portal/')) return null;
 
@@ -123,8 +147,13 @@ const Sidebar = ({ isOpen, toggle, onLogout, isMasterAdmin }: { isOpen: boolean,
         onClick={toggle}
       />
       
-      <aside className={`fixed inset-y-0 left-0 z-[60] bg-white dark:bg-slate-950 border-r border-slate-200 dark:border-slate-800 text-slate-900 dark:text-slate-100 transform transition-all duration-500 ease-[cubic-bezier(0.2,0.8,0.2,1)] flex flex-col overflow-y-auto scrollbar-hide
-        ${isOpen ? 'translate-x-0 w-72 shadow-3xl shadow-blue-500/10' : '-translate-x-full shadow-none'}`}>
+      <aside 
+        onTouchStart={handleTouchStart}
+        onTouchMove={handleTouchMove}
+        onTouchEnd={handleTouchEnd}
+        className={`fixed inset-y-0 left-0 z-[60] bg-white dark:bg-slate-950 border-r border-slate-200 dark:border-slate-800 text-slate-900 dark:text-slate-100 transform transition-all duration-500 ease-[cubic-bezier(0.2,0.8,0.2,1)] flex flex-col overflow-y-auto scrollbar-hide
+        ${isOpen ? 'translate-x-0 w-72 shadow-3xl shadow-blue-500/10' : '-translate-x-full shadow-none'}`}
+      >
         
         <div className={`flex-none flex items-center justify-between p-6 h-24 overflow-hidden shrink-0 border-b border-slate-100 dark:border-slate-800/50`}>
           <div className="flex items-center gap-4">
@@ -493,6 +522,29 @@ const App: React.FC = () => {
     return () => window.removeEventListener('beforeinstallprompt', handleBeforeInstall);
   }, []);
 
+  // Lock scroll on mobile when sidebar is open & monitor screen sizing
+  useEffect(() => {
+    const handleResize = () => {
+      if (window.innerWidth > 1024) {
+        setSidebarOpen(true);
+      } else {
+        setSidebarOpen(false);
+      }
+    };
+    window.addEventListener('resize', handleResize);
+
+    if (sidebarOpen && window.innerWidth <= 1024) {
+      document.body.style.overflow = 'hidden';
+    } else {
+      document.body.style.overflow = '';
+    }
+
+    return () => {
+      window.removeEventListener('resize', handleResize);
+      document.body.style.overflow = '';
+    };
+  }, [sidebarOpen]);
+
 
 
   useEffect(() => {
@@ -540,6 +592,9 @@ const App: React.FC = () => {
 
   useEffect(() => {
     window.scrollTo(0, 0);
+    if (window.innerWidth <= 1024) {
+      setSidebarOpen(false);
+    }
     if (role === 'student' && studentCode && !location.pathname.startsWith('/portal/')) {
       navigate(`/portal/${studentCode}`);
     }
@@ -621,6 +676,7 @@ const App: React.FC = () => {
       `}</style>
       {(isAdmin && !isPortal) && <Sidebar isOpen={sidebarOpen} toggle={() => setSidebarOpen(!sidebarOpen)} onLogout={handleLogout} isMasterAdmin={isMasterAdmin} />}
       <DatabaseWarning />
+      <Toaster />
       <div className={`flex-1 flex flex-col w-full min-h-screen transition-all duration-500 ease-[cubic-bezier(0.2,0.8,0.2,1)]
         ${(isPortal || role === 'student' || !isAdmin) 
           ? 'pl-0' 

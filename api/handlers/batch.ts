@@ -266,10 +266,11 @@ export default async function batchHandler(req: AuthRequest, res: Response) {
       });
 
       try {
-        results[collection] = await Promise.race([fetchPromise, timeoutPromise]);
+        const fetchResponse = await Promise.race([fetchPromise, timeoutPromise]);
+        results[collection] = fetchResponse;
       } catch (err: any) {
-        console.error(`🚨 [BATCH TIMEOUT/ERROR] Collection: ${collection} -> Fallback to [] | Details:`, err.message);
-        results[collection] = [];
+        console.error(`🚨 [BATCH TIMEOUT/ERROR] Collection: ${collection} -> Fallback to default | Details:`, err.stack || err.message || err);
+        results[collection] = collection.toLowerCase() === 'profile' ? null : [];
       }
     }));
 
