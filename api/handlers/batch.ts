@@ -79,10 +79,16 @@ batchExecutionMap.set(userId, now);
   }
 
   // Sanitise collection names
-  const collectionList = collections
-    .split(',')
-    .map(c => c.trim())
-    .filter(c => c.length > 0 && /^[a-zA-Z0-9_]+$/.test(c));
+ const collectionList = collections
+  .split(',')
+  .map(c => c.trim())
+  .filter(c => c.length > 0 && /^[a-zA-Z0-9_]+$/.test(c));
+  if (collectionList.length === 0) {
+  return res.status(400).json({
+    success: false,
+    error: "Nenhuma coleção válida foi informada."
+  });
+}
 
   const results: Record<string, any> = {};
   const uid = String(userId);
@@ -123,7 +129,7 @@ batchExecutionMap.set(userId, now);
             } catch (err: any) {
               console.warn("⚠️ [BATCH SENSEI] Error reading students, running safe select:", err.message);
               try {
-                const { graduationDate, nextDegreeDate, estimatedCoralDate, estimatedRedDate, blackBeltDate, blackBeltDegree, ...safeSelect } = SAFE_STUDENT_SELECT as any;
+                const safeSelect = SAFE_STUDENT_SELECT;
                 data = await prisma.student.findMany({
                   where: { userId: uid },
                   orderBy: { joinedAt: 'desc' },
@@ -283,6 +289,9 @@ batchExecutionMap.set(userId, now);
       const timeoutPromise = new Promise((_, reject) => {
         setTimeout(() => reject(new Error("Timeout")), QUERY_TIMEOUT_MS);
       });
+      const timeoutPromise: Promise<never> = new Promise((_, reject) => {
+  setTimeout(() => reject(new Error("Timeout")), QUERY_TIMEOUT_MS);
+});
 
       try {
         const fetchResponse = await Promise.race([fetchPromise, timeoutPromise]);
