@@ -455,7 +455,14 @@ export async function dataHandler(req: AuthRequest, res: Response) {
 
           try {
             result = await prisma.student.upsert({
-              where: { id: id || 'new-stu' },
+              where: {
+  id: id ?? ''
+},if
+                (id) {
+  result = await prisma.student.update(...)
+} else {
+  result = await prisma.student.create(...)
+}
               create: { ...cleanPayload, userId: uid },
               update: { ...cleanPayload, userId: uid }
             });
@@ -466,19 +473,19 @@ export async function dataHandler(req: AuthRequest, res: Response) {
             try {
               if (id) {
   result = await prisma.student.update({
-    where: { id },
-    data: {
-      ...cleanPayload,
-      userId: uid
-    }
-  });
+  where: { id },
+  data: {
+    ...safePayload,
+    userId: uid
+  }
+});
 } else {
-  result = await prisma.student.create({
-    data: {
-      ...cleanPayload,
-      userId: uid
-    }
-  });
+result = await prisma.student.create({
+  data: {
+    ...safePayload,
+    userId: uid
+  }
+});
 }
             } catch (fallbackError: any) {
               console.error("🚨 [PRISMA UPSERT CRITICAL] Safe student upsert also failed:", fallbackError.message);
@@ -499,6 +506,8 @@ export async function dataHandler(req: AuthRequest, res: Response) {
     err
   );
 }
+
+break;
         case 'presence':
           const cleanEmail = String(payload.email || '');
           const cleanDeviceId = String(payload.deviceId || 'default');
