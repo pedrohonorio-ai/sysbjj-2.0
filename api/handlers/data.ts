@@ -594,25 +594,6 @@ try {
     success: true
   };
   
-} catch (upsertPresenceError: any) {
-  console.error(
-    "🥋 [PRESENCE UPSERT ERROR] Suppressed gracefully:",
-    upsertPresenceError.message || upsertPresenceError
-  );
-
-  result = {
-    id: `PRES-${Date.now()}`,
-    userId: uid,
-    email: cleanEmail,
-    deviceId: cleanDeviceId,
-    role: cleanRole,
-    lastSeen: String(cleanLastSeen),
-    userAgent: cleanUserAgent,
-    success: true,
-    isFallback: true
-  };
-}
-
 break;
 
 case 'profile':
