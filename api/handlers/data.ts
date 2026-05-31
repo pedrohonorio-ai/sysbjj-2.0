@@ -500,13 +500,9 @@ try {
     );
     throw fallbackError;
   }
-}
-            }
-          }
-
-          // Trigger automatic upgrade if allowed or update state
-          try {
- try {
+                           
+  // Trigger automatic upgrade if allowed or update state
+try {
   const subModule = await import('../subscriptionService.js');
 
   if (subModule?.updateSubscriptionPlan) {
