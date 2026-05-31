@@ -583,31 +583,6 @@ try {
     upsertPresenceError.message || upsertPresenceError
   );
 
- result = {
-  id: `PRES-${Date.now()}`,
-  userId: uid,
-  email: cleanEmail,
-  deviceId: cleanDeviceId,
-  role: cleanRole,
-  lastSeen: String(cleanLastSeen),
-  userAgent: cleanUserAgent,
-  success: true,
-
-  latitude:
-    payload.latitude !== undefined && payload.latitude !== null
-      ? Number(payload.latitude)
-      : null,
-
-  longitude:
-    payload.longitude !== undefined && payload.longitude !== null
-      ? Number(payload.longitude)
-      : null,
-
-  geofenceRadius:
-    payload.geofenceRadius !== undefined && payload.geofenceRadius !== null
-      ? Number(payload.geofenceRadius)
-      : null
-};
 
   try {
     result = await prisma.professorProfile.upsert({
