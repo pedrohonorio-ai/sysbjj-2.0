@@ -213,17 +213,19 @@ export const loginHandler = async (req: Request, res: Response) => {
         }
 
         try {
-          await prisma.notification.create({
-            data: {
-              userId: user.id,
-              title: "SEGURANÇA",
-              message: `⚠️ Alerta: Tentativa de login malsucedida devido a senha incorreta.`,
-              type: "SECURITY",
-              priority: "HIGH",
-              read: false,
-              createdAt: new Date()
-            }
-          });
+          if (typeof (prisma as any).notification?.create === 'function') {
+            await (prisma as any).notification.create({
+              data: {
+                userId: user.id,
+                title: "SEGURANÇA",
+                message: `⚠️ Alerta: Tentativa de login malsucedida devido a senha incorreta.`,
+                type: "SECURITY",
+                priority: "HIGH",
+                read: false,
+                createdAt: new Date()
+              }
+            });
+          }
         } catch (err: any) {
           console.error("⚠️ [NOTIFICATION] Erro ao criar notificação de falha de login:", err.message || err);
         }
@@ -309,18 +311,20 @@ export const loginHandler = async (req: Request, res: Response) => {
 
       // Tenta enviar notificação de auditoria de login
       try {
-        await prisma.notification.create({
-          data: {
-            userId: user.id,
-            title: "SEGURANÇA",
-            message: `🥋 OSS! Novo login realizado no sistema a partir do dispositivo: ${req.headers['user-agent'] || 'Dispositivo desconhecido'}.`,
-            type: "SECURITY",
-            priority: "LOW",
-            read: false,
-            createdAt: new Date()
-          }
-        });
-        console.log(`🥋 [NOTIFICATION] Sincronismo de notificação de login concluído para usuário ${user.email}`);
+        if (typeof (prisma as any).notification?.create === 'function') {
+          await (prisma as any).notification.create({
+            data: {
+              userId: user.id,
+              title: "SEGURANÇA",
+              message: `🥋 OSS! Novo login realizado no sistema a partir do dispositivo: ${req.headers['user-agent'] || 'Dispositivo desconhecido'}.`,
+              type: "SECURITY",
+              priority: "LOW",
+              read: false,
+              createdAt: new Date()
+            }
+          });
+          console.log(`🥋 [NOTIFICATION] Sincronismo de notificação de login concluído para usuário ${user.email}`);
+        }
       } catch (notifErr: any) {
         console.error("⚠️ [NOTIFICATION] Falha isolada ao criar notificação de login (sistema continuará funcionando normalmente):", notifErr.message || notifErr);
       }
@@ -401,17 +405,19 @@ export const forgotPasswordHandler = async (req: Request, res: Response) => {
       
       // Criar uma notificação automática de segurança no sistema
       try {
-        await prisma.notification.create({
-          data: {
-            userId: user.id,
-            title: "Recuperação de Senha por E-mail",
-            message: `Alerta: Tentativa de recuperação de senha feita para ${email}. Link: /reset-password?token=${resetToken}`,
-            type: "SECURITY",
-            priority: "HIGH",
-            read: false,
-            createdAt: new Date()
-          }
-        });
+        if (typeof (prisma as any).notification?.create === 'function') {
+          await (prisma as any).notification.create({
+            data: {
+              userId: user.id,
+              title: "Recuperação de Senha por E-mail",
+              message: `Alerta: Tentativa de recuperação de senha feita para ${email}. Link: /reset-password?token=${resetToken}`,
+              type: "SECURITY",
+              priority: "HIGH",
+              read: false,
+              createdAt: new Date()
+            }
+          });
+        }
       } catch (e) {
         console.error("🥋 [SYSTEM] Falha ao criar notificação de aviso SMTP:", e);
       }

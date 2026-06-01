@@ -106,168 +106,173 @@ export default async function batchHandler(req: AuthRequest, res: Response) {
         const defaultLogsTake = 50;
         const defaultLedgerTake = 50;
 
-        switch(collLower) {
-          case 'students': 
-            try {
-              data = await prisma.student.findMany({ 
-                where: { userId: uid }, 
-                orderBy: { joinedAt: 'desc' },
-                take: defaultStudentsTake
-              }); 
-            } catch (err: any) {
-              console.warn("⚠️ [BATCH SENSEI] Error reading students, running safe select:", err.message);
+        try {
+          switch(collLower) {
+            case 'students': 
               try {
-                const { graduationDate, nextDegreeDate, estimatedCoralDate, estimatedRedDate, blackBeltDate, blackBeltDegree, ...safeSelect } = SAFE_STUDENT_SELECT as any;
-                data = await prisma.student.findMany({
-                  where: { userId: uid },
+                data = await prisma.student.findMany({ 
+                  where: { userId: uid }, 
                   orderBy: { joinedAt: 'desc' },
-                  take: defaultStudentsTake,
-                  select: safeSelect as any
-                });
-              } catch (fallbackErr: any) {
-                console.error("🚨 [BATCH SENSEI CRITICAL] Safe student read failed, running ultra-safe select fallback:", fallbackErr.message);
+                  take: defaultStudentsTake
+                }); 
+              } catch (err: any) {
+                console.warn("⚠️ [BATCH SENSEI] Error reading students, running safe select:", err.message);
                 try {
-                  const ultraSafeSelect = {
-                    id: true,
-                    userId: true,
-                    name: true,
-                    nickname: true,
-                    email: true,
-                    phone: true,
-                    status: true,
-                    belt: true,
-                    degrees: true,
-                    stripes: true,
-                    photoUrl: true,
-                    monthlyValue: true,
-                    dueDay: true,
-                    active: true,
-                    joinedAt: true,
-                    updatedAt: true
-                  };
+                  const { graduationDate, nextDegreeDate, estimatedCoralDate, estimatedRedDate, blackBeltDate, blackBeltDegree, ...safeSelect } = SAFE_STUDENT_SELECT as any;
                   data = await prisma.student.findMany({
                     where: { userId: uid },
                     orderBy: { joinedAt: 'desc' },
                     take: defaultStudentsTake,
-                    select: ultraSafeSelect as any
+                    select: safeSelect as any
                   });
-                } catch (ultraErr: any) {
-                  data = [];
+                } catch (fallbackErr: any) {
+                  console.error("🚨 [BATCH SENSEI CRITICAL] Safe student read failed, running ultra-safe select fallback:", fallbackErr.message);
+                  try {
+                    const ultraSafeSelect = {
+                      id: true,
+                      userId: true,
+                      name: true,
+                      nickname: true,
+                      email: true,
+                      phone: true,
+                      status: true,
+                      belt: true,
+                      degrees: true,
+                      stripes: true,
+                      photoUrl: true,
+                      monthlyValue: true,
+                      dueDay: true,
+                      active: true,
+                      joinedAt: true,
+                      updatedAt: true
+                    };
+                    data = await prisma.student.findMany({
+                      where: { userId: uid },
+                      orderBy: { joinedAt: 'desc' },
+                      take: defaultStudentsTake,
+                      select: ultraSafeSelect as any
+                    });
+                  } catch (ultraErr: any) {
+                    data = [];
+                  }
                 }
               }
-            }
-            break;
-          case 'payments': 
-            data = await prisma.payment.findMany({ 
-              where: { userId: uid }, 
-              orderBy: { timestamp: 'desc' }, 
-              take: defaultPaymentsTake
-            }); 
-            break;
-          case 'schedules': 
-            data = await prisma.classSchedule.findMany({ where: { userId: uid } }); 
-            break;
-          case 'logs': 
-            data = await prisma.systemLog.findMany({ 
-              where: { userId: uid }, 
-              orderBy: { timestamp: 'desc' }, 
-              take: defaultLogsTake
-            }); 
-            break;
-          case 'ledger': 
-            data = await prisma.transactionLedger.findMany({ 
-              where: { userId: uid }, 
-              orderBy: { timestamp: 'desc' }, 
-              take: defaultLedgerTake
-            }); 
-            break;
-          case 'receipts': 
-            data = await prisma.paymentReceipt.findMany({ 
-              where: { userId: uid }, 
-              orderBy: { timestamp: 'desc' },
-              take: 50
-            }); 
-            break;
-          case 'extra_revenue': 
-            data = await prisma.extraRevenue.findMany({ where: { userId: uid }, take: 50 }); 
-            break;
-          case 'lesson_plans': 
-            data = await prisma.lessonPlan.findMany({ where: { userId: uid }, take: 50 }); 
-            break;
-          case 'techniques': 
-            data = await prisma.libraryTechnique.findMany({ where: { userId: uid }, take: 100 }); 
-            break;
-          case 'products': 
-            data = await prisma.product.findMany({ where: { userId: uid }, take: 50 }); 
-            break;
-          case 'orders': 
-            data = await prisma.kimonoOrder.findMany({ where: { userId: uid }, take: 50 }); 
-            break;
-          case 'presence': 
-            data = await prisma.presence.findMany({ where: { userId: uid }, take: 50 }); 
-            break;
-          case 'profile': 
-            try {
-              data = await prisma.professorProfile.findUnique({ where: { userId: uid } });
-            } catch {
-              data = null;
-            }
-            break;
-          case 'plans': 
-            data = await prisma.plan.findMany({ where: { userId: uid } }); 
-            break;
-          case 'notifications':
-          case 'notification':
-            try {
-              data = await prisma.notification.findMany({
-                where: { userId: uid },
-                orderBy: { createdAt: 'desc' },
-                take: 100
-              });
-            } catch (err: any) {
-              console.warn("⚠️ [BATCH SENSEI] Error reading notifications:", err.message);
-              data = [];
-            }
-            break;
-          case 'graduationhistory':
-            try {
-              data = await prisma.graduationHistory.findMany({
-                where: { student: { userId: uid } },
-                include: { student: true },
-                take: 50,
-                orderBy: { promotedAt: "desc" }
-              });
-            } catch (err: any) {
-              console.warn("⚠️ [BATCH SENSEI] Error reading graduation history, running safe student select:", err.message);
+              break;
+            case 'payments': 
+              data = await prisma.payment.findMany({ 
+                where: { userId: uid }, 
+                orderBy: { timestamp: 'desc' }, 
+                take: defaultPaymentsTake
+              }); 
+              break;
+            case 'schedules': 
+              data = await prisma.classSchedule.findMany({ where: { userId: uid } }); 
+              break;
+            case 'logs': 
+              data = await prisma.systemLog.findMany({ 
+                where: { userId: uid }, 
+                orderBy: { timestamp: 'desc' }, 
+                take: defaultLogsTake
+              }); 
+              break;
+            case 'ledger': 
+              data = await prisma.transactionLedger.findMany({ 
+                where: { userId: uid }, 
+                orderBy: { timestamp: 'desc' }, 
+                take: defaultLedgerTake
+              }); 
+              break;
+            case 'receipts': 
+              data = await prisma.paymentReceipt.findMany({ 
+                where: { userId: uid }, 
+                orderBy: { timestamp: 'desc' },
+                take: 50
+              }); 
+              break;
+            case 'extra_revenue': 
+              data = await prisma.extraRevenue.findMany({ where: { userId: uid }, take: 50 }); 
+              break;
+            case 'lesson_plans': 
+              data = await prisma.lessonPlan.findMany({ where: { userId: uid }, take: 50 }); 
+              break;
+            case 'techniques': 
+              data = await prisma.libraryTechnique.findMany({ where: { userId: uid }, take: 100 }); 
+              break;
+            case 'products': 
+              data = await prisma.product.findMany({ where: { userId: uid }, take: 50 }); 
+              break;
+            case 'orders': 
+              data = await prisma.kimonoOrder.findMany({ where: { userId: uid }, take: 50 }); 
+              break;
+            case 'presence': 
+              data = await prisma.presence.findMany({ where: { userId: uid }, take: 50 }); 
+              break;
+            case 'profile': 
               try {
-                const { graduationDate, nextDegreeDate, estimatedCoralDate, estimatedRedDate, ...safeSelect } = SAFE_STUDENT_SELECT as any;
+                data = await prisma.professorProfile.findUnique({ where: { userId: uid } });
+              } catch {
+                data = null;
+              }
+              break;
+            case 'plans': 
+              data = await prisma.plan.findMany({ where: { userId: uid } }); 
+              break;
+            case 'notifications':
+            case 'notification':
+              try {
+                data = await prisma.notification.findMany({
+                  where: { userId: uid },
+                  orderBy: { createdAt: 'desc' },
+                  take: 100
+                });
+              } catch (err: any) {
+                console.warn("⚠️ [BATCH SENSEI] Error reading notifications:", err.message);
+                data = [];
+              }
+              break;
+            case 'graduationhistory':
+              try {
                 data = await prisma.graduationHistory.findMany({
                   where: { student: { userId: uid } },
-                  include: {
-                    student: { select: safeSelect as any }
-                  },
+                  include: { student: true },
                   take: 50,
                   orderBy: { promotedAt: "desc" }
                 });
-              } catch (fallbackErr: any) {
-                data = [];
-              }
-            }
-            break;
-          default: 
-            if (anyPrisma[collection] && typeof anyPrisma[collection].findMany === 'function') {
-              try {
-                data = await anyPrisma[collection].findMany({ where: { userId: uid }, take: 30 });
-              } catch (e1) {
+              } catch (err: any) {
+                console.warn("⚠️ [BATCH SENSEI] Error reading graduation history, running safe student select:", err.message);
                 try {
-                  data = await anyPrisma[collection].findMany({ take: 30 });
-                } catch (e2) {
+                  const { graduationDate, nextDegreeDate, estimatedCoralDate, estimatedRedDate, ...safeSelect } = SAFE_STUDENT_SELECT as any;
+                  data = await prisma.graduationHistory.findMany({
+                    where: { student: { userId: uid } },
+                    include: {
+                      student: { select: safeSelect as any }
+                    },
+                    take: 50,
+                    orderBy: { promotedAt: "desc" }
+                  });
+                } catch (fallbackErr: any) {
                   data = [];
                 }
               }
-            } else {
-              data = [];
-            }
+              break;
+            default: 
+              if (anyPrisma[collection] && typeof anyPrisma[collection].findMany === 'function') {
+                try {
+                  data = await anyPrisma[collection].findMany({ where: { userId: uid }, take: 30 });
+                } catch (e1) {
+                  try {
+                    data = await anyPrisma[collection].findMany({ take: 30 });
+                  } catch (e2) {
+                    data = [];
+                  }
+                }
+              } else {
+                data = [];
+              }
+          }
+        } catch (err: any) {
+          console.warn(`🛡️ [BATCH RESILIENCE FALLBACK] Failed to read collection "${collection}":`, err.message || err);
+          data = collLower === 'profile' ? null : [];
         }
         return data || [];
       };
