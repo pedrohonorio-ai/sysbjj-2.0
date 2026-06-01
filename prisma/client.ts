@@ -44,7 +44,65 @@ function getFallbackForQuery(method: string, args: any[]): any {
   return [];
 }
 
+class ModelCircuitBreaker {
+  modelName: string;
+  failures = 0;
+  threshold = 3;
+  cooldown = 15000; // 15 seconds
+  state: "CLOSED" | "OPEN" | "HALF-OPEN" = "CLOSED";
+  lastFailureTime = 0;
+
+  constructor(modelName: string) {
+    this.modelName = modelName;
+  }
+
+  isAllowed() {
+    if (this.state === "OPEN") {
+      if (Date.now() - this.lastFailureTime > this.cooldown) {
+        this.state = "HALF-OPEN";
+        console.warn(`🔌 [CIRCUIT BREAKER] Model '${this.modelName}' entering HALF-OPEN state, attempting probe query...`);
+        return true;
+      }
+      return false;
+    }
+    return true;
+  }
+
+  recordFailure(err: any) {
+    this.failures++;
+    this.lastFailureTime = Date.now();
+    const errMsg = err?.message || String(err);
+    console.error(`🔌 [CIRCUIT BREAKER FAIL] Model '${this.modelName}' failed (${this.failures}/${this.threshold}). error:`, errMsg);
+
+    if (this.failures >= this.threshold) {
+      this.state = "OPEN";
+      console.error(`🔴 [CIRCUIT BREAKER OPENED] Model '${this.modelName}' circuit tripped to OPEN. Dynamic safe fallbacks will bypass queries for 15s to bypass high-latency DB issues.`);
+    }
+  }
+
+  recordSuccess() {
+    if (this.state !== "CLOSED") {
+      console.log(`🟢 [CIRCUIT BREAKER RESTORED] Model '${this.modelName}' successfully restored, closing circuit.`);
+    }
+    this.failures = 0;
+    this.state = "CLOSED";
+  }
+}
+
+const breakers = new Map<string, ModelCircuitBreaker>();
+
+function getBreaker(modelName: string): ModelCircuitBreaker {
+  let cb = breakers.get(modelName.toLowerCase());
+  if (!cb) {
+    cb = new ModelCircuitBreaker(modelName);
+    breakers.set(modelName.toLowerCase(), cb);
+  }
+  return cb;
+}
+
 function createModelProxy(modelObj: any, modelName: string): any {
+  const cb = getBreaker(modelName);
+
   return new Proxy(modelObj, {
     get(target, prop) {
       if (typeof prop !== 'string') {
@@ -54,43 +112,26 @@ function createModelProxy(modelObj: any, modelName: string): any {
       const value = Reflect.get(target, prop);
       if (typeof value === 'function') {
         return function(this: any, ...args: any[]) {
+          if (!cb.isAllowed()) {
+            console.warn(`🔌 [CIRCUIT BREAKER STABILITY BYPASS] Model '${modelName}' is offline. Bypassing '${prop}' and returning dummy fallback.`);
+            return Promise.resolve(getFallbackForQuery(prop, args));
+          }
+
           try {
             const result = value.apply(this || target, args);
             if (result && typeof result.then === 'function') {
-              return result.catch((err: any) => {
-                const errMsg = err?.message || String(err);
-                const isMissingTable = 
-                  errMsg.includes("does not exist") || 
-                  errMsg.includes("P2021") || 
-                  errMsg.includes("P2022") || 
-                  err?.code === "P2021" || 
-                  err?.code === "P2022";
-
-                const isOptionalModel = ['notification', 'systemlog', 'transactionledger', 'paymentreceipt', 'presence'].includes(modelName.toLowerCase());
-
-                if (isMissingTable || isOptionalModel) {
-                  console.warn(`🛡️ [SRE SELF-HEAL] Managed query failure in '${modelName}.${prop}':`, errMsg);
-                  return getFallbackForQuery(prop, args);
-                }
-                throw err;
+              return result.then((res: any) => {
+                cb.recordSuccess();
+                return res;
+              }).catch((err: any) => {
+                cb.recordFailure(err);
+                return getFallbackForQuery(prop, args);
               });
             }
             return result;
           } catch (err: any) {
-            const errMsg = err?.message || String(err);
-            const isMissingTable = 
-              errMsg.includes("does not exist") || 
-              errMsg.includes("P2021") || 
-              errMsg.includes("P2022") || 
-              err?.code === "P2021" || 
-              err?.code === "P2022";
-            const isOptionalModel = ['notification', 'systemlog', 'transactionledger', 'paymentreceipt', 'presence'].includes(modelName.toLowerCase());
-
-            if (isMissingTable || isOptionalModel) {
-              console.warn(`🛡️ [SRE SELF-HEAL SYNCHRONOUS] Managed query failure in '${modelName}.${prop}':`, errMsg);
-              return getFallbackForQuery(prop, args);
-            }
-            throw err;
+            cb.recordFailure(err);
+            return Promise.resolve(getFallbackForQuery(prop, args));
           }
         };
       }

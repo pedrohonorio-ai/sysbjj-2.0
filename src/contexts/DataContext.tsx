@@ -333,12 +333,14 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   const applyBatchResults = useCallback((batchResults: any) => {
     if (!batchResults) return;
 
-    if (batchResults.graduationHistory) {
+    if (batchResults.graduationHistory && Array.isArray(batchResults.graduationHistory)) {
       setGraduationHistory(batchResults.graduationHistory);
       saveSafely('oss_graduation_history', batchResults.graduationHistory);
+    } else if (batchResults.graduationHistory) {
+      setGraduationHistory([]);
     }
 
-    if (batchResults.students) {
+    if (batchResults.students && Array.isArray(batchResults.students)) {
       const normalized = batchResults.students.map((s: any) => ({
         ...s,
         belt: s.belt || "Branca",
@@ -346,19 +348,43 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         stripes: Number(s.stripes || 0)
       }));
       setStudents(normalized);
+    } else if (batchResults.students) {
+      setStudents([]);
     }
-    if (batchResults.payments) setPayments(batchResults.payments);
-    if (batchResults.schedules && batchResults.schedules.length > 0) setSchedules(batchResults.schedules);
-    if (batchResults.logs) setLogs(batchResults.logs);
-    if (batchResults.ledger) setLedger(batchResults.ledger);
-    if (batchResults.receipts) setReceipts(batchResults.receipts);
-    if (batchResults.extra_revenue && batchResults.extra_revenue.length > 0) setExtraRevenue(batchResults.extra_revenue);
-    if (batchResults.lesson_plans && batchResults.lesson_plans.length > 0) setLessonPlans(batchResults.lesson_plans);
-    if (batchResults.techniques && batchResults.techniques.length > 0) setTechniques(batchResults.techniques);
-    if (batchResults.products && batchResults.products.length > 0) setProducts(batchResults.products);
-    if (batchResults.plans && batchResults.plans.length > 0) setPlans(batchResults.plans);
-    if (batchResults.orders && batchResults.orders.length > 0) setOrders(batchResults.orders);
-    if (batchResults.notifications) {
+    if (batchResults.payments) {
+      setPayments(Array.isArray(batchResults.payments) ? batchResults.payments : []);
+    }
+    if (batchResults.schedules) {
+      setSchedules(Array.isArray(batchResults.schedules) ? batchResults.schedules : DEFAULT_SCHEDULES);
+    }
+    if (batchResults.logs) {
+      setLogs(Array.isArray(batchResults.logs) ? batchResults.logs : []);
+    }
+    if (batchResults.ledger) {
+      setLedger(Array.isArray(batchResults.ledger) ? batchResults.ledger : []);
+    }
+    if (batchResults.receipts) {
+      setReceipts(Array.isArray(batchResults.receipts) ? batchResults.receipts : []);
+    }
+    if (batchResults.extra_revenue) {
+      setExtraRevenue(Array.isArray(batchResults.extra_revenue) ? batchResults.extra_revenue : []);
+    }
+    if (batchResults.lesson_plans) {
+      setLessonPlans(Array.isArray(batchResults.lesson_plans) ? batchResults.lesson_plans : []);
+    }
+    if (batchResults.techniques) {
+      setTechniques(Array.isArray(batchResults.techniques) ? batchResults.techniques : DEFAULT_TECHNIQUES);
+    }
+    if (batchResults.products) {
+      setProducts(Array.isArray(batchResults.products) ? batchResults.products : DEFAULT_PRODUCTS);
+    }
+    if (batchResults.plans) {
+      setPlans(Array.isArray(batchResults.plans) ? batchResults.plans : DEFAULT_PLANS);
+    }
+    if (batchResults.orders) {
+      setOrders(Array.isArray(batchResults.orders) ? batchResults.orders : []);
+    }
+    if (batchResults.notifications && Array.isArray(batchResults.notifications)) {
       const normalizedNotifs = batchResults.notifications.map((n: any) => ({
         id: n.id,
         message: n.message,
@@ -369,6 +395,8 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         timestamp: n.createdAt ? new Date(n.createdAt).getTime() : Date.now()
       }));
       setNotifications(normalizedNotifs);
+    } else if (batchResults.notifications) {
+      setNotifications([]);
     }
   }, [saveSafely]);
 
@@ -552,7 +580,7 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
              await api.saveData('students', user.id, { ...s, id });
            }
            const refreshedStudents = await api.fetchData('students', user.id);
-           setStudents(refreshedStudents);
+           setStudents(Array.isArray(refreshedStudents) ? refreshedStudents : []);
         }
       } catch (error) {
         handleApiError(error, OperationType.LIST, 'all', setNotifications, setDbStatus);

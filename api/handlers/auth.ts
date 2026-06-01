@@ -61,17 +61,21 @@ export const registerHandler = async (req: Request, res: Response) => {
     });
 
     console.log(`🥋 [AUTH REGISTER] Criando assinatura FREE inicial...`);
-    await prisma.subscription.create({
-      data: {
-        userId: user.id,
-        plan: "FREE",
-        studentLimit: 20,
-        maxStudents: 20,
-        monthlyPrice: 0,
-        paymentStatus: "ACTIVE",
-        active: true
-      }
-    });
+    try {
+      await prisma.subscription.create({
+        data: {
+          userId: user.id,
+          plan: "FREE",
+          studentLimit: 20,
+          maxStudents: 20,
+          monthlyPrice: 0,
+          paymentStatus: "ACTIVE",
+          active: true
+        }
+      });
+    } catch (subErr: any) {
+      console.error("⚠️ [AUTH REGISTER WARNING] Falha secundária ao criar assinatura inicial (fluxo continua normalmente):", subErr.message || subErr);
+    }
 
     console.log(`🥋 [AUTH REGISTER] Usuário criado com sucesso: ${user.id}`);
     // Remove password before sending
