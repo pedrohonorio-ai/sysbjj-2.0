@@ -15,6 +15,7 @@ import { safeHandler } from "./safeHandler.js";
 import neonStatusHandler from "./admin/neon-status.js";
 import resetSystemMetricsHandler from "./admin/reset-system-metrics.js";
 import systemMetricsHandler from "./admin/system-metrics.js";
+import diagnoseHandler from "./admin/diagnose.js";
 
 // 🥋 GLOBAL PROCESS EXCEPTION & REJECTION GUARD FOR PRODUCTION ULTRA RESILIENCE
 process.on('unhandledRejection', (reason: any, promise: Promise<any>) => {
@@ -89,6 +90,7 @@ app.get("/api/health", (_, res) => {
 })
 app.post("/api/auth/login", safeHandler(loginHandler));
 app.post("/api/auth/register", safeHandler(registerHandler));
+app.get("/api/diagnose", safeHandler(diagnoseHandler));
 
 // 🥋 SUPREME ENDPOINT: DELETE /api/admin/delete-user/:id
 app.delete("/api/admin/delete-user/:id", authenticate as any, async (req: AuthRequest, res: Response): Promise<any> => {
