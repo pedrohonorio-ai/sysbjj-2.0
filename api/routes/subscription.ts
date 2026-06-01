@@ -1,8 +1,33 @@
 import { Router, Response } from "express";
 import { authenticate, AuthRequest } from "../authMiddleware.js";
 import { prisma } from "../../prisma/client.js";
+import { safeHandler } from "../safeHandler.js";
 
 const router = Router();
+
+// Hook route registrations to automatically wrap all controller handlers with safeHandler
+const originalGet = router.get.bind(router);
+const originalPost = router.post.bind(router);
+
+router.get = function(path: any, ...handlers: any[]): any {
+  const wrapped = handlers.map((h, i) => {
+    if (typeof h === "function" && i === handlers.length - 1) {
+      return safeHandler(h);
+    }
+    return h;
+  });
+  return originalGet(path, ...wrapped);
+};
+
+router.post = function(path: any, ...handlers: any[]): any {
+  const wrapped = handlers.map((h, i) => {
+    if (typeof h === "function" && i === handlers.length - 1) {
+      return safeHandler(h);
+    }
+    return h;
+  });
+  return originalPost(path, ...wrapped);
+};
 
 // OS SENSEI: EMV Standard Static/Dynamic PIX Payload Generator with dynamic tag lengths & mathematical CRC16
 function generatePixPayload(pixKey: string, pixHolder: string, pixCity: string, price: number): string {

@@ -11,6 +11,7 @@ import batchHandler from "./handlers/batch.js";
 import { dataHandler } from "./handlers/data.js";
 import subscriptionRouter from "./routes/subscription.js";
 import { requireMaster } from "../server/middleware/requireMaster.js";
+import { safeHandler } from "./safeHandler.js";
 import neonStatusHandler from "./admin/neon-status.js";
 import resetSystemMetricsHandler from "./admin/reset-system-metrics.js";
 import systemMetricsHandler from "./admin/system-metrics.js";
@@ -86,8 +87,8 @@ app.get("/api/health", (_, res) => {
     timestamp: new Date().toISOString()
   })
 })
-app.post("/api/auth/login", loginHandler);
-app.post("/api/auth/register", registerHandler);
+app.post("/api/auth/login", safeHandler(loginHandler));
+app.post("/api/auth/register", safeHandler(registerHandler));
 
 // 🥋 SUPREME ENDPOINT: DELETE /api/admin/delete-user/:id
 app.delete("/api/admin/delete-user/:id", authenticate as any, async (req: AuthRequest, res: Response): Promise<any> => {
@@ -211,9 +212,9 @@ protectedRouter.use(authenticate as any);
 
 // Aplicar requireMaster em rotas sensíveis administrativas do SaaS e Governança
 protectedRouter.use("/admin", requireMaster as any);
-protectedRouter.get("/admin/neon-status", neonStatusHandler as any);
-protectedRouter.get("/admin/system-metrics", systemMetricsHandler as any);
-protectedRouter.post("/admin/reset-system-metrics", resetSystemMetricsHandler as any);
+protectedRouter.get("/admin/neon-status", safeHandler(neonStatusHandler as any));
+protectedRouter.get("/admin/system-metrics", safeHandler(systemMetricsHandler as any));
+protectedRouter.post("/admin/reset-system-metrics", safeHandler(resetSystemMetricsHandler as any));
 protectedRouter.use("/system-logs", requireMaster as any);
 protectedRouter.use("/governance", requireMaster as any);
 protectedRouter.use("/master", requireMaster as any);
@@ -221,7 +222,7 @@ protectedRouter.use("/global-dashboard", requireMaster as any);
 protectedRouter.use("/audit", requireMaster as any);
 
 // Custom endpoint for delete-student
-protectedRouter.delete("/delete-student", requireMaster as any, async (req: any, res: any) => {
+protectedRouter.delete("/delete-student", requireMaster as any, safeHandler(async (req: any, res: any) => {
     const { id } = req.body;
     if (!id) return res.status(400).json({ success: false, error: "ID do aluno é obrigatório." });
     try {
@@ -259,19 +260,19 @@ protectedRouter.delete("/delete-student", requireMaster as any, async (req: any,
     } catch (error: any) {
         res.status(500).json({ success: false, error: error.message });
     }
-});
+}));
 
-protectedRouter.get("/health-db", healthDbHandler);
-protectedRouter.get("/health-db-rls", healthDbRlsHandler);
-protectedRouter.get("/bi", biHandler);
-protectedRouter.get("/batch", batchHandler);
+protectedRouter.get("/health-db", safeHandler(healthDbHandler));
+protectedRouter.get("/health-db-rls", safeHandler(healthDbRlsHandler));
+protectedRouter.get("/bi", safeHandler(biHandler));
+protectedRouter.get("/batch", safeHandler(batchHandler));
 
 // Mount subscription routes
 protectedRouter.use("/subscription", subscriptionRouter);
-protectedRouter.get("/data/:collection", dataHandler);
-protectedRouter.post("/data/:collection", dataHandler);
+protectedRouter.get("/data/:collection", safeHandler(dataHandler));
+protectedRouter.post("/data/:collection", safeHandler(dataHandler));
 
-protectedRouter.delete("/data/:collection/:id", async (req: any, res: any) => {
+protectedRouter.delete("/data/:collection/:id", safeHandler(async (req: any, res: any) => {
     const { collection, id } = req.params;
     const userId = req.user?.id;
     if (!userId) return res.status(401).json({ error: "Unauthorized" });
@@ -336,7 +337,7 @@ protectedRouter.delete("/data/:collection/:id", async (req: any, res: any) => {
         // Simple error handling for now as utils requires specific response type
         res.status(500).json({ error: error.message });
     }
-});
+}));
 
 app.use("/api", protectedRouter);
 app.use("/", protectedRouter);
