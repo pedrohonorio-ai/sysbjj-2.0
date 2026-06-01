@@ -19,6 +19,7 @@ import subscriptionRouter from "./api/routes/subscription.js";
 import neonStatusHandler from "./api/admin/neon-status.js";
 import resetSystemMetricsHandler from "./api/admin/reset-system-metrics.js";
 import systemMetricsHandler from "./api/admin/system-metrics.js";
+import { safeHandler } from "./api/safeHandler.js";
 
 // GLOBAL ERROR HANDLERS
 process.on('uncaughtException', (err) => {
@@ -90,6 +91,52 @@ async function startServer() {
 
   // API Router
   const apiRouter = express.Router();
+
+  // 🥋 Proxy method registry on apiRouter to transparently inject safeHandler wrappers on every handler
+  const originalGet = apiRouter.get.bind(apiRouter);
+  const originalPost = apiRouter.post.bind(apiRouter);
+  const originalPut = apiRouter.put.bind(apiRouter);
+  const originalDelete = apiRouter.delete.bind(apiRouter);
+
+  apiRouter.get = function(path: any, ...handlers: any[]): any {
+    const wrapped = handlers.map((h, i) => {
+      if (typeof h === "function" && i === handlers.length - 1) {
+        return safeHandler(h);
+      }
+      return h;
+    });
+    return originalGet(path, ...wrapped);
+  };
+
+  apiRouter.post = function(path: any, ...handlers: any[]): any {
+    const wrapped = handlers.map((h, i) => {
+      if (typeof h === "function" && i === handlers.length - 1) {
+        return safeHandler(h);
+      }
+      return h;
+    });
+    return originalPost(path, ...wrapped);
+  };
+
+  apiRouter.put = function(path: any, ...handlers: any[]): any {
+    const wrapped = handlers.map((h, i) => {
+      if (typeof h === "function" && i === handlers.length - 1) {
+        return safeHandler(h);
+      }
+      return h;
+    });
+    return originalPut(path, ...wrapped);
+  };
+
+  apiRouter.delete = function(path: any, ...handlers: any[]): any {
+    const wrapped = handlers.map((h, i) => {
+      if (typeof h === "function" && i === handlers.length - 1) {
+        return safeHandler(h);
+      }
+      return h;
+    });
+    return originalDelete(path, ...wrapped);
+  };
 
   // Middleware para de Router (somente dev)
   if (process.env.NODE_ENV !== "production") {

@@ -162,19 +162,24 @@ class EnterpriseApi {
               }
             } else {
               const text = await response.text();
-              console.error('🥋 [NON-JSON ERROR]', text.substring(0, 200));
-              const error = new Error(`Resposta do servidor não pôde ser lida como JSON (${response.status}).`) as any;
-              error.status = response.status;
-              throw error;
+              console.error('🥋 [NON-JSON ERROR INTERCEPTED]', text.substring(0, 200));
+              return { success: false, error: "invalid_json", fallback: {} };
             }
           }
 
           const contentType = response.headers.get('content-type');
           if (!contentType || !contentType.includes('application/json')) {
-             throw new Error("Resposta inválida do servidor. Esperado JSON.");
+            console.error('🥋 [NON-JSON TYPE DEVIATION CONTENT-TYPE]', contentType);
+            return { success: false, error: "invalid_json", fallback: {} };
           }
 
-          const data = await response.json();
+          let data;
+          try {
+            data = await response.json();
+          } catch (jsonErr) {
+            console.error('🥋 [JSON PARSING CRASH]', jsonErr);
+            return { success: false, error: "invalid_json", fallback: {} };
+          }
 
           // 🥋 Atualiza Cache se for uma coleção importante
           if (useCache && isGet) {
