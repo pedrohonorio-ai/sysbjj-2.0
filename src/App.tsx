@@ -43,6 +43,8 @@ import { useProfile } from './contexts/ProfileContext.js';
 import { useData } from './contexts/DataContext.js';
 import { useAuth } from './context/AuthContext.js';
 import { api } from './services/api.js';
+import { useOfflineSync } from './hooks/useOfflineSync.js';
+import { toast } from './utils/toast.js';
 
 const Sidebar = ({ isOpen, toggle, onLogout, isMasterAdmin }: { isOpen: boolean, toggle: () => void, onLogout: () => void, isMasterAdmin: boolean }) => {
   const location = useLocation();
@@ -475,6 +477,9 @@ const Header = ({ toggleSidebar, auth, onLogout }: { toggleSidebar: () => void, 
 };
 
 const App: React.FC = () => {
+  // Sincronizador de fila offline / IndexedDB para o Sensei
+  useOfflineSync();
+
   const { t } = useTranslation();
   const [sidebarOpen, setSidebarOpen] = useState(window.innerWidth > 1024);
   const location = useLocation();
@@ -485,6 +490,27 @@ const App: React.FC = () => {
   
   // Track Online Status
   const { dbStatus } = useData();
+
+  // 🔌 OSS SENSEI: Registra observadores para notificações de escrita offline
+  useEffect(() => {
+    const handleOfflineWrite = (e: Event) => {
+      const ev = e as CustomEvent;
+      const name = ev.detail?.name || 'Item';
+      toast.info(`🥋 OSS SENSEI! Conexão ausente ou instável. Gravamos o item "${name}" localmente para sincronização automática.`);
+    };
+
+    const handleOfflineDelete = (e: Event) => {
+      toast.info(`🥋 OSS SENSEI! Exclusão agendada localmente via IndexedDB. Sincronizaremos assim que conectar.`);
+    };
+
+    window.addEventListener('oss_offline_written', handleOfflineWrite);
+    window.addEventListener('oss_offline_deleted', handleOfflineDelete);
+
+    return () => {
+      window.removeEventListener('oss_offline_written', handleOfflineWrite);
+      window.removeEventListener('oss_offline_deleted', handleOfflineDelete);
+    };
+  }, []);
 
   // Reset/close mobile sidebar automatically when navigating routes
   useEffect(() => {
