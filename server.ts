@@ -196,7 +196,10 @@ async function startServer() {
 
   // DELETE Route
   apiRouter.delete("/data/:collection/:id", async (req: any, res: express.Response) => {
-    const { collection, id } = req.params;
+    let { collection, id } = req.params;
+    if (collection === 'notifications') {
+      collection = 'notification';
+    }
     const userId = req.user?.id;
     if (!userId) return res.status(401).json({ error: "Unauthorized" });
 

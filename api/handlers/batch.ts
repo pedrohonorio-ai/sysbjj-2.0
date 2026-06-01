@@ -4,9 +4,7 @@ import { AuthRequest } from '../authMiddleware.js';
 import { SAFE_STUDENT_SELECT, enrichStudentsList } from './data.js';
 
 const BATCH_COOLDOWN = 1500;
-
-// Controle por usuário para não bloquear outros usuários
-const batchExecutionMap = new Map<string, number>();
+let lastBatchExecution = 0;
 
 export default async function batchHandler(req: AuthRequest, res: Response) {
   const userId = req.user?.id;
@@ -34,20 +32,16 @@ export default async function batchHandler(req: AuthRequest, res: Response) {
 
   const { collections } = req.query;
 
-const now = Date.now();
-
-const lastExecution = batchExecutionMap.get(userId) || 0;
-
-if (now - lastExecution < BATCH_COOLDOWN) {
-  return res.status(429).json({
-    success: false,
-    error: "Batch cooldown protection enabled (Mantenha a guarda!).",
-    message: "Batch cooldown protection enabled",
-    code: 429
-  });
-}
-
-batchExecutionMap.set(userId, now);
+  const now = Date.now();
+  if (now - lastBatchExecution < BATCH_COOLDOWN) {
+    return res.status(429).json({
+      success: false,
+      error: "Batch cooldown protection enabled (Mantenha a guarda!).",
+      message: "Batch cooldown protection enabled",
+      code: 429
+    });
+  }
+  lastBatchExecution = now;
 
   if (collections === undefined || typeof collections !== 'string') {
     return res.status(400).json({ 
@@ -79,16 +73,10 @@ batchExecutionMap.set(userId, now);
   }
 
   // Sanitise collection names
- const collectionList = collections
-  .split(',')
-  .map(c => c.trim())
-  .filter(c => c.length > 0 && /^[a-zA-Z0-9_]+$/.test(c));
-  if (collectionList.length === 0) {
-  return res.status(400).json({
-    success: false,
-    error: "Nenhuma coleção válida foi informada."
-  });
-}
+  const collectionList = collections
+    .split(',')
+    .map(c => c.trim())
+    .filter(c => c.length > 0 && /^[a-zA-Z0-9_]+$/.test(c));
 
   const results: Record<string, any> = {};
   const uid = String(userId);
@@ -129,7 +117,7 @@ batchExecutionMap.set(userId, now);
             } catch (err: any) {
               console.warn("⚠️ [BATCH SENSEI] Error reading students, running safe select:", err.message);
               try {
-                const safeSelect = SAFE_STUDENT_SELECT;
+                const { graduationDate, nextDegreeDate, estimatedCoralDate, estimatedRedDate, blackBeltDate, blackBeltDegree, ...safeSelect } = SAFE_STUDENT_SELECT as any;
                 data = await prisma.student.findMany({
                   where: { userId: uid },
                   orderBy: { joinedAt: 'desc' },
@@ -289,7 +277,7 @@ batchExecutionMap.set(userId, now);
       const timeoutPromise = new Promise((_, reject) => {
         setTimeout(() => reject(new Error("Timeout")), QUERY_TIMEOUT_MS);
       });
-     
+
       try {
         const fetchResponse = await Promise.race([fetchPromise, timeoutPromise]);
         results[collection] = fetchResponse;

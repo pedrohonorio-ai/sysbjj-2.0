@@ -24,80 +24,29 @@ export function getPlanByStudents(totalStudents: number) {
 }
 
 export async function updateSubscriptionPlan(userId: string) {
-  if (!prisma) {
-    console.warn('🥋 [SUBSCRIPTION] Prisma não inicializado.');
-    return null;
-  }
+  if (!prisma) return;
 
-  try {
-    const [subscription, studentCount] = await Promise.all([
-      prisma.subscription.findUnique({
-        where: { userId }
-      }),
-      prisma.student.count({
-        where: { userId }
-      })
-    ]);
+  const studentCount = await prisma.student.count({
+    where: { userId }
+  });
 
-    // Preserva planos especiais administrados manualmente
-    if (
-      subscription &&
-      (
-        subscription.grantedByAdmin === true ||
-        subscription.isSocialProject === true ||
-        subscription.billingCycle === 'LIFETIME' ||
-        subscription.billingCycle === 'CUSTOM'
-      )
-    ) {
-      await prisma.subscription.update({
-        where: { userId },
-        data: {
-          currentStudents: studentCount
-        }
-      });
+  const planInfo = getPlanByStudents(studentCount);
 
-      console.log(
-        `🥋 [SUBSCRIPTION] Plano especial preservado para ${userId}. Alunos: ${studentCount}`
-      );
-
-      return subscription;
+  await prisma.subscription.upsert({
+    where: { userId },
+    create: {
+      userId,
+      plan: planInfo.name,
+      maxStudents: planInfo.maxStudents,
+      monthlyPrice: planInfo.price,
+      active: true
+    },
+    update: {
+      plan: planInfo.name,
+      maxStudents: planInfo.maxStudents,
+      monthlyPrice: planInfo.price
     }
+  });
 
-    const planInfo = getPlanByStudents(studentCount);
-
-    const updatedSubscription = await prisma.subscription.upsert({
-      where: { userId },
-      create: {
-        userId,
-        plan: planInfo.name,
-        studentLimit: planInfo.maxStudents,
-        maxStudents: planInfo.maxStudents,
-        currentStudents: studentCount,
-        monthlyPrice: planInfo.price,
-        paymentStatus: 'ACTIVE',
-        active: true,
-      },
-      update: {
-        plan: planInfo.name,
-        studentLimit: planInfo.maxStudents,
-        maxStudents: planInfo.maxStudents,
-        currentStudents: studentCount,
-        monthlyPrice: planInfo.price,
-      }
-    });
-
-    console.log(
-      `🥋 [SUBSCRIPTION UPDATED] User: ${userId} | Plano: ${planInfo.name} | Alunos: ${studentCount}`
-    );
-
-    return updatedSubscription;
-
-  } catch (error: any) {
-    console.error(
-      '🥋 [SUBSCRIPTION ERROR]',
-      error?.message || error
-    );
-
-    return null;
-  }
+  return planInfo;
 }

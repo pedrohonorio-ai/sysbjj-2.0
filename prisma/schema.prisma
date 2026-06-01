@@ -427,32 +427,15 @@ model GraduationHistory {
 }
 
 model Notification {
-  id          String   @id @default(cuid())
-
-  userId      String
-
-  title       String
-  message     String
-
-  type        String   @default("SYSTEM")
-  category    String?  // AUTH | PAYMENT | STUDENT | SYSTEM | GRADUATION | SECURITY
-
-  priority    String   @default("MEDIUM") // LOW | MEDIUM | HIGH | CRITICAL
-
-  read        Boolean  @default(false)
-
-  actionUrl   String?
-  icon        String?
-
-  expiresAt   DateTime?
-
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+  id        String   @id @default(cuid())
+  userId    String
+  title     String
+  message   String
+  type      String   // AUTH | PAYMENT | STUDENT | SYSTEM | BELT | ATTENDANCE | SECURITY
+  priority  String   // LOW | MEDIUM | HIGH | CRITICAL
+  read      Boolean  @default(false)
+  createdAt DateTime @default(now())
 
   @@index([userId])
-  @@index([read])
-  @@index([type])
-  @@index([priority])
-  @@index([createdAt(sort: Desc)])
 }
 

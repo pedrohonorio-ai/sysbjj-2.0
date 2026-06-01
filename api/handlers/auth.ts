@@ -185,56 +185,66 @@ export const loginHandler = async (req: Request, res: Response) => {
 
     if (!validPassword) {
       console.log(`🥋 [DIAGNOSTICO LOGIN FAIL] Senha incorreta para o usuário: ${email}`);
-      return res.status(401).json({ 
+      
+      // Retorna o erro imediatamente para o cliente para evitar delays desnecessários
+      res.status(401).json({ 
         success: false,
         message: 'Senha incorreta. Verifique suas credenciais.',
         error: 'Senha incorreta. Verifique suas credenciais.',
         data: null
       });
+
+      // Tentar registrar falha de login nos logs e notificações em segundo plano (completamente isolado)
+      Promise.resolve().then(async () => {
+        try {
+          await prisma.systemLog.create({
+            data: {
+              userId: user.id,
+              timestamp: BigInt(Date.now()),
+              userEmail: email,
+              action: 'LOGIN_FAILED_WRONG_PASSWORD',
+              details: `Tentativa de login malsucedida de ${email} devido a contrasinal incorreto.`,
+              category: 'Security',
+              deviceInfo: req.headers['user-agent'] || 'Desconhecido'
+            }
+          });
+        } catch (err: any) {
+          console.error("⚠️ [AUTH_LOG] Erro ao registrar log de falha de login:", err.message || err);
+        }
+
+        try {
+          await prisma.notification.create({
+            data: {
+              userId: user.id,
+              title: "SEGURANÇA",
+              message: `⚠️ Alerta: Tentativa de login malsucedida devido a senha incorreta.`,
+              type: "SECURITY",
+              priority: "HIGH",
+              read: false,
+              createdAt: new Date()
+            }
+          });
+        } catch (err: any) {
+          console.error("⚠️ [NOTIFICATION] Erro ao criar notificação de falha de login:", err.message || err);
+        }
+      });
+
+      return;
     }
 
     console.log(`🥋 [DIAGNOSTICO LOGIN] Validação da senha concluída com sucesso.`);
-    console.log(`🥋 [DIAGNOSTICO LOGIN] Criação da sessão / Geração de token iniciada para usuário ID: ${user.id}`);
+    console.log(`🥋 [DIAGNOSTICO LOGIN] Geração do token / sessão iniciada para ID: ${user.id}`);
     
-    // Atualiza controle de atividade real
-    try {
-      await prisma.user.update({
-        where: { id: user.id },
-        data: {
-          lastLoginAt: new Date(),
-          lastActivityAt: new Date(),
-          active: true // reactivate if logging back in
-        }
-      });
-    } catch (activeErr) {
-      console.error("🥋 Falha ao registrar lastLoginAt:", activeErr);
-    }
-
-    // Remove password before sending
+    // Geração imediata para retorno imediato (Passos 1, 2, 3 e 4)
     const { password: _, ...userWithoutPassword } = user;
     const isMasterAdmin = user.email === MASTER_ADMIN_EMAIL;
     if (isMasterAdmin) {
       (userWithoutPassword as any).role = 'MASTER';
-      try {
-        await prisma.systemLog.create({
-          data: {
-            userId: user.id,
-            timestamp: BigInt(Date.now()),
-            userEmail: user.email,
-            action: 'LOGIN_MASTER',
-            details: 'Sensei Master fez login no sistema de administração.',
-            category: 'Auth',
-            deviceInfo: req.headers['user-agent'] || 'Desconhecido',
-          }
-        });
-      } catch (logErr) {
-        console.error("🥋 Falha ao registrar log de Auditoria Master:", logErr);
-      }
     }
     const token = generateToken(user);
-    console.log(`🥋 [DIAGNOSTICO LOGIN] Criação da sessão concluída com sucesso.`);
 
-    return res.status(200).json({ 
+    // Envia o JSON imediatamente (Passo 4)
+    res.status(200).json({ 
       success: true,
       message: "Login bem-sucedido.",
       user: userWithoutPassword,
@@ -244,6 +254,79 @@ export const loginHandler = async (req: Request, res: Response) => {
         token
       }
     });
+
+    console.log(`🥋 [DIAGNOSTICO LOGIN] JSON retornado ao cliente. Processando rotinas adicionais em paralelo...`);
+
+    // 5. Tentar atualizar atividades, logs e notificações de forma assíncrona e isolada
+    Promise.resolve().then(async () => {
+      // Atualizações de atividade e login logs
+      try {
+        await prisma.user.update({
+          where: { id: user.id },
+          data: {
+            lastLoginAt: new Date(),
+            lastActivityAt: new Date(),
+            active: true // reativa se logando
+          }
+        });
+      } catch (activeErr: any) {
+        console.error("🥋 [AUTH] Erro (ignorado) ao registrar lastLoginAt no banco:", activeErr.message || activeErr);
+      }
+
+      if (isMasterAdmin) {
+        try {
+          await prisma.systemLog.create({
+            data: {
+              userId: user.id,
+              timestamp: BigInt(Date.now()),
+              userEmail: user.email,
+              action: 'LOGIN_MASTER',
+              details: 'Sensei Master fez login no sistema de administração.',
+              category: 'Auth',
+              deviceInfo: req.headers['user-agent'] || 'Desconhecido',
+            }
+          });
+        } catch (logErr: any) {
+          console.error("🥋 [AUTH] Erro (ignorado) ao registrar log de Auditoria Master:", logErr.message || logErr);
+        }
+      } else {
+        try {
+          await prisma.systemLog.create({
+            data: {
+              userId: user.id,
+              timestamp: BigInt(Date.now()),
+              userEmail: user.email,
+              action: 'LOGIN_SUCCESS',
+              details: `Presença do Sensei confirmada. Acesso via ${req.headers['user-agent'] || 'Dispositivo'}`,
+              category: 'Auth',
+              deviceInfo: req.headers['user-agent'] || 'Desconhecido',
+            }
+          });
+        } catch (logErr: any) {
+          console.error("🥋 [AUTH] Erro (ignorado) ao registrar log de login do usuário:", logErr.message || logErr);
+        }
+      }
+
+      // Tenta enviar notificação de auditoria de login
+      try {
+        await prisma.notification.create({
+          data: {
+            userId: user.id,
+            title: "SEGURANÇA",
+            message: `🥋 OSS! Novo login realizado no sistema a partir do dispositivo: ${req.headers['user-agent'] || 'Dispositivo desconhecido'}.`,
+            type: "SECURITY",
+            priority: "LOW",
+            read: false,
+            createdAt: new Date()
+          }
+        });
+        console.log(`🥋 [NOTIFICATION] Sincronismo de notificação de login concluído para usuário ${user.email}`);
+      } catch (notifErr: any) {
+        console.error("⚠️ [NOTIFICATION] Falha isolada ao criar notificação de login (sistema continuará funcionando normalmente):", notifErr.message || notifErr);
+      }
+    });
+
+    return;
   } catch (error: any) {
     console.error("🥋 [DIAGNOSTICO LOGIN FAIL] Erro crítico com stack trace completo durante login:", error.stack || error.message || error);
     return res.status(500).json({
