@@ -14,7 +14,11 @@ export interface AuthRequest extends Request {
 export const authenticate = (req: AuthRequest, res: Response, next: NextFunction) => {
   const authHeader = req.headers.authorization;
 
+  console.log(`🔐 [AUTH MIDDLEWARE] ${req.method} ${req.path}`);
+  console.log('🔐 Auth header:', authHeader ? `${authHeader.substring(0, 25)}...` : 'undefined');
+
   if (!authHeader || !authHeader.startsWith('Bearer ')) {
+    console.warn('❌ [AUTH MIDDLEWARE] Denied: Missing or malformed authorization header.');
     return res.status(401).json({ 
       success: false,
       error: 'Acesso negado. Token não fornecido.',
@@ -24,9 +28,11 @@ export const authenticate = (req: AuthRequest, res: Response, next: NextFunction
   }
 
   const token = authHeader.split(' ')[1];
+  console.log('🔐 Token extraído:', token ? `${token.substring(0, 15)}...` : 'empty');
 
   try {
     const decoded = jwt.verify(token, JWT_SECRET) as any;
+    console.log('✅ [AUTH MIDDLEWARE] Token validado para:', decoded.email, 'Role:', decoded.role);
     req.user = {
       id: decoded.id,
       email: decoded.email,
@@ -44,12 +50,13 @@ export const authenticate = (req: AuthRequest, res: Response, next: NextFunction
     }).catch(() => {});
 
     next();
-  } catch (err) {
-    return res.status(403).json({ 
+  } catch (err: any) {
+    console.error('❌ [AUTH MIDDLEWARE] Error validating JWT:', err.message || err);
+    return res.status(401).json({ 
       success: false,
       error: 'Token inválido ou expirado.',
-      code: 403,
-      sensei_tip: 'Sua sessão expirou. Por favor, faça login novamente para continuar sua evolução.'
+      code: 401,
+      sensei_tip: 'Sua sessão expirou ou o token é inválido. Por favor, faça login novamente para continuar sua evolução.'
     });
   }
 };

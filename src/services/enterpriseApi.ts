@@ -1,4 +1,5 @@
 import { cacheManager } from './cacheManager.js';
+import { isJwtExpired } from '../utils/jwt.js';
 
 /**
  * 🥋 SYSBJJ 2.0 - ENTERPRISE API CLIENT
@@ -122,6 +123,16 @@ class EnterpriseApi {
         } catch (e) {}
       }
 
+      // 🥋 OSS SENSEI: Valida expiração do token localmente ANTES de enviar a requisição
+      if (token && isJwtExpired(token)) {
+        console.warn("🥋 [API AUTH CLEANUP] Token expirado detectado antes de enviar, limpando credenciais locais.");
+        if (typeof window !== 'undefined') {
+          localStorage.removeItem('oss_auth');
+          window.dispatchEvent(new Event('oss_unauthorized'));
+        }
+        token = '';
+      }
+
       const headers = {
         ...options.headers,
         ...(token ? { 'Authorization': `Bearer ${token}` } : {})
@@ -142,7 +153,7 @@ class EnterpriseApi {
           const response = await fetch(url, {
             ...fetchOptions,
             headers,
-            credentials: 'include',
+            credentials: 'same-origin',
             signal: controller.signal
           });
 
@@ -152,12 +163,10 @@ class EnterpriseApi {
             let errorInfo = `HTTP Error: ${response.status}`;
             const contentType = response.headers.get('content-type');
             
-            // 🥋 OSS SENSEI: Autolimpeza de token de forma segura
-            // Apenas remove a credencial se receber 401 (Não Autorizado) ou se o JSON indicar explicitamente Token Expirado.
-            // Isso previne que alunos sejam desconectados ao encontrarem recursos restritos (403).
-            if (response.status === 401) {
+            // 🥋 OSS SENSEI: Autolimpeza de token de forma segura (redundante para interceptações de rede HTML)
+            if (response.status === 401 || (response.status === 403 && (!token || isJwtExpired(token)))) {
               if (typeof window !== 'undefined') {
-                console.warn("🥋 [API AUTH CLEANUP] Sessão inválida (401), limpando credenciais locais de forma segura.");
+                console.warn(`🥋 [API AUTH CLEANUP] Resposta ${response.status} de acesso ilegal/expirado detectada. Resetando credenciais locais.`);
                 localStorage.removeItem('oss_auth');
                 window.dispatchEvent(new Event('oss_unauthorized'));
               }

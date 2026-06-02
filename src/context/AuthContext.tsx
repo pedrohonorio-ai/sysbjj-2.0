@@ -1,4 +1,5 @@
 import React, { createContext, useContext, useEffect, useState } from 'react';
+import { isJwtExpired } from '../utils/jwt.js';
 
 // 🥋 OSS SENSEI: Definindo tipo de usuário nativo para o ecossistema SYBJJ
 export interface User {
@@ -59,17 +60,26 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     const parsed = safeParse(saved);
     
     if (parsed && parsed.isLoggedIn) {
-      if (parsed.role === 'admin') {
-        setUser({
-          id: parsed.userId || 'local-admin',
-          email: parsed.email || 'admin@sysbjj.com',
-          name: parsed.name || 'Professor Master',
-          role: 'admin'
-        });
-        setRole('admin');
-      } else if (parsed.role === 'student') {
-        setRole('student');
-        setStudentCode(parsed.studentCode);
+      // 🥋 OSS SENSEI: Valida expiração do token ao restaurar a sessão na inicialização do app
+      const expired = parsed.token ? isJwtExpired(parsed.token) : false;
+      if (expired) {
+        console.warn("🥋 [AUTH RESTORE SENSEI STATUS] Token expirado detectado na inicialização. Removendo sessões locais.");
+        localStorage.removeItem('oss_auth');
+        setUser(null);
+        setRole(null);
+      } else {
+        if (parsed.role === 'admin') {
+          setUser({
+            id: parsed.userId || 'local-admin',
+            email: parsed.email || 'admin@sysbjj.com',
+            name: parsed.name || 'Professor Master',
+            role: 'admin'
+          });
+          setRole('admin');
+        } else if (parsed.role === 'student') {
+          setRole('student');
+          setStudentCode(parsed.studentCode);
+        }
       }
     }
     setLoading(false);
