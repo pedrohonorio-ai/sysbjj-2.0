@@ -9,6 +9,11 @@ import { fileURLToPath } from 'url';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
+// 🥋 OSS SENSEI: Correct bad system DIRECT_URL variable before executing child processes
+if (process.env.DATABASE_URL) {
+  process.env.DIRECT_URL = process.env.DATABASE_URL.replace("-pooler", "").replace(":6543", ":5432");
+}
+
 // Cores para console
 const colors = {
   reset: '\x1b[0m',

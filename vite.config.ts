@@ -17,6 +17,7 @@ export default defineConfig(({ command, mode }) => {
           port: 3000,
           host: '0.0.0.0',
           strictPort: true,
+          allowedHosts: true,
           hmr: {
             protocol: 'wss',
             host: process.env.HMR_HOST || 'localhost',
