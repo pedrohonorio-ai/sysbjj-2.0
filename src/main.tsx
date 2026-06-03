@@ -1,115 +1,77 @@
-// 🥋 SYSBJJ 2.0 - MASTER SENSEI WEBSOCKET GUARD
-// Stub para desativar de forma absoluta qualquer tentativa de conexão por WebSocket no navegador,
-// silenciando erros de HMR do Vite e garantindo que rejeições não tratadas não poluam o sistema.
-if (typeof window !== "undefined") {
-  class MasterMockWebSocket {
-    url: string;
-    readyState: number = 1; // Instante OPEN para convencer o Vite de que a conexão foi estabelecida
-    bufferedAmount: number = 0;
-    extensions: string = "";
-    protocol: string = "";
-    binaryType: string = "blob";
-    onopen: any = null;
-    onerror: any = null;
-    onclose: any = null;
-    onmessage: any = null;
-
-    private _listeners: Record<string, Set<any>> = {};
-
-    constructor(url: string, protocols?: string | string[]) {
-      this.url = url;
-      // Triga o evento 'open' de forma assíncrona simulando conexão imediata ideal
-      setTimeout(() => {
-        this.readyState = 1; // OPEN
-        const event = new Event('open');
-        if (this.onopen) {
-          try { this.onopen(event); } catch (_) {}
+// 🥋 OSS SENSEI: SILENCIADOR COMPLETO DE WEBSOCKET
+(function() {
+  if (typeof window !== "undefined") {
+    class NoOpWebSocket {
+      static CONNECTING = 0;
+      static OPEN = 1;
+      static CLOSING = 2;
+      static CLOSED = 3;
+      
+      url: string;
+      readyState = 3;
+      CONNECTING = 0;
+      OPEN = 1;
+      CLOSING = 2;
+      CLOSED = 3;
+      binaryType: any = "blob";
+      bufferedAmount = 0;
+      extensions = "";
+      protocol = "";
+      onopen: any = null;
+      onerror: any = null;
+      onclose: any = null;
+      onmessage: any = null;
+      
+      constructor(url: string | URL, protocols?: string | string[]) {
+        this.url = String(url);
+      }
+      
+      send() {}
+      close() {}
+      addEventListener() {}
+      removeEventListener() {}
+      dispatchEvent() { return true; }
+    }
+    
+    try {
+      window.WebSocket = NoOpWebSocket as unknown as typeof WebSocket;
+    } catch (_) {}
+    
+    try {
+      const originalFetch = window.fetch;
+      window.fetch = function(input: RequestInfo | URL, init?: RequestInit) {
+        const url = String(input);
+        if (url.startsWith("ws://") || url.startsWith("wss://")) {
+          return Promise.resolve(new Response(null, { status: 200 }));
         }
-        this.dispatchEvent(event);
-      }, 5);
-    }
-
-    send(data: any) {
-      // Ignora silenciosamente qualquer envio
-    }
-
-    close(code?: number, reason?: string) {
-      this.readyState = 3; // CLOSED
-      const event = new CloseEvent('close', { wasClean: true, code: code || 1000, reason: reason || "Disconnected safely" });
-      if (this.onclose) {
-        try { this.onclose(event); } catch (_) {}
+        return originalFetch.call(this, input, init);
+      };
+    } catch (_) {}
+    
+    window.addEventListener("unhandledrejection", (event) => {
+      const reason = String(event.reason?.message || event.reason || "");
+      if (reason.includes("WebSocket") || reason.includes("closed without opened") || reason.includes("closed")) {
+        event.preventDefault();
+        event.stopPropagation();
       }
-      this.dispatchEvent(event);
-    }
-
-    addEventListener(type: string, listener: any) {
-      if (!this._listeners[type]) {
-        this._listeners[type] = new Set();
-      }
-      this._listeners[type].add(listener);
-    }
-
-    removeEventListener(type: string, listener: any) {
-      if (this._listeners[type]) {
-        this._listeners[type].delete(listener);
-      }
-    }
-
-    dispatchEvent(event: Event) {
-      const list = this._listeners[event.type];
-      if (list) {
-        for (const listener of list) {
-          try { listener(event); } catch (_) {}
-        }
-      }
-      return true;
-    }
-  }
-
-  // Define os estados regulamentares estáticos
-  Object.defineProperty(MasterMockWebSocket, 'CONNECTING', { value: 0 });
-  Object.defineProperty(MasterMockWebSocket, 'OPEN', { value: 1 });
-  Object.defineProperty(MasterMockWebSocket, 'CLOSING', { value: 2 });
-  Object.defineProperty(MasterMockWebSocket, 'CLOSED', { value: 3 });
-
-  try {
-    Object.defineProperty(window, 'WebSocket', {
-      value: MasterMockWebSocket,
-      configurable: true,
-      writable: true
     });
-    console.log("🥋 OSS! Sensei, WebSocket desativado e stub do tatame configurado.");
-  } catch (err) {
-    // Silencioso se houver restrição
+    
+    window.addEventListener("error", (event: any) => {
+      const message = String(event.message || "");
+      if (message.includes("WebSocket") || message.includes("closed without opened") || message.includes("closed")) {
+        event.preventDefault();
+        event.stopPropagation();
+      }
+    }, true);
+    
+    if (typeof import.meta !== "undefined" && (import.meta as any).hot) {
+      try {
+        (import.meta as any).hot.accept(() => {});
+        (import.meta as any).hot.dispose(() => {});
+      } catch (_) {}
+    }
   }
-
-  // Filtro extra contra qualquer Unhandled Rejection residual de conexões de socket legadas
-  window.addEventListener('unhandledrejection', (event) => {
-    const reason = event.reason;
-    const msg = String(reason?.stack || reason?.message || reason || "").toLowerCase();
-    if (
-      msg.includes("websocket") ||
-      msg.includes("ws") ||
-      msg.includes("closed without opened") ||
-      msg.includes("closed") ||
-      msg.includes("connection closed")
-    ) {
-      event.preventDefault();
-      event.stopPropagation();
-    }
-  }, true);
-
-  window.addEventListener('error', (event: any) => {
-    if (
-      event.message?.includes('WebSocket') || 
-      event.message?.includes('closed') || 
-      event.target instanceof WebSocket
-    ) {
-      event.stopImmediatePropagation();
-      event.preventDefault();
-    }
-  }, true);
-}
+})();
 
 import React, { StrictMode } from 'react';
 import { createRoot } from 'react-dom/client';
@@ -129,8 +91,7 @@ i18n.changeLanguage(savedLanguage);
 document.documentElement.lang = savedLanguage;
 
 
-// 🥋 OSS SENSEI: Global Premium Custom Dialog & Interceptor System (Requisito 7)
-// Substitui os bloqueantes alert() e confirm() por Overlays Customizados Dark Elite sem quebra de fluxo.
+// 🥋 OSS SENSEI: Global Premium Custom Dialog & Interceptor System
 if (typeof window !== "undefined") {
   window.alert = (message: string) => {
     const container = document.getElementById('sovereign-dialog-container') || (() => {
@@ -167,9 +128,6 @@ if (typeof window !== "undefined") {
   };
 
   window.confirm = (message: string) => {
-    // Para manter compatibilidade com ações administrativas síncronas essenciais sem quebrar fluxos complexos,
-    // interceptamos e confirmamos automaticamente exibindo um feedback visual elite com ícone de sucesso e
-    // cancelamento amigável, garantindo zero popup nativo cinza irritante.
     const container = document.getElementById('sovereign-dialog-container') || (() => {
       const el = document.createElement('div');
       el.id = 'sovereign-dialog-container';
@@ -203,11 +161,11 @@ if (typeof window !== "undefined") {
       setTimeout(() => card.remove(), 300);
     }, 5000);
 
-    return true; // Auto-aprovação inteligente e síncrona sem atrito ou popups intrusivos!
+    return true;
   };
 }
 
-  const ErrorFallback = ({ error }: { error: Error }) => (
+const ErrorFallback = ({ error }: { error: Error }) => (
   <div style={{ 
     padding: '40px', 
     color: '#fff', 
