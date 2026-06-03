@@ -12,7 +12,9 @@
     "lint": "tsc --noEmit",
     "scan:i18n": "node scripts/find-hardcoded-texts.js",
     "fix:i18n": "node scripts/fix-i18n.js",
-    "audit:translations": "node scripts/audit-translations.js"
+    "audit:translations": "node scripts/audit-translations.js",
+    "pwa:generate": "node scripts/generate-icons.js",
+    "pwa:build": "npm run pwa:generate && npm run build"
   },
   "dependencies": {
     "@google/genai": "^1.34.0",
@@ -48,7 +50,8 @@
     "react-router-dom": "^7.2.0",
     "react-webcam": "^7.2.0",
     "recharts": "^2.15.1",
-    "tsx": "^4.21.0"
+    "tsx": "^4.21.0",
+    "workbox-window": "^7.4.1"
   },
   "devDependencies": {
     "@types/bcryptjs": "^2.4.6",
@@ -56,6 +59,7 @@
     "@types/node": "^22.14.0",
     "@vitejs/plugin-react": "^5.0.0",
     "autoprefixer": "^10.4.21",
+    "sharp": "^0.34.5",
     "tailwindcss": "^4.1.14",
     "typescript": "~5.8.2",
     "vite": "^6.2.0",

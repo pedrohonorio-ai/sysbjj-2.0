@@ -122,6 +122,7 @@ import { ProfileProvider } from './contexts/ProfileContext.js';
 import { DataProvider } from './contexts/DataContext.js';
 import { AuthProvider } from './context/AuthContext.js';
 import i18n from './i18n/index.js';
+import { registerServiceWorker } from './pwa-register.js';
 
 const savedLanguage = localStorage.getItem("SYSBJJ_LANG") || "pt-BR";
 i18n.changeLanguage(savedLanguage);
@@ -294,6 +295,8 @@ class ErrorBoundary extends React.Component<{ children: React.ReactNode }, { has
     return this.props.children;
   }
 }
+
+registerServiceWorker();
 
 createRoot(document.getElementById('root')!).render(
   <ErrorBoundary>

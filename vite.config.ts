@@ -17,10 +17,26 @@ export default defineConfig(({ command, mode }) => {
         tailwindcss(),
         VitePWA({
           registerType: 'autoUpdate',
+          includeAssets: ['favicon.ico', 'robots.txt', 'apple-touch-icon.png'],
+          manifest: false, // Usamos nosso manifesto manual
           workbox: {
-            globPatterns: ['**/*.{js,css,html,ico,png,svg,woff,woff2}'],
+            globPatterns: ['**/*.{js,css,html,ico,png,svg,woff2,webmanifest}'],
             cleanupOutdatedCaches: true,
             runtimeCaching: [
+              {
+                urlPattern: /\/api\/.*/i,
+                handler: 'NetworkFirst',
+                options: {
+                  cacheName: 'api-cache',
+                  expiration: {
+                    maxEntries: 50,
+                    maxAgeSeconds: 60 * 60 * 24 // 24 horas
+                  },
+                  cacheableResponse: {
+                    statuses: [0, 200]
+                  }
+                }
+              },
               {
                 urlPattern: /^https:\/\/fonts\.(?:googleapis|gstatic)\.com\/.*/i,
                 handler: 'CacheFirst',
@@ -39,10 +55,10 @@ export default defineConfig(({ command, mode }) => {
                 urlPattern: /\.(?:png|jpg|jpeg|svg|gif|webp|ico)$/i,
                 handler: 'CacheFirst',
                 options: {
-                  cacheName: 'assets-images',
+                  cacheName: 'image-cache',
                   expiration: {
-                    maxEntries: 50,
-                    maxAgeSeconds: 60 * 60 * 24 * 30
+                    maxEntries: 100,
+                    maxAgeSeconds: 60 * 60 * 24 * 30 // 30 dias
                   },
                   cacheableResponse: {
                     statuses: [0, 200]
@@ -53,10 +69,10 @@ export default defineConfig(({ command, mode }) => {
                 urlPattern: /\.(?:js|css)$/i,
                 handler: 'StaleWhileRevalidate',
                 options: {
-                  cacheName: 'code-assets',
+                  cacheName: 'static-resources',
                   expiration: {
-                    maxEntries: 30,
-                    maxAgeSeconds: 60 * 60 * 24 * 7
+                    maxEntries: 50,
+                    maxAgeSeconds: 60 * 60 * 24 * 7 // 7 dias
                   },
                   cacheableResponse: {
                     statuses: [0, 200]
@@ -64,6 +80,10 @@ export default defineConfig(({ command, mode }) => {
                 }
               }
             ]
+          },
+          devOptions: {
+            enabled: false,
+            type: 'module'
           }
         })
       ],
