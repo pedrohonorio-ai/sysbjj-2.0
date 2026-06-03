@@ -19,6 +19,13 @@
       "dest": "api/index.ts"
     },
     {
+      "src": "/assets/(.+)",
+      "headers": {
+        "Cache-Control": "public, max-age=31536000, immutable"
+      },
+      "dest": "/assets/$1"
+    },
+    {
       "handle": "filesystem"
     },
     {
