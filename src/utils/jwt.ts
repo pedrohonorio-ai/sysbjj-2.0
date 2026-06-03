@@ -36,8 +36,8 @@ export function isJwtExpired(token: string | null | undefined): boolean {
     const payload = JSON.parse(jsonPayload);
     if (typeof payload.exp !== 'number') return false;
     
-    // Retorna true se o token expirou (com margem de segurança de 30 segundos)
-    return (Date.now() / 1000) >= (payload.exp - 30);
+    // Retorna true se o token expirou (com margem de segurança de 120 segundos)
+    return (Date.now() / 1000) >= (payload.exp - 120);
   } catch (e) {
     console.warn("🥋 [JWT UTILS] Falha ao analisar payload do token:", e);
     return true; // Se o token estiver malformado, considera-o expirado (inválido)

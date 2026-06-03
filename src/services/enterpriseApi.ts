@@ -125,12 +125,12 @@ class EnterpriseApi {
 
       // 🥋 OSS SENSEI: Valida expiração do token localmente ANTES de enviar a requisição
       if (token && isJwtExpired(token)) {
-        console.warn("🥋 [API AUTH CLEANUP] Token expirado detectado antes de enviar, limpando credenciais locais.");
+        console.warn("🥋 [API AUTH CLEANUP] Token expirado detectado antes de enviar, limpando credenciais locais e abortando requisição.");
         if (typeof window !== 'undefined') {
           localStorage.removeItem('oss_auth');
           window.dispatchEvent(new Event('oss_unauthorized'));
         }
-        token = '';
+        throw new Error("Sua sessão expirou. Por favor, realize o login novamente.");
       }
 
       const headers = {

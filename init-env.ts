@@ -11,6 +11,10 @@ const cleanupEnv = (key: string) => {
     
     // Remove invisible characters and non-printable chars from copy-paste
     cleaned = cleaned.replace(/[\u200B-\u200D\uFEFF\u00A0\u180E\u202F\u205F\u3000]/g, "");
+
+    if (key === 'JWT_SECRET' || key === 'AUTH_SECRET' || key === 'SESSION_SECRET') {
+      cleaned = cleaned.replace(/[\r\n]/g, "").replace(/\\n/g, "").replace(/\\r/g, "").trim();
+    }
     
     for (let i = 0; i < 5; i++) {
         // Remove common variable name assignments if pasted accidentally

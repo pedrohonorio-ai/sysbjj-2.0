@@ -100,7 +100,9 @@ if (typeof window !== "undefined" && !(window as any).__CUSTOM_WS__) {
         (window as any)._lastWSUrl = wsUrl;
         (window as any)._lastWSConnTime = now;
 
-        if (!isDev) {
+        const isHMR = wsUrl.includes('vite') || wsUrl.includes('hmr') || wsUrl.includes('localhost') || wsUrl.includes('127.0.0.1') || wsUrl.includes('0.0.0.0');
+
+        if (!isDev || isHMR) {
           const stub = {
             url: wsUrl,
             readyState: 3, // CLOSED

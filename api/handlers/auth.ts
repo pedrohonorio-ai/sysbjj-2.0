@@ -9,9 +9,11 @@ const getCleanSecret = (secret: string | undefined): string => {
   if (!secret) return 'sysbjj-enterprise-oss-secret-2024';
   return secret
     .trim()
-    .replace(/^['"]|['"]$/g, '') // remove surrounding quotes
-    .replace(/\\n/g, '\n')       // translate linebreaks
-    .replace(/\\r/g, '\r');
+    .replace(/^['"‘“`”’]|['"’’”‘`]$/g, '') // remove common single/double and typographic quotes
+    .replace(/[\r\n]/g, '')                // remove literal newlines and carriage returns
+    .replace(/\\n/g, '')                   // strip escaped backslash newlines
+    .replace(/\\r/g, '')
+    .trim();
 };
 
 const JWT_SECRET = getCleanSecret(process.env.JWT_SECRET || process.env.AUTH_SECRET || process.env.SESSION_SECRET);

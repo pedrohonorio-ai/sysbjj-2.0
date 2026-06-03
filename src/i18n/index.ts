@@ -5,6 +5,12 @@ import ptBR from "./locales/pt-BR.json" with { type: "json" };
 import enUS from "./locales/en-US.json" with { type: "json" };
 import esES from "./locales/es-ES.json" with { type: "json" };
 
+// Helper to Safely Unwrap default JSON imports under ESM/CommonJS/Vite Bundling
+const getTranslation = (mod: any) => {
+  if (!mod) return {};
+  return (mod.default ? mod.default : mod) || {};
+};
+
 // 🥋 SYSBJJ 2.0 - DETERMINISTIC i18n CONFIGURATION
 // Prioritiza o português do Brasil (pt-BR) de forma absoluta, desativando detecção randômica de idioma do navegador.
 i18n
@@ -12,22 +18,22 @@ i18n
   .init({
     resources: {
       "pt-BR": {
-        translation: ptBR,
+        translation: getTranslation(ptBR),
       },
       "pt": {
-        translation: ptBR,
+        translation: getTranslation(ptBR),
       },
       "en-US": {
-        translation: enUS,
+        translation: getTranslation(enUS),
       },
       "en": {
-        translation: enUS,
+        translation: getTranslation(enUS),
       },
       "es-ES": {
-        translation: esES,
+        translation: getTranslation(esES),
       },
       "es": {
-        translation: esES,
+        translation: getTranslation(esES),
       },
     },
 
