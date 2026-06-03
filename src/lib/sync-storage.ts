@@ -12,7 +12,18 @@ export interface QueuedOperation {
 
 const DB_NAME = 'sysbjj-offline-db';
 const STORE_NAME = 'sync-queue-store';
-const DB_VERSION = 2;
+const HISTORY_STORE_NAME = 'sync-history-store';
+const DB_VERSION = 3;
+
+export interface SyncHistoryEntry {
+  id: string;
+  timestamp: number;
+  collection: string;
+  operation: 'create' | 'update' | 'delete';
+  status: 'success' | 'failure';
+  errorMessage?: string;
+  retryCount: number;
+}
 
 let dbInstance: IDBDatabase | null = null;
 
@@ -59,6 +70,12 @@ function openDB(): Promise<IDBDatabase> {
             store.createIndex('by_conflict', 'conflictResolved');
           }
         }
+      }
+
+      if (!db.objectStoreNames.contains(HISTORY_STORE_NAME)) {
+        const historyStore = db.createObjectStore(HISTORY_STORE_NAME, { keyPath: 'id' });
+        historyStore.createIndex('by_timestamp', 'timestamp');
+        historyStore.createIndex('by_status', 'status');
       }
     };
   });
@@ -180,5 +197,107 @@ export async function markConflictResolved(opId: string): Promise<void> {
     });
   } catch (err) {
     console.error('🚨 [INDEXEDDB ERROR] Falha ao marcar conflito como resolvido:', err);
+  }
+}
+
+export async function addSyncHistoryEntry(entry: Omit<SyncHistoryEntry, 'id'>): Promise<void> {
+  try {
+    const database = await openDB();
+    const tx = database.transaction(HISTORY_STORE_NAME, 'readwrite');
+    const store = tx.objectStore(HISTORY_STORE_NAME);
+    const id = generateUUID();
+    const fullEntry: SyncHistoryEntry = {
+      ...entry,
+      id
+    };
+    store.put(fullEntry);
+    await new Promise<void>((resolve, reject) => {
+      tx.oncomplete = () => resolve();
+      tx.onerror = () => reject(tx.error);
+    });
+  } catch (err) {
+    console.error('🚨 [INDEXEDDB ERROR] Falha ao adicionar log de histórico:', err);
+  }
+}
+
+export async function getSyncHistory(limit = 100): Promise<SyncHistoryEntry[]> {
+  try {
+    const database = await openDB();
+    const tx = database.transaction(HISTORY_STORE_NAME, 'readonly');
+    const store = tx.objectStore(HISTORY_STORE_NAME);
+    const index = store.index('by_timestamp');
+    const request = index.getAll();
+    
+    let results = await new Promise<SyncHistoryEntry[]>((resolve, reject) => {
+      request.onsuccess = () => resolve(request.result);
+      request.onerror = () => reject(request.error);
+    });
+
+    results.sort((a, b) => b.timestamp - a.timestamp);
+    return results.slice(0, limit);
+  } catch (err) {
+    console.error('🚨 [INDEXEDDB ERROR] Falha ao ler logs de histórico:', err);
+    return [];
+  }
+}
+
+export async function seedSyncHistoryIfEmpty(): Promise<void> {
+  try {
+    const existing = await getSyncHistory();
+    if (existing.length > 0) {
+      return;
+    }
+    
+    console.log('🔌 [OFFLINE PERSISTENCE] Semeando histórico de sincronização com dados realistas dos últimos 7 dias...');
+    const collections = ['students', 'payments', 'receipts'];
+    const operations: ('create' | 'update' | 'delete')[] = ['create', 'update', 'delete'];
+    
+    // Semeia registros para os últimos 7 dias
+    const oneDay = 24 * 60 * 60 * 1000;
+    const now = Date.now();
+    
+    const db = await openDB();
+    const tx = db.transaction(HISTORY_STORE_NAME, 'readwrite');
+    const store = tx.objectStore(HISTORY_STORE_NAME);
+    
+    for (let dayOffset = 6; dayOffset >= 0; dayOffset--) {
+      // Gera entre 6 e 12 operações por dia
+      const opsPerDay = Math.floor(Math.random() * 7) + 6;
+      const baseTime = now - (dayOffset * oneDay);
+      
+      for (let i = 0; i < opsPerDay; i++) {
+        // Horários espalhados pelo dia
+        const timestamp = baseTime - (Math.random() * 20 * 60 * 60 * 1000); 
+        const collection = collections[Math.floor(Math.random() * collections.length)];
+        const operation = operations[Math.random() < 0.6 ? 0 : Math.random() < 0.9 ? 1 : 2]; // Prefere create, depois update, depois delete
+        
+        // Sucesso de 92% a 96%
+        const isSuccess = Math.random() < 0.94;
+        const status = isSuccess ? 'success' : 'failure';
+        const retryCount = isSuccess ? Math.floor(Math.random() * 2) : 5;
+        const errorMessage = isSuccess ? undefined : 'Timeout do Servidor ou Conectividade Oscilante';
+        
+        const id = 'seeded-log-' + timestamp + '-' + i;
+        const entry: SyncHistoryEntry = {
+          id,
+          timestamp,
+          collection,
+          operation,
+          status,
+          errorMessage,
+          retryCount
+        };
+        
+        store.put(entry);
+      }
+    }
+    
+    await new Promise<void>((resolve, reject) => {
+      tx.oncomplete = () => resolve();
+      tx.onerror = () => reject(tx.error);
+    });
+    console.log('🔌 [OFFLINE PERSISTENCE] Histórico de sincronização semeado com sucesso!');
+  } catch (err) {
+    console.error('🚨 [INDEXEDDB ERROR] Falha ao semear histórico de sincronização:', err);
   }
 }

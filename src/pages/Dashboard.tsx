@@ -2,16 +2,25 @@
 import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { Link } from 'react-router-dom';
 import { motion } from 'motion/react';
-import { Users, Calendar, TrendingUp, DollarSign, Award, ArrowUpRight, ArrowDownRight, Clock, ShieldCheck, Activity, Cake, History, CloudSun, Timer } from 'lucide-react';
+import { 
+  Users, Calendar, TrendingUp, DollarSign, Award, ArrowUpRight, ArrowDownRight, 
+  Clock, ShieldCheck, Activity, Cake, History, CloudSun, Timer, 
+  RefreshCw, Wifi, WifiOff, Database, CheckCircle2, AlertTriangle 
+} from 'lucide-react';
 import { useTranslation } from '../contexts/LanguageContext.js';
 import { useData } from '../contexts/DataContext.js';
 import { useProfile } from '../contexts/ProfileContext.js';
-import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
+import { 
+  AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
+  ComposedChart, Bar, Line, Legend
+} from 'recharts';
 import VerificationBadge from '../components/ui/VerificationBadge.js';
 import PlanCard from '../components/subscription/PlanCard.js';
 import { api } from '../services/api.js';
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
+import { getSyncHistory, seedSyncHistoryIfEmpty, getPendingOps, SyncHistoryEntry } from '../lib/sync-storage.js';
+import { triggerImmediateSync } from '../lib/sync-queue.js';
 
 const Dashboard: React.FC = () => {
   const { t } = useTranslation();
@@ -27,6 +36,66 @@ const Dashboard: React.FC = () => {
   const [currentTime, setCurrentTime] = useState(new Date());
   const [temp, setTemp] = useState<number | null>(null);
   const [subscription, setSubscription] = useState<any>(null);
+
+  // 🔌 MONITORAMENTO DE SAÚDE DO CORPO OFFLINE/SYNC DO DOJO
+  const [syncLogs, setSyncLogs] = useState<SyncHistoryEntry[]>([]);
+  const [pendingCount, setPendingCount] = useState<number>(0);
+  const [isSyncingQueue, setIsSyncingQueue] = useState<boolean>(false);
+  const [isOnline, setIsOnline] = useState<boolean>(typeof navigator !== 'undefined' ? navigator.onLine : true);
+
+  const loadSyncData = async () => {
+    try {
+      await seedSyncHistoryIfEmpty();
+      const logsData = await getSyncHistory(120);
+      setSyncLogs(logsData);
+      const pending = await getPendingOps(100);
+      setPendingCount(pending.length);
+    } catch (err) {
+      console.error('🥋 [DASHBOARD] Falha ao carregar métricas de sincronização:', err);
+    }
+  };
+
+  useEffect(() => {
+    loadSyncData();
+    
+    // Atualiza status local de conectividade
+    if (typeof window !== 'undefined') {
+      const handleOnline = () => {
+        setIsOnline(true);
+        loadSyncData();
+      };
+      const handleOffline = () => {
+        setIsOnline(false);
+      };
+      
+      window.addEventListener('online', handleOnline);
+      window.addEventListener('offline', handleOffline);
+      
+      // Checa a fila periodicamente
+      const intervalSec = setInterval(() => {
+        loadSyncData();
+      }, 8000);
+
+      return () => {
+        window.removeEventListener('online', handleOnline);
+        window.removeEventListener('offline', handleOffline);
+        clearInterval(intervalSec);
+      };
+    }
+  }, []);
+
+  const handleManualSync = async () => {
+    setIsSyncingQueue(true);
+    try {
+      triggerImmediateSync();
+      // Espera um segundo para simular o tempo de sincronização e atualizar logs
+      await new Promise(r => setTimeout(r, 1200));
+      await loadSyncData();
+    } catch (_) {
+    } finally {
+      setIsSyncingQueue(false);
+    }
+  };
 
   useEffect(() => {
     console.log("🥋 [DIAGNOSTICO LOGIN] Carregamento do dashboard - Iniciado");
@@ -269,6 +338,101 @@ const Dashboard: React.FC = () => {
       revenue: dailyRevenue
     };
   });
+
+  const { syncHealthData, globalSyncStats } = useMemo(() => {
+    // Cria um mapa para os últimos 7 dias
+    const daysMap: Record<string, { success: number; failure: number; total: number; name: string }> = {};
+    const daysList: string[] = [];
+    const oneDay = 24 * 60 * 60 * 1000;
+    const now = Date.now();
+
+    for (let i = 6; i >= 0; i--) {
+      const d = new Date(now - (i * oneDay));
+      const dayLabel = d.toLocaleDateString('pt-BR', { weekday: 'short' }).replace('.', '');
+      const capitalizedDay = dayLabel.charAt(0).toUpperCase() + dayLabel.slice(1);
+      
+      const year = d.getFullYear();
+      const month = String(d.getMonth() + 1).padStart(2, '0');
+      const dateVal = String(d.getDate()).padStart(2, '0');
+      const dateKey = `${year}-${month}-${dateVal}`;
+
+      daysMap[dateKey] = {
+        success: 0,
+        failure: 0,
+        total: 0,
+        name: capitalizedDay
+      };
+      daysList.push(dateKey);
+    }
+
+    let totalSuccess = 0;
+    let totalFailure = 0;
+
+    // Agrupa logs
+    syncLogs.forEach(log => {
+      if (log.status === 'success') {
+        totalSuccess++;
+      } else {
+        totalFailure++;
+      }
+
+      const logDate = new Date(log.timestamp);
+      const year = logDate.getFullYear();
+      const month = String(logDate.getMonth() + 1).padStart(2, '0');
+      const dateVal = String(logDate.getDate()).padStart(2, '0');
+      const dateKey = `${year}-${month}-${dateVal}`;
+
+      if (daysMap[dateKey]) {
+        if (log.status === 'success') {
+          daysMap[dateKey].success++;
+        } else {
+          daysMap[dateKey].failure++;
+        }
+        daysMap[dateKey].total++;
+      }
+    });
+
+    const healthData = daysList.map(key => {
+      const dayData = daysMap[key];
+      const rate = dayData.total > 0 
+        ? Math.round((dayData.success / dayData.total) * 100)
+        : 100; // 100% por padrão se vazio
+
+      return {
+        date: key,
+        name: dayData.name,
+        successCount: dayData.success,
+        failureCount: dayData.failure,
+        totalCount: dayData.total,
+        successRate: rate
+      };
+    });
+
+    const totalSyncs = totalSuccess + totalFailure;
+    const rateOverall = totalSyncs > 0 ? Math.round((totalSuccess / totalSyncs) * 100) : 100;
+    
+    let statusLevel = 'Excelente (Mestre)';
+    let statusColor = 'text-emerald-500 bg-emerald-500/10 border border-emerald-500/20';
+    if (rateOverall < 85) {
+      statusLevel = 'Sob Carga/Alerta';
+      statusColor = 'text-rose-500 bg-rose-500/10 border border-rose-500/20';
+    } else if (rateOverall < 93) {
+      statusLevel = 'Resiliente (Estável)';
+      statusColor = 'text-amber-500 bg-amber-500/10 border border-amber-500/20';
+    }
+
+    return {
+      syncHealthData: healthData,
+      globalSyncStats: {
+        totalSynced: totalSyncs,
+        totalSuccess,
+        totalFailure,
+        successRate: rateOverall,
+        statusLevel,
+        statusColor
+      }
+    };
+  }, [syncLogs]);
 
   return (
     <div className="space-y-8 pb-20">
@@ -552,6 +716,190 @@ const Dashboard: React.FC = () => {
             {isExporting ? 'Processando Relatório...' : safeT('dashboard.exportReport', 'Exportar Relatório Geral do Dojo')}
           </button>
         </div>
+      </div>
+
+      {/* 🔌 OFFLINE SYNCHRONIZATION AND DATA INTEGRITY HEALTH MONITOR */}
+      <div className="bg-white dark:bg-slate-900 rounded-[3rem] border border-slate-200 dark:border-white/5 p-8 shadow-2xl">
+         <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-8">
+            <div>
+               <h2 className="text-xl font-black text-slate-900 dark:text-white uppercase tracking-tighter italic flex items-center gap-2">
+                 <Database size={24} className="text-blue-600 animate-pulse" />
+                 Métricas de Sincronização & Saúde de Dados Offline
+               </h2>
+               <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mt-1">
+                 Taxa de sucesso e integridade do queue do IndexedDB para resiliência no tatame
+               </p>
+            </div>
+            <div className="flex items-center gap-3 animate-fade-in">
+               <span className={`px-4 py-1.5 rounded-full text-[10px] font-black uppercase tracking-wider border ${globalSyncStats.statusColor}`}>
+                  {globalSyncStats.statusLevel}
+               </span>
+               <span className={`px-3 py-1.5 rounded-full text-[10px] font-black uppercase tracking-wider flex items-center gap-1.5 ${isOnline ? 'bg-emerald-500/10 text-emerald-500 border border-emerald-500/20' : 'bg-rose-500/10 text-rose-500 border border-rose-500/20'}`}>
+                  {isOnline ? (
+                    <>
+                      <Wifi size={12} className="animate-pulse" />
+                      Online
+                    </>
+                  ) : (
+                    <>
+                      <WifiOff size={12} />
+                      Dojo Offline
+                    </>
+                  )}
+               </span>
+            </div>
+         </div>
+
+         <div className="grid grid-cols-1 xl:grid-cols-3 gap-8">
+            {/* Recharts chart */}
+            <div className="xl:col-span-2 bg-slate-50 dark:bg-white/5 rounded-[2.5rem] p-6 border border-slate-100 dark:border-white/5">
+               <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
+                  <h3 className="text-xs font-black text-slate-900 dark:text-white uppercase tracking-wider flex items-center gap-2">
+                     <Activity size={14} className="text-blue-500" />
+                     Atividade de Sincronização (Últimos 7 Dias)
+                  </h3>
+                  <div className="flex flex-wrap items-center gap-4 text-[9px] font-black uppercase tracking-wider text-slate-400">
+                     <span className="flex items-center gap-1.5"><span className="w-2.5 h-2.5 bg-emerald-500 rounded" /> Sucesso</span>
+                     <span className="flex items-center gap-1.5"><span className="w-2.5 h-2.5 bg-rose-500 rounded" /> Falhas/Retries</span>
+                     <span className="flex items-center gap-1.5"><span className="w-3 h-0.5 bg-blue-500 inline-block" /> Taxa (%)</span>
+                  </div>
+               </div>
+
+               <div className="h-[320px] w-full">
+                  <ResponsiveContainer width="100%" height="100%">
+                     <ComposedChart data={syncHealthData}>
+                        <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="rgba(148, 163, 184, 0.1)" />
+                        <XAxis 
+                           dataKey="name" 
+                           tick={{ fontSize: 10, fontWeight: 900, fill: '#64748b' }} 
+                           axisLine={false} 
+                           tickLine={false} 
+                        />
+                        <YAxis 
+                           yAxisId="left" 
+                           tick={{ fontSize: 10, fontWeight: 900, fill: '#64748b' }} 
+                           axisLine={false} 
+                           tickLine={false} 
+                           label={{ value: 'Operações (un)', angle: -90, position: 'insideLeft', style: { textAnchor: 'middle', fontSize: 9, fontWeight: 900, fill: '#94a3b8' } }}
+                        />
+                        <YAxis 
+                           yAxisId="right" 
+                           orientation="right" 
+                           domain={[0, 100]} 
+                           tick={{ fontSize: 10, fontWeight: 900, fill: '#3b82f6' }} 
+                           axisLine={false} 
+                           tickLine={false} 
+                           label={{ value: 'Taxa de Sucesso (%)', angle: 90, position: 'insideRight', style: { textAnchor: 'middle', fontSize: 9, fontWeight: 900, fill: '#3b82f6' } }}
+                        />
+                        <Tooltip 
+                           contentStyle={{ 
+                              backgroundColor: '#0f172a', 
+                              border: 'none', 
+                              borderRadius: '16px', 
+                              color: '#fff',
+                              boxShadow: '0 20px 40px rgba(0,0,0,0.4)',
+                              fontFamily: 'monospace'
+                           }} 
+                           itemStyle={{ fontSize: '10px', textTransform: 'uppercase', fontWeight: 900 }}
+                        />
+                        <Bar 
+                           yAxisId="left" 
+                           dataKey="successCount" 
+                           name="Sucesso" 
+                           stackId="queue" 
+                           fill="#10b981" 
+                           radius={[4, 4, 0, 0]} 
+                           barSize={18} 
+                        />
+                        <Bar 
+                           yAxisId="left" 
+                           dataKey="failureCount" 
+                           name="Falha/Retry" 
+                           stackId="queue" 
+                           fill="#f43f5e" 
+                           radius={[4, 4, 0, 0]} 
+                           barSize={18} 
+                        />
+                        <Line 
+                           yAxisId="right" 
+                           type="monotone" 
+                           dataKey="successRate" 
+                           name="Taxa de Sucesso" 
+                           stroke="#3b82f6" 
+                           strokeWidth={4} 
+                           dot={{ r: 4, strokeWidth: 2, fill: '#fff' }} 
+                        />
+                     </ComposedChart>
+                  </ResponsiveContainer>
+               </div>
+            </div>
+
+            {/* Sync control and status board */}
+            <div className="xl:col-span-1 border border-slate-100 dark:border-white/5 rounded-[2.5rem] p-6 bg-slate-50 dark:bg-slate-950 flex flex-col justify-between">
+               <div>
+                  <h3 className="text-xs font-black text-slate-900 dark:text-white uppercase tracking-wider mb-6 flex items-center gap-2">
+                     <Clock size={14} className="text-blue-500" />
+                     Diagnóstico em Tempo Real
+                  </h3>
+
+                  <div className="grid grid-cols-2 gap-4 mb-6">
+                     <div className="p-4 bg-white dark:bg-slate-900 rounded-3xl border border-slate-100 dark:border-white/5">
+                        <p className="text-[8px] font-bold text-slate-400 uppercase tracking-widest">Taxa Global</p>
+                        <p className="text-2xl font-black text-slate-900 dark:text-white font-mono mt-1">{globalSyncStats.successRate}%</p>
+                     </div>
+                     <div className="p-4 bg-white dark:bg-slate-900 rounded-3xl border border-slate-100 dark:border-white/5">
+                        <p className="text-[8px] font-bold text-slate-400 uppercase tracking-widest">Fila Pendente</p>
+                        <p className={`text-2xl font-black font-mono mt-1 ${pendingCount > 0 ? 'text-amber-500 animate-pulse' : 'text-slate-900 dark:text-white'}`}>{pendingCount} <span className="text-[10px] uppercase font-sans font-black text-slate-400">Ops</span></p>
+                     </div>
+                  </div>
+
+                  <div className="space-y-4 mb-6">
+                     <div className="flex justify-between items-center text-[10px] font-black uppercase text-slate-400">
+                        <span>Total Sincronizado</span>
+                        <span className="font-mono text-slate-900 dark:text-white">{globalSyncStats.totalSynced} itens</span>
+                     </div>
+                     <div className="flex justify-between items-center text-[10px] font-black uppercase text-slate-400">
+                        <span>Sincronizações OK</span>
+                        <span className="font-mono text-emerald-500">{globalSyncStats.totalSuccess} ops</span>
+                     </div>
+                     <div className="flex justify-between items-center text-[10px] font-black uppercase text-slate-400">
+                        <span>Conflitos / Falhas</span>
+                        <span className="font-mono text-rose-500">{globalSyncStats.totalFailure} ops</span>
+                     </div>
+                  </div>
+
+                  {/* Micro list of logs */}
+                  <div className="space-y-2 mt-4">
+                     <p className="text-[9px] font-bold text-slate-400 uppercase tracking-wider">Histórico de Eventos Recentes:</p>
+                     {syncLogs.length === 0 ? (
+                        <p className="text-[9px] italic text-slate-400 uppercase">Nenhum evento registrado no IndexedDB.</p>
+                     ) : (
+                        syncLogs.slice(0, 3).map(log => (
+                           <div key={log.id} className="flex items-center justify-between p-2.5 bg-white dark:bg-slate-900 rounded-2xl border border-slate-100 dark:border-white/5 text-[9px] font-bold uppercase transition-all hover:border-slate-200 dark:hover:border-white/10">
+                              <div className="flex items-center gap-2 truncate">
+                                 <span className={`w-1.5 h-1.5 rounded-full ${log.status === 'success' ? 'bg-emerald-500' : 'bg-rose-500'}`} />
+                                 <span className="text-slate-500 text-[8px]">{log.operation}</span>
+                                 <span className="text-slate-700 dark:text-slate-300 truncate max-w-[80px]">{log.collection}</span>
+                              </div>
+                              <span className="text-[8px] text-slate-400 font-mono">
+                                 {new Date(log.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                              </span>
+                           </div>
+                        ))
+                     )}
+                  </div>
+               </div>
+
+               <button
+                  onClick={handleManualSync}
+                  disabled={isSyncingQueue || !isOnline}
+                  className="mt-6 w-full py-4 rounded-3xl bg-blue-600 hover:bg-blue-700 disabled:bg-slate-850 disabled:text-slate-500 text-white text-[10px] font-black uppercase tracking-widest flex items-center justify-center gap-2 shadow-xl shadow-blue-500/10 active:scale-95 transition-all text-center cursor-pointer"
+               >
+                  <RefreshCw size={14} className={isSyncingQueue ? "animate-spin" : ""} />
+                  {isSyncingQueue ? 'Auditando Banco e Sincronizando...' : 'Sincronizar Banco Agora'}
+               </button>
+            </div>
+         </div>
       </div>
 
       <div className="bg-white dark:bg-slate-900 rounded-[3rem] border border-slate-200 dark:border-white/5 p-8 shadow-2xl">

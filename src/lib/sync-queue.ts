@@ -1,5 +1,5 @@
 import { api } from '../services/api.js';
-import { getPendingOps, updateRetry, removeOperation, QueuedOperation } from './sync-storage.js';
+import { getPendingOps, updateRetry, removeOperation, QueuedOperation, addSyncHistoryEntry } from './sync-storage.js';
 
 const BASE_DELAY = 1500;    // 1.5s
 const MAX_DELAY = 30000;    // 30s
@@ -94,6 +94,14 @@ export async function processSyncQueue(): Promise<number> {
     for (const op of pending) {
       if (op.retryCount >= MAX_RETRIES) {
         console.error(`🚨 [SYNC DEPLETION] Operação ${op.id} excedeu o limite máximo de ${MAX_RETRIES} tentativas. Removendo de forma segura.`);
+        await addSyncHistoryEntry({
+          timestamp: Date.now(),
+          collection: op.collection,
+          operation: op.operation,
+          status: 'failure',
+          retryCount: op.retryCount,
+          errorMessage: `Excedeu limite máximo de ${MAX_RETRIES} tentativas`
+        });
         await removeOperation(op.id);
         continue;
       }
@@ -106,6 +114,16 @@ export async function processSyncQueue(): Promise<number> {
 
       const success = await executeOperation(op, userId);
       
+      // Salva log de história na sincronização
+      await addSyncHistoryEntry({
+        timestamp: Date.now(),
+        collection: op.collection,
+        operation: op.operation,
+        status: success ? 'success' : 'failure',
+        retryCount: op.retryCount,
+        errorMessage: success ? undefined : 'Tentativa abortada ou falha na integração externa'
+      });
+
       if (success) {
         await removeOperation(op.id);
         processedCount++;
