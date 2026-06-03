@@ -1,4 +1,4 @@
-// 🥋 OSS SENSEI: SILENCIADOR COMPLETO DE WEBSOCKET
+// 🥋 OSS SENSEI: SILENCIADOR COMPLETO E INVIOLÁVEL DE WEBSOCKET (EXECUÇÃO ULTRA-PRECOCE)
 (function() {
   if (typeof window !== "undefined") {
     class NoOpWebSocket {
@@ -7,8 +7,7 @@
       static CLOSING = 2;
       static CLOSED = 3;
       
-      url: string;
-      readyState = 3;
+      readyState = 3; // CLOSED
       CONNECTING = 0;
       OPEN = 1;
       CLOSING = 2;
@@ -17,33 +16,77 @@
       bufferedAmount = 0;
       extensions = "";
       protocol = "";
+      url = "";
+      
       onopen: any = null;
       onerror: any = null;
       onclose: any = null;
       onmessage: any = null;
       
+      _listeners: Record<string, any[]> = {};
+      
       constructor(url: string | URL, protocols?: string | string[]) {
         this.url = String(url);
         setTimeout(() => {
+          const eventPayload = { wasClean: true, code: 1000, reason: "WebSocket disabled globally" };
           if (typeof this.onclose === 'function') {
-            this.onclose({ wasClean: true, code: 1000, reason: "WebSocket disabled" });
+            try {
+              this.onclose(eventPayload);
+            } catch (_) {}
           }
+          this.dispatchEvent(new MessageEvent("close", { data: eventPayload }));
         }, 10);
       }
       
-      send() {}
-      close() {}
-      addEventListener() {}
-      removeEventListener() {}
-      dispatchEvent() { return true; }
+      send(data: any) {}
+      close(code?: number, reason?: string) {
+        this.readyState = 3;
+      }
+      
+      addEventListener(type: string, callback: any) {
+        if (!this._listeners[type]) {
+          this._listeners[type] = [];
+        }
+        this._listeners[type].push(callback);
+      }
+      
+      removeEventListener(type: string, callback: any) {
+        if (this._listeners[type]) {
+          this._listeners[type] = this._listeners[type].filter(cb => cb !== callback);
+        }
+      }
+      
+      dispatchEvent(event: Event) {
+        const type = event.type || "close";
+        const listeners = this._listeners[type] || [];
+        listeners.forEach(cb => {
+          try {
+            cb.call(this, event);
+          } catch (_) {}
+        });
+        return true;
+      }
     }
     
     try {
-      window.WebSocket = NoOpWebSocket as unknown as typeof WebSocket;
+      Object.defineProperty(window, "WebSocket", {
+        value: NoOpWebSocket,
+        writable: false,
+        configurable: false
+      });
+      if (typeof globalThis !== 'undefined') {
+        Object.defineProperty(globalThis, "WebSocket", {
+          value: NoOpWebSocket,
+          writable: false,
+          configurable: false
+        });
+      }
+    } catch (_) {
+      (window as any).WebSocket = NoOpWebSocket;
       if (typeof globalThis !== 'undefined') {
         (globalThis as any).WebSocket = NoOpWebSocket;
       }
-    } catch (_) {}
+    }
     
     try {
       const originalFetch = window.fetch;
@@ -61,11 +104,22 @@
         }
         return originalFetch.call(this, input, init);
       };
-      window.fetch = newFetch;
+      
+      Object.defineProperty(window, "fetch", {
+        value: newFetch,
+        writable: false,
+        configurable: false
+      });
       if (typeof globalThis !== 'undefined') {
-        (globalThis as any).fetch = newFetch;
+        Object.defineProperty(globalThis, "fetch", {
+          value: newFetch,
+          writable: false,
+          configurable: false
+        });
       }
-    } catch (_) {}
+    } catch (_) {
+      // fallback if read-only or error
+    }
     
     window.addEventListener("unhandledrejection", (event) => {
       const reason = String(event.reason?.message || event.reason || "");
