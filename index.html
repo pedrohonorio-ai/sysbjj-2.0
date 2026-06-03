@@ -29,6 +29,11 @@
             
             constructor(url, protocols) {
               this.url = String(url);
+              setTimeout(() => {
+                if (typeof this.onclose === 'function') {
+                  this.onclose({ wasClean: true, code: 1000, reason: "WebSocket disabled" });
+                }
+              }, 10);
             }
             
             send() {}
@@ -40,17 +45,31 @@
           
           try {
             window.WebSocket = NoOpWebSocket;
+            if (typeof globalThis !== 'undefined') {
+              globalThis.WebSocket = NoOpWebSocket;
+            }
           } catch (_) {}
           
           try {
             const originalFetch = window.fetch;
-            window.fetch = function(input, init) {
-              const url = String(input);
+            const newFetch = function(input, init) {
+              let url = "";
+              if (typeof input === "string") {
+                url = input;
+              } else if (input && typeof input === "object" && "url" in input) {
+                url = String(input.url);
+              } else {
+                url = String(input);
+              }
               if (url.startsWith("ws://") || url.startsWith("wss://")) {
                 return Promise.resolve(new Response(null, { status: 200 }));
               }
               return originalFetch.apply(this, arguments);
             };
+            window.fetch = newFetch;
+            if (typeof globalThis !== 'undefined') {
+              globalThis.fetch = newFetch;
+            }
           } catch (_) {}
           
           window.addEventListener("unhandledrejection", (event) => {

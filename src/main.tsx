@@ -24,6 +24,11 @@
       
       constructor(url: string | URL, protocols?: string | string[]) {
         this.url = String(url);
+        setTimeout(() => {
+          if (typeof this.onclose === 'function') {
+            this.onclose({ wasClean: true, code: 1000, reason: "WebSocket disabled" });
+          }
+        }, 10);
       }
       
       send() {}
@@ -35,17 +40,31 @@
     
     try {
       window.WebSocket = NoOpWebSocket as unknown as typeof WebSocket;
+      if (typeof globalThis !== 'undefined') {
+        (globalThis as any).WebSocket = NoOpWebSocket;
+      }
     } catch (_) {}
     
     try {
       const originalFetch = window.fetch;
-      window.fetch = function(input: RequestInfo | URL, init?: RequestInit) {
-        const url = String(input);
+      const newFetch = function(input: RequestInfo | URL, init?: RequestInit) {
+        let url = "";
+        if (typeof input === "string") {
+          url = input;
+        } else if (input && typeof input === "object" && "url" in input) {
+          url = String((input as any).url);
+        } else {
+          url = String(input);
+        }
         if (url.startsWith("ws://") || url.startsWith("wss://")) {
           return Promise.resolve(new Response(null, { status: 200 }));
         }
         return originalFetch.call(this, input, init);
       };
+      window.fetch = newFetch;
+      if (typeof globalThis !== 'undefined') {
+        (globalThis as any).fetch = newFetch;
+      }
     } catch (_) {}
     
     window.addEventListener("unhandledrejection", (event) => {
