@@ -15,43 +15,6 @@ i18n.changeLanguage(savedLanguage);
 document.documentElement.lang = savedLanguage;
 
 
-// 🥋 OSS SENSEI: Global Production Guard
-// Limpa ruídos de WebSocket, HMR, DEBUG, RENDER, etc.
-const originalLog = console.log;
-const originalWarn = console.warn;
-const originalError = console.error;
-
-const shouldSilenceLog = (val: any): boolean => {
-  const lowercaseMsg = String(val?.stack || val?.message || val || "").toLowerCase();
-  return (
-    lowercaseMsg.includes('vite') ||
-    lowercaseMsg.includes('websocket') ||
-    lowercaseMsg.includes('hmr') ||
-    lowercaseMsg.includes('debug') ||
-    lowercaseMsg.includes('bootstrap') ||
-    lowercaseMsg.includes('render') ||
-    lowercaseMsg.includes('api') ||
-    lowercaseMsg.includes('connection') ||
-    lowercaseMsg.includes('closed') ||
-    lowercaseMsg.includes('sockjs')
-  );
-};
-
-console.log = (...args) => {
-  if (args.some(shouldSilenceLog)) return;
-  originalLog.apply(console, args);
-};
-
-console.warn = (...args) => {
-  if (args.some(shouldSilenceLog)) return;
-  originalWarn.apply(console, args);
-};
-
-console.error = (...args) => {
-  if (args.some(shouldSilenceLog)) return;
-  originalError.apply(console, args);
-};
-
 // 🥋 OSS SENSEI: Global Premium Custom Dialog & Interceptor System (Requisito 7)
 // Substitui os bloqueantes alert() e confirm() por Overlays Customizados Dark Elite sem quebra de fluxo.
 if (typeof window !== "undefined") {
