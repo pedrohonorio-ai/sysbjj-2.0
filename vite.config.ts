@@ -17,7 +17,20 @@ export default defineConfig({
       includeAssets: ['favicon.ico', 'robots.txt', 'apple-touch-icon.png'],
       manifest: false, // Usamos nosso manifesto manual
       workbox: {
-        globPatterns: ['**/*.{js,css,html,ico,png,svg,woff2,webmanifest}'],
+        {
+  urlPattern: /^https:\/\/rsms\.me\/.*/i,
+  handler: 'CacheFirst',
+  options: {
+    cacheName: 'inter-font',
+    expiration: {
+      maxEntries: 10,
+      maxAgeSeconds: 60 * 60 * 24 * 365
+    },
+    cacheableResponse: {
+      statuses: [0, 200]
+    }
+  }
+},
         cleanupOutdatedCaches: true,
         runtimeCaching: [
           {
