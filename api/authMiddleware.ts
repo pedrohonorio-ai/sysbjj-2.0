@@ -51,7 +51,11 @@ export const authenticate = (req: AuthRequest, res: Response, next: NextFunction
 
     next();
   } catch (err: any) {
-    console.error('❌ [AUTH MIDDLEWARE] Error validating JWT:', err.message || err);
+    if (err.name === 'JsonWebTokenError' || err.name === 'TokenExpiredError') {
+      console.warn(`🥋 [AUTH MIDDLEWARE] JWT validation failed: ${err.message}. Requiring re-authentication.`);
+    } else {
+      console.error('❌ [AUTH MIDDLEWARE] Unexpected error validating JWT:', err.message || err);
+    }
     return res.status(401).json({ 
       success: false,
       error: 'Token inválido ou expirado.',

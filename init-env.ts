@@ -66,6 +66,11 @@ const ensureProtocol = (url: string) => {
 const dbUrl = cleanupEnv('DATABASE_URL') || cleanupEnv('POSTGRES_URL') || cleanupEnv('POSTGRES_PRISMA_URL');
 let directUrl = cleanupEnv('DIRECT_URL') || dbUrl;
 
+// 🥋 OSS SENSEI: Saneamento de chaves de autenticação (remove aspas, espaços e caracteres indesejados)
+cleanupEnv('JWT_SECRET');
+cleanupEnv('AUTH_SECRET');
+cleanupEnv('SESSION_SECRET');
+
 // 🥋 OSS SENSEI: Prevent model / schema DB mismatch issues when DIRECT_URL and DATABASE_URL point to different hosts
 if (dbUrl && directUrl) {
   try {
