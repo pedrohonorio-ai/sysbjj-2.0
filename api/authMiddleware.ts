@@ -1,7 +1,17 @@
 import { Request, Response, NextFunction } from 'express';
 import jwt from 'jsonwebtoken';
 
-const JWT_SECRET = process.env.JWT_SECRET || process.env.AUTH_SECRET || process.env.SESSION_SECRET || 'sysbjj-enterprise-oss-secret-2024';
+// 🥋 SYSBJJ 2.0 - JWT_SECRET CLEANUP UTILITY
+const getCleanSecret = (secret: string | undefined): string => {
+  if (!secret) return 'sysbjj-enterprise-oss-secret-2024';
+  return secret
+    .trim()
+    .replace(/^['"]|['"]$/g, '') // remove absolute surrounding quotes
+    .replace(/\\n/g, '\n')       // translate line-break codes
+    .replace(/\\r/g, '\r');
+};
+
+const JWT_SECRET = getCleanSecret(process.env.JWT_SECRET || process.env.AUTH_SECRET || process.env.SESSION_SECRET);
 
 export interface AuthRequest extends Request {
   user?: {

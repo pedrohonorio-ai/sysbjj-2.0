@@ -18,11 +18,7 @@ export default defineConfig(({ command, mode }) => {
           host: '0.0.0.0',
           strictPort: true,
           allowedHosts: true,
-          hmr: {
-            protocol: 'wss',
-            host: process.env.HMR_HOST || 'localhost',
-            clientPort: 443
-          },
+          hmr: false,
           watch: {
             usePolling: false,
           },

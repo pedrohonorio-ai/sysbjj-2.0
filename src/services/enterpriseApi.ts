@@ -163,10 +163,10 @@ class EnterpriseApi {
             let errorInfo = `HTTP Error: ${response.status}`;
             const contentType = response.headers.get('content-type');
             
-            // 🥋 OSS SENSEI: Autolimpeza de token de forma segura (redundante para interceptações de rede HTML)
-            if (response.status === 401 || (response.status === 403 && (!token || isJwtExpired(token)))) {
+            // 🥋 OSS SENSEI: Limpeza de token sob qualquer erro de acesso (401 ou 403)
+            if (response.status === 401 || response.status === 403) {
               if (typeof window !== 'undefined') {
-                console.warn(`🥋 [API AUTH CLEANUP] Resposta ${response.status} de acesso ilegal/expirado detectada. Resetando credenciais locais.`);
+                console.warn(`🥋 [API AUTH CLEANUP] Resposta de negação ${response.status} detectada da API. Expirando credenciais locais para renovação.`);
                 localStorage.removeItem('oss_auth');
                 window.dispatchEvent(new Event('oss_unauthorized'));
               }
@@ -176,10 +176,10 @@ class EnterpriseApi {
               try {
                 const errorData = await response.json();
                 
-                // Se for um 403 indicando token expirado de verdade, limpa a sessão
-                if (response.status === 403 && (errorData.error?.includes('expirado') || errorData.error?.includes('token') || errorData.error?.includes('Token') || errorData.error?.includes('Sessão'))) {
+                // Força logout se for erro de assinatura, expiração ou privilégio ilegal
+                if (response.status === 401 || response.status === 403) {
                   if (typeof window !== 'undefined') {
-                    console.warn("🥋 [API AUTH CLEANUP] Token expirado confirmado via JSON (403), limpando credenciais.");
+                    console.warn("🥋 [API AUTH CLEANUP] Token inválido ou expirado confirmado pela API, encerrando sessão.");
                     localStorage.removeItem('oss_auth');
                     window.dispatchEvent(new Event('oss_unauthorized'));
                   }

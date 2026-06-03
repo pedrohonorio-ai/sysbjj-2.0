@@ -5,7 +5,16 @@ import { prisma } from '../../prisma/client.js';
 import { handleApiError } from '../utils.js';
 import { MASTER_ADMIN_EMAIL } from '../../server/config/masterAdmin.js';
 
-const JWT_SECRET = process.env.JWT_SECRET || process.env.AUTH_SECRET || process.env.SESSION_SECRET || 'sysbjj-enterprise-oss-secret-2024';
+const getCleanSecret = (secret: string | undefined): string => {
+  if (!secret) return 'sysbjj-enterprise-oss-secret-2024';
+  return secret
+    .trim()
+    .replace(/^['"]|['"]$/g, '') // remove surrounding quotes
+    .replace(/\\n/g, '\n')       // translate linebreaks
+    .replace(/\\r/g, '\r');
+};
+
+const JWT_SECRET = getCleanSecret(process.env.JWT_SECRET || process.env.AUTH_SECRET || process.env.SESSION_SECRET);
 
 const generateToken = (user: any) => {
   const isMasterAdmin = user.email === MASTER_ADMIN_EMAIL;

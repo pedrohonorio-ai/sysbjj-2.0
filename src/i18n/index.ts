@@ -1,13 +1,13 @@
 import i18n from "i18next";
 import { initReactI18next } from "react-i18next";
-import LanguageDetector from "i18next-browser-languagedetector";
 
 import ptBR from "./locales/pt-BR.json" with { type: "json" };
 import enUS from "./locales/en-US.json" with { type: "json" };
 import esES from "./locales/es-ES.json" with { type: "json" };
 
+// 🥋 SYSBJJ 2.0 - DETERMINISTIC i18n CONFIGURATION
+// Prioritiza o português do Brasil (pt-BR) de forma absoluta, desativando detecção randômica de idioma do navegador.
 i18n
-  .use(LanguageDetector)
   .use(initReactI18next)
   .init({
     resources: {
@@ -31,6 +31,8 @@ i18n
       },
     },
 
+    // Força português brasileiro como padrão absoluto para o dojo
+    lng: "pt-BR",
     fallbackLng: "pt-BR",
 
     supportedLngs: [
@@ -51,10 +53,10 @@ i18n
     returnNull: false,
     returnEmptyString: false,
 
-    saveMissing: true,
+    saveMissing: false,
 
     interpolation: {
-      escapeValue: false,
+      escapeValue: false, // React já protege contra XSS
     },
 
     react: {
@@ -62,6 +64,7 @@ i18n
     },
 
     parseMissingKeyHandler: (key: string) => {
+      // Formata amigavelmente a chave faltante
       const formatFriendly = (k: string) => {
         return k
           .split(".")
@@ -82,18 +85,6 @@ i18n
       };
 
       return map[key] || formatFriendly(key);
-    },
-
-    detection: {
-      order: [
-        "localStorage",
-        "navigator",
-        "htmlTag"
-      ],
-
-      caches: ["localStorage"],
-
-      lookupLocalStorage: "SYSBJJ_LANG",
     },
   });
 

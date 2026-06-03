@@ -86,9 +86,17 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
     // 🥋 OSS SENSEI: Registra listener de autolimpeza para sessões expiradas/403
     const handleUnauthorized = () => {
+      console.warn("🥋 [AUTH_CONTEXT] Evento 'oss_unauthorized' recebido. Forçando encerramento de sessão local e redirecionamento.");
+      localStorage.removeItem('oss_auth');
+      localStorage.removeItem('oss_demo_mode');
       setUser(null);
       setRole(null);
       setStudentCode(undefined);
+      
+      // Força redirecionamento se não estiver já na tela de login
+      if (!window.location.pathname.includes('/login')) {
+         window.location.href = '/login';
+      }
     };
 
     window.addEventListener('oss_unauthorized', handleUnauthorized);
