@@ -85,7 +85,7 @@ export default defineConfig({
     })
   ],
   resolve: {
-    dedupe: ['react', 'react-dom', 'react-dom/client', 'react/jsx-runtime', 'react-router-dom'],
+    dedupe: ['react', 'react-dom', 'react-router-dom'],
     alias: {
       'react': path.resolve(__dirname, 'node_modules/react'),
       'react-dom': path.resolve(__dirname, 'node_modules/react-dom'),
@@ -99,24 +99,26 @@ export default defineConfig({
     hmr: false,
   },
   optimizeDeps: {
-    include: ['react', 'react-dom', 'react-dom/client', 'react/jsx-runtime', 'react-router-dom'],
+    include: ['react', 'react-dom', 'react-router-dom'],
     force: true,
   },
   build: {
     outDir: 'dist',
+    assetsDir: 'assets',
     sourcemap: false,
-    commonjsOptions: {
-      include: [/node_modules/],
-      transformMixedEsModules: true,
-    },
+    manifest: true,
+    chunkSizeWarningLimit: 1200,
     rollupOptions: {
       output: {
+        assetFileNames: 'assets/[name]-[hash][extname]',
+        chunkFileNames: 'assets/[name]-[hash].js',
+        entryFileNames: 'assets/[name]-[hash].js',
         manualChunks: {
-          'react-vendor': ['react', 'react-dom', 'react-dom/client', 'react-router-dom'],
-          'charts': ['recharts'],
-          'pdf': ['jspdf', 'jspdf-autotable']
-        },
-      },
-    },
+          react: ['react', 'react-dom', 'react-router-dom'],
+          charts: ['recharts'],
+          pdf: ['jspdf', 'jspdf-autotable']
+        }
+      }
+    }
   },
 });
