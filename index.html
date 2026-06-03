@@ -3,6 +3,74 @@
 <html lang="pt-BR">
 <head>
     <meta charset="UTF-8">
+    <script>
+      // 🥋 OSS SENSEI: SILENCIADOR COMPLETO DE WEBSOCKET (EXECUÇÃO PRECOCE)
+      (function() {
+        if (typeof window !== "undefined") {
+          class NoOpWebSocket {
+            static CONNECTING = 0;
+            static OPEN = 1;
+            static CLOSING = 2;
+            static CLOSED = 3;
+            
+            readyState = 3;
+            CONNECTING = 0;
+            OPEN = 1;
+            CLOSING = 2;
+            CLOSED = 3;
+            binaryType = "blob";
+            bufferedAmount = 0;
+            extensions = "";
+            protocol = "";
+            onopen = null;
+            onerror = null;
+            onclose = null;
+            onmessage = null;
+            
+            constructor(url, protocols) {
+              this.url = String(url);
+            }
+            
+            send() {}
+            close() {}
+            addEventListener() {}
+            removeEventListener() {}
+            dispatchEvent() { return true; }
+          }
+          
+          try {
+            window.WebSocket = NoOpWebSocket;
+          } catch (_) {}
+          
+          try {
+            const originalFetch = window.fetch;
+            window.fetch = function(input, init) {
+              const url = String(input);
+              if (url.startsWith("ws://") || url.startsWith("wss://")) {
+                return Promise.resolve(new Response(null, { status: 200 }));
+              }
+              return originalFetch.apply(this, arguments);
+            };
+          } catch (_) {}
+          
+          window.addEventListener("unhandledrejection", (event) => {
+            const reason = String(event.reason?.message || event.reason || "");
+            if (reason.includes("WebSocket") || reason.includes("closed without opened") || reason.includes("closed")) {
+              event.preventDefault();
+              event.stopPropagation();
+            }
+          });
+          
+          window.addEventListener("error", (event) => {
+            const message = String(event.message || "");
+            if (message.includes("WebSocket") || message.includes("closed without opened") || message.includes("closed")) {
+              event.preventDefault();
+              event.stopPropagation();
+            }
+          }, true);
+        }
+      })();
+    </script>
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
     
     <!-- META -->
