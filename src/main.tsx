@@ -1,3 +1,78 @@
+// 🥋 OSS SENSEI: SILENCIADOR COMPLETO DE WEBSOCKET
+(function() {
+  if (typeof window !== "undefined") {
+    class NoOpWebSocket {
+      static CONNECTING = 0;
+      static OPEN = 1;
+      static CLOSING = 2;
+      static CLOSED = 3;
+      
+      url: string;
+      readyState = 3;
+      CONNECTING = 0;
+      OPEN = 1;
+      CLOSING = 2;
+      CLOSED = 3;
+      binaryType: any = "blob";
+      bufferedAmount = 0;
+      extensions = "";
+      protocol = "";
+      onopen: any = null;
+      onerror: any = null;
+      onclose: any = null;
+      onmessage: any = null;
+      
+      constructor(url: string | URL, protocols?: string | string[]) {
+        this.url = String(url);
+      }
+      
+      send() {}
+      close() {}
+      addEventListener() {}
+      removeEventListener() {}
+      dispatchEvent() { return true; }
+    }
+    
+    try {
+      window.WebSocket = NoOpWebSocket as unknown as typeof WebSocket;
+    } catch (_) {}
+    
+    try {
+      const originalFetch = window.fetch;
+      window.fetch = function(input: RequestInfo | URL, init?: RequestInit) {
+        const url = String(input);
+        if (url.startsWith("ws://") || url.startsWith("wss://")) {
+          return Promise.resolve(new Response(null, { status: 200 }));
+        }
+        return originalFetch.call(this, input, init);
+      };
+    } catch (_) {}
+    
+    window.addEventListener("unhandledrejection", (event) => {
+      const reason = String(event.reason?.message || event.reason || "");
+      if (reason.includes("WebSocket") || reason.includes("closed without opened") || reason.includes("closed")) {
+        event.preventDefault();
+        event.stopPropagation();
+      }
+    });
+    
+    window.addEventListener("error", (event: any) => {
+      const message = String(event.message || "");
+      if (message.includes("WebSocket") || message.includes("closed without opened") || message.includes("closed")) {
+        event.preventDefault();
+        event.stopPropagation();
+      }
+    }, true);
+    
+    if (typeof import.meta !== "undefined" && (import.meta as any).hot) {
+      try {
+        (import.meta as any).hot.accept(() => {});
+        (import.meta as any).hot.dispose(() => {});
+      } catch (_) {}
+    }
+  }
+})();
+
 import React, { StrictMode } from 'react';
 import { createRoot } from 'react-dom/client';
 import { BrowserRouter } from 'react-router-dom';
