@@ -427,7 +427,6 @@ protectedRouter.delete("/data/:collection/:id", safeHandler(async (req: any, res
 }));
 
 app.use("/api", protectedRouter);
-app.use("/", protectedRouter);
 
 // 🥋 FALLBACK DE MONITORAMENTO DE ROTAS: Garante que NENHUMA rota da API responda HTML em caso de 404
 app.use((req, res) => {
