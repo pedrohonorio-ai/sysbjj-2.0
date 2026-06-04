@@ -1,22 +1,17 @@
 {
-  "name": "sysbjj-2-0",
+  "name": "seu-projeto",
   "private": true,
-  "version": "2.0.0",
+  "version": "0.0.0",
   "type": "module",
   "scripts": {
-    "dev": "tsx server.ts",
-    "build": "prisma generate && vite build && tsx build-server.ts",
-    "vercel-build": "prisma generate && vite build",
-    "start": "node dist/server.js",
-    "postinstall": "prisma generate",
-    "lint": "tsc --noEmit",
-    "scan:i18n": "node scripts/find-hardcoded-texts.js",
-    "fix:i18n": "node scripts/fix-i18n.js",
-    "audit:translations": "node scripts/audit-translations.js",
+    "dev": "vite",
+    "build": "vite build",
+    "lint": "eslint . --ext js,jsx,ts,tsx --report-unused-disable-directives --max-warnings 0",
+    "preview": "vite preview",
     "pwa:generate": "node scripts/generate-icons.js",
     "pwa:build": "npm run pwa:generate && npm run build"
   },
-"dependencies": {
+  "dependencies": {
     "@google/genai": "1.34.0",
     "@prisma/client": "6.2.1",
     "bcryptjs": "3.0.3",
@@ -66,3 +61,4 @@
     "vite": "5.4.2",
     "vite-plugin-pwa": "1.3.0"
   }
+}
