@@ -12,78 +12,30 @@ export default defineConfig({
   plugins: [
     react(),
     tailwindcss(),
-   VitePWA({
-  registerType: 'autoUpdate',
-  strategies: 'generateSW',
-  includeAssets: ['favicon.ico', 'robots.txt', 'apple-touch-icon.png'],
-  manifest: false,
-  workbox: {
-    globPatterns: ['**/*.{js,html,ico,png,svg,woff2,webmanifest}'], // ← css removido
-    cleanupOutdatedCaches: true,
-    runtimeCaching: [
-      {
-        urlPattern: /\/api\/.*/i,
-        handler: 'NetworkFirst',
-        options: {
-          cacheName: 'api-cache',
-          expiration: {
-            maxEntries: 50,
-            maxAgeSeconds: 60 * 60 * 24
+    VitePWA({
+      registerType: 'autoUpdate',
+      strategies: 'generateSW',
+      includeAssets: ['favicon.ico', 'robots.txt', 'apple-touch-icon.png'],
+      manifest: false,
+      workbox: {
+        globPatterns: ['**/*.{js,html,ico,png,svg,woff2,webmanifest}'],
+        cleanupOutdatedCaches: true,
+        runtimeCaching: [
+          {
+            urlPattern: /\/api\/.*/i,
+            handler: 'NetworkFirst',
+            options: {
+              cacheName: 'api-cache',
+              expiration: {
+                maxEntries: 50,
+                maxAgeSeconds: 60 * 60 * 24
+              },
+              cacheableResponse: {
+                statuses: [0, 200]
+              }
+            }
           },
-          cacheableResponse: {
-            statuses: [0, 200]
-          }
-        }
-      },
-      {
-        urlPattern: /^https:\/\/fonts\.(?:googleapis|gstatic)\.com\/.*/i,
-        handler: 'CacheFirst',
-        options: {
-          cacheName: 'google-fonts',
-          expiration: {
-            maxEntries: 10,
-            maxAgeSeconds: 60 * 60 * 24 * 365
-          },
-          cacheableResponse: {
-            statuses: [0, 200]
-          }
-        }
-      },
-      {
-        urlPattern: /\.(?:png|jpg|jpeg|svg|gif|webp|ico)$/i,
-        handler: 'CacheFirst',
-        options: {
-          cacheName: 'image-cache',
-          expiration: {
-            maxEntries: 100,
-            maxAgeSeconds: 60 * 60 * 24 * 30
-          },
-          cacheableResponse: {
-            statuses: [0, 200]
-          }
-        }
-      },
-      {
-        urlPattern: /\.(?:js|css)$/i,
-        handler: 'StaleWhileRevalidate',
-        options: {
-          cacheName: 'static-resources',
-          expiration: {
-            maxEntries: 50,
-            maxAgeSeconds: 60 * 60 * 24 * 7
-          },
-          cacheableResponse: {
-            statuses: [0, 200]
-          }
-        }
-      }
-    ]
-  },
-  devOptions: {
-    enabled: false,
-    type: 'module'
-  }
-})
+          {
             urlPattern: /^https:\/\/fonts\.(?:googleapis|gstatic)\.com\/.*/i,
             handler: 'CacheFirst',
             options: {
@@ -104,7 +56,7 @@ export default defineConfig({
               cacheName: 'image-cache',
               expiration: {
                 maxEntries: 100,
-                maxAgeSeconds: 60 * 60 * 24 * 30 // 30 dias
+                maxAgeSeconds: 60 * 60 * 24 * 30
               },
               cacheableResponse: {
                 statuses: [0, 200]
@@ -118,7 +70,7 @@ export default defineConfig({
               cacheName: 'static-resources',
               expiration: {
                 maxEntries: 50,
-                maxAgeSeconds: 60 * 60 * 24 * 7 // 7 dias
+                maxAgeSeconds: 60 * 60 * 24 * 7
               },
               cacheableResponse: {
                 statuses: [0, 200]
@@ -144,7 +96,7 @@ export default defineConfig({
   },
   server: {
     host: '0.0.0.0',
-    port: 3000, // Porta 3000 é estritamente obrigatória pela infraestrutura do AI Studio
+    port: 3000,
     strictPort: true,
     hmr: false,
   },
@@ -163,7 +115,6 @@ export default defineConfig({
         assetFileNames: 'assets/[name]-[hash][extname]',
         chunkFileNames: 'assets/[name]-[hash].js',
         entryFileNames: 'assets/[name]-[hash].js',
-        // OSS SENSEI: Forçamos bundle único garantido para evitar cópias do React
         manualChunks: undefined
       }
     }
