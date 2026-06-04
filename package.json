@@ -3,6 +3,9 @@
   "private": true,
   "version": "2.0.0",
   "type": "module",
+  "engines": {
+    "node": "20.x"
+  },
   "scripts": {
     "dev": "tsx server.ts",
     "build": "prisma generate && vite build && tsx build-server.ts",
@@ -45,13 +48,7 @@
     "recharts": "2.15.1",
     "workbox-window": "7.4.1"
   },
-  "overrides": {
-    "react": "18.2.0",
-    "react-dom": "18.2.0",
-    "motion": {
-      "react": "18.2.0"
-    }
-  }  "devDependencies": {
+  "devDependencies": {
     "@tailwindcss/vite": "4.0.0",
     "@types/bcryptjs": "2.4.6",
     "@types/canvas-confetti": "1.9.0",
