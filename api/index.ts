@@ -90,6 +90,8 @@ app.get("/api/health", (_, res) => {
 })
 app.post("/api/auth/login", safeHandler(loginHandler));
 app.post("/api/auth/register", safeHandler(registerHandler));
+app.post("/api/auth/forgot-password", safeHandler(forgotPasswordHandler));
+app.post("/api/auth/reset-password", safeHandler(resetPasswordHandler));
 app.get("/api/diagnose", safeHandler(diagnoseHandler));
 
 // 🥋 SUPREME ENDPOINT: DELETE /api/admin/delete-user/:id
