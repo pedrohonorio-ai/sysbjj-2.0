@@ -48,7 +48,7 @@
     "recharts": "2.15.1",
     "workbox-window": "7.4.1"
   },
-"devDependencies": {
+  "devDependencies": {
     "@tailwindcss/vite": "^4.1.8",
     "@types/bcryptjs": "2.4.6",
     "@types/canvas-confetti": "1.9.0",
@@ -68,4 +68,9 @@
     "typescript": "5.3.3",
     "vite": "^5.4.0",
     "vite-plugin-pwa": "^0.21.1"
+  },
+  "overrides": {
+    "react": "18.2.0",
+    "react-dom": "18.2.0"
   }
+}
