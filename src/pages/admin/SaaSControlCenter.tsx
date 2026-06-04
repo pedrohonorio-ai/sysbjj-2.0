@@ -38,6 +38,7 @@ export const SaaSControlCenter: React.FC = () => {
   const [loading, setLoading] = useState<boolean>(true);
   const [academias, setAcademias] = useState<any[]>([]);
   const [searchTerm, setSearchTerm] = useState<string>('');
+  const [planFilter, setPlanFilter] = useState<string>('all');
   const [updatingId, setUpdatingId] = useState<string | null>(null);
   const [err, setErr] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
@@ -313,9 +314,12 @@ export const SaaSControlCenter: React.FC = () => {
         a.academyName?.toLowerCase().includes(searchTerm.toLowerCase()) ||
         a.professorName?.toLowerCase().includes(searchTerm.toLowerCase()) ||
         a.email?.toLowerCase().includes(searchTerm.toLowerCase());
-      return matchSearch;
+      
+      const matchPlan = planFilter === 'all' || String(a.plan || 'FREE').toLowerCase() === planFilter.toLowerCase();
+      
+      return matchSearch && matchPlan;
     });
-  }, [academias, searchTerm]);
+  }, [academias, searchTerm, planFilter]);
 
   // If not master email, block visual access explicitly
   if (!isMasterAuthorized) {
@@ -543,6 +547,30 @@ export const SaaSControlCenter: React.FC = () => {
           </div>
         </div>
 
+        {/* 🥋 [OSS] Classificação / Filtro por Plano */}
+        <div className="px-6 py-3 border-b border-slate-850 flex flex-wrap gap-2 items-center bg-slate-950/20">
+          <span className="text-[9px] font-black uppercase text-slate-500 tracking-widest mr-2">Classificar Planos:</span>
+          {[
+            { id: 'all', label: 'Todos os Dojos', activeColor: 'bg-white text-slate-950 font-black' },
+            { id: 'FREE', label: 'Gratuito', activeColor: 'bg-slate-700 text-white font-black' },
+            { id: 'BRONZE', label: 'Bronze', activeColor: 'bg-amber-600 text-amber-100 font-black border border-amber-500/20' },
+            { id: 'SILVER', label: 'Silver', activeColor: 'bg-slate-500 text-white font-black border border-slate-400/20' },
+            { id: 'BLACK_BELT', label: 'Black Belt', activeColor: 'bg-rose-600 text-white font-black border border-rose-500/20' },
+            { id: 'LIBERADO', label: '★ Liberado (Cortesia)', activeColor: 'bg-amber-400 text-slate-950 font-black border border-amber-300 font-black shadow-[0_0_12px_rgba(245,158,11,0.2)]' },
+            { id: 'SOCIAL_PROJECT', label: 'Projeto Social', activeColor: 'bg-emerald-600 text-white font-black border border-emerald-500/20' }
+          ].map((item) => (
+            <button
+              key={item.id}
+              onClick={() => setPlanFilter(item.id)}
+              className={`px-3 py-1.5 rounded-xl text-[9px] font-extrabold uppercase tracking-widest transition-all cursor-pointer ${
+                planFilter === item.id ? item.activeColor + ' shadow-md scale-102' : 'text-slate-400 hover:text-white bg-slate-950 border border-slate-850/50'
+              }`}
+            >
+              {item.label}
+            </button>
+          ))}
+        </div>
+
         {/* Table list */}
         {loading ? (
           <div className="p-12 text-center text-xs font-bold uppercase tracking-widest text-slate-500">
@@ -596,6 +624,7 @@ export const SaaSControlCenter: React.FC = () => {
                       {/* Current Plan Badge */}
                       <td className="py-4 px-4 text-center">
                         <span className={`text-[9px] font-black uppercase px-2.5 py-1 rounded inline-block border ${
+                          a.plan === 'LIBERADO' ? 'bg-amber-400 text-slate-950 border-amber-300 font-extrabold shadow-[0_0_12px_rgba(245,158,11,0.25)]' :
                           a.plan === 'BLACK_BELT' ? 'bg-red-950 text-red-400 border-red-500/20' :
                           a.plan === 'SILVER' ? 'bg-slate-800 text-slate-300 border-slate-700' :
                           a.plan === 'BRONZE' ? 'bg-amber-950 text-amber-400 border-amber-900/30' :
@@ -612,8 +641,8 @@ export const SaaSControlCenter: React.FC = () => {
                       </td>
 
                       {/* Financial info */}
-                      <td className="py-4 px-4 text-center font-mono font-black text-emerald-400">
-                        {String(a.plan || 'FREE').toUpperCase() === 'FREE' || String(a.plan || 'FREE').toUpperCase() === 'SOCIAL_PROJECT' || a.nonprofit ? 'Grátis' : `R$ ${Number(a.monthlyPrice || 0).toFixed(2)}`}
+                      <td className="py-4 px-4 text-center font-mono font-black text-emerald-400 font-sans">
+                        {String(a.plan || 'FREE').toUpperCase() === 'FREE' || String(a.plan || 'FREE').toUpperCase() === 'SOCIAL_PROJECT' || String(a.plan || 'FREE').toUpperCase() === 'LIBERADO' || a.nonprofit ? 'Grátis' : `R$ ${Number(a.monthlyPrice || 0).toFixed(2)}`}
                       </td>
 
                       {/* Active / Blocked Status */}
@@ -667,6 +696,26 @@ export const SaaSControlCenter: React.FC = () => {
                             title="Liberar Black Belt"
                           >
                             Black Belt
+                          </button>
+
+                          {/* Mode Liberado (Cortesia Master) Toggle */}
+                          <button
+                            onClick={() => {
+                              if (a.plan === 'LIBERADO') {
+                                handleUpdateSubscription(a.id, 'FREE');
+                              } else {
+                                handleUpdateSubscription(a.id, 'LIBERADO');
+                              }
+                            }}
+                            disabled={isCurrentUpdating}
+                            className={`px-2 py-1 border rounded text-[8px] font-black uppercase transition-all cursor-pointer ${
+                              a.plan === 'LIBERADO'
+                                ? 'bg-amber-400 border-amber-300 text-slate-950 hover:bg-amber-300 shadow-[0_0_12px_rgba(245,158,11,0.3)] font-black animate-pulse'
+                                : 'bg-slate-950 border-slate-800 text-slate-300 hover:text-amber-400 hover:border-amber-500/30'
+                            }`}
+                            title={a.plan === 'LIBERADO' ? "Retirar Licença Cortesia" : "Ativar Cortesia Sem Custo"}
+                          >
+                            ⭐ {a.plan === 'LIBERADO' ? 'Liberado Ativo' : 'Liberar Sem Custo'}
                           </button>
 
                           {/* Account Suspend / Restore */}

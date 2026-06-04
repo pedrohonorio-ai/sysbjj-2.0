@@ -980,6 +980,7 @@ router.post("/admin/update", authenticate as any, async (req: AuthRequest, res: 
     else if (targetPlan === "SILVER") { defaultLimit = 80; defaultPrice = 30; }
     else if (targetPlan === "BLACK_BELT" || targetPlan === "BLACK BELT") { defaultLimit = 999999; defaultPrice = 50; }
     else if (targetPlan === "SOCIAL_PROJECT") { defaultLimit = 999999; defaultPrice = 0; }
+    else if (targetPlan === "LIBERADO") { defaultLimit = 999999; defaultPrice = 0; }
 
     const finalLimit = studentLimit !== undefined ? Number(studentLimit) : (existing?.studentLimit ?? defaultLimit);
     const finalPrice = customPrice !== undefined ? Number(customPrice) : (existing?.customPrice ?? defaultPrice);

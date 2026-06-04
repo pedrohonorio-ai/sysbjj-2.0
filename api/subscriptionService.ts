@@ -5,6 +5,7 @@ export const PLANS = {
   BRONZE: { name: "BRONZE", maxStudents: 50, price: 20 },
   SILVER: { name: "SILVER", maxStudents: 80, price: 30 },
   BLACK_BELT: { name: "BLACK_BELT", maxStudents: 999999, price: 50 },
+  LIBERADO: { name: "LIBERADO", maxStudents: 999999, price: 0 },
 };
 
 export function getPlanByStudents(totalStudents: number) {
@@ -26,6 +27,19 @@ export function getPlanByStudents(totalStudents: number) {
 export async function updateSubscriptionPlan(userId: string) {
   if (!prisma) return;
 
+  const existingSub = await prisma.subscription.findUnique({
+    where: { userId }
+  });
+
+  // 🥋 [OSS] Preserve specially designated administrator or social plans to prevent auto-downgrading
+  if (existingSub && (existingSub.plan === "LIBERADO" || existingSub.plan === "SOCIAL_PROJECT" || existingSub.grantedByAdmin)) {
+    return {
+      name: existingSub.plan,
+      maxStudents: existingSub.studentLimit || existingSub.maxStudents || 999999,
+      price: existingSub.customPrice ?? existingSub.monthlyPrice ?? 0
+    };
+  }
+
   const studentCount = await prisma.student.count({
     where: { userId }
   });
@@ -37,12 +51,14 @@ export async function updateSubscriptionPlan(userId: string) {
     create: {
       userId,
       plan: planInfo.name,
+      studentLimit: planInfo.maxStudents,
       maxStudents: planInfo.maxStudents,
       monthlyPrice: planInfo.price,
       active: true
     },
     update: {
       plan: planInfo.name,
+      studentLimit: planInfo.maxStudents,
       maxStudents: planInfo.maxStudents,
       monthlyPrice: planInfo.price
     }

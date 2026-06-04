@@ -196,6 +196,21 @@ export const SUBSCRIPTION_PLANS = [
     ]
   },
   {
+    id: "LIBERADO",
+    name: "Acesso Liberado (Cortesia Master)",
+    students: 999999,
+    price: 0,
+    nonprofit: false,
+    tagline: "Assinatura máxima concedida cortesia e sem custos pelo Master Sensei.",
+    features: [
+      "Alunos e cadastros ILIMITADOS",
+      "Certificação SYSBJJ inclusa",
+      "Inteligência Preditiva IA ativa",
+      "Suporte VIP via WhatsApp",
+      "Isenção vitalícia de mensalidades"
+    ]
+  },
+  {
     id: "SOCIAL_PROJECT",
     name: "Projeto Social",
     students: 999999,

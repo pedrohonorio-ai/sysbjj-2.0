@@ -22,6 +22,12 @@ export const BLACK_BELT = {
   price: 50
 };
 
+export const LIBERADO = {
+  name: "LIBERADO",
+  maxStudents: 999999,
+  price: 0
+};
+
 export const getPlanByStudentCount = (count: number) => {
   if (count <= 20) {
     return FREE;

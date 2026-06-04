@@ -27,4 +27,11 @@ export const SYSTEM_PLANS = [
     price: 50,
     description: "Alunos ilimitados.",
   },
+  {
+    id: "LIBERADO",
+    name: "Plano Liberado",
+    students: 999999,
+    price: 0,
+    description: "Acesso total liberado sem custos.",
+  },
 ];
