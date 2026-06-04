@@ -21,34 +21,43 @@ const generateToken = (user: any) => {
 };
 
 const sendResetEmail = async (toEmail: string, resetToken: string): Promise<boolean> => {
-  const apiKey = process.env.BREVO_API_KEY;
-  if (!apiKey) { console.error('🥋 [EMAIL] BREVO_API_KEY não configurado'); return false; }
+  const apiKey = process.env.RESEND_API_KEY;
+  if (!apiKey) { console.error('🥋 [EMAIL] RESEND_API_KEY não configurado'); return false; }
 
   const appUrl = process.env.APP_URL || 'https://sysbjj2.vercel.app';
   const resetLink = `${appUrl}/reset-password?token=${resetToken}`;
 
   try {
-    const response = await fetch('https://api.brevo.com/v3/smtp/email', {
+    const response = await fetch('https://api.resend.com/emails', {
       method: 'POST',
-      headers: { 'api-key': apiKey, 'Content-Type': 'application/json' },
+      headers: { 'Authorization': `Bearer ${apiKey}`, 'Content-Type': 'application/json' },
       body: JSON.stringify({
-        sender: { name: 'SYSBJJ', email: 'noreply@sender.brevo.com' },
-        to: [{ email: toEmail }],
+        from: 'SYSBJJ <onboarding@resend.dev>',
+        to: [toEmail],
         subject: '🥋 OSS! Recuperação de senha - SYSBJJ',
-        htmlContent: `
+        html: `
           <div style="font-family:sans-serif;max-width:600px;margin:0 auto;background:#0f172a;color:#f8fafc;padding:40px;border-radius:16px;">
             <h1 style="color:#3b82f6;">🥋 SYSBJJ</h1>
             <h2>Recuperação de Senha</h2>
             <p style="color:#94a3b8;">OSS Sensei! Clique no botão abaixo para redefinir sua senha.</p>
-            <a href="${resetLink}" style="display:inline-block;background:#2563eb;color:#fff;padding:16px 32px;border-radius:12px;text-decoration:none;font-weight:bold;font-size:16px;">
+            <a href="${resetLink}" style="display:inline-block;background:#2563eb;color:#fff;padding:16px 32px;border-radius:12px;text-decoration:none;font-weight:bold;">
               Redefinir Senha
             </a>
             <p style="color:#64748b;font-size:14px;margin-top:24px;">Este link expira em 1 hora.</p>
-            <p style="color:#64748b;font-size:14px;">Se não solicitou isso, ignore este email.</p>
           </div>
         `
       })
     });
+
+    if (response.ok) { console.log(`🥋 [EMAIL] Enviado para ${toEmail}`); return true; }
+    const err = await response.json();
+    console.error('🥋 [EMAIL] Erro Resend:', err);
+    return false;
+  } catch (error) {
+    console.error('🥋 [EMAIL] Exceção:', error);
+    return false;
+  }
+};
 
     if (response.ok) { console.log(`🥋 [EMAIL] Enviado para ${toEmail}`); return true; }
     const err = await response.json();
