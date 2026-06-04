@@ -167,11 +167,22 @@ export const SAFE_STUDENT_SELECT = {
 export async function dataHandler(req: AuthRequest, res: Response) {
   const userId = req.user?.id;
   
+  if (req.params.collection === 'profile') {
+    console.log("PROFILE START");
+    console.log("AUTH:", req.headers.authorization);
+    console.log("USER:", req.user);
+    console.log("QUERY:", req.query);
+    console.log("BODY:", req.body);
+  }
+  
   console.log('[API START]', req.originalUrl || req.url);
   console.log('[USER]', userId);
   console.log('[BODY]', req.body);
 
   if (!userId) {
+    if (req.params.collection === 'profile') {
+      console.log("PROFILE 400 REASON: sem usuário");
+    }
     return res.status(401).json({ 
       error: "Sessão inválida",
       sensei_tip: "O Tatame está fechado para este usuário. Reconecte-se." 
@@ -180,6 +191,9 @@ export async function dataHandler(req: AuthRequest, res: Response) {
 
   let { collection } = req.params;
   if (!collection) {
+    if (req.params.collection === 'profile') {
+      console.log("PROFILE 400 REASON: COLLECTION é obrigatório");
+    }
     return res.status(400).json({ error: "O parâmetro COLLECTION é obrigatório." });
   }
   if (collection === 'notifications') {
@@ -187,7 +201,14 @@ export async function dataHandler(req: AuthRequest, res: Response) {
   }
 
   if (req.body === undefined) {
-    return res.status(400).json({ error: "O parâmetro BODY é obrigatório." });
+    if (req.method === 'GET') {
+      req.body = {};
+    } else {
+      if (collection === 'profile') {
+        console.log("PROFILE 400 REASON: BODY é obrigatório");
+      }
+      return res.status(400).json({ error: "O parâmetro BODY é obrigatório." });
+    }
   }
 
   // 🥋 Validar conexão com banco antes de qualquer operação
