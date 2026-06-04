@@ -19,5 +19,11 @@
       "source": "/:path*",
       "destination": "/index.html"
     }
+    {
+  "cleanUrls": true,
+  "rewrites": [
+    { "source": "/(.*)", "destination": "/index.html" }
+  ]
+}
   ]
 }
