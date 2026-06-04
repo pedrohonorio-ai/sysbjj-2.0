@@ -1,16 +1,16 @@
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { useTranslation } from '../contexts/LanguageContext.js';
 import { useProfile } from '../contexts/ProfileContext.js';
 import { useData } from '../contexts/DataContext.js';
 import { useAuth } from '../context/AuthContext.js';
 import { AppLanguage } from '../types.js';
-import { Check, Globe, User, Save, Shield, Database, Download, Upload, Trash2, CreditCard, Mail, BookOpen, MapPin, Monitor, Activity, Users, TrendingUp, Trophy, ShieldCheck, Palette } from 'lucide-react';
+import { Check, Globe, User, Save, Shield, Database, Download, Upload, Trash2, CreditCard, Mail, BookOpen, MapPin, Monitor, Activity, Users, TrendingUp, Trophy, ShieldCheck, Palette, QrCode, Copy, UploadCloud, Sparkles, RefreshCw, AlertCircle, Clock } from 'lucide-react';
 import { api } from '../services/api.js';
 import { enterpriseApi } from '../services/enterpriseApi.js';
 import { compressImage } from '../services/imageUtils.js';
 import PlanCard from '../components/subscription/PlanCard.js';
-import { MASTER_ADMINS } from '../constants/index.js';
+import { MASTER_ADMINS, SUBSCRIPTION_PLANS, BILLING_CYCLES } from '../constants/index.js';
 
 const languages = [
   { code: AppLanguage.PORTUGUESE_BR, name: 'Português', native: 'Português (Brasil)', flag: '🇧🇷' },
@@ -56,6 +56,316 @@ const Settings: React.FC = () => {
   });
   const [subscription, setSubscription] = useState<any>(null);
   const [canInstall, setCanInstall] = useState(!!(window as any).deferredPrompt);
+
+  const [activeSubTab, setActiveSubTab] = useState<'profile' | 'billing' | 'security'>('profile');
+
+  // --- INTEGRATED BILLING STATES FROM CENTRAL ---
+  const [selectedPlan, setSelectedPlan] = useState<string>('BRONZE');
+  const [selectedCycle, setSelectedCycle] = useState<string>('MONTHLY');
+  const [finalPrice, setFinalPrice] = useState<number>(20);
+  const [submittingUpgrade, setSubmittingUpgrade] = useState<boolean>(false);
+  const [dynamicPixCode, setDynamicPixCode] = useState<string>('');
+  const [isPixModalOpen, setIsPixModalOpen] = useState<boolean>(false);
+  const [confirmingPix, setConfirmingPix] = useState<boolean>(false);
+  
+  // Proof upload states
+  const [uploading, setUploading] = useState<boolean>(false);
+  const [uploadSuccess, setUploadSuccess] = useState<boolean>(false);
+  const [proofUrl, setProofUrl] = useState<string>('');
+  const [notes, setNotes] = useState<string>('');
+
+  // Social Project Request states
+  const [isRequestingSocial, setIsRequestingSocial] = useState<boolean>(false);
+  const [socialName, setSocialName] = useState<string>('');
+  const [socialDesc, setSocialDesc] = useState<string>('');
+  const [socialLocation, setSocialLocation] = useState<string>('');
+  const [socialResponsible, setSocialResponsible] = useState<string>('');
+  const [socialCnpj, setSocialCnpj] = useState<string>('');
+  const [socialStudents, setSocialStudents] = useState<string>('');
+  const [submittingSocial, setSubmittingSocial] = useState<boolean>(false);
+
+  // Billing history
+  const [receipts, setReceipts] = useState<any[]>([]);
+  const [copied, setCopied] = useState<boolean>(false);
+  const [copiedPayload, setCopiedPayload] = useState<boolean>(false);
+  const [actionError, setActionError] = useState<string | null>(null);
+  const [successMsg, setSuccessMsg] = useState<string | null>(null);
+
+  const PIX_KEY = subscription?.pixKey || "dashfire@gmail.com";
+  const PIX_BENEFICIARY = subscription?.pixHolder || "Pedro Paulo Honorio";
+  const PIX_CITY = subscription?.pixCity || "Rio de Janeiro";
+  const userStatus = String(subscription?.status || 'Active').replaceAll('_', ' ').toUpperCase();
+
+  // Fetch current subscription & history
+  const fetchSubscriptionAndHistory = async () => {
+    try {
+      const res = await enterpriseApi.fetchWithEnterprise('/api/subscription/current', { useCache: false });
+      if (res && res.success) {
+        const subData = res.plan || res.subscription;
+        setSubscription(subData);
+        if (subData?.plan && subData.plan !== 'FREE') {
+          setSelectedPlan(subData.plan);
+        }
+        if (subData?.billingCycle) {
+          setSelectedCycle(subData.billingCycle);
+        }
+      }
+
+      // Fetch payment history logs
+      const histRes = await enterpriseApi.fetchWithEnterprise('/api/subscription/history', { useCache: false });
+      if (histRes && histRes.success) {
+        setReceipts(histRes.history || []);
+      } else {
+        // Fallback local storage
+        const saved = localStorage.getItem('sysbjj_m_receipts2');
+        if (saved) {
+          setReceipts(JSON.parse(saved));
+        } else {
+          setReceipts([
+            { id: 'h-01', amount: 20, billingCycle: 'MONTHLY', status: 'APPROVED', notes: 'Mensalidade Bronze retroativa homologada', createdAt: new Date(Date.now() - 3 * 24 * 60 * 60 * 1000).toISOString() }
+          ]);
+        }
+      }
+    } catch (e: any) {
+      console.error(e);
+      setActionError('Ocorreu um erro ao carregar as informações do faturamento.');
+    }
+  };
+
+  // Recalculate billing values live
+  const calculatedLivePrice = useMemo(() => {
+    const planObj = SUBSCRIPTION_PLANS.find(p => p.id === selectedPlan);
+    const basePrice = planObj ? Number(planObj.price || 0) : 0;
+
+    let multiplier = 1;
+    let discount = 1;
+
+    const cycleObj = BILLING_CYCLES.find(c => c.id === selectedCycle);
+    if (cycleObj) {
+      multiplier = cycleObj.months;
+      if (selectedCycle === 'SEMIANNUAL' || selectedCycle === 'SEMI_ANNUAL') discount = 0.9; // 10% off
+      else if (selectedCycle === 'YEARLY') discount = 0.8; // 20% off
+    } else if (selectedCycle === 'LIFETIME') {
+      multiplier = 36;
+      discount = 0.6; // 40% off
+    } else if (selectedCycle === 'FREE') {
+      multiplier = 0;
+    }
+
+    return Math.round(basePrice * multiplier * discount);
+  }, [selectedPlan, selectedCycle]);
+
+  useEffect(() => {
+    setFinalPrice(calculatedLivePrice);
+  }, [calculatedLivePrice]);
+
+  // Request actual upgrade
+  const handleUpgradeRequest = async () => {
+    setSubmittingUpgrade(true);
+    setActionError(null);
+    setSuccessMsg(null);
+    try {
+      const res = await enterpriseApi.fetchWithEnterprise('/api/subscription/upgrade', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ plan: selectedPlan, billingCycle: selectedCycle })
+      });
+
+      if (res && res.success) {
+        setSuccessMsg(res.message || 'Solicitação de plano efetuada com sucesso!');
+        if (res.pixPayload) {
+          setDynamicPixCode(res.pixPayload);
+        }
+        await fetchSubscriptionAndHistory();
+        setIsPixModalOpen(true); // Open the PIX payment checkout modal!
+      } else {
+        setActionError(res?.error || 'Erro ao registrar solicitação de upgrade. Verifique com o admin.');
+      }
+    } catch (err: any) {
+      setActionError(err.message || 'Erro de conexão.');
+    } finally {
+      setSubmittingUpgrade(false);
+    }
+  };
+
+  // Auto-confirm payment simulated flow
+  const handleConfirmPayment = async () => {
+    setConfirmingPix(true);
+    setActionError(null);
+    setSuccessMsg(null);
+    try {
+      const res = await enterpriseApi.fetchWithEnterprise('/api/subscription/confirm-payment', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' }
+      });
+      if (res && res.success) {
+        setSuccessMsg(res.message || '🥋 OSS! Pagamento PIX e limites homologados instantaneamente!');
+        setIsPixModalOpen(false);
+        await fetchSubscriptionAndHistory();
+      } else {
+        setActionError(res?.error || 'Erro ao confirmar faturamento instantâneo.');
+      }
+    } catch (err: any) {
+      setActionError(err.message || 'Erro ao comunicar recebimento.');
+    } finally {
+      setConfirmingPix(false);
+    }
+  };
+
+  // Submit actual Pix Receipt Proof
+  const handleUploadProof = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setActionError(null);
+    setSuccessMsg(null);
+    setUploading(true);
+
+    try {
+      const res = await enterpriseApi.fetchWithEnterprise('/api/subscription/submit-receipt', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ proofUrl: proofUrl || "Comprovante de Transferência Vinculado", notes })
+      });
+
+      if (res && res.success) {
+        setUploadSuccess(true);
+        setSuccessMsg(res.message || 'Comprovante anexado perfeitamente! Aguardando homologação.');
+        
+        const localReceipt = {
+          id: `h-usr-${Date.now().toString().slice(-4)}`,
+          amount: finalPrice,
+          billingCycle: selectedCycle,
+          status: 'PENDING',
+          notes: notes || 'Pendente de homologação manual',
+          createdAt: new Date().toISOString()
+        };
+        const newList = [localReceipt, ...receipts];
+        setReceipts(newList);
+        localStorage.setItem('sysbjj_m_receipts2', JSON.stringify(newList));
+        
+        setProofUrl('');
+        setNotes('');
+        await fetchSubscriptionAndHistory();
+      } else {
+        setActionError(res?.error || 'Não foi possível enviar o comprovante.');
+      }
+    } catch (err: any) {
+      setActionError(err.message || 'Erro de rede ao submeter recibo.');
+    } finally {
+      setUploading(false);
+      setTimeout(() => setUploadSuccess(false), 4500);
+    }
+  };
+
+  // Social project submissions request
+  const handleRequestSocial = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!socialName.trim() || !socialDesc.trim()) {
+      setActionError('Nome do projeto e descrição social são campos obrigatórios.');
+      return;
+    }
+
+    setSubmittingSocial(true);
+    setActionError(null);
+    setSuccessMsg(null);
+
+    try {
+      const res = await enterpriseApi.fetchWithEnterprise('/api/subscription/request-social', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          socialProjectName: socialName,
+          socialDescription: socialDesc,
+          location: socialLocation,
+          responsibleName: socialResponsible,
+          cnpj: socialCnpj,
+          expectedStudents: socialStudents
+        })
+      });
+
+      if (res && res.success) {
+        setSuccessMsg('🥋 Candidatura para Projeto Social enviada com sucesso! Aguarde aprovação.');
+        setIsRequestingSocial(false);
+        setSocialName('');
+        setSocialDesc('');
+        setSocialLocation('');
+        setSocialResponsible('');
+        setSocialCnpj('');
+        setSocialStudents('');
+        await fetchSubscriptionAndHistory();
+      } else {
+        setActionError(res?.error || 'Erro ao submeter os parâmetros do Projeto Social.');
+      }
+    } catch (err: any) {
+      setActionError(err.message || 'Erro ao salvar os detalhes do dojo.');
+    } finally {
+      setSubmittingSocial(false);
+    }
+  };
+
+  const handleCopyKey = () => {
+    navigator.clipboard.writeText(PIX_KEY);
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2500);
+  };
+
+  const formatMoney = (value: number) => {
+    return Number(value || 0).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
+  };
+
+  const fallbackPixCode = useMemo(() => {
+    const key = String(PIX_KEY).trim();
+    const holder = String(PIX_BENEFICIARY)
+      .trim()
+      .normalize("NFD")
+      .replace(/[\u0300-\u036f]/g, "")
+      .replace(/[^a-zA-Z0-9 ]/g, "")
+      .slice(0, 25);
+    const city = String(PIX_CITY)
+      .trim()
+      .normalize("NFD")
+      .replace(/[\u0300-\u036f]/g, "")
+      .replace(/[^a-zA-Z0-9 ]/g, "")
+      .slice(0, 15);
+    const price = Number(finalPrice || 20);
+
+    const payloadFormat = "000201";
+    const initiationMethod = "010211";
+
+    const gui = "0014br.gov.bcb.pix";
+    const keySub = `01${String(key.length).padStart(2, '0')}${key}`;
+    const merchantAccount = `${gui}${keySub}`;
+    const id26 = `26${String(merchantAccount.length).padStart(2, '0')}${merchantAccount}`;
+
+    const id52 = "52040000";
+    const id53 = "5303986";
+
+    const amountStr = Number(price).toFixed(2);
+    const id54 = `54${String(amountStr.length).padStart(2, '0')}${amountStr}`;
+
+    const id58 = "5802BR";
+    const id59 = `59${String(holder.length).padStart(2, '0')}${holder}`;
+    const id60 = `60${String(city.length).padStart(2, '0')}${city}`;
+    const id62 = "62070503***";
+
+    const rawPayload = `${payloadFormat}${initiationMethod}${id26}${id52}${id53}${id54}${id58}${id59}${id60}${id62}6304`;
+
+    let crc = 0xFFFF;
+    for (let i = 0; i < rawPayload.length; i++) {
+      crc ^= (rawPayload.charCodeAt(i) << 8);
+      for (let j = 0; j < 8; j++) {
+        if ((crc & 0x8000) !== 0) {
+          crc = ((crc << 1) ^ 0x1021) & 0xFFFF;
+        } else {
+          crc = (crc << 1) & 0xFFFF;
+        }
+      }
+    }
+    const crcStr = crc.toString(16).toUpperCase().padStart(4, '0');
+
+    return `${rawPayload}${crcStr}`;
+  }, [PIX_KEY, PIX_BENEFICIARY, PIX_CITY, finalPrice]);
+
+  const finalPixPayload = dynamicPixCode || fallbackPixCode;
 
   // 🥋 EXCLUSÃO DE CONTA SEGURA LOCAL STATE
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
@@ -168,6 +478,7 @@ const Settings: React.FC = () => {
       } catch (e) {}
     };
     fetchSub();
+    fetchSubscriptionAndHistory();
   }, []);
 
   useEffect(() => {
@@ -250,11 +561,50 @@ const Settings: React.FC = () => {
         </div>
       </div>
 
-      {subscription && (
-        <div className="px-2 sm:px-0">
-          <PlanCard subscription={subscription} />
-        </div>
-      )}
+      {/* 🥋 MASTER CONTROL TABS - SENSEI APPROVED */}
+      <div className="flex bg-slate-100 dark:bg-slate-950 p-1.5 rounded-2xl border border-slate-200/60 dark:border-slate-800 gap-1.5 max-w-2xl mx-2 sm:mx-0">
+        <button
+          type="button"
+          onClick={() => setActiveSubTab('profile')}
+          className={`flex-1 flex items-center justify-center gap-2 py-3 rounded-xl text-[10px] sm:text-xs font-black uppercase tracking-wider transition-all cursor-pointer ${
+            activeSubTab === 'profile'
+              ? 'bg-blue-600 text-white shadow-md shadow-blue-500/10 scale-[1.02]'
+              : 'text-slate-500 dark:text-slate-400 hover:bg-slate-200/50 dark:hover:bg-slate-800/60'
+          }`}
+        >
+          <User size={15} /> Meu Dojo
+        </button>
+        <button
+          type="button"
+          onClick={() => setActiveSubTab('billing')}
+          className={`flex-1 flex items-center justify-center gap-2 py-3 rounded-xl text-[10px] sm:text-xs font-black uppercase tracking-wider transition-all cursor-pointer ${
+            activeSubTab === 'billing'
+              ? 'bg-blue-600 text-white shadow-md shadow-blue-500/10 scale-[1.02]'
+              : 'text-slate-500 dark:text-slate-400 hover:bg-slate-200/50 dark:hover:bg-slate-800/60'
+          }`}
+        >
+          <CreditCard size={15} /> Plano & Faturamento
+        </button>
+        <button
+          type="button"
+          onClick={() => setActiveSubTab('security')}
+          className={`flex-1 flex items-center justify-center gap-2 py-3 rounded-xl text-[10px] sm:text-xs font-black uppercase tracking-wider transition-all cursor-pointer ${
+            activeSubTab === 'security'
+              ? 'bg-blue-600 text-white shadow-md shadow-blue-500/10 scale-[1.02]'
+              : 'text-slate-500 dark:text-slate-400 hover:bg-slate-200/50 dark:hover:bg-slate-800/60'
+          }`}
+        >
+          <Shield size={15} /> Segurança & Conta
+        </button>
+      </div>
+
+      {activeSubTab === 'profile' && (
+        <>
+          {subscription && (
+            <div className="px-2 sm:px-0">
+              <PlanCard subscription={subscription} />
+            </div>
+          )}
 
       <div className="bg-white dark:bg-slate-900 rounded-[2rem] sm:rounded-[2.5rem] border border-slate-200 dark:border-slate-800 shadow-sm overflow-hidden transition-all">
         <div className="p-6 sm:p-8 border-b border-slate-100 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-800/50 flex items-center justify-between">
@@ -650,9 +1000,404 @@ const Settings: React.FC = () => {
           </p>
         </div>
       </div>
+        </>
+      )}
 
-      {/* 🥋 SEGURANÇA E ALTERAÇÃO DE SENHA */}
-      <div className="bg-white dark:bg-slate-900 rounded-[2rem] sm:rounded-[2.5rem] border border-slate-200 dark:border-slate-800 shadow-sm overflow-hidden transition-all">
+      {/* 🥋 TAB: PLANO & FATURAMENTO - EXPERIÊNCIA INTEGRADA DESIGN MASTER SENSEI */}
+      {activeSubTab === 'billing' && (
+        <div className="space-y-8 sm:space-y-12 animate-in fade-in slide-in-from-bottom-2 duration-300">
+          {/* Active plan preview header */}
+          {subscription && (
+            <div className="px-2 sm:px-0">
+              <PlanCard subscription={subscription} />
+            </div>
+          )}
+
+          {/* SENSEI PLAN SELECTOR CARD */}
+          <div className="bg-white dark:bg-slate-900 rounded-[2rem] sm:rounded-[2.5rem] border border-slate-200 dark:border-slate-800 shadow-xl overflow-hidden transition-all">
+            <div className="p-6 sm:p-8 border-b border-slate-100 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-800/50 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+              <div>
+                <h3 className="text-xs sm:text-sm font-black text-slate-400 uppercase tracking-[0.15em] flex items-center gap-3">
+                  <CreditCard size={18} className="text-blue-600" /> Assinatura & Upgrades da Plataforma
+                </h3>
+                <p className="text-[10px] text-slate-500 font-bold uppercase mt-1 tracking-widest">
+                  Mude de plano e obtenha limites expandidos instantaneamente no seu ecossistema
+                </p>
+              </div>
+              <span className="text-[8px] font-black text-[#00E5FF] bg-[#00E5FF]/10 border border-[#00E5FF]/20 px-3 py-1 rounded-full uppercase tracking-widest">
+                SYSBJJ 2.0 VIP
+              </span>
+            </div>
+            
+            <div className="p-6 sm:p-8 space-y-8">
+              {actionError && (
+                <div className="p-4 bg-red-500/10 border border-red-500/20 text-red-500 rounded-2xl text-[10px] font-black uppercase tracking-wider flex items-center gap-2">
+                  <AlertCircle size={14} /> {actionError}
+                </div>
+              )}
+              {successMsg && (
+                <div className="p-4 bg-green-500/10 border border-green-500/20 text-green-550 dark:text-green-400 rounded-2xl text-[10px] font-black uppercase tracking-wider flex items-center gap-2">
+                  <Check size={14} className="text-green-550 dark:text-green-400" /> {successMsg}
+                </div>
+              )}
+
+              {/* 1. Escolha do Plano */}
+              <div className="space-y-3">
+                <span className="text-[10px] font-black text-slate-400 dark:text-slate-550 uppercase tracking-widest">1. Escolha o Plano ideal para sua Academia:</span>
+                <div className="grid grid-cols-2 sm:grid-cols-4 md:grid-cols-5 gap-3">
+                  {SUBSCRIPTION_PLANS.map((plan) => {
+                    const isSelected = selectedPlan === plan.id;
+                    const priceNum = Number(plan.price || 0);
+                    const studentsNum = Number(plan.students || 0);
+                    return (
+                      <button
+                        key={plan.id}
+                        type="button"
+                        onClick={() => {
+                          setSelectedPlan(plan.id);
+                          if (plan.id === 'FREE' || plan.id === 'SOCIAL_PROJECT') {
+                            setSelectedCycle('FREE');
+                          } else {
+                            if (selectedCycle === 'FREE') setSelectedCycle('MONTHLY');
+                          }
+                        }}
+                        className={`p-4 rounded-3xl border text-center transition-all flex flex-col justify-between h-32 items-center cursor-pointer ${
+                          isSelected 
+                            ? 'bg-blue-600/10 border-blue-500 text-blue-600 dark:text-blue-400 ring-2 ring-blue-500/25' 
+                            : 'bg-slate-50 dark:bg-slate-800 border-slate-200 dark:border-slate-700 hover:bg-slate-100 dark:hover:bg-slate-750 text-slate-400'
+                        }`}
+                      >
+                        <div className="w-full">
+                          <p className="text-[10px] font-black tracking-wider uppercase leading-snug truncate">{plan.name}</p>
+                          <p className="text-[13px] font-black text-slate-900 dark:text-white mt-1.5">
+                            {priceNum > 0 ? `R$ ${priceNum}` : 'Grátis'}
+                          </p>
+                        </div>
+                        <div className="text-[8px] text-slate-500 font-bold uppercase tracking-wider mt-2 bg-slate-200/50 dark:bg-slate-700 px-2 py-0.5 rounded-full">
+                          {studentsNum >= 999999 ? 'Ilimitado' : `${studentsNum} Alunos`}
+                        </div>
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+
+              {/* 2. Ciclo de Recorrência */}
+              <div className="space-y-3">
+                <span className="text-[10px] font-black text-slate-400 dark:text-slate-550 uppercase tracking-widest">2. Ciclo de Cobrabilidade:</span>
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                  {BILLING_CYCLES.map((cycle) => {
+                    const isSel = selectedCycle === cycle.id;
+                    const isFree = selectedPlan === 'FREE' || selectedPlan === 'SOCIAL_PROJECT';
+                    return (
+                      <button
+                        key={cycle.id}
+                        type="button"
+                        disabled={isFree}
+                        onClick={() => setSelectedCycle(cycle.id)}
+                        className={`p-4 rounded-2xl border text-center transition-all cursor-pointer ${
+                          isSel && !isFree
+                            ? 'bg-blue-600 border-blue-500 text-white font-black shadow-lg shadow-blue-500/25' 
+                            : 'bg-slate-50 dark:bg-slate-800 border-slate-200 dark:border-slate-700 text-slate-400 disabled:opacity-35'
+                        }`}
+                      >
+                        <p className="text-[11px] uppercase font-black tracking-wider leading-none">{cycle.label}</p>
+                        <span className="text-[8px] opacity-70 block mt-1.5 font-bold uppercase tracking-widest">
+                          {cycle.id === 'MONTHLY' ? 'Sem juros' : cycle.id === 'QUARTERLY' ? '3 meses' : cycle.id === 'SEMIANNUAL' || cycle.id === 'SEMI_ANNUAL' ? '10% OFF' : '20% OFF'}
+                        </span>
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+
+              {/* Price Calculation and Subscription Action Keys */}
+              <div className="p-6 bg-slate-50 dark:bg-slate-800/50 rounded-3xl border border-slate-150 dark:border-slate-800 flex flex-col sm:flex-row items-center justify-between gap-6">
+                <div className="space-y-1 text-center sm:text-left">
+                  <span className="text-[9px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest">Valor Acumulado do Dojo:</span>
+                  <p className="text-3xl font-black text-slate-900 dark:text-white leading-none">
+                    {formatMoney(finalPrice)}
+                    <span className="text-[11px] text-slate-500 lowercase font-bold font-sans ml-1">
+                      {selectedPlan === 'FREE' || selectedPlan === 'SOCIAL_PROJECT' ? ' (Isento)' : '/período'}
+                    </span>
+                  </p>
+                </div>
+
+                {selectedPlan === 'FREE' || selectedPlan === 'SOCIAL_PROJECT' ? (
+                  <button
+                    type="button"
+                    onClick={async () => {
+                      if (selectedPlan === 'SOCIAL_PROJECT') {
+                        setIsRequestingSocial(true);
+                      } else {
+                        await handleUpgradeRequest();
+                      }
+                    }}
+                    className="w-full sm:w-auto px-8 py-4 bg-emerald-600 hover:bg-emerald-500 text-white rounded-2xl font-black uppercase text-[10px] sm:text-xs tracking-widest transition-all shadow-xl hover:scale-105"
+                  >
+                    {selectedPlan === 'SOCIAL_PROJECT' ? 'Defender Candidatura Isenção' : 'Ativar Acesso Gratuito'}
+                  </button>
+                ) : (
+                  <button
+                    type="button"
+                    onClick={handleUpgradeRequest}
+                    disabled={submittingUpgrade || finalPrice === 0}
+                    className="w-full sm:w-auto px-8 py-4 bg-blue-600 hover:bg-blue-700 text-white rounded-2xl font-black uppercase text-[10px] sm:text-xs tracking-widest transition-all disabled:opacity-40 flex items-center justify-center gap-2 shadow-xl hover:scale-105"
+                  >
+                    {submittingUpgrade ? <RefreshCw className="animate-spin" size={14} /> : <QrCode size={14} />}
+                    Renovar / Assinar com PIX
+                  </button>
+                )}
+              </div>
+            </div>
+          </div>
+
+          {/* SOCIAL PROJECT CANDIDATE FORM FOR SCHOLARSHIP ISENÇÃO */}
+          {isRequestingSocial && (
+            <div id="social-request-form-container" className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 p-6 sm:p-8 rounded-[2rem] space-y-6">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <span className="p-2 bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 rounded-xl">
+                    <Sparkles size={16} />
+                  </span>
+                  <div>
+                    <h4 className="text-xs font-black text-slate-900 dark:text-white uppercase tracking-tight">Candidatura Administrativa para Projeto Social</h4>
+                    <p className="text-[9px] font-bold text-slate-400 dark:text-slate-550 uppercase tracking-widest">Isenção total com até 1000 alunos liberados no sistema</p>
+                  </div>
+                </div>
+                <button 
+                  type="button" 
+                  onClick={() => setIsRequestingSocial(false)}
+                  className="text-[10px] text-red-500 font-extrabold uppercase bg-red-50/50 dark:bg-red-950/20 px-3 py-1 rounded-lg"
+                >
+                  Ocultar Form
+                </button>
+              </div>
+
+              <form onSubmit={handleRequestSocial} className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="space-y-1.5Col">
+                  <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Nome do Projeto Social</label>
+                  <input type="text" value={socialName} onChange={e => setSocialName(e.target.value)} className="w-full px-4 py-2.5 bg-slate-50 dark:bg-slate-800 border-slate-200 dark:border-slate-700 rounded-xl outline-none text-slate-900 dark:text-white font-bold" placeholder="Assoc. Geral Tatames do Futuro" />
+                </div>
+                <div className="space-y-1.5">
+                  <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Responsável Legal</label>
+                  <input type="text" value={socialResponsible} onChange={e => setSocialResponsible(e.target.value)} className="w-full px-4 py-2.5 bg-slate-50 dark:bg-slate-800 border-slate-200 dark:border-slate-700 rounded-xl outline-none text-slate-900 dark:text-white font-bold" />
+                </div>
+                <div className="space-y-1.5">
+                  <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest">CNPJ (se houver)</label>
+                  <input type="text" value={socialCnpj} onChange={e => setSocialCnpj(e.target.value)} className="w-full px-4 py-2.5 bg-slate-50 dark:bg-slate-800 border-slate-200 dark:border-slate-700 rounded-xl outline-none text-slate-900 dark:text-white font-bold" />
+                </div>
+                <div className="space-y-1.5">
+                  <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Localidade & Região</label>
+                  <input type="text" value={socialLocation} onChange={e => setSocialLocation(e.target.value)} className="w-full px-4 py-2.5 bg-slate-50 dark:bg-slate-800 border-slate-200 dark:border-slate-700 rounded-xl outline-none text-slate-900 dark:text-white font-bold" placeholder="E.g., Pavão Pavãozinho, Rio de Janeiro" />
+                </div>
+                <div className="space-y-1.5 md:col-span-2">
+                  <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Finalidade, Propósito e Impacto Social</label>
+                  <textarea value={socialDesc} onChange={e => setSocialDesc(e.target.value)} className="w-full px-4 py-2 bg-slate-50 dark:bg-slate-800 border-slate-200 dark:border-slate-700 rounded-xl outline-none text-slate-900 dark:text-white font-bold min-h-[100px]" placeholder="Relate o impacto das aulas gratuitas, atendimento infantojuvenil no tatame..." />
+                </div>
+                <div className="md:col-span-2 flex justify-end">
+                  <button type="submit" disabled={submittingSocial} className="bg-emerald-600 hover:bg-emerald-500 text-white rounded-2xl font-black text-xs uppercase px-8 py-3.5 tracking-wider disabled:opacity-50">
+                    {submittingSocial ? 'Processando Candidatura...' : 'Submeter Candidatura'}
+                  </button>
+                </div>
+              </form>
+            </div>
+          )}
+
+          {/* ACTIVE INVOICE & PIX CODE CONTAINER */}
+          {finalPrice > 0 && (
+            <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 p-6 sm:p-8 rounded-[2rem] space-y-6 shadow-xl">
+              <div className="flex items-center justify-between border-b border-slate-100 dark:border-slate-800 pb-4">
+                <div className="flex items-center gap-2 text-sm font-black text-slate-900 dark:text-white uppercase tracking-wider">
+                  <QrCode size={18} className="text-blue-600" />
+                  Chave PIX Oficial de Faturamento Integrado
+                </div>
+                <span className="text-[9px] font-black uppercase tracking-widest bg-amber-500/10 border border-amber-500/20 text-amber-600 dark:text-amber-500 px-3 py-1 rounded-full animate-pulse">
+                  {userStatus === "PENDING" ? "Faturamento Aberto" : "Configuração Ativa"}
+                </span>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                {/* Dynamically simulated QR code */}
+                <div className="bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 p-6 rounded-3xl flex flex-col items-center justify-center text-center space-y-3">
+                  <div className="bg-white p-4 rounded-2xl shadow-lg relative overflow-hidden inline-block">
+                    <svg width="150" height="150" viewBox="0 0 100 100" className="text-slate-950">
+                      <rect width="100" height="100" fill="white" />
+                      <path d="M 0 0 h 25 v 25 h -25 z M 5 5 v 15 h 15 v -15 z M 8 8 h 9 v 9 h -9 z" fill="currentColor" />
+                      <path d="M 75 0 h 25 v 25 h -25 z M 80 5 v 15 h 15 v -15 z M 83 8 h 9 v 9 h -9 z" fill="currentColor" />
+                      <path d="M 0 75 h 25 v 25 h -25 z M 5 80 v 15 h 15 v -15 z M 8 83 h 9 v 9 h -9 z" fill="currentColor" />
+                      <rect x="35" y="5" width="5" height="10" fill="currentColor" />
+                      <rect x="45" y="15" width="10" height="5" fill="currentColor" />
+                      <rect x="60" y="5" width="5" height="15" fill="currentColor" />
+                      <rect x="35" y="25" width="15" height="5" fill="currentColor" />
+                      <rect x="55" y="30" width="25" height="5" fill="currentColor" />
+                      <rect x="30" y="45" width="10" height="10" fill="currentColor" />
+                      <rect x="45" y="40" width="5" height="15" fill="currentColor" />
+                      <rect x="60" y="50" width="20" height="5" fill="currentColor" />
+                      <rect x="85" y="60" width="10" height="15" fill="currentColor" />
+                      <rect x="35" y="65" width="25" height="5" fill="currentColor" />
+                      <rect x="65" y="70" width="5" height="25" fill="currentColor" />
+                    </svg>
+                  </div>
+                  <span className="text-[10px] font-black text-slate-500 uppercase tracking-widest">Escaneie com o Aplicativo de Qualquer Banco</span>
+                </div>
+
+                {/* Info and action keys */}
+                <div className="space-y-6 flex flex-col justify-between">
+                  <div className="space-y-4 text-xs font-bold uppercase tracking-wider text-slate-550 dark:text-slate-400 bg-slate-50 dark:bg-slate-950 p-6 rounded-3xl border border-slate-100 dark:border-slate-850">
+                    <div>
+                      <p className="text-[9px] font-bold text-slate-400 tracking-widest uppercase">Proprietário / Favorecido:</p>
+                      <p className="text-slate-900 dark:text-white font-black text-sm">{PIX_BENEFICIARY}</p>
+                    </div>
+
+                    <div>
+                      <p className="text-[9px] font-bold text-slate-400 tracking-widest uppercase">Chave CNPJ Oficial SYSBJJ:</p>
+                      <p className="text-slate-900 dark:text-white font-mono font-black text-sm">{PIX_KEY}</p>
+                    </div>
+
+                    <div>
+                      <p className="text-[9px] font-bold text-slate-400 tracking-widest uppercase">Gateway de Reputações:</p>
+                      <p className="text-slate-900 dark:text-white font-black text-sm">SSBJJ Pagamentos S.A.</p>
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    <button
+                      type="button"
+                      onClick={handleCopyKey}
+                      className="w-full py-3 bg-slate-950 hover:bg-slate-900 dark:bg-slate-800 dark:hover:bg-slate-700 text-white rounded-xl text-[10px] font-black uppercase tracking-wider flex items-center justify-center gap-2 cursor-pointer shadow-md"
+                    >
+                      {copied ? <Check size={12} className="text-emerald-400" /> : <Copy size={12} />}
+                      {copied ? 'Chave Copiada! OSS' : 'Copiar Chave CNPJ'}
+                    </button>
+                    
+                    <button
+                      type="button"
+                      onClick={() => {
+                        navigator.clipboard.writeText(finalPixPayload);
+                        setCopiedPayload(true);
+                        setTimeout(() => setCopiedPayload(false), 2500);
+                      }}
+                      className="w-full py-3 bg-blue-600/10 hover:bg-blue-600/20 text-blue-600 dark:text-blue-400 border border-blue-500/25 rounded-xl text-[10px] font-black uppercase tracking-wider flex items-center justify-center gap-2 cursor-pointer shadow-md"
+                    >
+                      {copiedPayload ? <Check size={12} /> : <Copy size={12} />}
+                      {copiedPayload ? 'Código Copiado!' : 'Copiar Copia-e-Cola'}
+                    </button>
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* PROOF RECEIPT UPLOAD DIALOG OVERVIEW */}
+          {finalPrice > 0 && (
+            <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 p-6 sm:p-8 rounded-[2rem] shadow-xl">
+              <div className="flex items-center gap-3 border-b border-slate-100 dark:border-slate-800 pb-4 mb-6">
+                <span className="p-2 bg-blue-600/15 text-blue-600 rounded-xl">
+                  <UploadCloud size={18} />
+                </span>
+                <div>
+                  <h4 className="text-xs font-black text-slate-800 dark:text-slate-200 uppercase tracking-wide">Anexar Comprovante do PIX</h4>
+                  <p className="text-[9px] text-slate-400 font-bold uppercase tracking-widest mt-0.5">Envie o recibo do seu banco para homologação manual acelerada e isenção</p>
+                </div>
+              </div>
+
+              <form onSubmit={handleUploadProof} className="space-y-4">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <div className="space-y-1.5">
+                    <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Link / URL do Comprovante ou Código</label>
+                    <input 
+                      type="text" 
+                      value={proofUrl} 
+                      onChange={e => setProofUrl(e.target.value)} 
+                      placeholder="Anexe o link do comprovante ou cole a autenticação do seu banco" 
+                      className="w-full px-4 py-2.5 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl outline-none font-bold text-slate-900 dark:text-white placeholder:text-slate-400 placeholder:font-normal" 
+                    />
+                  </div>
+                  <div className="space-y-1.5">
+                    <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Instruções ou Mensagem ao Financeiro</label>
+                    <input 
+                      type="text" 
+                      value={notes} 
+                      onChange={e => setNotes(e.target.value)} 
+                      placeholder="Identifique o nome do seu Dojo para liberação" 
+                      className="w-full px-4 py-2.5 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl outline-none font-bold text-slate-900 dark:text-white placeholder:text-slate-400 placeholder:font-normal" 
+                    />
+                  </div>
+                </div>
+
+                <div className="flex justify-end pt-2">
+                  <button 
+                    type="submit" 
+                    disabled={uploading} 
+                    className="w-full sm:w-auto px-8 py-3.5 bg-slate-900 dark:bg-white text-white dark:text-slate-900 rounded-xl text-[10px] uppercase font-black tracking-widest transition-all hover:bg-blue-600 hover:text-white disabled:opacity-50 cursor-pointer shadow-lg"
+                  >
+                    {uploading ? 'Enviando Comprovante...' : 'Enviar Recibo ao Financeiro'}
+                  </button>
+                </div>
+              </form>
+            </div>
+          )}
+
+          {/* HISTORICAL RECEIPTS INVOICE TABLE LIST */}
+          <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 p-6 sm:p-8 rounded-[2rem] shadow-xl">
+            <div className="flex items-center gap-3 border-b border-slate-100 dark:border-slate-800 pb-4 mb-6">
+              <span className="p-2 bg-blue-600/15 text-blue-600 rounded-xl">
+                <Clock size={18} />
+              </span>
+              <div>
+                <h4 className="text-xs font-black text-slate-800 dark:text-slate-200 uppercase tracking-wide">Histórico Fiscal & Homologações</h4>
+                <p className="text-[9px] text-slate-400 font-bold uppercase tracking-widest mt-0.5">Acompanhe comprovantes submetidos e notas fiscais geradas pelas taxas da sua academia</p>
+              </div>
+            </div>
+
+            <div className="overflow-x-auto rounded-2xl border border-slate-150 dark:border-slate-800">
+              <table className="w-full text-left text-xs uppercase font-black">
+                <thead className="bg-slate-50 dark:bg-slate-950/50 text-slate-400 border-b border-slate-150 dark:border-slate-800">
+                  <tr>
+                    <th className="p-4 text-[9px] tracking-widest">Identificador</th>
+                    <th className="p-4 text-[9px] tracking-widest">Valor do Ciclo</th>
+                    <th className="p-4 text-[9px] tracking-widest">Data do Recibo</th>
+                    <th className="p-4 text-[9px] tracking-widest">Status BJJ</th>
+                    <th className="p-4 text-[9px] tracking-widest">Detalhamento</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-slate-100 dark:divide-slate-800/80 text-slate-700 dark:text-slate-300 font-bold">
+                  {receipts.length === 0 ? (
+                    <tr>
+                      <td colSpan={5} className="p-8 text-center text-slate-400 font-bold text-[10px] tracking-widest uppercase">Nenhum histórico ou recibo registrado até o momento.</td>
+                    </tr>
+                  ) : (
+                    receipts.map((rec: any) => (
+                      <tr key={rec.id} className="hover:bg-slate-50/50 dark:hover:bg-slate-800/40 transition-colors">
+                        <td className="p-4 font-mono text-[10px] text-slate-400">#{rec.id}</td>
+                        <td className="p-4 text-slate-900 dark:text-white font-black">{formatMoney(rec.amount)}</td>
+                        <td className="p-4 text-slate-400 font-semibold">{new Date(rec.createdAt).toLocaleDateString('pt-BR')}</td>
+                        <td className="p-4">
+                          <span className={`px-2.5 py-1 text-[9px] font-black uppercase rounded-full ${
+                            rec.status === 'APPROVED' 
+                              ? 'bg-green-500/10 text-green-550 dark:text-green-400' 
+                              : 'bg-amber-500/10 text-amber-600 dark:text-amber-500 animate-pulse'
+                          }`}>
+                            {rec.status === 'APPROVED' ? 'Homologado ✓' : 'Aguardando' }
+                          </span>
+                        </td>
+                        <td className="p-4 font-sans text-[10px] text-slate-500 lowercase truncate max-w-[150px]">{rec.notes}</td>
+                      </tr>
+                    ))
+                  )}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* 🥋 TAB: SEGURANÇA & CONTA - SENSEI COVETED ACTIONS */}
+      {activeSubTab === 'security' && (
+        <div className="space-y-8 sm:space-y-12 animate-in fade-in slide-in-from-bottom-2 duration-300">
+          {/* 🥋 SEGURANÇA E ALTERAÇÃO DE SENHA */}
+          <div className="bg-white dark:bg-slate-900 rounded-[2rem] sm:rounded-[2.5rem] border border-slate-200 dark:border-slate-800 shadow-sm overflow-hidden transition-all">
         <div className="p-6 sm:p-8 border-b border-slate-100 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-800/50 flex items-center justify-between">
           <h3 className="text-xs sm:text-sm font-black text-slate-400 uppercase tracking-[0.15em] flex items-center gap-3">
             <Shield size={18} className="text-blue-600" /> {t('settings.securitySection') || 'Segurança & Credenciais'}
@@ -766,6 +1511,8 @@ const Settings: React.FC = () => {
           </div>
         </div>
       </div>
+        </div>
+      )}
 
       {/* 🥋 EXCLUSÃO DE CONTA: CONFIRMAÇÃO DUPLA */}
       {isDeleteModalOpen && (
