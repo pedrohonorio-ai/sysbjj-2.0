@@ -1,29 +1,9 @@
 {
-  "version": 2,
-  "builds": [
-    {
-      "src": "api/index.ts",
-      "use": "@vercel/node"
-    },
-    {
-      "src": "package.json",
-      "use": "@vercel/static-build"
-    }
-  ],
-  "rewrites": [
-    {
-      "source": "/api/:path*",
-      "destination": "/api/index.ts"
-    },
-    {
-      "source": "/:path*",
-      "destination": "/index.html"
-    }
-    {
   "cleanUrls": true,
   "rewrites": [
-    { "source": "/(.*)", "destination": "/index.html" }
-  ]
-}
+    {
+      "source": "/(.*)",
+      "destination": "/index.html"
+    }
   ]
 }
