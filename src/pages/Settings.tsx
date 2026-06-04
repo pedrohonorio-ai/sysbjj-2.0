@@ -562,11 +562,11 @@ const Settings: React.FC = () => {
       </div>
 
       {/* 🥋 MASTER CONTROL TABS - SENSEI APPROVED */}
-      <div className="flex bg-slate-100 dark:bg-slate-950 p-1.5 rounded-2xl border border-slate-200/60 dark:border-slate-800 gap-1.5 max-w-2xl mx-2 sm:mx-0">
+      <div className="flex bg-slate-100 dark:bg-slate-950 p-1.5 rounded-2xl border border-slate-200/60 dark:border-slate-800 gap-1.5 overflow-x-auto scrollbar-hide whitespace-nowrap max-w-2xl mx-2 sm:mx-0 scroll-smooth">
         <button
           type="button"
           onClick={() => setActiveSubTab('profile')}
-          className={`flex-1 flex items-center justify-center gap-2 py-3 rounded-xl text-[10px] sm:text-xs font-black uppercase tracking-wider transition-all cursor-pointer ${
+          className={`flex-shrink-0 sm:flex-1 flex items-center justify-center gap-2 py-3 px-4.5 rounded-xl text-[10px] sm:text-xs font-black uppercase tracking-wider transition-all cursor-pointer ${
             activeSubTab === 'profile'
               ? 'bg-blue-600 text-white shadow-md shadow-blue-500/10 scale-[1.02]'
               : 'text-slate-500 dark:text-slate-400 hover:bg-slate-200/50 dark:hover:bg-slate-800/60'
@@ -577,7 +577,7 @@ const Settings: React.FC = () => {
         <button
           type="button"
           onClick={() => setActiveSubTab('billing')}
-          className={`flex-1 flex items-center justify-center gap-2 py-3 rounded-xl text-[10px] sm:text-xs font-black uppercase tracking-wider transition-all cursor-pointer ${
+          className={`flex-shrink-0 sm:flex-1 flex items-center justify-center gap-2 py-3 px-4.5 rounded-xl text-[10px] sm:text-xs font-black uppercase tracking-wider transition-all cursor-pointer ${
             activeSubTab === 'billing'
               ? 'bg-blue-600 text-white shadow-md shadow-blue-500/10 scale-[1.02]'
               : 'text-slate-500 dark:text-slate-400 hover:bg-slate-200/50 dark:hover:bg-slate-800/60'
@@ -588,7 +588,7 @@ const Settings: React.FC = () => {
         <button
           type="button"
           onClick={() => setActiveSubTab('security')}
-          className={`flex-1 flex items-center justify-center gap-2 py-3 rounded-xl text-[10px] sm:text-xs font-black uppercase tracking-wider transition-all cursor-pointer ${
+          className={`flex-shrink-0 sm:flex-1 flex items-center justify-center gap-2 py-3 px-4.5 rounded-xl text-[10px] sm:text-xs font-black uppercase tracking-wider transition-all cursor-pointer ${
             activeSubTab === 'security'
               ? 'bg-blue-600 text-white shadow-md shadow-blue-500/10 scale-[1.02]'
               : 'text-slate-500 dark:text-slate-400 hover:bg-slate-200/50 dark:hover:bg-slate-800/60'

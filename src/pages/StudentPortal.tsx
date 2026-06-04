@@ -2658,7 +2658,7 @@ const StudentPortal: React.FC = () => {
         </div>
       )}
 
-      <nav className="fixed bottom-0 left-0 right-0 bg-white/80 dark:bg-slate-900/80 backdrop-blur-lg border-t border-slate-200 dark:border-slate-800 px-4 py-4 flex items-center justify-start sm:justify-around gap-6 sm:gap-0 z-50 overflow-x-auto no-scrollbar scroll-smooth">
+      <nav className="fixed bottom-0 left-0 right-0 bg-white/80 dark:bg-slate-900/80 backdrop-blur-lg border-t border-slate-200 dark:border-slate-800 px-4 py-4 flex items-center justify-start sm:justify-around gap-6 sm:gap-0 z-50 overflow-x-auto no-scrollbar scrollbar-hide scroll-smooth">
         <button onClick={() => setActiveTab('home')} className={`flex flex-col items-center gap-1 shrink-0 ${activeTab === 'home' ? 'text-blue-600' : 'text-slate-400'}`}><Zap size={22} /><span className="text-[7px] font-black uppercase whitespace-nowrap">{t('portal.navHome')}</span></button>
         <button onClick={() => setActiveTab('training')} className={`flex flex-col items-center gap-1 shrink-0 ${activeTab === 'training' ? 'text-blue-600' : 'text-slate-400'}`}><Play size={22} /><span className="text-[7px] font-black uppercase whitespace-nowrap">{t('portal.navTraining')}</span></button>
         <button onClick={() => setActiveTab('homeTraining')} className={`flex flex-col items-center gap-1 shrink-0 ${activeTab === 'homeTraining' ? 'text-blue-600' : 'text-slate-400'}`}><Dumbbell size={22} /><span className="text-[7px] font-black uppercase whitespace-nowrap">{t('portal.navHomeTraining')}</span></button>

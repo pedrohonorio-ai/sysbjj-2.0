@@ -1067,31 +1067,31 @@ const CertificatesHub: React.FC = () => {
         </div>
 
         {/* CONTROLES DE ABA */}
-        <div className="flex items-center gap-1.5 p-1.5 bg-slate-100 dark:bg-white/5 rounded-[2rem] border border-slate-200 dark:border-white/5 shadow-inner">
+        <div className="flex items-center gap-1.5 p-1.5 bg-slate-100 dark:bg-white/5 rounded-[2rem] border border-slate-200 dark:border-white/5 shadow-inner overflow-x-auto scrollbar-hide whitespace-nowrap max-w-full scroll-smooth">
           <button 
             onClick={() => setActiveTab('certificates')}
-            className={`px-4 py-2.5 rounded-full text-[9px] font-black uppercase tracking-widest flex items-center gap-1 transition-all ${activeTab === 'certificates' ? 'bg-white dark:bg-slate-900 text-blue-600 shadow' : 'text-slate-400 hover:text-slate-200'}`}
+            className={`flex-shrink-0 px-4 py-2.5 rounded-full text-[9px] font-black uppercase tracking-widest flex items-center gap-1 transition-all ${activeTab === 'certificates' ? 'bg-white dark:bg-slate-900 text-blue-600 shadow' : 'text-slate-400 hover:text-slate-200'}`}
           >
             <Award size={13} className="text-amber-500" /> Diplomas Oficiais
           </button>
           
           <button 
             onClick={() => setActiveTab('multiarts')}
-            className={`px-4 py-2.5 rounded-full text-[9px] font-black uppercase tracking-widest flex items-center gap-1 transition-all ${activeTab === 'multiarts' ? 'bg-white dark:bg-slate-900 text-blue-600 shadow' : 'text-slate-400 hover:text-slate-200'}`}
+            className={`flex-shrink-0 px-4 py-2.5 rounded-full text-[9px] font-black uppercase tracking-widest flex items-center gap-1 transition-all ${activeTab === 'multiarts' ? 'bg-white dark:bg-slate-900 text-blue-600 shadow' : 'text-slate-400 hover:text-slate-200'}`}
           >
             <RefreshCw size={13} className="text-teal-500" /> Multi-Artes
           </button>
 
           <button 
             onClick={() => setActiveTab('gamification')}
-            className={`px-4 py-2.5 rounded-full text-[9px] font-black uppercase tracking-widest flex items-center gap-1 transition-all ${activeTab === 'gamification' ? 'bg-white dark:bg-slate-900 text-blue-600 shadow' : 'text-slate-400 hover:text-slate-200'}`}
+            className={`flex-shrink-0 px-4 py-2.5 rounded-full text-[9px] font-black uppercase tracking-widest flex items-center gap-1 transition-all ${activeTab === 'gamification' ? 'bg-white dark:bg-slate-900 text-blue-600 shadow' : 'text-slate-400 hover:text-slate-200'}`}
           >
             <Flame size={13} className="text-rose-500 animate-pulse" /> Nível Técnico
           </button>
 
           <button 
             onClick={() => setActiveTab('audit')}
-            className={`px-4 py-2.5 rounded-full text-[9px] font-black uppercase tracking-widest flex items-center gap-1 transition-all ${activeTab === 'audit' ? 'bg-white dark:bg-slate-900 text-blue-600 shadow' : 'text-slate-400 hover:text-slate-200'}`}
+            className={`flex-shrink-0 px-4 py-2.5 rounded-full text-[9px] font-black uppercase tracking-widest flex items-center gap-1 transition-all ${activeTab === 'audit' ? 'bg-white dark:bg-slate-900 text-blue-600 shadow' : 'text-slate-400 hover:text-slate-200'}`}
           >
             <Shield size={13} className="text-blue-500" /> Auditoria & Histórico
           </button>

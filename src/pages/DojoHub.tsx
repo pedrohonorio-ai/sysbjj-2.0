@@ -1659,9 +1659,9 @@ const DojoHub: React.FC = () => {
 
       {/* Internal Navigation Wrapper Block */}
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
-        {/* Sidebar Interna do Dojo */}
-        <div className="lg:col-span-3 bg-white dark:bg-slate-900 border border-slate-200 dark:border-white/5 p-4 rounded-3xl space-y-1 block max-h-[1000px] overflow-y-auto">
-          <p className="text-[8px] font-black uppercase tracking-[0.2em] text-slate-400 px-3 mb-3 shrink-0">DIRETÓRIO INTERNO DO SENSEI</p>
+        {/* Sidebar/MenuBar Interna do Dojo */}
+        <div className="lg:col-span-3 bg-white dark:bg-slate-900 border border-slate-200 dark:border-white/5 p-4 rounded-3xl overflow-x-auto scrollbar-hide whitespace-nowrap lg:whitespace-normal flex lg:flex-col gap-1.5 lg:gap-1 max-h-[1000px] lg:overflow-y-auto scroll-smooth">
+          <p className="text-[8px] font-black uppercase tracking-[0.2em] text-slate-400 px-3 lg:mb-3 shrink-0 flex items-center lg:block">DIRETÓRIO INTERNO DO SENSEI</p>
           
           {[
             { id: 'overview', label: 'Visão Geral', icon: <LayoutDashboard size={14} /> },
@@ -1679,7 +1679,7 @@ const DojoHub: React.FC = () => {
             <button
               key={item.id}
               onClick={() => setActiveTab(item.id as SidebarTab)}
-              className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-left transition-all text-[9.5px] font-extrabold uppercase tracking-widest cursor-pointer ${
+              className={`flex-shrink-0 lg:w-full flex items-center gap-3 px-4 py-3 lg:py-2.5 rounded-xl text-left transition-all text-[9.5px] font-extrabold uppercase tracking-widest cursor-pointer whitespace-nowrap ${
                 activeTab === item.id 
                   ? 'bg-slate-900 dark:bg-white text-white dark:text-slate-900 shadow-md font-black' 
                   : 'text-slate-500 hover:bg-slate-50 dark:hover:bg-white/5 hover:text-slate-900 dark:hover:text-white'
