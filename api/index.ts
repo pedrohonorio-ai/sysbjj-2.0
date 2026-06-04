@@ -379,7 +379,7 @@ app.use("/api", protectedRouter);
 app.use("/", protectedRouter);
 
 // 🥋 FALLBACK DE MONITORAMENTO DE ROTAS: Garante que NENHUMA rota da API responda HTML em caso de 404
-app.all("/(.*)", (req, res) => {
+app.all("/{*path}", (req, res) => {
     res.status(404).json({
         success: false,
         error: `Endpoint não encontrado no tatame do servidor: ${req.method} ${req.path}`,
