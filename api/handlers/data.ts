@@ -186,9 +186,9 @@ export async function dataHandler(req: AuthRequest, res: Response) {
     collection = 'notification';
   }
 
-  if (req.method === 'POST' && req.body === undefined) {
-  return res.status(400).json({ error: "O parâmetro BODY é obrigatório." });
-}
+  if (req.body === undefined) {
+    return res.status(400).json({ error: "O parâmetro BODY é obrigatório." });
+  }
 
   // 🥋 Validar conexão com banco antes de qualquer operação
   try {

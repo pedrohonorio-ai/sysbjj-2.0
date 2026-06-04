@@ -92,6 +92,38 @@ app.post("/api/auth/login", safeHandler(loginHandler));
 app.post("/api/auth/register", safeHandler(registerHandler));
 app.post("/api/auth/forgot-password", safeHandler(forgotPasswordHandler));
 app.post("/api/auth/reset-password", safeHandler(resetPasswordHandler));
+
+app.post("/api/auth/admin/reset-password", authenticate as any, async (req: any, res: any) => {
+  const isMaster = req.user?.email?.toLowerCase() === "pedro.honorio@gm.rio" || req.user?.role === "MASTER";
+  if (!isMaster) return res.status(403).json({ success: false, error: "Acesso exclusivo ao Master." });
+
+  const { targetEmail, newPassword } = req.body;
+  if (!targetEmail || !newPassword) return res.status(400).json({ success: false, error: "Email e nova senha são obrigatórios." });
+
+  try {
+    const bcrypt = await import("bcryptjs");
+    const hashedPassword = await bcrypt.hash(newPassword, 10);
+    const user = await prisma.user.update({
+      where: { email: targetEmail },
+      data: { password: hashedPassword }
+    });
+    await prisma.systemLog.create({
+      data: {
+        userId: req.user.id,
+        timestamp: BigInt(Date.now()),
+        userEmail: req.user.email,
+        action: 'ADMIN_RESET_PASSWORD',
+        details: `Senha de ${targetEmail} resetada pelo Master.`,
+        category: 'Security',
+        deviceInfo: req.headers['user-agent'] || 'Desconhecido'
+      }
+    });
+    return res.json({ success: true, message: `Senha de ${targetEmail} resetada com sucesso!` });
+  } catch (error: any) {
+    return res.status(500).json({ success: false, error: error.message });
+  }
+});
+
 app.get("/api/diagnose", safeHandler(diagnoseHandler));
 
 // 🥋 SUPREME ENDPOINT: DELETE /api/admin/delete-user/:id
@@ -347,7 +379,7 @@ app.use("/api", protectedRouter);
 app.use("/", protectedRouter);
 
 // 🥋 FALLBACK DE MONITORAMENTO DE ROTAS: Garante que NENHUMA rota da API responda HTML em caso de 404
-app.all('/{*path}', (req, res) => {
+app.all("/(.*)", (req, res) => {
     res.status(404).json({
         success: false,
         error: `Endpoint não encontrado no tatame do servidor: ${req.method} ${req.path}`,

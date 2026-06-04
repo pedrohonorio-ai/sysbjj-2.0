@@ -33,6 +33,7 @@ import { enterpriseApi } from '../../services/enterpriseApi.js';
 import { cacheManager } from '../../services/cacheManager.js';
 import { motion, AnimatePresence } from 'motion/react';
 import { ResponsiveContainer, AreaChart, Area, XAxis, YAxis, Tooltip, BarChart, Bar } from 'recharts';
+import AdminResetPassword from '../../components/AdminResetPassword.js';
 
 export const isMasterUser = (email: string): boolean => {
   return email.toLowerCase() === 'pedro.honorio@gm.rio';
@@ -787,6 +788,9 @@ const MasterControlCenter: React.FC = () => {
                 </button>
               </div>
             </div>
+
+            {/* Admin Reset Password Module */}
+            <AdminResetPassword />
           </motion.div>
         )}
       </AnimatePresence>

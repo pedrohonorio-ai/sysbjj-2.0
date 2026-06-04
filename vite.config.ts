@@ -15,18 +15,23 @@ export default defineConfig({
     VitePWA({
       registerType: 'autoUpdate',
       includeAssets: ['favicon.ico', 'robots.txt', 'apple-touch-icon.png'],
-      manifest: false,
+      manifest: false, // Usamos nosso manifesto manual
       workbox: {
-        globPatterns: ['**/*.{js,css,html,ico,png,svg,webmanifest}'],
+        globPatterns: ['**/*.{js,css,html,ico,png,svg,woff2,webmanifest}'],
         cleanupOutdatedCaches: true,
         runtimeCaching: [
           {
-            urlPattern: /^https:\/\/rsms\.me\/.*/i,
-            handler: 'CacheFirst',
+            urlPattern: /\/api\/.*/i,
+            handler: 'NetworkFirst',
             options: {
-              cacheName: 'inter-font',
-              expiration: { maxEntries: 10, maxAgeSeconds: 60 * 60 * 24 * 365 },
-              cacheableResponse: { statuses: [0, 200] }
+              cacheName: 'api-cache',
+              expiration: {
+                maxEntries: 50,
+                maxAgeSeconds: 60 * 60 * 24 // 24 horas
+              },
+              cacheableResponse: {
+                statuses: [0, 200]
+              }
             }
           },
           {
@@ -34,17 +39,13 @@ export default defineConfig({
             handler: 'CacheFirst',
             options: {
               cacheName: 'google-fonts',
-              expiration: { maxEntries: 10, maxAgeSeconds: 60 * 60 * 24 * 365 },
-              cacheableResponse: { statuses: [0, 200] }
-            }
-          },
-          {
-            urlPattern: /\/api\/.*/i,
-            handler: 'NetworkFirst',
-            options: {
-              cacheName: 'api-cache',
-              expiration: { maxEntries: 50, maxAgeSeconds: 60 * 60 * 24 },
-              cacheableResponse: { statuses: [0, 200] }
+              expiration: {
+                maxEntries: 10,
+                maxAgeSeconds: 60 * 60 * 24 * 365
+              },
+              cacheableResponse: {
+                statuses: [0, 200]
+              }
             }
           },
           {
@@ -52,8 +53,13 @@ export default defineConfig({
             handler: 'CacheFirst',
             options: {
               cacheName: 'image-cache',
-              expiration: { maxEntries: 100, maxAgeSeconds: 60 * 60 * 24 * 30 },
-              cacheableResponse: { statuses: [0, 200] }
+              expiration: {
+                maxEntries: 100,
+                maxAgeSeconds: 60 * 60 * 24 * 30 // 30 dias
+              },
+              cacheableResponse: {
+                statuses: [0, 200]
+              }
             }
           },
           {
@@ -61,26 +67,35 @@ export default defineConfig({
             handler: 'StaleWhileRevalidate',
             options: {
               cacheName: 'static-resources',
-              expiration: { maxEntries: 50, maxAgeSeconds: 60 * 60 * 24 * 7 },
-              cacheableResponse: { statuses: [0, 200] }
+              expiration: {
+                maxEntries: 50,
+                maxAgeSeconds: 60 * 60 * 24 * 7 // 7 dias
+              },
+              cacheableResponse: {
+                statuses: [0, 200]
+              }
             }
           }
         ]
       },
-      devOptions: { enabled: false, type: 'module' }
+      devOptions: {
+        enabled: false,
+        type: 'module'
+      }
     })
   ],
   resolve: {
-    dedupe: ['react', 'react-dom', 'react-router-dom'],
+    dedupe: ['react', 'react-dom', 'react-dom/client'],
     alias: {
       'react': path.resolve(__dirname, 'node_modules/react'),
+      'react-dom/client': path.resolve(__dirname, 'node_modules/react-dom/client'),
       'react-dom': path.resolve(__dirname, 'node_modules/react-dom'),
       'react-router-dom': path.resolve(__dirname, 'node_modules/react-router-dom')
-    }
+    },
   },
   server: {
     host: '0.0.0.0',
-    port: 3000,
+    port: 3000, // Porta 3000 é estritamente obrigatória pela infraestrutura do AI Studio
     strictPort: true,
     hmr: false,
   },
@@ -93,18 +108,15 @@ export default defineConfig({
     assetsDir: 'assets',
     sourcemap: false,
     manifest: true,
-    chunkSizeWarningLimit: 1200,
+    chunkSizeWarningLimit: 2000,
     rollupOptions: {
       output: {
         assetFileNames: 'assets/[name]-[hash][extname]',
         chunkFileNames: 'assets/[name]-[hash].js',
         entryFileNames: 'assets/[name]-[hash].js',
-        manualChunks: {
-          react: ['react', 'react-dom', 'react-router-dom'],
-          charts: ['recharts'],
-          pdf: ['jspdf', 'jspdf-autotable']
-        }
+        // OSS SENSEI: Forçamos bundle único garantido para evitar cópias do React
+        manualChunks: undefined
       }
     }
-  }
+  },
 });

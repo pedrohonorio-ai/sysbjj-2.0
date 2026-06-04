@@ -3,8 +3,8 @@ import { prisma } from '../../prisma/client.js';
 import { AuthRequest } from '../authMiddleware.js';
 import { SAFE_STUDENT_SELECT, enrichStudentsList } from './data.js';
 
-const BATCH_COOLDOWN = 1500;
-let lastBatchExecution = 0;
+const BATCH_COOLDOWN = 500; // OSS SENSEI: 500ms is perfect per-user buffer
+const userBatchCooldowns = new Map<string, number>();
 
 export default async function batchHandler(req: AuthRequest, res: Response) {
   const userId = req.user?.id;
@@ -33,7 +33,9 @@ export default async function batchHandler(req: AuthRequest, res: Response) {
   const { collections } = req.query;
 
   const now = Date.now();
-  if (now - lastBatchExecution < BATCH_COOLDOWN) {
+  const uid = String(userId);
+  const lastUserExec = userBatchCooldowns.get(uid) || 0;
+  if (now - lastUserExec < BATCH_COOLDOWN) {
     return res.status(429).json({
       success: false,
       error: "Batch cooldown protection enabled (Mantenha a guarda!).",
@@ -41,7 +43,7 @@ export default async function batchHandler(req: AuthRequest, res: Response) {
       code: 429
     });
   }
-  lastBatchExecution = now;
+  userBatchCooldowns.set(uid, now);
 
   if (collections === undefined || typeof collections !== 'string') {
     return res.status(400).json({ 
@@ -79,7 +81,6 @@ export default async function batchHandler(req: AuthRequest, res: Response) {
     .filter(c => c.length > 0 && /^[a-zA-Z0-9_]+$/.test(c));
 
   const results: Record<string, any> = {};
-  const uid = String(userId);
 
   const serializeData = (data: any) => {
     return JSON.parse(JSON.stringify(data, (k, v) => 

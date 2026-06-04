@@ -173,6 +173,37 @@ async function startServer() {
   apiRouter.post("/auth/forgot-password", forgotPasswordHandler);
   apiRouter.post("/auth/reset-password", resetPasswordHandler);
 
+  apiRouter.post("/auth/admin/reset-password", authenticate as any, async (req: any, res: any) => {
+    const isMaster = req.user?.email?.toLowerCase() === "pedro.honorio@gm.rio" || req.user?.role === "MASTER";
+    if (!isMaster) return res.status(403).json({ success: false, error: "Acesso exclusivo ao Master." });
+
+    const { targetEmail, newPassword } = req.body;
+    if (!targetEmail || !newPassword) return res.status(400).json({ success: false, error: "Email e nova senha são obrigatórios." });
+
+    try {
+      const bcrypt = await import("bcryptjs");
+      const hashedPassword = await bcrypt.hash(newPassword, 10);
+      const user = await prisma.user.update({
+        where: { email: targetEmail },
+        data: { password: hashedPassword }
+      });
+      await prisma.systemLog.create({
+        data: {
+          userId: req.user.id,
+          timestamp: BigInt(Date.now()),
+          userEmail: req.user.email,
+          action: 'ADMIN_RESET_PASSWORD',
+          details: `Senha de ${targetEmail} resetada pelo Master.`,
+          category: 'Security',
+          deviceInfo: req.headers['user-agent'] || 'Desconhecido'
+        }
+      });
+      return res.json({ success: true, message: `Senha de ${targetEmail} resetada com sucesso!` });
+    } catch (error: any) {
+      return res.status(500).json({ success: false, error: error.message });
+    }
+  });
+
   // Protected Routes - OSS! Acesso apenas com Cinto Preto (JWT)
   apiRouter.use(authenticate as any);
 
@@ -335,8 +366,7 @@ async function startServer() {
     console.log("OS SENSEI! Iniciando Vite...");
     const vite = await createViteServer({
       server: { 
-        middlewareMode: true,
-        allowedHosts: true
+        middlewareMode: true
       },
       appType: "spa",
     });
