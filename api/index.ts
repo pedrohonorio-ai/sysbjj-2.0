@@ -59,10 +59,6 @@ app.use((req, res, next) => {
 
     next();
 });
-    }
-    next();
-});
-
 // 🥋 [OSS SENSEI] Initialization middleware - PROTEGE TODAS AS ROTAS API
 app.use((req, res, next) => {
     // Health check simples não precisa de banco
