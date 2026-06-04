@@ -169,6 +169,8 @@ const ErrorFallback = ({ error }: { error: Error }) => (
   </div>
 );
 
+import React from "react";
+import { createRoot } from "react-dom/client";
 class ErrorBoundary extends React.Component<{ children: React.ReactNode }, { hasError: boolean, error: Error | null }> {
   constructor(props: { children: React.ReactNode }) {
     super(props);
