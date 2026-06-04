@@ -124,6 +124,57 @@ app.post("/api/auth/admin/reset-password", authenticate as any, async (req: any,
   }
 });
 
+app.post("/api/auth/change-password", authenticate as any, async (req: any, res: any) => {
+  const userId = req.user?.id;
+  const { currentPassword, newPassword } = req.body;
+
+  if (!userId) {
+    return res.status(401).json({ success: false, error: "Usuário não autenticado." });
+  }
+
+  if (!currentPassword || !newPassword) {
+    return res.status(400).json({ success: false, error: "Senha atual e nova senha são obrigatórias." });
+  }
+
+  try {
+    const user = await prisma.user.findUnique({
+      where: { id: userId }
+    });
+
+    if (!user) {
+      return res.status(404).json({ success: false, error: "Usuário não encontrado." });
+    }
+
+    const bcrypt = await import("bcryptjs");
+    const isMatch = await bcrypt.compare(currentPassword, user.password);
+    if (!isMatch) {
+      return res.status(400).json({ success: false, error: "A senha atual está incorreta." });
+    }
+
+    const hashedPassword = await bcrypt.hash(newPassword, 10);
+    await prisma.user.update({
+      where: { id: userId },
+      data: { password: hashedPassword }
+    });
+
+    await prisma.systemLog.create({
+      data: {
+        userId: userId,
+        timestamp: BigInt(Date.now()),
+        userEmail: user.email,
+        action: 'USER_CHANGE_PASSWORD',
+        details: `Senha de ${user.email} alterada com sucesso pelo próprio usuário.`,
+        category: 'Security',
+        deviceInfo: req.headers['user-agent'] || 'Desconhecido'
+      }
+    });
+
+    return res.json({ success: true, message: "Sua senha foi alterada com sucesso!" });
+  } catch (error: any) {
+    return res.status(500).json({ success: false, error: error.message });
+  }
+});
+
 app.get("/api/diagnose", safeHandler(diagnoseHandler));
 
 // 🥋 SUPREME ENDPOINT: DELETE /api/admin/delete-user/:id

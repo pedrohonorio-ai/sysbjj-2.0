@@ -62,6 +62,59 @@ const Settings: React.FC = () => {
   const [isDeleting, setIsDeleting] = useState(false);
   const [deleteError, setDeleteError] = useState<string | null>(null);
 
+  // 🥋 ALTERAÇÃO DE SENHA LOCAL STATE & HANDLER
+  const [currentPassword, setCurrentPassword] = useState('');
+  const [newPassword, setNewPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
+  const [pwdLoading, setPwdLoading] = useState(false);
+  const [pwdSuccess, setPwdSuccess] = useState('');
+  const [pwdError, setPwdError] = useState('');
+
+  const handleChangePassword = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setPwdError('');
+    setPwdSuccess('');
+
+    if (!currentPassword || !newPassword || !confirmPassword) {
+      setPwdError('Preencha todos os campos da alteração de senha.');
+      return;
+    }
+
+    if (newPassword !== confirmPassword) {
+      setPwdError('A nova senha e a confirmação não conferem.');
+      return;
+    }
+
+    setPwdLoading(true);
+    try {
+      const auth = JSON.parse(localStorage.getItem("oss_auth") || "{}");
+      const token = auth?.token;
+
+      const res = await fetch("/api/auth/change-password", {
+        method: "POST",
+        headers: { 
+          "Content-Type": "application/json", 
+          "Authorization": `Bearer ${token}` 
+        },
+        body: JSON.stringify({ currentPassword, newPassword })
+      });
+
+      const data = await res.json();
+      if (data.success) {
+        setPwdSuccess("Sua senha foi alterada com sucesso! OSS.");
+        setCurrentPassword('');
+        setNewPassword('');
+        setConfirmPassword('');
+      } else {
+        setPwdError(data.error || 'Erro ao alterar a senha.');
+      }
+    } catch (err) {
+      setPwdError('Erro de conexão com o servidor.');
+    } finally {
+      setPwdLoading(false);
+    }
+  };
+
   const handleConfirmDeleteAccount = async () => {
     setIsDeleting(true);
     setDeleteError(null);
@@ -596,6 +649,73 @@ const Settings: React.FC = () => {
             "{t('settings.quote')}"
           </p>
         </div>
+      </div>
+
+      {/* 🥋 SEGURANÇA E ALTERAÇÃO DE SENHA */}
+      <div className="bg-white dark:bg-slate-900 rounded-[2rem] sm:rounded-[2.5rem] border border-slate-200 dark:border-slate-800 shadow-sm overflow-hidden transition-all">
+        <div className="p-6 sm:p-8 border-b border-slate-100 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-800/50 flex items-center justify-between">
+          <h3 className="text-xs sm:text-sm font-black text-slate-400 uppercase tracking-[0.15em] flex items-center gap-3">
+            <Shield size={18} className="text-blue-600" /> {t('settings.securitySection') || 'Segurança & Credenciais'}
+          </h3>
+          <span className="text-[8px] font-black text-blue-600 bg-blue-50 dark:bg-blue-900/25 px-3 py-1 rounded-full uppercase tracking-widest">
+            Acesso Pessoal
+          </span>
+        </div>
+        <form onSubmit={handleChangePassword} className="p-6 sm:p-8 space-y-6">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+            <div className="space-y-2">
+              <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Senha Atual do Usuário</label>
+              <input 
+                type="password" 
+                value={currentPassword} 
+                onChange={e => setCurrentPassword(e.target.value)} 
+                className="w-full px-5 py-3.5 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-2xl focus:ring-2 focus:ring-blue-600 outline-none dark:text-white font-bold" 
+                placeholder="********"
+              />
+            </div>
+            <div className="space-y-2">
+              <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Nova Senha</label>
+              <input 
+                type="password" 
+                value={newPassword} 
+                onChange={e => setNewPassword(e.target.value)} 
+                className="w-full px-5 py-3.5 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-2xl focus:ring-2 focus:ring-blue-600 outline-none dark:text-white font-bold" 
+                placeholder="********"
+              />
+            </div>
+            <div className="space-y-2">
+              <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Confirmar Nova Senha</label>
+              <input 
+                type="password" 
+                value={confirmPassword} 
+                onChange={e => setConfirmPassword(e.target.value)} 
+                className="w-full px-5 py-3.5 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-2xl focus:ring-2 focus:ring-blue-600 outline-none dark:text-white font-bold" 
+                placeholder="********"
+              />
+            </div>
+          </div>
+
+          {pwdSuccess && (
+            <p className="text-green-500 font-bold text-xs uppercase tracking-wider bg-green-500/10 p-4 border border-green-500/20 rounded-2xl">
+              ✅ {pwdSuccess}
+            </p>
+          )}
+          {pwdError && (
+            <p className="text-red-500 font-bold text-xs uppercase tracking-wider bg-red-500/10 p-4 border border-red-500/20 rounded-2xl">
+              ⚠️ {pwdError}
+            </p>
+          )}
+
+          <div className="flex justify-end pt-2">
+            <button 
+              type="submit"
+              disabled={pwdLoading}
+              className="w-full sm:w-auto flex items-center justify-center gap-3 bg-blue-600 text-white px-8 sm:px-10 py-3.5 sm:py-4 rounded-2xl font-black uppercase text-[10px] sm:text-xs tracking-[0.2em] shadow-xl hover:bg-blue-700 hover:scale-[1.02] active:scale-[0.98] transition-all disabled:opacity-50 cursor-pointer"
+            >
+              <Shield size={18} /> {pwdLoading ? 'Atualizando...' : 'Alterar Minha Senha'}
+            </button>
+          </div>
+        </form>
       </div>
 
       {/* 🥋 EXCLUSÃO SEGURA DE CONTA & LIMPEZA SUPREMA */}

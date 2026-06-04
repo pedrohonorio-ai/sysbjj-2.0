@@ -50,6 +50,46 @@ export default function AdminResetPassword() {
           onChange={e => setPassword(e.target.value)}
           className="bg-slate-800 text-white rounded-xl px-4 py-3 border border-white/10 focus:outline-none focus:border-blue-500 text-sm"
         />
+        
+        <div className="flex flex-col gap-1.5 my-1">
+          <span className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">Senhas Padrões:</span>
+          <div className="flex flex-wrap gap-2">
+            <button
+              type="button"
+              onClick={() => setPassword("oss@123")}
+              className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all border cursor-pointer ${
+                password === "oss@123"
+                  ? "bg-blue-600 border-blue-500 text-white shadow-md shadow-blue-500/20"
+                  : "bg-slate-800 border-white/5 text-slate-300 hover:bg-slate-700 hover:text-white"
+              }`}
+            >
+              🥋 oss@123
+            </button>
+            <button
+              type="button"
+              onClick={() => setPassword("sysbjj2026")}
+              className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all border cursor-pointer ${
+                password === "sysbjj2026"
+                  ? "bg-blue-600 border-blue-500 text-white shadow-md shadow-blue-500/20"
+                  : "bg-slate-800 border-white/5 text-slate-300 hover:bg-slate-700 hover:text-white"
+              }`}
+            >
+              🔥 sysbjj2026
+            </button>
+            <button
+              type="button"
+              onClick={() => setPassword("mudar@123")}
+              className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all border cursor-pointer ${
+                password === "mudar@123"
+                  ? "bg-blue-600 border-blue-500 text-white shadow-md shadow-blue-500/20"
+                  : "bg-slate-800 border-white/5 text-slate-300 hover:bg-slate-700 hover:text-white"
+              }`}
+            >
+              ⚙️ mudar@123
+            </button>
+          </div>
+        </div>
+
         <button
           onClick={handleReset}
           disabled={loading}
