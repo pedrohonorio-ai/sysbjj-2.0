@@ -1,4 +1,4 @@
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght=400;500;600;700;800&display=swap');
 @import "tailwindcss";
 
 @theme {
@@ -79,24 +79,24 @@ body {
   height: -webkit-fill-available;
 }
 
-@layer base {
-  * {
-    @apply border-slate-200 dark:border-white/10;
-  }
-  
-  html {
-    scroll-behavior: smooth;
-    text-rendering: optimizeLegibility;
-    -webkit-font-smoothing: antialiased;
-    -moz-osx-font-smoothing: grayscale;
-    font-feature-settings: "cv02", "cv03", "cv04", "ss01", "zero";
-  }
-
-  ::selection {
-    @apply bg-blue-600 text-white;
-  }
+/* Base Global Styles - Convertidos de @layer base */
+* {
+  @apply border-slate-200 dark:border-white/10;
 }
 
+html {
+  scroll-behavior: smooth;
+  text-rendering: optimizeLegibility;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  font-feature-settings: "cv02", "cv03", "cv04", "ss01", "zero";
+}
+
+::selection {
+  @apply bg-blue-600 text-white;
+}
+
+/* Scrollbar Customization */
 ::-webkit-scrollbar {
   width: 5px;
   height: 5px;
@@ -124,28 +124,27 @@ body {
   background-color: rgba(255, 255, 255, 0.2);
 }
 
-@layer utilities {
-  .pb-safe {
-    padding-bottom: var(--sab);
-  }
+/* Custom Utilities - Convertidos de @layer utilities */
+.pb-safe {
+  padding-bottom: var(--sab);
+}
 
-  .glass {
-    @apply bg-white/70 dark:bg-slate-900/60 backdrop-blur-xl border border-white/20 dark:border-white/5;
-  }
+.glass {
+  @apply bg-white/70 dark:bg-slate-900/60 backdrop-blur-xl border border-white/20 dark:border-white/5;
+}
 
-  .glass-elite {
-    @apply bg-slate-900/80 backdrop-blur-2xl border border-white/10 shadow-elite;
-  }
+.glass-elite {
+  @apply bg-slate-900/80 backdrop-blur-2xl border border-white/10 shadow-elite;
+}
 
-  .text-premium {
-    @apply text-transparent bg-clip-text bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 dark:from-white dark:via-slate-200 dark:to-slate-400;
-  }
+.text-premium {
+  @apply text-transparent bg-clip-text bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 dark:from-white dark:via-slate-200 dark:to-slate-400;
+}
 
-  .text-glow {
-    text-shadow: 0 0 15px var(--color-elite-glow);
-  }
+.text-glow {
+  text-shadow: 0 0 15px var(--color-elite-glow);
+}
 
-  .bento-card {
-    @apply bg-white dark:bg-slate-900/40 rounded-[2.5rem] border border-slate-200 dark:border-white/5 shadow-xl shadow-slate-200/20 dark:shadow-none hover:shadow-2xl dark:hover:bg-slate-900/60 transition-all duration-500;
-  }
+.bento-card {
+  @apply bg-white dark:bg-slate-900/40 rounded-[2.5rem] border border-slate-200 dark:border-white/5 shadow-xl shadow-slate-200/20 dark:shadow-none hover:shadow-2xl dark:hover:bg-slate-900/60 transition-all duration-500;
 }
