@@ -6,8 +6,6 @@ import healthDbHandler from "./handlers/health-db.js";
 import healthDbRlsHandler from "./handlers/health-db-rls.js";
 import biHandler from "./handlers/bi.js";
 import { loginHandler, registerHandler, forgotPasswordHandler, resetPasswordHandler } from "./handlers/auth.js";
-app.post("/api/auth/forgot-password", safeHandler(forgotPasswordHandler)); 
-app.post("/api/auth/reset-password", safeHandler(resetPasswordHandler)); 
 import { authenticate, AuthRequest } from "./authMiddleware.js";
 import batchHandler from "./handlers/batch.js";
 import { dataHandler } from "./handlers/data.js";
