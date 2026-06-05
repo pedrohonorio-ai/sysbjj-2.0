@@ -29,6 +29,15 @@ import {
 import { useTranslation } from '../../contexts/LanguageContext.js';
 import { useAuth } from '../../context/AuthContext.js';
 import { enterpriseApi } from '../../services/enterpriseApi.js';
+import { 
+  ResponsiveContainer, 
+  AreaChart, 
+  Area, 
+  XAxis, 
+  YAxis, 
+  Tooltip, 
+  CartesianGrid 
+} from 'recharts';
 
 export const SaaSControlCenter: React.FC = () => {
   const { t } = useTranslation();
@@ -271,7 +280,8 @@ export const SaaSControlCenter: React.FC = () => {
         freeCount: 0,
         blockedCount: 0,
         activeCount: 0,
-        totalStudents: 0
+        totalStudents: 0,
+        totalRealRevenue: 0
       };
     }
 
@@ -279,7 +289,6 @@ export const SaaSControlCenter: React.FC = () => {
     let premiumCount = 0;
     let freeCount = 0;
     let blockedCount = 0;
-    let activeNoFree = 0;
     let totalStudents = 0;
 
     academias.forEach((a) => {
@@ -296,6 +305,14 @@ export const SaaSControlCenter: React.FC = () => {
       }
     });
 
+    // Calc actual approved receipts revenue (lançamentos)
+    const totalRealRevenue = adminInvoices
+      .filter(i => {
+        const isApprovedStatus = i.status?.toUpperCase() === 'APPROVED' || i.status?.toUpperCase() === 'APPROVED_PIX' || i.status?.toUpperCase() === 'PAGO' || i.status?.toUpperCase() === 'PAID';
+        return isApprovedStatus;
+      })
+      .reduce((sum, i) => sum + (i.amount || 0), 0);
+
     return {
       mrr,
       arr: mrr * 12,
@@ -303,9 +320,66 @@ export const SaaSControlCenter: React.FC = () => {
       freeCount,
       blockedCount,
       activeCount: academias.length - blockedCount,
-      totalStudents
+      totalStudents,
+      totalRealRevenue
     };
-  }, [academias]);
+  }, [academias, adminInvoices]);
+
+  // Dynamic Chart Data based exactly on approved subscription payments
+  const chartData = useMemo(() => {
+    const approvedInvoices = adminInvoices.filter(
+      i => {
+        const isApprovedStatus = i.status?.toUpperCase() === 'APPROVED' || i.status?.toUpperCase() === 'APPROVED_PIX' || i.status?.toUpperCase() === 'PAGO' || i.status?.toUpperCase() === 'PAID';
+        return isApprovedStatus;
+      }
+    );
+
+    const monthsPT = ["Jan", "Fev", "Mar", "Abr", "Mai", "Jun", "Jul", "Ago", "Set", "Out", "Nov", "Dez"];
+    const now = new Date();
+    const monthlyMap: Record<string, { name: string; amount: number; txs: number; dateVal: Date }> = {};
+
+    // Generate last 6 months to ensure clean and elegant starting state
+    for (let i = 5; i >= 0; i--) {
+      const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
+      const monthKey = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
+      const monthStr = `${monthsPT[d.getMonth()]}/${String(d.getFullYear()).substring(2)}`;
+      monthlyMap[monthKey] = {
+        name: monthStr,
+        amount: 0,
+        txs: 0,
+        dateVal: d
+      };
+    }
+
+    // Accumulate real transaction values/releases (lançamentos reais)
+    approvedInvoices.forEach(inv => {
+      const d = new Date(inv.date || inv.createdAt);
+      if (isNaN(d.getTime())) return;
+      const monthKey = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
+      const monthStr = `${monthsPT[d.getMonth()]}/${String(d.getFullYear()).substring(2)}`;
+
+      if (monthlyMap[monthKey]) {
+        monthlyMap[monthKey].amount += inv.amount || 0;
+        monthlyMap[monthKey].txs += 1;
+      } else {
+        monthlyMap[monthKey] = {
+          name: monthStr,
+          amount: inv.amount || 0,
+          txs: 1,
+          dateVal: d
+        };
+      }
+    });
+
+    // Return sorted monthly list
+    return Object.values(monthlyMap)
+      .sort((a, b) => a.dateVal.getTime() - b.dateVal.getTime())
+      .map(m => ({
+        name: m.name,
+        'Faturamento Real (R$)': Number(m.amount.toFixed(2)),
+        'Faturas': m.txs
+      }));
+  }, [adminInvoices]);
 
   // Filtering Academies list
   const filteredAcademias = useMemo(() => {
@@ -418,16 +492,18 @@ export const SaaSControlCenter: React.FC = () => {
           </p>
         </div>
 
-        {/* Metric 2: Annual Recurring Revenue (ARR) */}
+        {/* Metric 2: Real Approved SaaS Revenue */}
         <div className="bg-slate-900 border border-slate-800 p-6 rounded-[2rem] space-y-2.5 relative">
-          <div className="p-2.5 w-fit rounded-xl bg-[#00E5FF]/10 text-[#00E5FF] border border-[#00E5FF]/20">
+          <div className="p-2.5 w-fit rounded-xl bg-cyan-500/10 text-cyan-400 border border-cyan-500/20">
             <CreditCard size={20} />
           </div>
           <div>
-            <p className="text-[9px] font-black text-slate-500 uppercase tracking-widest">Receita Recorrente Anual (ARR)</p>
-            <p className="text-2xl font-black text-white font-mono leading-none mt-1">R$ {analytics.arr.toFixed(2)}</p>
+            <p className="text-[9px] font-black text-slate-500 uppercase tracking-widest">Faturamento Real Consolidado</p>
+            <p className="text-2xl font-black text-[#00E5FF] font-mono leading-none mt-1">R$ {analytics.totalRealRevenue.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</p>
           </div>
-          <p className="text-[8px] font-bold text-slate-400 uppercase tracking-wider">Métrica de projeção de SaaS escalável</p>
+          <p className="text-[8px] font-bold text-slate-400 uppercase tracking-wider">
+            Total auditado e aprovado via lançamentos PIX reais
+          </p>
         </div>
 
         {/* Metric 3: Premium vs Free dojos */}
@@ -461,6 +537,42 @@ export const SaaSControlCenter: React.FC = () => {
         </div>
 
       </div>
+
+      {/* 🥋 HISTÓRICO REAL DE FATURAMENTO SAAS (Recharts Area Chart) */}
+      <section className="bg-slate-900 border border-slate-800 p-6 rounded-[2rem] space-y-4 relative overflow-hidden">
+        <div className="absolute top-0 right-0 w-80 h-80 bg-gradient-to-br from-[#00E5FF]/5 to-transparent rounded-full blur-3xl pointer-events-none" />
+        <div className="flex items-center gap-3 relative z-10">
+          <div className="p-2.5 rounded-xl bg-indigo-500/10 text-indigo-400 border border-indigo-500/20">
+            <TrendingUp size={20} />
+          </div>
+          <div>
+            <h3 className="text-sm font-black text-white uppercase italic tracking-wider">Curva de Receita SaaS Real (Lançamentos Homologados)</h3>
+            <p className="text-[9px] text-slate-500 uppercase tracking-widest font-bold">Histórico de mensalidades faturadas com sucesso e aprovadas na auditoria do Master</p>
+          </div>
+        </div>
+
+        <div className="h-[260px] w-full pt-4 relative z-10">
+          <ResponsiveContainer width="100%" height="100%">
+            <AreaChart data={chartData} margin={{ top: 10, right: 10, left: -10, bottom: 0 }}>
+              <defs>
+                <linearGradient id="saasBillGradient" x1="0" y1="0" x2="0" y2="1">
+                  <stop offset="5%" stopColor="#00E5FF" stopOpacity={0.25}/>
+                  <stop offset="95%" stopColor="#00E5FF" stopOpacity={0.01}/>
+                </linearGradient>
+              </defs>
+              <CartesianGrid strokeDasharray="3 3" stroke="#1e293b" opacity={0.6} />
+              <XAxis dataKey="name" stroke="#475569" fontSize={9} tickLine={false} axisLine={false} />
+              <YAxis stroke="#475569" fontSize={9} tickLine={false} axisLine={false} />
+              <Tooltip 
+                contentStyle={{ backgroundColor: '#0f172a', borderColor: '#1e293b', borderRadius: '16px', boxShadow: '0 10px 15px -3px rgba(0, 0, 0, 0.4)' }}
+                labelStyle={{ color: '#00E5FF', fontSize: '10px', fontWeight: 'bold' }}
+                itemStyle={{ color: '#ffffff', fontSize: '11px' }}
+              />
+              <Area type="monotone" dataKey="Faturamento Real (R$)" stroke="#00E5FF" strokeWidth={3} fillOpacity={1} fill="url(#saasBillGradient)" />
+            </AreaChart>
+          </ResponsiveContainer>
+        </div>
+      </section>
 
       {/* OS SENSEI: Global PIX configuration Form for system administration */}
       <section className="bg-slate-900 border border-slate-800 p-8 rounded-[2rem] space-y-6 relative overflow-hidden">
