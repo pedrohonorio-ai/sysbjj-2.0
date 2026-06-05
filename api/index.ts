@@ -34,18 +34,23 @@ app.use(express.json());
 // 🥋 OSS SENSEI: Custom CORS Middleware for Enterprise Web Integrity
 app.use((req, res, next) => {
     const origin = req.headers.origin;
-
-    const isAllowed =
-        !origin ||
-        origin.startsWith("http://localhost:") ||
-        origin.startsWith("http://127.0.0.1:") ||
-        origin.includes("vercel.app") ||
-        origin.includes("render.com") ||
-        origin.includes(".onrender.com") ||
-        origin.includes("sysbjj") ||
-        origin.includes("run.app");
+    
+    // Allow any localhost port, Render subdomains, Vercel subdomains, and official ones
+    const isAllowed = !origin || 
+                     origin.startsWith("http://localhost:") ||
+                     origin.startsWith("http://127.0.0.1:") ||
+                     origin.includes("ais-dev") ||
+                     origin.includes("ais-pre") ||
+                     origin.includes(".run.app") ||
+                     origin.includes("vercel.app") ||
+                     origin.includes("render.com") ||
+                     origin.includes(".onrender.com") ||
+                     origin.includes("sysbjj");
 
     if (origin && isAllowed) {
+        res.setHeader("Access-Control-Allow-Origin", origin);
+    } else if (origin) {
+        // Safe fallback - always reflect origin to prevent 403 blocks in preview iframe containers
         res.setHeader("Access-Control-Allow-Origin", origin);
     }
 
@@ -56,9 +61,9 @@ app.use((req, res, next) => {
     if (req.method === "OPTIONS") {
         return res.status(200).end();
     }
-
     next();
 });
+
 // 🥋 [OSS SENSEI] Initialization middleware - PROTEGE TODAS AS ROTAS API
 app.use((req, res, next) => {
     // Health check simples não precisa de banco
@@ -422,6 +427,7 @@ protectedRouter.delete("/data/:collection/:id", safeHandler(async (req: any, res
 }));
 
 app.use("/api", protectedRouter);
+app.use("/", protectedRouter);
 
 // 🥋 FALLBACK DE MONITORAMENTO DE ROTAS: Garante que NENHUMA rota da API responda HTML em caso de 404
 app.use((req, res) => {
