@@ -1,12 +1,36 @@
 {
-  "rewrites": [
+  "version": 2,
+  "builds": [
     {
-      "source": "/api/:path*",
-      "destination": "/api/index.ts"
+      "src": "api/index.ts",
+      "use": "@vercel/node"
     },
     {
-      "source": "/((?!api|assets|icons|favicon\\.ico|favicon\\.svg|manifest\\.json|manifest\\.webmanifest|.*\\.[a-zA-Z0-9]+$).*)" ,
-      "destination": "/index.html"
+      "src": "package.json",
+      "use": "@vercel/static-build",
+      "config": {
+        "distDir": "dist"
+      }
+    }
+  ],
+  "routes": [
+    {
+      "src": "/api/(.*)",
+      "dest": "api/index.ts"
+    },
+    {
+      "src": "/assets/(.+)",
+      "headers": {
+        "Cache-Control": "public, max-age=31536000, immutable"
+      },
+      "dest": "/assets/$1"
+    },
+    {
+      "handle": "filesystem"
+    },
+    {
+      "src": "/(.*)",
+      "dest": "/index.html"
     }
   ]
 }
