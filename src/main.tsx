@@ -10,7 +10,7 @@
       readyState = 3; // CLOSED
       CONNECTING = 0;
       OPEN = 1;
-      CLOSING = 2;
+      closing = 2;
       CLOSED = 3;
       binaryType: any = "blob";
       bufferedAmount = 0;
@@ -69,56 +69,72 @@
     }
     
     try {
-      Object.defineProperty(window, "WebSocket", {
-        value: NoOpWebSocket,
-        writable: false,
-        configurable: false
-      });
-      if (typeof globalThis !== 'undefined') {
-        Object.defineProperty(globalThis, "WebSocket", {
+      const currentWS = (window as any).WebSocket;
+      if (currentWS && (currentWS.name === "NoOpWebSocket" || currentWS.isNoOp)) {
+        // Já configurado pelo Sensei no index.html
+      } else {
+        Object.defineProperty(window, "WebSocket", {
           value: NoOpWebSocket,
           writable: false,
           configurable: false
         });
+        if (typeof globalThis !== 'undefined') {
+          Object.defineProperty(globalThis, "WebSocket", {
+            value: NoOpWebSocket,
+            writable: false,
+            configurable: false
+          });
+        }
       }
     } catch (_) {
-      (window as any).WebSocket = NoOpWebSocket;
+      try {
+        (window as any).WebSocket = NoOpWebSocket;
+      } catch (err) {
+        // Silencia de forma absoluta se a propriedade for somente-leitura
+      }
       if (typeof globalThis !== 'undefined') {
-        (globalThis as any).WebSocket = NoOpWebSocket;
+        try {
+          (globalThis as any).WebSocket = NoOpWebSocket;
+        } catch (_) {}
       }
     }
     
     try {
-      const originalFetch = window.fetch;
-      const newFetch = function(input: RequestInfo | URL, init?: RequestInit) {
-        let url = "";
-        if (typeof input === "string") {
-          url = input;
-        } else if (input && typeof input === "object" && "url" in input) {
-          url = String((input as any).url);
-        } else {
-          url = String(input);
-        }
-        if (url.startsWith("ws://") || url.startsWith("wss://")) {
-          return Promise.resolve(new Response(null, { status: 200 }));
-        }
-        return originalFetch.call(this, input, init);
-      };
-      
-      Object.defineProperty(window, "fetch", {
-        value: newFetch,
-        writable: false,
-        configurable: false
-      });
-      if (typeof globalThis !== 'undefined') {
-        Object.defineProperty(globalThis, "fetch", {
+      const currentFetch = (window as any).fetch;
+      if (currentFetch && (currentFetch.name === "newFetch" || currentFetch.isNoOp)) {
+        // Já silenciado no index.html
+      } else {
+        const originalFetch = window.fetch;
+        const newFetch = function(input: RequestInfo | URL, init?: RequestInit) {
+          let url = "";
+          if (typeof input === "string") {
+            url = input;
+          } else if (input && typeof input === "object" && "url" in input) {
+            url = String((input as any).url);
+          } else {
+            url = String(input);
+          }
+          if (url.startsWith("ws://") || url.startsWith("wss://")) {
+            return Promise.resolve(new Response(null, { status: 200 }));
+          }
+          return originalFetch.call(this, input, init);
+        };
+        
+        Object.defineProperty(window, "fetch", {
           value: newFetch,
           writable: false,
           configurable: false
         });
+        if (typeof globalThis !== 'undefined') {
+          Object.defineProperty(globalThis, "fetch", {
+            value: newFetch,
+            writable: false,
+            configurable: false
+          });
+        }
       }
     } catch (_) {
-      // fallback if read-only or error
+      // fallback de segurança se já estiver definido como somente-leitura
     }
     
     window.addEventListener("unhandledrejection", (event) => {

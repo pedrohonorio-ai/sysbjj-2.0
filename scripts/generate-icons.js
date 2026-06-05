@@ -27,7 +27,7 @@ try {
 const { default: sharp } = await import('sharp');
 
 for (const size of sizes) {
-  const svg = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${size} ${size}">
+  const svg = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${size} ${size}" width="${size}" height="${size}">
     <rect width="${size}" height="${size}" fill="#1a1a2e"/>
     <text x="50%" y="54%" text-anchor="middle" font-size="${size * 0.4}">🥋</text>
     <text x="50%" y="82%" text-anchor="middle" fill="#ffffff" font-family="system-ui, sans-serif" font-weight="bold" font-size="${size * 0.12}">SYSBJJ</text>
