@@ -29,7 +29,7 @@
       "handle": "filesystem"
     },
     {
-      "src": "/(.*)",
+      "src": "/((?!api|assets|icons|favicon\\.ico|favicon\\.svg|manifest\\.json|manifest\\.webmanifest|.*\\.[a-zA-Z0-9]+$).*)",
       "dest": "/index.html"
     }
   ]
