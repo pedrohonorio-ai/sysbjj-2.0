@@ -221,6 +221,76 @@ const PROFESSIONAL_THEMES: ProThemeLayout[] = [
     fontFamily: "Impact, Helvetica, Arial",
     canvasBgColor: [254, 252, 232],
     pdfBorderColor: [15, 23, 42]
+  },
+  {
+    id: 'bjjlf_gold_royal',
+    name: "BJJLF Ouro Imperial",
+    desc: "Bordas imperiais douradas refinadas com rosette heráldica e louros de ouro.",
+    bodyBg: "bg-[#FDFBF7] text-[#111827] border-[#D4AF37]",
+    borderStyle: { border: '12px double #D4AF37', padding: '2rem', boxShadow: '0 0 20px rgba(212,175,55,0.1)' },
+    borderColorHex: "#D4AF37",
+    textColorClass: "text-slate-850",
+    accentTextClass: "text-[#B91C1C] font-serif tracking-widest font-black uppercase",
+    sealColor: "#D4AF37",
+    fontFamily: "Georgia, serif",
+    canvasBgColor: [253, 251, 247],
+    pdfBorderColor: [212, 175, 55]
+  },
+  {
+    id: 'bjjlf_black_gold',
+    name: "BJJLF Black & Gold",
+    desc: "Edição de prestígio com grafismos escuros, cantos dourados e fonte pesada.",
+    bodyBg: "bg-[#111] text-white border-amber-500",
+    borderStyle: { border: '6px solid #F59E0B', outline: '1px solid #78350F', outlineOffset: '-7px', padding: '1.5rem' },
+    borderColorHex: "#F59E0B",
+    textColorClass: "text-stone-200",
+    accentTextClass: "text-[#F59E0B] font-black uppercase tracking-tight",
+    sealColor: "#F59E0B",
+    fontFamily: "Helvetica, Arial, sans-serif",
+    canvasBgColor: [17, 17, 17],
+    pdfBorderColor: [245, 158, 11]
+  },
+  {
+    id: 'bjjlf_elegant_sans',
+    name: "BJJLF Clean Star & Gold",
+    desc: "Geometria minimalista de elite, estrelas finas e louros modernos.",
+    bodyBg: "bg-[#FFFDF9] text-slate-900 border-[#C5A059]",
+    borderStyle: { border: '3px solid #C5A059', outline: '1px solid #C5A059', outlineOffset: '-8px', padding: '1.8rem' },
+    borderColorHex: "#C5A059",
+    textColorClass: "text-slate-800",
+    accentTextClass: "text-[#A1824A] font-serif font-black uppercase",
+    sealColor: "#A1824A",
+    fontFamily: "Georgia, serif",
+    canvasBgColor: [255, 253, 249],
+    pdfBorderColor: [197, 160, 89]
+  },
+  {
+    id: 'bjjlf_dragon_oriental',
+    name: "Guerreiro Oriental (Traditional Kanji)",
+    desc: "Moldura vermelha imperial, Kanji 柔術 de alta definição e dragão d'água.",
+    bodyBg: "bg-[#FAF7EE] text-stone-900 border-[#991B1B]",
+    borderStyle: { border: '6px double #991B1B', padding: '1.8rem' },
+    borderColorHex: "#991B1B",
+    textColorClass: "text-stone-800",
+    accentTextClass: "text-[#991B1B] font-serif font-extrabold uppercase",
+    sealColor: "#991B1B",
+    fontFamily: "Times New Roman, serif",
+    canvasBgColor: [250, 247, 238],
+    pdfBorderColor: [153, 27, 27]
+  },
+  {
+    id: 'carioca_integridade',
+    name: "Congresso Carioca Moderno",
+    desc: "Molduras arredondadas em azul/ciano mar, com texto vertical moderno.",
+    bodyBg: "bg-white text-slate-900 border-none",
+    borderStyle: { border: '1px solid #E2E8F0', padding: '1.5rem 2rem 1.5rem 1.5rem' },
+    borderColorHex: "#0D9488",
+    textColorClass: "text-slate-850",
+    accentTextClass: "text-[#1E3A8A] font-sans font-black tracking-tight uppercase",
+    sealColor: "#0D9488",
+    fontFamily: "Arial, sans-serif",
+    canvasBgColor: [255, 255, 255],
+    pdfBorderColor: [13, 148, 136]
   }
 ];
 
@@ -653,7 +723,7 @@ const CertificatesHub: React.FC = () => {
       }
     }
 
-    // 2. Decorative borders
+    // 2. Decorative borders & Custom Brand Shapes
     if (keepBorders) {
       doc.setDrawColor(activeTheme.pdfBorderColor[0], activeTheme.pdfBorderColor[1], activeTheme.pdfBorderColor[2]);
       if (activeTheme.id === 'traditional') {
@@ -666,6 +736,42 @@ const CertificatesHub: React.FC = () => {
         doc.rect(7, 7, 283, 196);
         doc.setLineWidth(0.3);
         doc.rect(9, 9, 279, 192);
+      } else if (activeTheme.id === 'bjjlf_gold_royal') {
+        // Triple imperial gold borders
+        doc.setLineWidth(2.5);
+        doc.setDrawColor(212, 175, 55); // #D4AF37
+        doc.rect(6, 6, 285, 198);
+        doc.setLineWidth(0.5);
+        doc.rect(9, 9, 279, 192);
+        doc.setLineWidth(0.5);
+        doc.rect(13, 13, 271, 184);
+        
+        // Draw small gold diamond ornaments in corners
+        doc.setFillColor(212, 175, 55);
+        doc.circle(9, 9, 1, 'F');
+        doc.circle(288, 9, 1, 'F');
+        doc.circle(9, 201, 1, 'F');
+        doc.circle(288, 201, 1, 'F');
+      } else if (activeTheme.id === 'bjjlf_black_gold') {
+        doc.setLineWidth(1.5);
+        doc.setDrawColor(245, 158, 11); // Amber
+        doc.rect(7, 7, 283, 196);
+        doc.setLineWidth(0.3);
+        doc.rect(10, 10, 277, 190);
+      } else if (activeTheme.id === 'bjjlf_elegant_sans') {
+        doc.setLineWidth(0.8);
+        doc.setDrawColor(197, 160, 89); // #C5A059
+        doc.rect(8, 8, 281, 194);
+        doc.setLineWidth(0.2);
+        doc.rect(10.5, 10.5, 276, 189);
+      } else if (activeTheme.id === 'bjjlf_dragon_oriental') {
+        doc.setLineWidth(2.0);
+        doc.setDrawColor(153, 27, 27); // Deep Red
+        doc.rect(5, 5, 287, 200);
+        doc.setLineWidth(0.4);
+        doc.rect(8, 8, 281, 194);
+      } else if (activeTheme.id === 'carioca_integridade') {
+        // No double-rect borders needed, pure vector shapes
       } else if (activeTheme.id === 'infantil') {
         doc.setLineWidth(1);
         doc.rect(8, 8, 281, 194);
@@ -679,6 +785,32 @@ const CertificatesHub: React.FC = () => {
         doc.setLineWidth(1);
         doc.rect(10, 10, 277, 190);
       }
+    }
+
+    // Custom Brand Graphic shapes inside generated PDF canvas
+    if (activeTheme.id === 'carioca_integridade') {
+      // Left vertical gradient column
+      doc.setFillColor(13, 148, 136); // teal-600
+      doc.rect(0, 0, 11, 210, 'F');
+      
+      // Right navy-blue vertical column
+      doc.setFillColor(11, 37, 69); // navy-blue
+      doc.rect(285, 0, 12, 210, 'F');
+      
+      // Vertical "CERTIFICADO" printed on the right column
+      doc.setFont('Helvetica', 'bold');
+      doc.setFontSize(22);
+      doc.setTextColor(255, 255, 255, 0.3); // printed faintly in white
+      doc.text("CERTIFICADO", 293, 105, { align: 'center', angle: 270 });
+    }
+    
+    if (activeTheme.id === 'bjjlf_dragon_oriental') {
+      // Large calligraphic Kanji 柔術 on left margin
+      doc.setFont('Times', 'bold');
+      doc.setFontSize(36);
+      doc.setTextColor(153, 27, 27); // deep red / crimson
+      doc.text("柔", 18, 95, { align: 'center' });
+      doc.text("術", 18, 122, { align: 'center' });
     }
 
     // 3. Repeating MICRO MARCAS D'ÁGUA de Segurança (Requirement 7)
@@ -741,18 +873,49 @@ const CertificatesHub: React.FC = () => {
     } catch (e) {}
 
     // 6. Header Text
-    const isThemeDark = activeTheme.id === 'premium' || activeTheme.id === 'campeonato';
+    const isThemeDark = activeTheme.id === 'premium' || activeTheme.id === 'campeonato' || activeTheme.id === 'bjjlf_black_gold';
+    const dict = LANG_DICTIONARY[certificateLanguage];
+    const headerTitle = (profile?.academyName || 'SYSBJJ CT MASTER').toUpperCase();
+
+    // Academy / Organization header centered
     doc.setTextColor(isThemeDark ? 255 : 30);
     doc.setFont('Helvetica', 'bold');
-    doc.setFontSize(22);
-    const headerTitle = (profile?.academyName || 'SYSBJJ CT MASTER').toUpperCase();
+    doc.setFontSize(20);
     doc.text(headerTitle, 148.5, 42, { align: 'center' });
 
-    doc.setFont('Helvetica', 'normal');
-    doc.setFontSize(8);
-    doc.setTextColor(isThemeDark ? 180 : 100);
-    const dict = LANG_DICTIONARY[certificateLanguage];
-    doc.text(dict.title, 148.5, 48, { align: 'center' });
+    // Custom "CERTIFICADO" centerpiece title based on template Selected
+    if (activeTheme.id === 'bjjlf_gold_royal') {
+      doc.setFont('Times', 'bold');
+      doc.setFontSize(24);
+      doc.setTextColor(28, 25, 23);
+      doc.text("CERTIFICADO", 148.5, 53, { align: 'center' });
+      
+      // Thin golden layout line
+      doc.setDrawColor(212, 175, 55);
+      doc.setLineWidth(0.6);
+      doc.line(108.5, 57, 188.5, 57);
+    } else if (activeTheme.id === 'bjjlf_black_gold') {
+      doc.setFont('Helvetica', 'bold');
+      doc.setFontSize(26);
+      doc.setTextColor(245, 158, 11); // Amber-500
+      doc.text("CERTIFICADO", 148.5, 54, { align: 'center' });
+    } else if (activeTheme.id === 'bjjlf_elegant_sans') {
+      doc.setFont('Times', 'bold');
+      doc.setFontSize(22);
+      doc.setTextColor(197, 160, 89); // C5A059
+      doc.text("— CERTIFICADO —", 148.5, 54, { align: 'center' });
+    } else if (activeTheme.id === 'bjjlf_dragon_oriental') {
+      doc.setFont('Times', 'bold');
+      doc.setFontSize(24);
+      doc.setTextColor(153, 27, 27); // Crimson
+      doc.text("CERTIFICADO", 148.5, 53, { align: 'center' });
+    } else {
+      // Standard subtitle
+      doc.setFont('Helvetica', 'normal');
+      doc.setFontSize(8);
+      doc.setTextColor(isThemeDark ? 180 : 100);
+      doc.text(dict.title, 148.5, 48, { align: 'center' });
+    }
 
     // 7. Preface main body (Requirement 2 & 11)
     doc.setFont('Helvetica', 'italic');
@@ -762,9 +925,25 @@ const CertificatesHub: React.FC = () => {
     doc.text(splitPreface, 148.5, 68, { align: 'center' });
 
     // 8. Athlete Name Highlighted
-    doc.setFont('Helvetica', 'bold');
-    doc.setFontSize(24);
-    doc.setTextColor(isThemeDark ? 255 : 15);
+    let nameFontFamily = 'Helvetica';
+    let nameFontStyle = 'bold';
+    let nameColorHex = isThemeDark ? [255, 255, 255] : [15, 15, 15];
+    let athleteNameSize = 24;
+
+    if (activeTheme.id === 'bjjlf_elegant_sans') {
+      nameFontFamily = 'Times';
+      nameColorHex = [161, 130, 74]; // #A1824A
+    } else if (activeTheme.id === 'bjjlf_gold_royal') {
+      nameFontFamily = 'Times';
+      nameColorHex = [28, 25, 23];
+    } else if (activeTheme.id === 'bjjlf_dragon_oriental') {
+      nameFontFamily = 'Times';
+      nameColorHex = [153, 27, 27];
+    }
+
+    doc.setFont(nameFontFamily, nameFontStyle);
+    doc.setFontSize(athleteNameSize);
+    doc.setTextColor(nameColorHex[0], nameColorHex[1], nameColorHex[2]);
     doc.text(selectedStudent.name.toUpperCase(), 148.5, 102, { align: 'center' });
 
     // Drawing promoted belt color ribbon under name
@@ -832,16 +1011,38 @@ const CertificatesHub: React.FC = () => {
     doc.text(`${technicalDirectorRegistration} | ${technicalDirectorRoleLabel}`, 224.5, 176, { align: 'center' });
 
     // 12. Golden Seal of Authenticity graphics inside PDF (Requirement 8)
-    doc.setFillColor(217, 119, 6); // Amber Gold Base
-    doc.circle(272, 185, 7.5, 'F');
-    doc.setDrawColor(254, 243, 199);
-    doc.setLineWidth(0.4);
-    doc.circle(272, 185, 6.2);
-    doc.setFont('Helvetica', 'bold');
-    doc.setFontSize(3.5);
-    doc.setTextColor(255, 255, 255);
-    doc.text("SYSBJJ", 272, 184, { align: 'center' });
-    doc.text("SECURE", 272, 186.2, { align: 'center' });
+    if (activeTheme.id === 'bjjlf_gold_royal' || activeTheme.id === 'bjjlf_black_gold') {
+      // Draw golden rosette ribbons
+      doc.setFillColor(180, 83, 9); // deep brown amber
+      doc.rect(267.5, 184, 3, 13, 'F');
+      doc.rect(273.5, 184, 3, 13, 'F');
+      
+      // Draw circular base of rosette
+      doc.setFillColor(212, 175, 55); // gold base
+      doc.circle(272, 182, 10, 'F');
+      doc.setFillColor(31, 41, 55); // dark core
+      doc.circle(272, 182, 8.2, 'F');
+      
+      doc.setFont('Times', 'bold');
+      doc.setFontSize(2.8);
+      doc.setTextColor(212, 175, 55);
+      doc.text("DEDICAÇÃO &", 272, 179.8, { align: 'center' });
+      doc.text("DISCIPLINA", 272, 182.0, { align: 'center' });
+      doc.text("SUPERAÇÃO &", 272, 184.2, { align: 'center' });
+      doc.text("LEGADO", 272, 186.4, { align: 'center' });
+    } else {
+      // Standard Golden Seal
+      doc.setFillColor(217, 119, 6); // Amber Gold Base
+      doc.circle(272, 185, 7.5, 'F');
+      doc.setDrawColor(254, 243, 199);
+      doc.setLineWidth(0.4);
+      doc.circle(272, 185, 6.2);
+      doc.setFont('Helvetica', 'bold');
+      doc.setFontSize(3.5);
+      doc.setTextColor(255, 255, 255);
+      doc.text("SYSBJJ", 272, 184, { align: 'center' });
+      doc.text("SECURE", 272, 186.2, { align: 'center' });
+    }
 
     // 13. QR Code validation capture (Requirement 9)
     try {
@@ -1551,6 +1752,115 @@ const CertificatesHub: React.FC = () => {
                     <div className="absolute inset-0 bg-[radial-gradient(#ffffff0a_1px,transparent_1px)] [background-size:16px_16px] pointer-events-none" />
                   )}
 
+                  {/* 1. BJJLF Ouro Imperial Custom Elements */}
+                  {activeTheme.id === 'bjjlf_gold_royal' && (
+                    <>
+                      {/* Gold Corner Ornaments */}
+                      <div className="absolute top-2 left-2 w-8 h-8 border-t-2 border-l-2 border-[#D4AF37] pointer-events-none rounded-tl-sm opacity-80" />
+                      <div className="absolute top-2 right-2 w-8 h-8 border-t-2 border-r-2 border-[#D4AF37] pointer-events-none rounded-tr-sm opacity-80" />
+                      <div className="absolute bottom-2 left-2 w-8 h-8 border-b-2 border-l-2 border-[#D4AF37] pointer-events-none rounded-bl-sm opacity-80" />
+                      <div className="absolute bottom-2 right-2 w-8 h-8 border-b-2 border-r-2 border-[#D4AF37] pointer-events-none rounded-br-sm opacity-80" />
+                      
+                      {/* Elegant Gold Crest Ribbon Seal at Bottom-Right */}
+                      <div className="absolute bottom-4 right-4 z-20 flex flex-col items-center select-none pointer-events-none scale-90">
+                        <div className="relative flex justify-center -mb-4">
+                          <div className="w-3.5 h-10 bg-amber-600 rotate-[12deg] origin-top rounded-b opacity-85" />
+                          <div className="w-3.5 h-10 bg-amber-600 -rotate-[12deg] origin-top rounded-b -ml-2.5 opacity-85" />
+                        </div>
+                        <div className="w-14 h-14 rounded-full bg-gradient-to-tr from-[#D4AF37] via-yellow-400 to-[#AA7C11] p-[1.5px] shadow-lg flex items-center justify-center border border-amber-600/55">
+                          <div className="w-12 h-12 rounded-full bg-stone-900 border border-amber-400/40 flex flex-col items-center justify-center text-center p-0.5">
+                            <span className="text-[4px] leading-none text-amber-400 font-extrabold uppercase scale-95 tracking-tighter block">DEDICAÇÃO</span>
+                            <span className="text-[4px] leading-none text-amber-400 font-extrabold uppercase scale-95 tracking-tighter block">DISCIPLINA</span>
+                            <span className="text-[5px] text-yellow-300 font-sans block tracking-widest my-0.5">★</span>
+                            <span className="text-[4px] leading-none text-amber-400 font-extrabold uppercase scale-95 tracking-tighter block">SUPERAÇÃO</span>
+                            <span className="text-[4px] leading-none text-amber-400 font-extrabold uppercase scale-95 tracking-tighter block">LEGADO</span>
+                          </div>
+                        </div>
+                      </div>
+                    </>
+                  )}
+
+                  {/* 2. BJJLF Black & Gold Custom Elements */}
+                  {activeTheme.id === 'bjjlf_black_gold' && (
+                    <>
+                      <div className="absolute top-0 left-0 w-32 h-32 bg-gradient-to-br from-amber-500/10 to-transparent rounded-br-full pointer-events-none opacity-40" />
+                      <div className="absolute bottom-0 right-0 w-32 h-32 bg-gradient-to-tl from-amber-500/10 to-transparent rounded-tl-full pointer-events-none opacity-40" />
+                      <div className="absolute top-3 left-3 right-3 bottom-3 border border-amber-500/15 pointer-events-none" />
+                      
+                      {/* Bold triple stars upper decoration under header */}
+                      <div className="absolute top-1/4 left-1/4 right-1/4 flex justify-center gap-1.5 opacity-35 text-[9px] text-[#F59E0B] pointer-events-none">
+                        <span>★</span> <span>★</span> <span>★</span>
+                      </div>
+
+                      {/* Gold Rosette Stamp (Dark version) */}
+                      <div className="absolute bottom-4 right-4 z-20 flex flex-col items-center pointer-events-none scale-90">
+                        <div className="w-14 h-14 rounded-full bg-stone-950 border-2 border-amber-500 shadow-xl flex items-center justify-center">
+                          <div className="text-center p-0.5">
+                            <p className="text-[4px] leading-none font-black text-amber-400 uppercase tracking-widest">DISCIPLINA</p>
+                            <span className="text-amber-500 text-[6px] tracking-tighter block my-0.5">★ ★ ★</span>
+                            <p className="text-[4px] leading-none font-black text-amber-400 uppercase tracking-widest">EVOLUÇÃO</p>
+                          </div>
+                        </div>
+                      </div>
+                    </>
+                  )}
+
+                  {/* 3. BJJLF Clean Star & Gold Custom Elements */}
+                  {activeTheme.id === 'bjjlf_elegant_sans' && (
+                    <>
+                      <div className="absolute top-1 left-1 right-1 bottom-1 border border-[#C5A059]/30 pointer-events-none" />
+                      <div className="absolute top-3 left-6 right-6 flex justify-between text-[#C5A059]/50 text-[6px] tracking-widest uppercase pointer-events-none font-black">
+                        <span>HONRA • RESPEITO</span>
+                        <span>DISCIPLINA • EVOLUÇÃO</span>
+                      </div>
+                      
+                      {/* Rosette minimal stamp */}
+                      <div className="absolute bottom-4 right-4 z-20 flex flex-col items-center pointer-events-none scale-95 opacity-90">
+                        <div className="w-12 h-12 rounded-full border border-[#C5A059] flex items-center justify-center bg-white p-0.5 shadow">
+                          <div className="w-10 h-10 rounded-full border border-dashed border-[#C5A059] flex flex-col items-center justify-center text-[#A1824A] font-serif text-[4px] font-bold leading-tight">
+                            <span>DISCIPLINA</span>
+                            <span>HONRA</span>
+                            <span className="text-[5px] mt-0.5 text-[#C5A059]">★</span>
+                          </div>
+                        </div>
+                      </div>
+                    </>
+                  )}
+
+                  {/* 4. Traditional Red Dragon Oriental Custom Elements */}
+                  {activeTheme.id === 'bjjlf_dragon_oriental' && (
+                    <>
+                      {/* Vintage traditional style red corners */}
+                      <div className="absolute inset-1.5 border-2 border-[#991B1B]/40 pointer-events-none rounded-lg" />
+                      <div className="absolute top-2.5 left-2.5 right-2.5 bottom-2.5 border border-[#ced4da]/20 pointer-events-none" />
+                      
+                      {/* Kanji "柔術" characters in beautiful brush format on the Left Margin */}
+                      <div className="absolute left-6 top-1/2 -translate-y-1/2 z-20 flex flex-col items-center text-[#991B1B]/70 font-bold select-none pointer-events-none leading-none">
+                        <span className="text-4xl antialiased font-serif">柔</span>
+                        <span className="text-4xl antialiased font-serif mt-3">術</span>
+                      </div>
+                      
+                      {/* Dragon print motif base */}
+                      <div className="absolute inset-0 bg-[radial-gradient(#991b1b05_2px,transparent_2px)] [background-size:24px_24px] pointer-events-none" />
+                    </>
+                  )}
+
+                  {/* 5. Carioca Moderno Custom Elements */}
+                  {activeTheme.id === 'carioca_integridade' && (
+                    <>
+                      {/* Left Side Cyan/Blue Wave */}
+                      <div className="absolute left-0 top-0 bottom-0 w-8 bg-sky-500 rounded-r-[3rem] pointer-events-none z-0 select-none opacity-95" style={{ background: 'linear-gradient(to bottom, #00E5FF, #1E3A8A)' }} />
+                      <div className="absolute left-1 top-12 w-6 h-6 rounded-full bg-white/20 pointer-events-none z-0" />
+                      
+                      {/* Right Side Column containing vertical white "CERTIFICADO" */}
+                      <div className="absolute right-0 top-0 bottom-0 w-10 bg-[#0B2545] rounded-l-[1.5rem] pointer-events-none z-0 select-none flex items-center justify-center shadow-lg">
+                        <div className="text-white/40 select-none tracking-[0.45em] font-serif text-[18px] md:text-[22px] font-black rotate-180" style={{ writingMode: 'vertical-rl' }}>
+                          CERTIFICADO
+                        </div>
+                      </div>
+                    </>
+                  )}
+
                   {/* Dynamic transparency background image underlay (Requirements 1) */}
                   {customBackgroundUrl && (
                     <div 
@@ -1615,19 +1925,76 @@ const CertificatesHub: React.FC = () => {
 
                   {/* Body Content Main Preface and Athlete */}
                   <div className="relative z-10 text-center space-y-4 my-2">
-                    <span className="text-[8.5px] font-mono font-black tracking-[0.25em] block leading-none text-blue-600 dark:text-amber-400">
-                      {LANG_DICTIONARY[certificateLanguage].title}
-                    </span>
+                    {activeTheme.id === 'bjjlf_gold_royal' ? (
+                      <div>
+                        <span className="text-2xl md:text-3xl font-serif text-[#1C1917] tracking-[0.2em] font-black uppercase text-center block leading-none my-1">
+                          CERTIFICADO
+                        </span>
+                        <div className="w-32 h-0.5 bg-[#D4AF37] mx-auto opacity-70 mt-1 mb-2" />
+                      </div>
+                    ) : activeTheme.id === 'bjjlf_black_gold' ? (
+                      <div>
+                        <span className="text-2xl md:text-3.5xl font-sans tracking-[0.1em] text-[#F59E0B] font-black uppercase text-center block leading-none my-1 italic">
+                          CERTIFICADO
+                        </span>
+                        <div className="flex justify-center gap-1.5 text-[6px] text-amber-500/60 pb-1">
+                          <span>★</span> <span>★</span> <span>★</span>
+                        </div>
+                      </div>
+                    ) : activeTheme.id === 'bjjlf_elegant_sans' ? (
+                      <div>
+                        <span className="text-xl md:text-2xl font-serif tracking-[0.35em] text-[#C5A059] font-bold uppercase text-center block leading-none my-1">
+                          — CERTIFICADO —
+                        </span>
+                      </div>
+                    ) : activeTheme.id === 'bjjlf_dragon_oriental' ? (
+                      <div>
+                        <span className="text-2xl md:text-3xl font-serif tracking-[0.15em] text-[#991B1B] font-black uppercase text-center block leading-none my-1">
+                          CERTIFICADO
+                        </span>
+                        <span className="text-[6.5px] font-black tracking-[0.3em] text-stone-500 uppercase block -mt-1">EXCELÊNCIA MARCIAL • OUTORGA DE GRADUAÇÃO</span>
+                      </div>
+                    ) : (
+                      <span className="text-[8.5px] font-mono font-black tracking-[0.25em] block leading-none text-blue-600 dark:text-amber-400">
+                        {LANG_DICTIONARY[certificateLanguage].title}
+                      </span>
+                    )}
 
-                    <p className={`text-[9px] md:text-[11.5px] max-w-xl mx-auto italic leading-relaxed ${activeTheme.textColorClass}`}>
+                    <p className={`text-[9.5px] md:text-[11.5px] max-w-xl mx-auto italic leading-relaxed ${activeTheme.textColorClass}`}>
                       {customPrefaceText}
                     </p>
 
                     <div>
-                      <h2 className="text-xl md:text-2xl font-black uppercase tracking-tight font-serif select-all mt-1">
-                        {selectedStudent.name}
-                      </h2>
-                      <div className="w-24 h-0.5 bg-amber-500 mx-auto mt-1" />
+                      {activeTheme.id === 'bjjlf_gold_royal' ? (
+                        <div className="flex items-center justify-center gap-3">
+                          <span className="text-stone-400 text-xs hidden sm:inline">🌿</span>
+                          <h2 className="text-xl md:text-2.5xl font-extrabold uppercase tracking-tight font-serif select-all text-slate-900 leading-none">
+                            {selectedStudent.name}
+                          </h2>
+                          <span className="text-stone-400 text-xs hidden sm:inline">🌿</span>
+                        </div>
+                      ) : activeTheme.id === 'bjjlf_elegant_sans' ? (
+                        <div className="flex items-center justify-center gap-3">
+                          <span className="text-[#C5A059] text-xs">⚡</span>
+                          <h2 className="text-xl md:text-2.5xl font-black uppercase tracking-widest font-serif select-all text-[#A1824A] leading-none">
+                            {selectedStudent.name}
+                          </h2>
+                          <span className="text-[#C5A059] text-xs">⚡</span>
+                        </div>
+                      ) : activeTheme.id === 'bjjlf_black_gold' ? (
+                        <div className="flex items-center justify-center gap-3 bg-gradient-to-r from-transparent via-amber-500/10 to-transparent py-1.5 px-6 rounded-xl border border-amber-500/15 max-w-md mx-auto">
+                          <h2 className="text-xl md:text-2.5xl font-black uppercase tracking-tight select-all text-white leading-none">
+                            {selectedStudent.name}
+                          </h2>
+                        </div>
+                      ) : (
+                        <h2 className="text-xl md:text-2xl font-black uppercase tracking-tight font-serif select-all mt-1 leading-none">
+                          {selectedStudent.name}
+                        </h2>
+                      )}
+                      {activeTheme.id !== 'bjjlf_black_gold' && (
+                        <div className="w-24 h-0.5 bg-amber-500 mx-auto mt-2" />
+                      )}
                     </div>
 
                     {/* Merits and attributes display */}
