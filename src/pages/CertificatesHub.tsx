@@ -1059,7 +1059,7 @@ const CertificatesHub: React.FC = () => {
       <header className="flex flex-col lg:flex-row lg:items-center justify-between gap-6 print:hidden">
         <div>
           <h1 className="text-3xl md:text-5xl font-black text-slate-900 dark:text-white uppercase tracking-tighter italic leading-none">
-            Evolução <span className="text-amber-500">Master & Certizados</span>
+            Evolução <span className="text-amber-500">Master & Certificados</span>
           </h1>
           <p className="text-slate-400 font-bold uppercase tracking-widest text-[9px] mt-3">
             Credenciais Marciais Profissionais de Alta Autenticidade • Selos e Marcas d'Água de Proteção
