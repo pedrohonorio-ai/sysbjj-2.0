@@ -211,9 +211,30 @@ const validateStudent = (student: Partial<Student>, t: any): { isValid: boolean;
   };
 };
 
+const getIBJJFRealTimeCategoryString = (birthDate: string): string => {
+  if (!birthDate) return '';
+  const birthYear = new Date(birthDate).getFullYear();
+  const currentYear = new Date().getFullYear();
+  const age = currentYear - birthYear;
+  if (age <= 3) return 'Pré-Mirim';
+  if (age >= 4 && age <= 5) return 'Pré-Mirim';
+  if (age >= 6 && age <= 7) return 'Mirim I';
+  if (age >= 8 && age <= 9) return 'Mirim II';
+  if (age >= 10 && age <= 11) return 'Infantil I';
+  if (age >= 12 && age <= 13) return 'Infantil II';
+  if (age >= 14 && age <= 15) return 'Juvenil';
+  if (age >= 16 && age <= 17) return 'Juvenil (adulto)';
+  if (age >= 18 && age <= 29) return 'Adulto';
+  if (age >= 30 && age <= 35) return 'Master 1';
+  if (age >= 36 && age <= 40) return 'Master 2';
+  if (age >= 41 && age <= 45) return 'Master 3';
+  if (age >= 46 && age <= 50) return 'Master 4';
+  return 'Master 5';
+};
+
 const NewStudentModal = ({ onClose, defaultIsKid }: { onClose: () => void, defaultIsKid: boolean }) => {
   const { t } = useTranslation();
-  const { addStudent, schedules } = useData();
+  const { addStudent, schedules, students } = useData();
   const [error, setError] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState<'basics' | 'legal' | 'technical' | 'health' | 'security'>('basics');
   
@@ -263,6 +284,7 @@ const NewStudentModal = ({ onClose, defaultIsKid }: { onClose: () => void, defau
     nationality: t('common.brazilian'),
     lgpdConsent: true,
     classId: '',
+    instructorId: '',
     responsibleEmail: '',
     responsiblePhone: '',
     waitlistRank: 0,
@@ -525,13 +547,44 @@ const NewStudentModal = ({ onClose, defaultIsKid }: { onClose: () => void, defau
                 </div>
 
                 <div className="space-y-2">
-                  <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">{t('common.birthDate')}</label>
+                  <div className="flex items-center justify-between">
+                    <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">{t('common.birthDate')}</label>
+                    {formData.birthDate && (
+                      <span className="px-2 py-0.5 rounded bg-blue-500/10 text-blue-600 dark:text-blue-400 text-[8px] font-black uppercase tracking-widest border border-blue-500/10">
+                        🥋 {getIBJJFRealTimeCategoryString(formData.birthDate)}
+                      </span>
+                    )}
+                  </div>
                   <input 
                     type="date" 
                     className="w-full px-6 py-4 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-2xl outline-none focus:ring-2 focus:ring-blue-600 dark:text-white font-bold" 
                     value={formData.birthDate}
                     onChange={e => setFormData({...formData, birthDate: e.target.value})}
                   />
+                  {formData.birthDate && (() => {
+                    const birthYear = new Date(formData.birthDate).getFullYear();
+                    const age = new Date().getFullYear() - birthYear;
+                    const suggestionIsKid = age <= 15;
+                    const isMismatched = formData.isKid !== suggestionIsKid;
+
+                    if (isMismatched) {
+                      return (
+                        <div className="p-3 bg-blue-50 dark:bg-blue-950/20 border border-blue-200 dark:border-blue-900/30 rounded-xl flex flex-col gap-2 mt-2">
+                          <span className="text-[9px] font-black uppercase text-blue-700 dark:text-blue-400">
+                            🥋 Categoria Kids sugerida pela IBJJF
+                          </span>
+                          <button
+                            type="button"
+                            onClick={() => setFormData(p => ({ ...p, isKid: suggestionIsKid }))}
+                            className="w-full py-1.5 bg-blue-600 hover:bg-blue-700 text-white text-[8px] font-black uppercase tracking-wider rounded-lg transition-all text-center"
+                          >
+                            Aplicar Sugestão: {suggestionIsKid ? 'Kids' : 'Adulto'}
+                          </button>
+                        </div>
+                      );
+                    }
+                    return null;
+                  })()}
                 </div>
 
                 <div className="space-y-2">
@@ -729,6 +782,34 @@ const NewStudentModal = ({ onClose, defaultIsKid }: { onClose: () => void, defau
                     {schedules.map(s => (
                       <option key={s.id} value={s.id}>{s.title} ({s.time})</option>
                     ))}
+                  </select>
+                  {formData.classId && (() => {
+                    const selectedSchedule = schedules.find(s => s.id === formData.classId);
+                    if (selectedSchedule?.instructor) {
+                      return (
+                        <div className="flex items-center gap-1 mt-1 text-[9px] font-bold text-slate-500 uppercase tracking-wider">
+                          <User size={12} className="text-slate-400 shrink-0" />
+                          <span>Professor: {selectedSchedule.instructor}</span>
+                        </div>
+                      );
+                    }
+                    return null;
+                  })()}
+                </div>
+
+                <div className="space-y-2">
+                  <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Professor Responsável</label>
+                  <select 
+                    className="w-full px-6 py-4 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-2xl outline-none focus:ring-2 focus:ring-blue-600 dark:text-white font-bold appearance-none"
+                    value={formData.instructorId || ''}
+                    onChange={e => setFormData({...formData, instructorId: e.target.value})}
+                  >
+                    <option value="">Sem professor específico</option>
+                    {(students || [])
+                      .filter(s => s.isInstructor || s.isClassProfessor)
+                      .map(s => (
+                        <option key={s.id} value={s.id}>{s.name} ({s.belt})</option>
+                      ))}
                   </select>
                 </div>
 
@@ -1151,7 +1232,7 @@ const StudentDetailsModal = ({ student, onClose }: { student: Student; onClose: 
   const [activeTab, setActiveTab] = useState<'overview' | 'analysis' | 'progress' | 'edit' | 'admin' | 'videos' | 'financial' | 'security' | 'contract' | 'health' | 'documents'>('overview');
   const [editTab, setEditTab] = useState<'basics' | 'legal' | 'technical' | 'health'>('basics');
   const { t } = useTranslation();
-  const { deleteStudent, updateStudent, schedules, ledger } = useData();
+  const { deleteStudent, updateStudent, schedules, ledger, students } = useData();
   const [editPros, setEditPros] = useState(student.pros || '');
   const [editCons, setEditCons] = useState(student.cons || '');
   const [showSuccess, setShowSuccess] = useState(false);
@@ -1505,13 +1586,44 @@ const StudentDetailsModal = ({ student, onClose }: { student: Student; onClose: 
                     </div>
 
                     <div className="space-y-2">
-                      <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">{t('common.birthDate')}</label>
+                      <div className="flex items-center justify-between">
+                        <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">{t('common.birthDate')}</label>
+                        {editFormData.birthDate && (
+                          <span className="px-2 py-0.5 rounded bg-blue-500/10 text-blue-600 dark:text-blue-400 text-[8px] font-black uppercase tracking-widest border border-blue-500/10">
+                            🥋 {getIBJJFRealTimeCategoryString(editFormData.birthDate)}
+                          </span>
+                        )}
+                      </div>
                       <input 
                         type="date" 
                         className="w-full px-5 py-3.5 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-2xl outline-none focus:ring-2 focus:ring-blue-600 dark:text-white font-bold" 
                         value={editFormData.birthDate}
                         onChange={e => setEditFormData({...editFormData, birthDate: e.target.value})}
                       />
+                      {editFormData.birthDate && (() => {
+                        const birthYear = new Date(editFormData.birthDate).getFullYear();
+                        const age = new Date().getFullYear() - birthYear;
+                        const suggestionIsKid = age <= 15;
+                        const isMismatched = editFormData.isKid !== suggestionIsKid;
+
+                        if (isMismatched) {
+                          return (
+                            <div className="p-3 bg-blue-50 dark:bg-blue-950/20 border border-blue-200 dark:border-blue-900/30 rounded-xl flex flex-col gap-2 mt-2">
+                              <span className="text-[9px] font-black uppercase text-blue-700 dark:text-blue-400">
+                                🥋 Categoria Kids sugerida pela IBJJF
+                              </span>
+                              <button
+                                type="button"
+                                onClick={() => setEditFormData(p => ({ ...p, isKid: suggestionIsKid }))}
+                                className="w-full py-1.5 bg-blue-600 hover:bg-blue-700 text-white text-[8px] font-black uppercase tracking-wider rounded-lg transition-all text-center"
+                              >
+                                Aplicar Sugestão: {suggestionIsKid ? 'Kids' : 'Adulto'}
+                              </button>
+                            </div>
+                          );
+                        }
+                        return null;
+                      })()}
                     </div>
 
                     <div className="space-y-2">
@@ -1784,7 +1896,36 @@ const StudentDetailsModal = ({ student, onClose }: { student: Student; onClose: 
                       <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">{t('common.class')}</label>
                       <select className="w-full px-5 py-3.5 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-2xl outline-none focus:ring-2 focus:ring-blue-600 dark:text-white appearance-none font-bold" value={editFormData.classId || ''} onChange={e => setEditFormData({...editFormData, classId: e.target.value})}>
                         <option value="">{t('common.noFixedClass') || 'Sem Turma Fixa'}</option>
-                        {schedules.map(s => <option key={s.id} value={s.id}>{s.title}</option>)}
+                        {schedules.map(s => <option key={s.id} value={s.id}>{s.title} ({s.time})</option>)}
+                      </select>
+                      {editFormData.classId && (() => {
+                        const selectedSchedule = schedules.find(s => s.id === editFormData.classId);
+                        if (selectedSchedule?.instructor) {
+                          return (
+                            <div className="flex items-center gap-1 mt-1 text-[9px] font-bold text-slate-500 uppercase tracking-wider">
+                              <User size={12} className="text-slate-400 shrink-0" />
+                              <span>Professor: {selectedSchedule.instructor}</span>
+                            </div>
+                          );
+                        }
+                        return null;
+                      })()}
+                    </div>
+                    <div className="space-y-2">
+                      <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Professor Responsável</label>
+                      <select 
+                        className="w-full px-5 py-3.5 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-2xl outline-none focus:ring-2 focus:ring-blue-600 dark:text-white appearance-none font-bold"
+                        value={editFormData.instructorId || ''}
+                        onChange={e => setEditFormData({...editFormData, instructorId: e.target.value})}
+                      >
+                        <option value="">Sem professor específico</option>
+                        {(students || [])
+                          .filter(s => s.isInstructor || s.isClassProfessor)
+                          .map(s => (
+                            <option key={s.id} value={s.id}>
+                              {s.name} ({s.belt})
+                            </option>
+                          ))}
                       </select>
                     </div>
                     <div className="md:col-span-2 space-y-2">
@@ -1877,6 +2018,21 @@ const StudentDetailsModal = ({ student, onClose }: { student: Student; onClose: 
                         <p className="text-[8px] font-black text-slate-400 uppercase tracking-widest mb-1">{t('common.address')}</p>
                         <p className="font-bold text-slate-900 dark:text-white">{student.address || '--'}, {student.city || '--'} - {student.state || '--'}</p>
                     </div>
+                    {student.instructorId && (() => {
+                      const instructorObj = (students || []).find(s => s.id === student.instructorId);
+                      if (instructorObj) {
+                        return (
+                          <div className="sm:col-span-2">
+                            <p className="text-[8px] font-black text-slate-400 uppercase tracking-widest mb-1">Professor Responsável</p>
+                            <p className="font-bold text-slate-950 dark:text-white flex items-center gap-1.5 p-2.5 bg-blue-500/5 rounded-2xl border border-blue-500/10 dark:border-blue-500/15">
+                              <span className="shrink-0 text-red-500 font-bold uppercase text-[9px] tracking-widest">🥋 PROF:</span>
+                              <span>{instructorObj.name} ({instructorObj.belt})</span>
+                            </p>
+                          </div>
+                        );
+                      }
+                      return null;
+                    })()}
                   </div>
                 </section>
               </div>
@@ -3146,7 +3302,12 @@ const Students: React.FC = () => {
   const [isSelectingCompetitors, setIsSelectingCompetitors] = useState(false);
 
   const [instructorFilter, setInstructorFilter] = useState('');
+  const [responsibleInstructorFilter, setResponsibleInstructorFilter] = useState('');
   const [viewMode, setViewMode] = useState<'table' | 'grid'>('table');
+
+  const responsibleInstructorsList = useMemo(() => {
+    return students.filter(s => s.isInstructor || s.isClassProfessor);
+  }, [students]);
 
   const filteredStudents = useMemo(() => {
     return students.filter(s => {
@@ -3172,13 +3333,16 @@ const Students: React.FC = () => {
       // Filter by instructor (matching class instructor)
       const studentClass = schedules.find(sc => sc.id === s.classId);
       const matchesInstructor = instructorFilter === '' || studentClass?.instructor === instructorFilter;
+
+      // Filter by responsible instructor (matching student instructorId link directly)
+      const matchesResponsibleInstructor = responsibleInstructorFilter === '' || s.instructorId === responsibleInstructorFilter;
       
-      if (activeView === 'competitors') return matchesSearch && s.isCompetitor && matchesClass && matchesBelt && matchesStatus && matchesInstructor;
-      if (activeView === 'waitlist') return matchesSearch && s.status === StudentStatus.WAITLIST && matchesClass && matchesBelt && matchesInstructor;
+      if (activeView === 'competitors') return matchesSearch && s.isCompetitor && matchesClass && matchesBelt && matchesStatus && matchesInstructor && matchesResponsibleInstructor;
+      if (activeView === 'waitlist') return matchesSearch && s.status === StudentStatus.WAITLIST && matchesClass && matchesBelt && matchesInstructor && matchesResponsibleInstructor;
       const matchesView = activeView === 'kids' ? s.isKid : !s.isKid;
-      return matchesSearch && matchesView && matchesClass && matchesBelt && matchesStatus && matchesInstructor;
+      return matchesSearch && matchesView && matchesClass && matchesBelt && matchesStatus && matchesInstructor && matchesResponsibleInstructor;
     });
-  }, [searchTerm, students, activeView, classFilter, beltFilter, statusFilter, instructorFilter, schedules]);
+  }, [searchTerm, students, activeView, classFilter, beltFilter, statusFilter, instructorFilter, responsibleInstructorFilter, schedules]);
 
   const uniqueInstructors = useMemo(() => {
     const insts = new Set<string>();
@@ -3314,6 +3478,20 @@ const Students: React.FC = () => {
              </select>
           </div>
 
+          <div className="relative flex-1 min-w-[140px]">
+             <User className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={12} />
+             <select 
+               className="w-full pl-9 pr-4 py-2.5 bg-white dark:bg-slate-800 border-none rounded-xl focus:ring-4 focus:ring-blue-500/10 transition-all text-[9px] font-black uppercase tracking-widest text-slate-900 dark:text-white appearance-none"
+               value={responsibleInstructorFilter}
+               onChange={(e) => setResponsibleInstructorFilter(e.target.value)}
+             >
+               <option value="">Prof. Responsável</option>
+               {responsibleInstructorsList.map(inst => (
+                 <option key={inst.id} value={inst.id}>{inst.name} ({inst.belt})</option>
+               ))}
+             </select>
+          </div>
+
           <div className="flex-1 min-w-[300px] bg-white dark:bg-slate-800 rounded-xl p-1 flex items-center gap-1 overflow-x-auto scrollbar-hide border border-slate-100 dark:border-slate-700">
             <button 
               onClick={() => setBeltFilter('')}
@@ -3393,8 +3571,11 @@ const Students: React.FC = () => {
                             )}
                           </div>
                           <div className="min-w-0">
-                            <div className="flex items-center gap-2">
-                              <p className="font-black text-slate-900 dark:text-white text-base tracking-tighter uppercase leading-none truncate group-hover:text-blue-600 transition-colors">{student.name}</p>
+                            <div className="flex flex-wrap items-center gap-1.5 min-h-[1.25rem]">
+                              <p className="font-black text-slate-900 dark:text-white text-base tracking-tighter uppercase leading-none truncate group-hover:text-blue-600 transition-colors uppercase">{student.name}</p>
+                              {(student.isInstructor || student.isClassProfessor) && (
+                                <span className="px-1.5 py-0.5 bg-red-600 text-white text-[7px] font-black uppercase tracking-widest rounded leading-none shrink-0 border border-red-500/10 shadow-sm shadow-red-500/20">🥋 PROF</span>
+                              )}
                               {student.isCompetitor && <Medal size={12} className="text-blue-600 shrink-0" />}
                             </div>
                             {student.nickname && <p className="text-[8px] text-slate-400 dark:text-slate-500 uppercase font-black tracking-widest mt-0.5 italic truncate">"{student.nickname}"</p>}
@@ -3511,7 +3692,12 @@ const Students: React.FC = () => {
                 </div>
 
                 <div className="w-full">
-                   <h3 className="text-lg font-black text-slate-900 dark:text-white uppercase tracking-tighter leading-tight group-hover:text-blue-600 transition-colors uppercase">{student.name}</h3>
+                   <div className="flex flex-wrap items-center gap-1.5 min-h-[1.5rem]">
+                     <h3 className="text-lg font-black text-slate-900 dark:text-white uppercase tracking-tighter leading-tight group-hover:text-blue-600 transition-colors uppercase">{student.name}</h3>
+                     {(student.isInstructor || student.isClassProfessor) && (
+                       <span className="px-1.5 py-0.5 bg-red-600 text-white text-[7px] font-black uppercase tracking-widest rounded leading-none shrink-0 border border-red-500/10 shadow-sm shadow-red-500/20">🥋 PROF</span>
+                     )}
+                   </div>
                    {student.nickname && <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mt-1 italic">"{student.nickname}"</p>}
                 </div>
 
@@ -3568,8 +3754,11 @@ const Students: React.FC = () => {
                       )}
                     </div>
                     <div className="min-w-0">
-                      <div className="flex items-center gap-2">
+                      <div className="flex flex-wrap items-center gap-1.5 min-h-[1.25rem]">
                         <p className="font-black text-slate-900 dark:text-white text-base tracking-tight uppercase leading-none truncate uppercase">{student.name}</p>
+                        {(student.isInstructor || student.isClassProfessor) && (
+                          <span className="px-1.5 py-0.5 bg-red-600 text-white text-[7px] font-black uppercase tracking-widest rounded leading-none shrink-0 border border-red-500/10 shadow-sm shadow-red-500/20">🥋 PROF</span>
+                        )}
                         {student.isCompetitor && <Medal size={14} className="text-blue-600 shrink-0" />}
                       </div>
                       {student.nickname && <p className="text-[9px] text-slate-400 dark:text-slate-500 uppercase font-black mt-1 italic">"{student.nickname}"</p>}

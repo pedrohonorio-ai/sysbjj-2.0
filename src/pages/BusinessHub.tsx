@@ -102,7 +102,7 @@ const BusinessHub: React.FC<BusinessHubProps> = ({ defaultTab }) => {
 
   // Finances states
   const [financeSearchTerm, setFinanceSearchTerm] = useState('');
-  const [financeFilter, setFinanceFilter] = useState<'all' | 'income' | 'expense'>('all');
+  const [financeFilter, setFinanceFilter] = useState<'all' | 'income' | 'expense' | 'test'>('all');
   const [showFinanceModal, setShowFinanceModal] = useState(false);
   const [isVerifying, setIsVerifying] = useState(false);
   const [verifyStatus, setVerifyStatus] = useState<'verified' | 'unverified'>('verified');
@@ -114,6 +114,7 @@ const BusinessHub: React.FC<BusinessHubProps> = ({ defaultTab }) => {
   const [newEntryCategory, setNewEntryCategory] = useState('Mensalidade');
   const [newEntryMethod, setNewEntryMethod] = useState('Pix');
   const [newEntryStudentId, setNewEntryStudentId] = useState('');
+  const [newEntryIsTeste, setNewEntryIsTeste] = useState(false);
 
   // SaaS states
   const [loadingSaas, setLoadingSaas] = useState<boolean>(true);
@@ -243,7 +244,8 @@ const BusinessHub: React.FC<BusinessHubProps> = ({ defaultTab }) => {
                           item.category.toLowerCase().includes(financeSearchTerm.toLowerCase());
     const matchesFilter = financeFilter === 'all' || 
                           (financeFilter === 'income' && ['Income', 'StudentPayment', 'ExtraRevenue'].includes(item.type)) || 
-                          (financeFilter === 'expense' && item.type === 'Expense');
+                          (financeFilter === 'expense' && item.type === 'Expense') ||
+                          (financeFilter === 'test' && item.isTeste === true);
     return matchesSearch && matchesFilter;
   });
 
@@ -333,15 +335,32 @@ const BusinessHub: React.FC<BusinessHubProps> = ({ defaultTab }) => {
       description: newEntryDescription,
       category: newEntryCategory,
       method: newEntryMethod,
-      studentId: newEntryStudentId || undefined
+      studentId: newEntryStudentId || undefined,
+      isTeste: newEntryIsTeste
     });
 
     // Reset and close
     setNewEntryAmount('');
     setNewEntryDescription('');
     setNewEntryStudentId('');
+    setNewEntryIsTeste(false);
     setShowFinanceModal(false);
     alert('🥋 Lançamento financeiro registrado com sucesso no Blockchain de Auditoria!');
+  };
+
+  const handleClearTestEntries = () => {
+    const testEntries = ledger.filter(item => item.isTeste === true);
+    if (testEntries.length === 0) {
+      alert('🥋 OSS: Nenhum lançamento de teste encontrado para limpar.');
+      return;
+    }
+    const confirmed = window.confirm(`🥋 Deseja realmente excluir ${testEntries.length} lançamentos de teste? Esta ação é irreversível.`);
+    if (confirmed) {
+      testEntries.forEach(item => {
+        deleteLedgerEntry(item.id);
+      });
+      alert('🥋 OSS: Todos os lançamentos de teste foram removidos do sistema!');
+    }
   };
 
   const currentPlanId = String(sub?.plan || 'FREE').replaceAll('_', ' ').toUpperCase();
@@ -799,6 +818,12 @@ const BusinessHub: React.FC<BusinessHubProps> = ({ defaultTab }) => {
                    <Download size={12} /> exportar relatório xls
                  </button>
                  <button 
+                   onClick={handleClearTestEntries}
+                   className="flex items-center gap-2 px-5 py-2.5 bg-rose-600/10 hover:bg-rose-600 hover:text-white dark:bg-rose-550/10 dark:hover:bg-rose-600 border border-rose-500/20 text-rose-600 dark:text-rose-400 rounded-xl text-[9px] font-black uppercase tracking-widest transition-all shadow-sm"
+                 >
+                   🗑️ Limpar Dados de Teste
+                 </button>
+                 <button 
                    onClick={() => setShowFinanceModal(true)}
                    className="flex items-center gap-2 px-5 py-2.5 bg-blue-600 text-white rounded-xl text-[9px] font-black uppercase tracking-widest hover:scale-105 transition-all shadow-lg"
                  >
@@ -953,13 +978,13 @@ const BusinessHub: React.FC<BusinessHubProps> = ({ defaultTab }) => {
                     </div>
                     
                     <div className="flex items-center gap-1 bg-slate-100 dark:bg-white/5 p-1 rounded-xl">
-                      {(['all', 'income', 'expense'] as const).map((tab) => (
+                      {(['all', 'income', 'expense', 'test'] as const).map((tab) => (
                         <button
                           key={tab}
                           onClick={() => setFinanceFilter(tab)}
                           className={`px-3 py-1.5 rounded-lg text-[8px] font-black uppercase tracking-widest transition-all ${financeFilter === tab ? 'bg-white dark:bg-slate-800 text-blue-600 shadow-sm' : 'text-slate-400 hover:text-slate-600'}`}
                         >
-                          {tab === 'all' ? 'Ver Tudo' : tab === 'income' ? 'Entradas' : 'Saídas'}
+                          {tab === 'all' ? 'Ver Tudo' : tab === 'income' ? 'Entradas' : tab === 'expense' ? 'Saídas' : 'Somente Testes'}
                         </button>
                       ))}
                     </div>
@@ -999,7 +1024,12 @@ const BusinessHub: React.FC<BusinessHubProps> = ({ defaultTab }) => {
                              <span className="font-bold text-slate-500 tabular-nums">{format(item.timestamp, 'dd MMM, yyyy', { locale: ptBR })}</span>
                           </td>
                           <td className="py-4 px-4">
-                             <p className="font-black uppercase text-slate-900 dark:text-white leading-tight">{item.description}</p>
+                             <div className="flex items-center gap-2">
+                               <p className="font-black uppercase text-slate-900 dark:text-white leading-tight">{item.description}</p>
+                               {item.isTeste && (
+                                 <span className="shrink-0 px-1.5 py-0.5 bg-red-650 dark:bg-rose-600 text-white text-[7px] font-black uppercase tracking-widest rounded-md leading-none">TESTE</span>
+                               )}
+                             </div>
                           </td>
                           <td className="py-4 px-4 whitespace-nowrap">
                              <span className="px-2 py-0.5 bg-slate-100 dark:bg-white/10 text-slate-500 dark:text-slate-400 rounded text-[9px] font-black uppercase tracking-wider">{item.category}</span>
@@ -1706,6 +1736,20 @@ const BusinessHub: React.FC<BusinessHubProps> = ({ defaultTab }) => {
                       </select>
                     </div>
                   )}
+
+                  {/* Lançamento de Teste Checkbox */}
+                  <div className="flex items-center gap-2 py-2">
+                    <input 
+                      type="checkbox"
+                      id="isTesteCheckbox"
+                      checked={newEntryIsTeste}
+                      onChange={(e) => setNewEntryIsTeste(e.target.checked)}
+                      className="w-4 h-4 text-blue-600 bg-slate-50 dark:bg-white/5 border-slate-200 dark:border-white/10 rounded focus:ring-blue-500"
+                    />
+                    <label htmlFor="isTesteCheckbox" className="text-[10px] font-black text-slate-500 dark:text-slate-400 uppercase tracking-widest cursor-pointer select-none">
+                      Marcar como lançamento de teste
+                    </label>
+                  </div>
 
                   {/* Ações */}
                   <div className="flex gap-3 pt-4">

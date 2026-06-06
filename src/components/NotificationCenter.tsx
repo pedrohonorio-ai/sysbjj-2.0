@@ -58,7 +58,7 @@ const CategoryColors: Record<string, { bg: string, text: string, border: string,
   sistema: {
     bg: 'bg-slate-500/5 dark:bg-slate-500/10',
     text: 'text-slate-600 dark:text-slate-400',
-    border: 'border-slate-550/20',
+    border: 'border-slate-500/20',
     iconBg: 'bg-slate-500/10 text-slate-500'
   },
   seguranca: {
@@ -195,7 +195,7 @@ const NotificationCenter: React.FC = () => {
                     className={`shrink-0 px-3 py-1.5 rounded-lg text-[10px] font-black uppercase tracking-wider transition-all border ${
                       activeTab === 'all' 
                         ? 'bg-slate-900 border-slate-900 text-white dark:bg-white dark:border-white dark:text-slate-950 shadow-md' 
-                        : 'bg-white border-slate-200 text-slate-500 dark:bg-slate-800 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-750'
+                        : 'bg-white border-slate-200 text-slate-500 dark:bg-slate-800 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-700'
                     }`}
                   >
                     Ver Todas
@@ -210,7 +210,7 @@ const NotificationCenter: React.FC = () => {
                         className={`shrink-0 px-3 py-1.5 rounded-lg text-[10px] font-black uppercase tracking-wider transition-all border flex items-center gap-1 ${
                           activeTab === catKey 
                             ? 'bg-blue-600 border-blue-600 text-white shadow-md shadow-blue-500/10' 
-                            : 'bg-white border-slate-200 text-slate-500 dark:bg-slate-800 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-750'
+                            : 'bg-white border-slate-200 text-slate-500 dark:bg-slate-800 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-800'
                         }`}
                       >
                         {CategoryLabels[catKey]}
@@ -260,7 +260,7 @@ const NotificationCenter: React.FC = () => {
                         initial={{ opacity: 0, y: 10 }}
                         animate={{ opacity: 1, y: 0 }}
                         exit={{ opacity: 0, x: -30 }}
-                        className={`p-4 rounded-3xl border ${notif.read ? 'bg-slate-50/40 dark:bg-slate-800/25 border-slate-100 dark:border-slate-800/80' : 'bg-white dark:bg-slate-850 border-slate-200 dark:border-slate-750 shadow-sm'} relative overflow-hidden transition-all flex gap-3.5`}
+                        className={`p-4 rounded-3xl border ${notif.read ? 'bg-slate-50/40 dark:bg-slate-850/20 border-slate-100 dark:border-slate-800/80 shadow-inner' : 'bg-white dark:bg-slate-800 border-slate-200 dark:border-slate-700 shadow-md'} relative overflow-hidden transition-all flex gap-3.5`}
                       >
                         {/* Red unread light bar indicators */}
                         {!notif.read && (
@@ -290,11 +290,11 @@ const NotificationCenter: React.FC = () => {
                             )}
                           </div>
 
-                          <p className={`text-xs leading-normal font-sans break-words ${notif.read ? 'text-slate-400 dark:text-slate-500' : 'text-slate-800 dark:text-slate-200 font-semibold'}`}>
+                          <p className={`text-xs leading-normal font-sans break-words ${notif.read ? 'text-slate-500 dark:text-slate-400 font-normal' : 'text-slate-900 dark:text-slate-100 font-bold'}`}>
                             {notif.message}
                           </p>
 
-                          <div className="flex items-center gap-1.5 text-[8px] font-bold text-slate-400 dark:text-slate-550 uppercase tracking-widest font-mono">
+                          <div className="flex items-center gap-1.5 text-[8px] font-bold text-slate-400 dark:text-slate-400 uppercase tracking-widest font-mono">
                             <Clock size={10} />
                             {new Date(notif.timestamp).toLocaleDateString()} {new Date(notif.timestamp).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}
                           </div>
@@ -311,14 +311,14 @@ const NotificationCenter: React.FC = () => {
                               <Check size={10} />
                             </button>
                           ) : (
-                            <div className="w-5 h-5 flex items-center justify-center text-slate-300 dark:text-slate-600">
+                            <div className="p-1 flex items-center justify-center text-slate-400 dark:text-slate-400">
                               <CheckSquare size={12} />
                             </div>
                           )}
                           
                           <button 
                             onClick={() => clearNotification(notif.id)}
-                            className="p-1 text-slate-350 dark:text-slate-550 hover:text-red-650 hover:bg-red-500/10 rounded-lg transition-colors"
+                            className="p-1 text-slate-400 dark:text-slate-400 hover:text-red-500 hover:bg-red-500/10 rounded-lg transition-colors"
                             title="Excluir"
                           >
                             <Trash2 size={12} />
@@ -329,12 +329,12 @@ const NotificationCenter: React.FC = () => {
                   })
                 ) : (
                   <div className="py-14 text-center space-y-4">
-                    <div className="w-16 h-16 bg-slate-50 dark:bg-slate-800 rounded-full flex items-center justify-center mx-auto text-slate-300 dark:text-slate-600">
+                    <div className="w-16 h-16 bg-slate-50 dark:bg-slate-800 rounded-full flex items-center justify-center mx-auto text-slate-400 dark:text-slate-400">
                       <Bell size={28} />
                     </div>
                     <div className="space-y-1">
-                      <p className="text-[10px] font-black text-slate-400 dark:text-slate-600 uppercase tracking-wider italic tracking-[0.16em]">Nenhum Alerta Ativo</p>
-                      <p className="text-[9px] text-slate-350 dark:text-slate-650 italic leading-snug">Limpo no tatame! Oss.</p>
+                      <p className="text-[10px] font-black text-slate-400 dark:text-slate-300 uppercase tracking-wider italic tracking-[0.16em]">Nenhum Alerta Ativo</p>
+                      <p className="text-[9px] text-slate-400 dark:text-slate-550 italic leading-snug">Limpo no tatame! Oss.</p>
                     </div>
                   </div>
                 )}

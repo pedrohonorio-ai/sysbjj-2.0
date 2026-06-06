@@ -384,6 +384,7 @@ export interface Student {
   liabilityWaiverAccepted?: boolean;
   liabilityWaiverDate?: string;
   classId?: string; // Default class/turma
+  instructorId?: string; // Responsible instructor
   positionVideos?: PositionVideo[];
   milestones?: Milestone[];
   examRequirements?: Record<string, any>;
@@ -449,6 +450,7 @@ export interface TransactionLedger {
   category: string;
   method: string;
   studentId?: string;
+  isTeste?: boolean;
   previousHash: string;
   hash: string;
 }
