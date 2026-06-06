@@ -865,7 +865,9 @@ router.get("/admin/all", authenticate as any, async (req: AuthRequest, res: Resp
          email: true,
          name: true,
          subscription: true,
-         createdAt: true
+         createdAt: true,
+         lastLoginAt: true,
+         lastActivityAt: true
       }
     });
 
@@ -900,7 +902,9 @@ router.get("/admin/all", authenticate as any, async (req: AuthRequest, res: Resp
         socialProjectName: u.subscription?.socialProjectName || null,
         socialDescription: u.subscription?.socialDescription || null,
         pendingProofs,
-        createdAt: u.createdAt
+        createdAt: u.createdAt,
+        lastLoginAt: u.lastLoginAt ? u.lastLoginAt.toISOString() : null,
+        lastActivityAt: u.lastActivityAt ? u.lastActivityAt.toISOString() : null
       };
     }));
 
@@ -1109,6 +1113,98 @@ router.post("/admin/set-nonprofit", authenticate as any, async (req: AuthRequest
     });
   } catch (error: any) {
     console.error("🥋 ERROR ADMIN SET NONPROFIT:", error);
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+// Endpoint: POST /api/subscription/admin/delete-user (Master only)
+router.post("/admin/delete-user", authenticate as any, async (req: AuthRequest, res: Response): Promise<any> => {
+  const isMaster = req.user?.email?.toLowerCase() === "pedro.honorio@gm.rio" || req.user?.role === "MASTER";
+  if (!isMaster) {
+    return res.status(403).json({ success: false, error: "Acesso exclusivo ao Sensei Master." });
+  }
+
+  const { targetUserId } = req.body;
+  if (!targetUserId) {
+    return res.status(400).json({ success: false, error: "ID do usuário é obrigatório para exclusão." });
+  }
+
+  try {
+    // 1. Localizar o usuário a ser excluído
+    const userToDelete = await prisma.user.findUnique({
+      where: { id: String(targetUserId) }
+    });
+
+    if (!userToDelete) {
+      return res.status(404).json({ success: false, error: "Usuário não localizado no sistema." });
+    }
+
+    // 2. Proteção contra exclusão acidental do próprio Master Admin
+    if (userToDelete.email?.toLowerCase() === "pedro.honorio@gm.rio") {
+      return res.status(400).json({ success: false, error: "Operação Impossível: O Sensei Master não pode ser excluído do sistema." });
+    }
+
+    const targetUserEmail = userToDelete.email || "Sem e-mail";
+
+    console.log(`🥋 [DELETE USER CASCADE] Iniciando exclusão de todas as dependências do Professor ${targetUserEmail} (ID: ${targetUserId})`);
+
+    // 3. Excluir todas as tabelas dependentes associadas ao userId
+    // Deletar registros dependentes do Student primeiro porque eles têm chaves estrangeiras
+    // GraduationHistory
+    await prisma.graduationHistory.deleteMany({
+      where: { student: { userId: String(targetUserId) } }
+    });
+
+    // Student
+    await prisma.student.deleteMany({
+      where: { userId: String(targetUserId) }
+    });
+
+    // Outros modelos associados ao userId do professor/academia
+    await prisma.subscriptionPaymentHistory.deleteMany({ where: { userId: String(targetUserId) } });
+    await prisma.payment.deleteMany({ where: { userId: String(targetUserId) } });
+    await prisma.classSchedule.deleteMany({ where: { userId: String(targetUserId) } });
+    await prisma.systemLog.deleteMany({ where: { userId: String(targetUserId) } });
+    await prisma.transactionLedger.deleteMany({ where: { userId: String(targetUserId) } });
+    await prisma.paymentReceipt.deleteMany({ where: { userId: String(targetUserId) } });
+    await prisma.extraRevenue.deleteMany({ where: { userId: String(targetUserId) } });
+    await prisma.lessonPlan.deleteMany({ where: { userId: String(targetUserId) } });
+    await prisma.libraryTechnique.deleteMany({ where: { userId: String(targetUserId) } });
+    await prisma.product.deleteMany({ where: { userId: String(targetUserId) } });
+    await prisma.kimonoOrder.deleteMany({ where: { userId: String(targetUserId) } });
+    await prisma.presence.deleteMany({ where: { userId: String(targetUserId) } });
+    await prisma.professorProfile.deleteMany({ where: { userId: String(targetUserId) } });
+    await prisma.plan.deleteMany({ where: { userId: String(targetUserId) } });
+    await prisma.notification.deleteMany({ where: { userId: String(targetUserId) } });
+
+    // Deletar Subscription (onDelete: Cascade deve lidar com isso, mas deleteMany garante limpeza)
+    await prisma.subscription.deleteMany({ where: { userId: String(targetUserId) } });
+
+    // E finalmente deletar o User do banco de dados principal
+    await prisma.user.delete({
+      where: { id: String(targetUserId) }
+    });
+
+    // Registrar ação no log de segurança/auditoria com o usuário logado (Master)
+    await prisma.systemLog.create({
+      data: {
+        userId: req.user?.id || 'admin',
+        timestamp: BigInt(Date.now()),
+        userEmail: req.user?.email || 'pedro.honorio@gm.rio',
+        action: 'ADMIN_DELETE_USER',
+        details: `Exclusão DEFINITIVA de cadastro executada pelo Master. Conta: ${targetUserEmail} (ID: ${targetUserId})`,
+        category: 'Security_Critical',
+        deviceInfo: req.headers['user-agent'] || 'Desconhecido',
+      }
+    });
+
+    return res.json({
+      success: true,
+      message: `🥋 OSS! O cadastro de ${targetUserEmail} e todos os seus vínculos foram excluídos com êxito e permanentemente.`
+    });
+
+  } catch (error: any) {
+    console.error("🥋 ERROR ADMIN DELETING USER ACCOUNT:", error);
     res.status(500).json({ success: false, error: error.message });
   }
 });

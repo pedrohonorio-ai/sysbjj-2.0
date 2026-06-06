@@ -24,7 +24,8 @@ import {
   Shield,
   Terminal,
   Lock,
-  FileCode
+  FileCode,
+  Trash2
 } from 'lucide-react';
 import { useTranslation } from '../../contexts/LanguageContext.js';
 import { useAuth } from '../../context/AuthContext.js';
@@ -71,6 +72,11 @@ export const SaaSControlCenter: React.FC = () => {
   const [lastScanTime, setLastScanTime] = useState<string>("Verificação de rotina automatizada há 12 min");
   const [fileIntegrityStatus, setFileIntegrityStatus] = useState<string>("Sincronizado");
   const [activeSubModuleTab, setActiveSubModuleTab] = useState<string>("files");
+
+  // Account deletion states - Master Admin controls
+  const [deleteConfirmation, setDeleteConfirmation] = useState<{ userId: string; academyName: string; email: string } | null>(null);
+  const [confirmInput, setConfirmInput] = useState<string>('');
+  const [deletingUser, setDeletingUser] = useState<boolean>(false);
 
   // Administrative invoice history & pending approvals queue (Section 5: manual approval, refusal)
   const [adminInvoices, setAdminInvoices] = useState<any[]>([]);
@@ -184,6 +190,43 @@ export const SaaSControlCenter: React.FC = () => {
       }
     } catch (err: any) {
       setErr(err.message || 'Erro de rede ao arquivar rejeição.');
+    }
+  };
+
+  const handleDeleteUserAccount = (userId: string, academyName: string, email: string) => {
+    setDeleteConfirmation({ userId, academyName, email });
+    setConfirmInput('');
+  };
+
+  const executeDeleteUserAccount = async () => {
+    if (!deleteConfirmation) return;
+    if (confirmInput.trim().toLowerCase() !== deleteConfirmation.email.toLowerCase()) {
+      alert("O e-mail digitado não confere com o e-mail cadastrado.");
+      return;
+    }
+
+    setDeletingUser(true);
+    setErr(null);
+    setSuccess(null);
+
+    try {
+      const res = await enterpriseApi.fetchWithEnterprise('/api/subscription/admin/delete-user', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ targetUserId: deleteConfirmation.userId })
+      });
+
+      if (res && res.success) {
+        setSuccess(`🥋 OSS! A academia e todos os seus cadastros foram excluídos permanentemente.`);
+        setDeleteConfirmation(null);
+        await loadSubscriptions(); // reload
+      } else {
+        setErr(res?.error || 'Não foi possível realizar a exclusão.');
+      }
+    } catch (err: any) {
+      setErr(err.message || 'Erro ao realizar exclusão.');
+    } finally {
+      setDeletingUser(false);
     }
   };
 
@@ -718,7 +761,19 @@ export const SaaSControlCenter: React.FC = () => {
                       <td className="py-4 px-6">
                         <div className="font-black text-white text-sm italic">{a.academyName || 'Dōjō Sem Nome'}</div>
                         <div className="text-slate-400 font-bold mb-0.5">{a.professorName || 'Sensei Desconhecido'}</div>
-                        <div className="text-[10px] font-mono text-slate-500">{a.email}</div>
+                        <div className="text-[10px] font-mono text-slate-500 mb-1.5">{a.email}</div>
+                        <div className="flex flex-wrap gap-1.5 mt-1 text-[8px] font-bold uppercase tracking-wider">
+                          <span className="bg-slate-950 px-1.5 py-0.5 rounded border border-slate-850 text-slate-400">
+                            Criação: {a.createdAt ? new Date(a.createdAt).toLocaleDateString('pt-BR') : 'N/A'}
+                          </span>
+                          <span className={`px-1.5 py-0.5 rounded border ${
+                            a.lastLoginAt 
+                              ? 'bg-blue-950/20 text-blue-400 border-blue-900/30' 
+                              : 'bg-rose-950/20 text-rose-400 border-rose-900/30 font-black animate-pulse'
+                          }`}>
+                            Último Acesso: {a.lastLoginAt ? new Date(a.lastLoginAt).toLocaleDateString('pt-BR') + ' ' + new Date(a.lastLoginAt).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' }) : 'Nunca Acessou'}
+                          </span>
+                        </div>
                       </td>
 
                       {/* Student limits usage */}
@@ -850,6 +905,16 @@ export const SaaSControlCenter: React.FC = () => {
                               <Play size={10} /> Reativar
                             </button>
                           )}
+
+                          {/* Account Permanent Deletion */}
+                          <button
+                            onClick={() => handleDeleteUserAccount(a.id, a.academyName || 'Dōjō Sem Nome', a.email)}
+                            disabled={isCurrentUpdating || a.email?.toLowerCase() === "pedro.honorio@gm.rio"}
+                            className="px-2 py-1 bg-red-950/30 hover:bg-red-600 hover:text-white text-rose-400 border border-red-950/40 rounded text-[8px] font-black uppercase transition-all flex items-center gap-1 cursor-pointer disabled:opacity-30 w-full justify-center mt-1"
+                            title="Excluir cadastro permanentemente do ecossistema"
+                          >
+                            <Trash2 size={10} /> Excluir Dojo
+                          </button>
 
                         </div>
                       </td>
@@ -1301,6 +1366,77 @@ export const SaaSControlCenter: React.FC = () => {
         <AlertTriangle size={14} className="shrink-0" />
         <span>Alerta de Governança: Todas as alterações manuais efetuadas neste painel geram logs irreversíveis de auditoria. Use com responsabilidade e disciplina marcial. OSS!</span>
       </footer>
+
+      {/* 🥋 CONFIRMAÇÃO DE EXCLUSÃO DE CONTA TOTAL */}
+      <AnimatePresence>
+        {deleteConfirmation && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/85 backdrop-blur-sm p-4">
+            <motion.div
+              initial={{ scale: 0.95, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              exit={{ scale: 0.95, opacity: 0 }}
+              className="bg-slate-900 border-2 border-red-950/80 rounded-3xl p-6 sm:p-8 max-w-lg w-full space-y-6 shadow-2xl relative overflow-hidden"
+            >
+              <div className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-red-700 via-rose-600 to-amber-500" />
+
+              <div className="flex items-center gap-3 border-b border-slate-850 pb-4">
+                <div className="p-3 bg-red-950/50 border border-red-500/25 rounded-2xl text-red-500">
+                  <AlertTriangle size={20} className="animate-pulse" />
+                </div>
+                <div>
+                  <h3 className="text-xs font-black text-white uppercase italic tracking-wider">EXCLUSÃO CRÍTICA E IRREVERSÍVEL</h3>
+                  <p className="text-[9px] text-red-400 uppercase font-bold tracking-widest">Remover Dojo do Ecossistema SYSBJJ 2.0</p>
+                </div>
+              </div>
+
+              <div className="space-y-3 text-xs leading-relaxed text-slate-300 font-sans">
+                <p>
+                  Atenção Sensei Master! Você está prestes a excluir permanentemente a academia:
+                </p>
+                <div className="p-4 bg-slate-950 rounded-2xl border border-slate-850">
+                  <p className="font-extrabold text-[#00E5FF]">{deleteConfirmation.academyName}</p>
+                  <p className="font-mono text-[10px] text-slate-500">{deleteConfirmation.email}</p>
+                </div>
+                <p className="text-red-400 font-bold uppercase text-[9px] tracking-wide bg-red-950/20 p-3 rounded-xl border border-red-900/25">
+                  🚨 ATENÇÃO: Esta ação deletará instantaneamente todos os alunos cadastrados sob este professor, seus logs de presença, graduações, faturamentos, planos, produtos, mensalidades e o próprio profile do professor. Não há rollback disponível!
+                </p>
+                <p className="text-[10px] text-slate-400">
+                  Para atestar sua intenção de administrador master, digite o e-mail do dojo (<span className="font-mono text-indigo-400 font-bold">{deleteConfirmation.email}</span>) abaixo:
+                </p>
+              </div>
+
+              <div className="space-y-4">
+                <input
+                  type="text"
+                  placeholder="Digite o e-mail exato do professor para autorizar..."
+                  value={confirmInput}
+                  onChange={(e) => setConfirmInput(e.target.value)}
+                  className="w-full bg-slate-950 border border-slate-850 focus:border-red-500 rounded-xl py-3 px-4 text-xs text-white placeholder-slate-600 focus:outline-none focus:ring-1 focus:ring-red-500/20 font-sans"
+                />
+
+                <div className="flex flex-col sm:flex-row gap-2 pt-2">
+                  <button
+                    type="button"
+                    onClick={() => setDeleteConfirmation(null)}
+                    disabled={deletingUser}
+                    className="w-full py-3 bg-slate-950 hover:bg-slate-900 border border-slate-850 text-slate-400 text-[10px] font-black uppercase tracking-widest rounded-xl transition-all cursor-pointer"
+                  >
+                    Mudar de Ideia
+                  </button>
+                  <button
+                    type="button"
+                    onClick={executeDeleteUserAccount}
+                    disabled={deletingUser || confirmInput.trim().toLowerCase() !== deleteConfirmation.email.toLowerCase()}
+                    className="w-full py-3 bg-red-600 hover:bg-red-500 disabled:bg-slate-950 disabled:text-slate-600 text-[#fff] disabled:border-slate-900 border border-red-500/20 text-[10px] font-black uppercase tracking-widest rounded-xl transition-all flex items-center justify-center gap-2 cursor-pointer shadow-lg shadow-red-500/5 duration-200"
+                  >
+                    {deletingUser ? 'Excluindo Registros...' : 'Confirmar Deletar Conta (OSS!)'}
+                  </button>
+                </div>
+              </div>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
 
     </div>
   );
