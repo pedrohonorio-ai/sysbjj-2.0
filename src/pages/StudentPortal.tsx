@@ -9,7 +9,8 @@ import {
   RefreshCw, FileText, Upload, ShieldCheck, AlertCircle, ShieldAlert, ChevronRight,
   Map, Star, Users2, Medal, Presentation, ClipboardCheck, GraduationCap, Check,
   CreditCard, Video, ExternalLink, MessageSquare, Cake, TrendingUp, Users,
-  Target, Dumbbell, Activity, ClipboardList, Timer, Pause, RotateCcw
+  Target, Dumbbell, Activity, ClipboardList, Timer, Pause, RotateCcw,
+  MapPin
 } from 'lucide-react';
 import { Html5QrcodeScanner } from 'html5-qrcode';
 import { useTranslation } from '../contexts/LanguageContext.js';
@@ -26,11 +27,180 @@ import {
 } from 'recharts';
 import CryptoJS from 'crypto-js';
 
+const getIBJJFRealTimeCategory = (birthDate: string): {
+  category: string;
+  age: number;
+  nextCategory: string;
+  whenChanges: string;
+} => {
+  if (!birthDate) return { category: 'Não informada', age: 0, nextCategory: '--', whenChanges: '--' };
+  const birthYear = new Date(birthDate).getUTCFullYear();
+  const currentYear = new Date().getUTCFullYear();
+  const age = currentYear - birthYear; // IBJJF is based on birth year
+  
+  let category = 'Pré-Mirim';
+  let nextCategory = 'Mirim I';
+  let changeAge = 6;
+  
+  if (age < 4) {
+    category = 'Pré-Mirim (Menor de 4)';
+    nextCategory = 'Pré-Mirim';
+    changeAge = 4;
+  } else if (age >= 4 && age <= 5) {
+    category = 'Pré-Mirim';
+    nextCategory = 'Mirim I';
+    changeAge = 6;
+  } else if (age >= 6 && age <= 7) {
+    category = 'Mirim I';
+    nextCategory = 'Mirim II';
+    changeAge = 8;
+  } else if (age >= 8 && age <= 9) {
+    category = 'Mirim II';
+    nextCategory = 'Infantil I';
+    changeAge = 10;
+  } else if (age >= 10 && age <= 11) {
+    category = 'Infantil I';
+    nextCategory = 'Infantil II';
+    changeAge = 12;
+  } else if (age >= 12 && age <= 13) {
+    category = 'Infantil II';
+    nextCategory = 'Juvenil';
+    changeAge = 14;
+  } else if (age >= 14 && age <= 15) {
+    category = 'Juvenil';
+    nextCategory = 'Juvenil (Adulto)';
+    changeAge = 16;
+  } else if (age >= 16 && age <= 17) {
+    category = 'Juvenil (Adulto)';
+    nextCategory = 'Adulto';
+    changeAge = 18;
+  } else if (age >= 18 && age <= 29) {
+    category = 'Adulto';
+    nextCategory = 'Master 1';
+    changeAge = 30;
+  } else if (age >= 30 && age <= 35) {
+    category = 'Master 1';
+    nextCategory = 'Master 2';
+    changeAge = 36;
+  } else if (age >= 36 && age <= 40) {
+    category = 'Master 2';
+    nextCategory = 'Master 3';
+    changeAge = 41;
+  } else if (age >= 41 && age <= 45) {
+    category = 'Master 3';
+    nextCategory = 'Master 4';
+    changeAge = 46;
+  } else if (age >= 46 && age <= 50) {
+    category = 'Master 4';
+    nextCategory = 'Master 5';
+    changeAge = 51;
+  } else {
+    category = 'Master 5';
+    nextCategory = 'Nível Máximo';
+    changeAge = 999;
+  }
+
+  const yearsLeft = changeAge - age;
+  let whenChanges = '';
+  if (changeAge === 999) {
+    whenChanges = 'Categoria Master máxima atingida';
+  } else {
+    const changeYear = birthYear + changeAge;
+    whenChanges = `Em ${changeYear} (em ${yearsLeft} ${yearsLeft === 1 ? 'ano' : 'anos'})`;
+  }
+
+  return { category, age, nextCategory, whenChanges };
+};
+
+const getCategoryBadgeStyle = (category: string) => {
+  if (category.startsWith('Pré-Mirim') || category.startsWith('Mirim')) {
+    return 'bg-teal-500/10 text-teal-600 dark:text-teal-400 border border-teal-500/20';
+  }
+  if (category.startsWith('Infantil')) {
+    return 'bg-blue-500/10 text-blue-600 dark:text-blue-400 border border-blue-500/20';
+  }
+  if (category.startsWith('Juvenil')) {
+    return 'bg-purple-500/10 text-purple-600 dark:text-purple-400 border border-purple-500/20';
+  }
+  if (category.startsWith('Adulto')) {
+    return 'bg-red-500/10 text-red-600 dark:text-red-400 border border-red-500/20';
+  }
+  if (category.startsWith('Master')) {
+    return 'bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-500/20';
+  }
+  return 'bg-slate-500/10 text-slate-600 dark:text-slate-400 border border-slate-500/20';
+};
+
+const calculateDistance = (lat1: number, lon1: number, lat2: number, lon2: number): number => {
+  const R = 6371e3; // Earth's radius in meters
+  const phi1 = (lat1 * Math.PI) / 180;
+  const phi2 = (lat2 * Math.PI) / 180;
+  const deltaPhi = ((lat2 - lat1) * Math.PI) / 180;
+  const deltaLambda = ((lon2 - lon1) * Math.PI) / 180;
+
+  const a =
+    Math.sin(deltaPhi / 2) * Math.sin(deltaPhi / 2) +
+    Math.cos(phi1) * Math.cos(phi2) *
+    Math.sin(deltaLambda / 2) * Math.sin(deltaLambda / 2);
+  const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+
+  return R * c; // Distance in meters
+};
+
+const getMonthlyPresenceStats = (history: { date: string }[]) => {
+  if (!history) return { currentMonthTotal: 0, previousMonthTotal: 0, diff: 0, presentDaysSet: new Set<number>(), daysInMonth: 30, monthName: '' };
+  
+  const today = new Date();
+  const currentYear = today.getUTCFullYear();
+  const currentMonthIdx = today.getUTCMonth(); // 0-11
+  
+  // Previous month idx
+  let prevMonthIdx = currentMonthIdx - 1;
+  let prevYear = currentYear;
+  if (prevMonthIdx < 0) {
+    prevMonthIdx = 11;
+    prevYear = currentYear - 1;
+  }
+  
+  let currentMonthTotal = 0;
+  let previousMonthTotal = 0;
+  const presentDaysSet = new Set<number>();
+  
+  history.forEach(item => {
+    const itemDate = new Date(item.date);
+    const itemYear = itemDate.getUTCFullYear();
+    const itemMonth = itemDate.getUTCMonth();
+    const itemDay = itemDate.getUTCDate();
+    
+    if (itemYear === currentYear && itemMonth === currentMonthIdx) {
+      currentMonthTotal++;
+      presentDaysSet.add(itemDay);
+    } else if (itemYear === prevYear && itemMonth === prevMonthIdx) {
+      previousMonthTotal++;
+    }
+  });
+  
+  const diff = currentMonthTotal - previousMonthTotal;
+  
+  // Get all days of current month to build the calendar grid
+  const daysInMonth = new Date(currentYear, currentMonthIdx + 1, 0).getDate();
+  const monthName = today.toLocaleDateString('pt-BR', { month: 'long' });
+  
+  return {
+    currentMonthTotal,
+    previousMonthTotal,
+    diff,
+    presentDaysSet,
+    daysInMonth,
+    monthName
+  };
+};
+
 const StudentPortal: React.FC = () => {
   const { code } = useParams();
   const navigate = useNavigate();
   const { t, tObj } = useTranslation();
-  const { students, recordAttendance, gallery, payments, addGalleryImage, addReceipt, completeRuleLesson, logs, graduationHistory } = useData();
+  const { students, recordAttendance, gallery, payments, addGalleryImage, addReceipt, completeRuleLesson, logs, graduationHistory, schedules } = useData();
   const { profile } = useProfile();
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState<'home' | 'training' | 'knowledge' | 'community' | 'wallet' | 'gallery' | 'homeTraining' | 'timer' | 'rules'>('home');
@@ -83,6 +253,84 @@ const StudentPortal: React.FC = () => {
   const [paymentProcessing, setPaymentProcessing] = useState(false);
   const [checkinSuccess, setCheckinSuccess] = useState(false);
   const [copied, setCopied] = useState(false);
+
+  // Requirement 5 - Geolocation and Manuel Check-In States
+  const [geoChecking, setGeoChecking] = useState(false);
+  const [geoError, setGeoError] = useState<string | null>(null);
+  const [geoSuccess, setGeoSuccess] = useState(false);
+
+  const [showManualInput, setShowManualInput] = useState(false);
+  const [manualCode, setManualCode] = useState('');
+  const [manualError, setManualError] = useState<string | null>(null);
+  const [manualSuccess, setManualSuccess] = useState(false);
+
+  const handleGeoCheckin = () => {
+    if (!student) return;
+    setGeoChecking(true);
+    setGeoError(null);
+    setGeoSuccess(false);
+
+    if (!profile || !profile.latitude || !profile.longitude) {
+      setGeoError("Geolocalização não configurada pelo professor");
+      setGeoChecking(false);
+      return;
+    }
+
+    if (!navigator.geolocation) {
+      setGeoError("Geolocalização não suportada pelo seu navegador");
+      setGeoChecking(false);
+      return;
+    }
+
+    navigator.geolocation.getCurrentPosition(
+      (position) => {
+        const userLat = position.coords.latitude;
+        const userLon = position.coords.longitude;
+        const distance = calculateDistance(userLat, userLon, profile.latitude, profile.longitude);
+        const radius = profile.geofenceRadius || 500;
+
+        if (distance <= radius) {
+          recordAttendance([student.id]);
+          setGeoSuccess(true);
+          setCheckinSuccess(true);
+          setGeoChecking(false);
+          setTimeout(() => {
+            setCheckinSuccess(false);
+            setGeoSuccess(false);
+          }, 4000);
+        } else {
+          setGeoError(`Você está fora do raio da academia (${Math.round(distance)}m de distância, raio permitido: ${radius}m)`);
+          setGeoChecking(false);
+        }
+      },
+      (error) => {
+        setGeoError("Erro ao obter sua localização. Ative o GPS/Permissões.");
+        setGeoChecking(false);
+      },
+      { enableHighAccuracy: true, timeout: 10000 }
+    );
+  };
+
+  const handleManualCheckinSubmit = () => {
+    if (!student) return;
+    setManualError(null);
+    setManualSuccess(false);
+    
+    const expected = (student.portalAccessCode || '').substring(0, 6).toUpperCase();
+    if (manualCode.trim().toUpperCase() === expected) {
+      recordAttendance([student.id]);
+      setManualSuccess(true);
+      setCheckinSuccess(true);
+      setManualCode('');
+      setShowManualInput(false);
+      setTimeout(() => {
+        setCheckinSuccess(false);
+        setManualSuccess(false);
+      }, 4000);
+    } else {
+      setManualError("Código incorreto. Digite os 6 caracteres fornecidos pelo professor.");
+    }
+  };
   const [selectedPhoto, setSelectedPhoto] = useState<GalleryImage | null>(null);
   const [receiptFile, setReceiptFile] = useState<string | null>(null);
   const [showWaiver, setShowWaiver] = useState(false);
@@ -532,7 +780,48 @@ const StudentPortal: React.FC = () => {
   };
 
   const generatePixPayload = (amount: number) => {
-    return `00020126580014br.gov.bcb.pix01${profile.pixKey.length}${profile.pixKey}52040000530398654${amount.toFixed(2).length}${amount.toFixed(2)}5802BR59${profile.pixName.length}${profile.pixName.slice(0, 25)}60${profile.pixCity.length}${profile.pixCity}62070503OSS6304D1BB`;
+    const formatEMVField = (id: string, val: string): string => {
+      const len = val.length.toString().padStart(2, '0');
+      return `${id}${len}${val}`;
+    };
+
+    const pixKey = (profile.pixKey || '').trim();
+    const pixName = (profile.pixName || 'ACADEMIA').trim().slice(0, 25);
+    const pixCity = (profile.pixCity || 'SAO PAULO').trim().slice(0, 15);
+    const amountStr = amount.toFixed(2);
+
+    // Merchant Account Info (GUI & Key)
+    const merchantAccountInfo = formatEMVField('00', 'br.gov.bcb.pix') + formatEMVField('01', pixKey);
+
+    let payload = '';
+    payload += '000201'; // Payload Format Indicator
+    payload += formatEMVField('26', merchantAccountInfo); // Merchant Account Information
+    payload += '52040000'; // Merchant Category Code
+    payload += '5303986'; // Transaction Currency (986 = BRL)
+    payload += formatEMVField('54', amountStr); // Transaction Amount
+    payload += '5802BR'; // Country Code (BR)
+    payload += formatEMVField('59', pixName); // Merchant Name
+    payload += formatEMVField('60', pixCity); // Merchant City
+    payload += formatEMVField('62', formatEMVField('05', '***')); // Additional Data Field (no TX ID)
+
+    // Calculate CRC16 (CCITT-FALSE) over the entire payload including the CRM indicator tag
+    const pixSecureRaw = payload + '6304';
+    let crc = 0xFFFF;
+    for (let i = 0; i < pixSecureRaw.length; i++) {
+      let charCode = pixSecureRaw.charCodeAt(i);
+      crc ^= (charCode << 8);
+      for (let j = 0; j < 8; j++) {
+        if ((crc & 0x8000) !== 0) {
+          crc = (crc << 1) ^ 0x1021;
+        } else {
+          crc = crc << 1;
+        }
+      }
+    }
+    crc = (crc & 0xFFFF);
+    const crcHex = crc.toString(16).toUpperCase().padStart(4, '0');
+
+    return pixSecureRaw + crcHex;
   };
 
   const handleReceiptUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -661,6 +950,18 @@ const StudentPortal: React.FC = () => {
             animate={{ opacity: 1, y: 0 }}
             className="space-y-6"
           >
+            {/* Mensalidade em atraso Alert Banner */}
+            {student.isOverdue && (
+              <motion.div
+                initial={{ scale: 0.95, opacity: 0 }}
+                animate={{ scale: 1, opacity: 1 }}
+                className="bg-red-650 bg-red-600 text-white font-black text-xs uppercase tracking-wider py-3.5 px-6 rounded-[2rem] flex items-center justify-center gap-2.5 shadow-lg shadow-red-600/10 border border-red-500"
+              >
+                <AlertTriangle size={15} className="shrink-0 animate-bounce text-yellow-300" />
+                <span>⚠️ Mensalidade em atraso</span>
+              </motion.div>
+            )}
+
             {/* Professional Profile Header */}
             <div className="bg-slate-900 rounded-[2.5rem] p-8 text-white relative shadow-2xl overflow-hidden border border-white/5 group">
               <div className="absolute top-0 right-0 w-64 h-64 bg-blue-600 rounded-full blur-[100px] opacity-20 -translate-y-1/2 translate-x-1/2 group-hover:opacity-30 transition-opacity" />
@@ -698,27 +999,78 @@ const StudentPortal: React.FC = () => {
                     <ShieldCheck size={20} className="text-blue-400" />
                   </motion.div>
                 </div>
-                <div className="flex-1 text-center sm:text-left">
-                  <div className="flex flex-wrap justify-center sm:justify-start items-center gap-2 mb-2">
+                <div className="flex-1 text-center sm:text-left space-y-2">
+                  <div className="flex flex-wrap justify-center sm:justify-start items-center gap-1.5 mb-1">
                     <span className="px-2 py-0.5 bg-blue-500/10 text-blue-400 text-[7px] font-black uppercase tracking-[0.2em] rounded border border-blue-500/20">{t('common.verifiedMember')}</span>
                     <span className="px-2 py-0.5 bg-emerald-500/10 text-emerald-400 text-[7px] font-black uppercase tracking-[0.2em] rounded border border-emerald-500/20">{t('common.blockchainIdLabel')}: {blockchainHash}</span>
+                    {student.isInstructor && (
+                      <span className="px-2.5 py-0.5 bg-red-600 text-white text-[7px] font-black uppercase tracking-[0.15em] rounded border border-red-500/20">INSTRUTOR 🥋</span>
+                    )}
+                    {student.isClassProfessor && (
+                      <span className="px-2.5 py-0.5 bg-red-800 text-white text-[7px] font-black uppercase tracking-[0.15em] rounded border border-red-900/30">PROFESSOR DE TURMA</span>
+                    )}
                   </div>
-                  <h1 className="text-2xl sm:text-4xl font-black tracking-tighter uppercase leading-none mb-2">{student.name}</h1>
-                  <div className="flex items-center justify-center sm:justify-start gap-3">
-                    <div className={`px-4 py-1.5 rounded-xl text-[9px] font-black uppercase tracking-widest shadow-lg ${BELT_COLORS[student.belt]}`}>
-                      {t(`belts.${student.belt}`)}
+                  <h1 className="text-2xl sm:text-4xl font-black tracking-tighter uppercase leading-none">{student.name}</h1>
+                  
+                  <div className="flex flex-wrap justify-center sm:justify-start items-center gap-3">
+                    <div className="flex items-center gap-3">
+                      <div className={`px-4 py-1.5 rounded-xl text-[9px] font-black uppercase tracking-widest shadow-lg ${BELT_COLORS[student.belt]}`}>
+                        {t(`belts.${student.belt}`)}
+                      </div>
+                      <div className="flex gap-1">
+                        {[...Array(student.stripes)].map((_, i) => (
+                          <div key={i} className="w-1 h-4 bg-white rounded-full opacity-80" />
+                        ))}
+                      </div>
                     </div>
-                    <div className="flex gap-1">
-                      {[...Array(student.stripes)].map((_, i) => (
-                        <div key={i} className="w-1 h-4 bg-white rounded-full opacity-80" />
-                      ))}
-                    </div>
+
+                    {student.classId && (() => {
+                      const studentClass = schedules?.find((sc: any) => sc.id === student.classId);
+                      if (studentClass) {
+                        return (
+                          <div className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-blue-500/10 border border-blue-500/20 rounded-xl text-[9px] font-black uppercase tracking-widest text-blue-300 font-sans">
+                            <Clock size={11} className="text-blue-450 shrink-0" />
+                            <span>Turma: {studentClass.title} • {studentClass.time}</span>
+                          </div>
+                        );
+                      }
+                      return null;
+                    })()}
                   </div>
+
+                  {student.instructorId && (() => {
+                    const inst = students.find((s: any) => s.id === student.instructorId);
+                    if (inst) {
+                      return (
+                        <div className="flex items-center gap-1.5 mt-2 justify-center sm:justify-start text-xs text-slate-350 font-bold">
+                          <Users size={14} className="text-slate-400 shrink-0" />
+                          <span>Professor: {inst.name}</span>
+                          <span className="text-slate-500 font-normal shadow-sm">•</span>
+                          <span className={`px-2 py-0.5 rounded text-[8px] font-black uppercase tracking-widest leading-none ${BELT_COLORS[inst.belt]}`}>
+                            {inst.belt}
+                          </span>
+                        </div>
+                      );
+                    }
+                    return null;
+                  })()}
                 </div>
               </div>
 
+              {/* Technical / Bio Observações field inside header */}
+              {student.technicalNotes && (
+                <div className="mt-6 p-4.5 bg-white/5 rounded-2xl border border-white/5 text-left relative z-10">
+                  <p className="text-[8px] font-black text-slate-400 uppercase tracking-widest mb-1.5 flex items-center gap-1 leading-none">
+                    <Info size={11} className="text-blue-400 shrink-0" /> Observações do Aluno / Bio
+                  </p>
+                  <p className="text-xs font-bold text-slate-200 leading-normal whitespace-pre-wrap">
+                    {student.technicalNotes}
+                  </p>
+                </div>
+              )}
+
               {/* Blockchain Badge Section */}
-              <div className="mt-8 pt-6 border-t border-white/10 flex items-center justify-between relative z-10">
+              <div className="mt-6 pt-5 border-t border-white/10 flex items-center justify-between relative z-10">
                  <div className="flex items-center gap-3">
                     <div className="p-2 bg-blue-600/20 rounded-lg border border-blue-500/30">
                       <Shield size={16} className="text-blue-400" />
@@ -733,6 +1085,55 @@ const StudentPortal: React.FC = () => {
                  </button>
               </div>
             </div>
+
+            {/* CARD DE CLASSIFICAÇÃO AUTOMÁTICA IBJJF/CBJJ */}
+            {(() => {
+              const ibjjfInfo = getIBJJFRealTimeCategory(student.birthDate);
+              const badgeStyle = getCategoryBadgeStyle(ibjjfInfo.category);
+              return (
+                <div className="bg-white dark:bg-slate-900 rounded-[2.5rem] p-6 border border-slate-200 dark:border-slate-800 shadow-sm space-y-4">
+                  <div className="flex justify-between items-center">
+                    <div>
+                      <p className="text-[9px] font-black text-blue-650 dark:text-blue-400 uppercase tracking-widest leading-none mb-1">Regulamento Oficial</p>
+                      <h4 className="text-sm font-black uppercase text-slate-900 dark:text-white">Classificação IBJJF/CBJJ</h4>
+                    </div>
+                    <span className="text-[8px] bg-blue-50 dark:bg-blue-900/20 text-blue-600 dark:text-blue-400 px-2 py-1 rounded-full font-black uppercase">Automática</span>
+                  </div>
+
+                  <div className="flex flex-col gap-4">
+                    <div className="flex items-center justify-between p-4 bg-slate-50 dark:bg-gradient-to-br dark:from-slate-850 dark:to-slate-900 rounded-2xl border border-slate-100 dark:border-slate-800">
+                      <div>
+                        <span className="text-[8px] font-black text-slate-400 uppercase tracking-widest block mb-1">Minha Categoria</span>
+                        <span className={`px-2.5 py-1 rounded-lg text-xs font-black uppercase tracking-wider inline-block ${badgeStyle}`}>
+                          🥋 {ibjjfInfo.category}
+                        </span>
+                      </div>
+                      <div className="text-right">
+                        <span className="text-[8px] font-black text-slate-400 uppercase tracking-widest block mb-1">Idade Atual</span>
+                        <span className="text-base font-black text-slate-900 dark:text-white tabular-nums">
+                          {ibjjfInfo.age} <span className="text-[10px] font-bold text-slate-400 uppercase">Anos</span>
+                        </span>
+                      </div>
+                    </div>
+
+                    <div className="grid grid-cols-2 gap-3.5 pt-2 border-t border-slate-100 dark:border-slate-850">
+                      <div>
+                        <span className="text-[8px] font-black text-slate-400 uppercase tracking-widest block mb-0.5">Próxima Categoria</span>
+                        <span className="text-[10.5px] font-black text-slate-800 dark:text-slate-200 uppercase tracking-tight">
+                          {ibjjfInfo.nextCategory}
+                        </span>
+                      </div>
+                      <div className="text-right">
+                        <span className="text-[8px] font-black text-slate-400 uppercase tracking-widest block mb-0.5">Quando Muda?</span>
+                        <span className="text-[10.5px] font-black text-blue-600 dark:text-blue-400 uppercase tracking-tight">
+                          {ibjjfInfo.whenChanges}
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              );
+            })()}
 
             {/* Multi-Modality Segment Control Card */}
             <div className="bg-white dark:bg-slate-900 rounded-[2.5rem] p-6 border border-slate-200 dark:border-slate-800 shadow-sm space-y-4">
@@ -1067,27 +1468,119 @@ const StudentPortal: React.FC = () => {
               </div>
             </div>
 
-            {/* DUAL CHECK-IN SYSTEM (QR Code Scan & Show My Badge) */}
+            {/* SISTEMA DE PRESENÇA - MÚLTIPLOS MODOS */}
             <div className="bg-white dark:bg-slate-900 rounded-[2.5rem] p-6 border border-slate-200 dark:border-slate-800 shadow-sm space-y-4">
-              <h4 className="text-[10px] font-black text-slate-900 dark:text-white uppercase tracking-widest flex items-center gap-2">
-                <QrCode size={14} className="text-blue-500" /> Sistema de Presença & Check-In
-              </h4>
-              <div className="grid grid-cols-2 gap-3">
-                <button 
-                  onClick={() => setShowScanner(true)} 
-                  className="py-4 bg-slate-900 hover:bg-black text-white rounded-2xl font-black uppercase text-[9px] tracking-widest shadow-md flex flex-col items-center justify-center gap-2 active:scale-95 transition-all border border-white/5 cursor-pointer"
-                >
-                  <Camera size={18} className="text-blue-500" /> Escanear QR Dojo
-                </button>
-                <button 
-                  onClick={() => setShowMyQR(true)} 
-                  className="py-4 bg-blue-600 hover:bg-blue-500 text-white rounded-2xl font-black uppercase text-[9px] tracking-widest shadow-md flex flex-col items-center justify-center gap-2 active:scale-95 transition-all cursor-pointer"
-                >
-                  <QrCode size={18} className="text-white animate-pulse" /> Apresentar Meu QR
-                </button>
+              <div className="flex justify-between items-center">
+                <h4 className="text-[10px] font-black text-slate-900 dark:text-white uppercase tracking-widest flex items-center gap-2">
+                  <QrCode size={14} className="text-blue-500" /> Sistema de Presença
+                </h4>
+                <span className="text-[8px] bg-blue-500/10 text-blue-600 dark:text-blue-400 px-2 py-0.5 rounded font-black uppercase tracking-wider">Multi-Modos</span>
               </div>
               
-              {checkinSuccess && (
+              <div className="grid grid-cols-2 gap-3">
+                {/* [1] Escanear QR Dojo */}
+                <button 
+                  onClick={() => {
+                    setShowScanner(true);
+                    setShowManualInput(false);
+                    setGeoError(null);
+                  }} 
+                  className="py-4 bg-slate-900 hover:bg-black text-white rounded-2xl font-black uppercase text-[9px] tracking-widest shadow-md flex flex-col items-center justify-center gap-2 active:scale-95 transition-all border border-white/5 cursor-pointer text-center"
+                >
+                  <Camera size={18} className="text-blue-500" />
+                  <span>Escanear QR Dojo</span>
+                </button>
+
+                {/* [2] Apresentar Meu QR */}
+                <button 
+                  onClick={() => {
+                    setShowMyQR(true);
+                    setShowManualInput(false);
+                    setGeoError(null);
+                  }} 
+                  className="py-4 bg-blue-600 hover:bg-blue-500 text-white rounded-2xl font-black uppercase text-[9px] tracking-widest shadow-md flex flex-col items-center justify-center gap-2 active:scale-95 transition-all cursor-pointer text-center"
+                >
+                  <QrCode size={18} className="text-white animate-pulse" />
+                  <span>Apresentar Meu QR</span>
+                </button>
+
+                {/* [3] Check-in por Geolocalização */}
+                <button 
+                  onClick={handleGeoCheckin}
+                  disabled={geoChecking}
+                  className="py-4 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700/80 text-slate-950 dark:text-white rounded-2xl font-black uppercase text-[9px] tracking-widest shadow-sm flex flex-col items-center justify-center gap-2 active:scale-95 transition-all cursor-pointer disabled:opacity-50 text-center"
+                >
+                  {geoChecking ? (
+                    <div className="w-5 h-5 border-2 border-blue-600 border-t-transparent rounded-full animate-spin" />
+                  ) : (
+                    <MapPin size={18} className="text-emerald-500" />
+                  )}
+                  <span>{geoChecking ? 'Obtendo GPS...' : 'Via GPS / Localização'}</span>
+                </button>
+
+                {/* [4] Check-in Manual */}
+                <button 
+                  onClick={() => {
+                    setShowManualInput(!showManualInput);
+                    setGeoError(null);
+                  }} 
+                  className={`py-4 rounded-2xl font-black uppercase text-[9px] tracking-widest shadow-sm flex flex-col items-center justify-center gap-2 active:scale-95 transition-all cursor-pointer text-center ${
+                    showManualInput 
+                      ? 'bg-amber-500 text-slate-950' 
+                      : 'bg-slate-100 dark:bg-slate-800 hover:bg-slate-205 dark:hover:bg-slate-700/80 text-slate-950 dark:text-white'
+                  }`}
+                >
+                  <Shield size={18} className={showManualInput ? 'text-slate-950' : 'text-amber-500'} />
+                  <span>manual com código</span>
+                </button>
+              </div>
+
+              {/* Geo Info Feedback */}
+              {geoError && (
+                <div className="p-3.5 bg-red-500/10 text-red-600 dark:text-red-400 border border-red-500/20 rounded-2xl text-[9.5px] font-bold flex items-center gap-2">
+                  <AlertTriangle size={14} className="shrink-0" />
+                  <span>{geoError}</span>
+                </div>
+              )}
+              {geoSuccess && (
+                <div className="p-3.5 bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20 rounded-2xl text-[9.5px] font-bold flex items-center gap-2 animate-bounce">
+                  <CheckCircle2 size={14} className="shrink-0" />
+                  <span>Check-in via GPS realizado com sucesso!</span>
+                </div>
+              )}
+
+              {/* Manual Input Drawer/Inline form */}
+              {showManualInput && (
+                <div className="p-4 bg-slate-50 dark:bg-slate-800/40 rounded-2xl border border-slate-100 dark:border-slate-850/55 space-y-3 text-left">
+                  <span className="text-[8.5px] font-black uppercase text-slate-400 tracking-wider block">Inserir Código Fornecido</span>
+                  <div className="flex gap-2">
+                    <input 
+                      type="text"
+                      placeholder="Código (6 dígitos)"
+                      value={manualCode}
+                      onChange={(e) => {
+                        setManualCode(e.target.value);
+                        setManualError(null);
+                      }}
+                      className="flex-1 bg-white dark:bg-slate-850 px-4 py-2.5 rounded-xl border border-slate-200 dark:border-slate-700 outline-none focus:ring-2 focus:ring-blue-500 text-xs font-mono font-bold uppercase tracking-widest text-slate-900 dark:text-white"
+                    />
+                    <button 
+                      onClick={handleManualCheckinSubmit}
+                      className="px-4 bg-blue-600 hover:bg-blue-500 text-white rounded-xl font-black uppercase text-[9px] tracking-widest transition-colors cursor-pointer"
+                    >
+                      Enviar
+                    </button>
+                  </div>
+                  {manualError && (
+                    <p className="text-[9.5px] font-bold text-red-500 uppercase tracking-tight mt-1">{manualError}</p>
+                  )}
+                  {manualSuccess && (
+                    <p className="text-[9.5px] font-bold text-emerald-500 uppercase tracking-tight mt-1">Presença registrada com sucesso!</p>
+                  )}
+                </div>
+              )}
+              
+              {checkinSuccess && !geoSuccess && !manualSuccess && (
                 <motion.div 
                   initial={{ scale: 0.9, opacity: 0 }}
                   animate={{ scale: 1, opacity: 1 }}
@@ -1484,6 +1977,98 @@ const StudentPortal: React.FC = () => {
                 })()}
               </div>
             </div>
+
+            {/* HISTÓRICO DE PRESENÇAS DO MÊS */}
+            {(() => {
+              const stats = getMonthlyPresenceStats(student.attendanceHistory || []);
+              
+              const today = new Date();
+              const firstDayOfMonth = new Date(today.getFullYear(), today.getMonth(), 1);
+              const startWeekday = firstDayOfMonth.getDay(); // 0 = Sunday, 1 = Monday, etc.
+              const daysArray = [
+                ...Array(startWeekday).fill(null),
+                ...Array.from({ length: stats.daysInMonth }, (_, i) => i + 1)
+              ];
+
+              return (
+                <div className="bg-white dark:bg-slate-900 rounded-[2.5rem] p-8 border border-slate-200 dark:border-slate-800 shadow-sm space-y-6">
+                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                    <div>
+                      <span className="text-[8px] font-black text-emerald-600 dark:text-emerald-400 tracking-widest uppercase block mb-1">Registro Mensal</span>
+                      <h4 className="text-sm font-black uppercase text-slate-900 dark:text-white flex items-center gap-2">
+                        <Calendar size={15} className="text-emerald-500" /> Presenças este Mês ({stats.monthName})
+                      </h4>
+                    </div>
+                    <div className="text-slate-900 dark:text-white flex items-center gap-3">
+                      <div className="text-right">
+                        <span className="text-[8px] font-black text-slate-400 uppercase tracking-widest block leading-none mb-1">Frequência Total</span>
+                        <span className="text-2xl font-black text-emerald-500 tabular-nums">{stats.currentMonthTotal} <span className="text-xs font-bold text-slate-400">Aulas</span></span>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Comparativo de Desempenho com Mês Anterior */}
+                  <div className="p-4 rounded-2xl bg-slate-50 dark:bg-slate-800/40 border border-slate-100 dark:border-slate-800/45 flex items-center justify-between">
+                    <span className="text-[9.5px] font-black text-slate-400 uppercase tracking-wider block">vs. Mês Anterior</span>
+                    {stats.diff > 0 ? (
+                      <span className="inline-flex items-center gap-1.5 px-3 py-1 bg-emerald-500/10 text-emerald-500 rounded-full text-[10px] font-black uppercase tracking-wide border border-emerald-500/20 leading-none">
+                        <TrendingUp size={12} /> +{stats.diff} aulas
+                      </span>
+                    ) : stats.diff < 0 ? (
+                      <span className="inline-flex items-center gap-1.5 px-3 py-1 bg-amber-500/10 text-amber-500 rounded-full text-[10px] font-black uppercase tracking-wide border border-amber-500/20 leading-none">
+                        <Activity size={12} /> {stats.diff} aulas
+                      </span>
+                    ) : (
+                      <span className="inline-flex items-center gap-1.5 px-3 py-1 bg-slate-500/10 text-slate-500 rounded-full text-[10px] font-black uppercase tracking-wide border border-slate-500/20 leading-none">
+                        Sem alteração
+                      </span>
+                    )}
+                  </div>
+
+                  {/* Calendar Grid View */}
+                  <div className="space-y-3.5">
+                    <p className="text-[8px] font-black text-slate-400 uppercase tracking-widest">Mapa de Frequência no Tatame</p>
+                    <div className="bg-slate-50 dark:bg-slate-850/30 p-5 rounded-3xl border border-slate-100 dark:border-slate-800">
+                      {/* Weekday Headers */}
+                      <div className="grid grid-cols-7 gap-2 mb-3 text-center">
+                        {['dom', 'seg', 'ter', 'qua', 'qui', 'sex', 'sáb'].map((d, index) => (
+                          <span key={index} className="text-[8px] font-black uppercase text-slate-400 leading-none tracking-wider">
+                            {d}
+                          </span>
+                        ))}
+                      </div>
+
+                      {/* Calendar Days Cells */}
+                      <div className="grid grid-cols-7 gap-2">
+                        {daysArray.map((day, index) => {
+                          if (day === null) {
+                            return <div key={`empty-${index}`} className="aspect-square" />;
+                          }
+
+                          const isPresent = stats.presentDaysSet.has(day);
+
+                          return (
+                            <div 
+                              key={`day-${day}`}
+                              className={`aspect-square rounded-xl text-xs font-bold leading-none flex items-center justify-center relative select-none ${
+                                isPresent 
+                                  ? 'bg-emerald-500 text-white font-black shadow-md shadow-emerald-555/10 scale-105'
+                                  : 'bg-white dark:bg-slate-800 border border-slate-100 dark:border-slate-750 text-slate-600 dark:text-slate-400'
+                              }`}
+                            >
+                              <span className="tabular-nums">{day}</span>
+                              {isPresent && (
+                                <span className="absolute bottom-1 w-1 h-1 bg-white rounded-full" />
+                              )}
+                            </div>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              );
+            })()}
 
             {/* Technical Exam Requirements */}
             <div className="bg-white dark:bg-slate-900 rounded-[2.5rem] p-8 border border-slate-200 dark:border-slate-800 shadow-sm space-y-6">

@@ -321,6 +321,7 @@ export interface Student {
   isKid: boolean;
   isInstructor: boolean;
   isClassProfessor?: boolean;
+  isOverdue?: boolean;
   attendanceCount: number;
   behaviorScore?: number;
   rewardPoints?: number;
