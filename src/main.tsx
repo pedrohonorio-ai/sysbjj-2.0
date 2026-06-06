@@ -174,6 +174,7 @@ import { DataProvider } from './contexts/DataContext.js';
 import { AuthProvider } from './context/AuthContext.js';
 import i18n from './i18n/index.js';
 import { registerServiceWorker } from './pwa-register.js';
+import { DiagnosticSensei } from './components/DiagnosticSensei.js';
 
 const savedLanguage = localStorage.getItem("SYSBJJ_LANG") || "pt-BR";
 i18n.changeLanguage(savedLanguage);
@@ -254,72 +255,112 @@ if (typeof window !== "undefined") {
   };
 }
 
-const ErrorFallback = ({ error }: { error: Error }) => (
-  <div style={{ 
-    padding: '40px', 
-    color: '#fff', 
-    backgroundColor: '#020617', 
-    height: '100vh', 
-    fontFamily: 'system-ui, sans-serif',
-    display: 'flex',
-    flexDirection: 'column',
-    alignItems: 'center',
-    justifyContent: 'center',
-    textAlign: 'center'
-  }}>
+const ErrorFallback = ({ error }: { error: Error }) => {
+  const [isDiagnosticOpen, setIsDiagnosticOpen] = React.useState(true);
+  
+  return (
     <div style={{ 
-      width: '80px', 
-      height: '80px', 
-      backgroundColor: '#ef4444', 
-      borderRadius: '24px', 
-      display: 'flex', 
-      alignItems: 'center', 
+      padding: '40px', 
+      color: '#fff', 
+      backgroundColor: '#020617', 
+      height: '100vh', 
+      fontFamily: 'system-ui, sans-serif',
+      display: 'flex',
+      flexDirection: 'column',
+      alignItems: 'center',
       justifyContent: 'center',
-      marginBottom: '24px',
-      boxShadow: '0 0 40px rgba(239, 68, 68, 0.2)'
+      textAlign: 'center'
     }}>
-      <span style={{ fontSize: '40px', fontWeight: 'bold' }}>!</span>
+      <div style={{ 
+        width: '80px', 
+        height: '80px', 
+        backgroundColor: '#ef4444', 
+        borderRadius: '24px', 
+        display: 'flex', 
+        alignItems: 'center', 
+        justifyContent: 'center',
+        marginBottom: '24px',
+        boxShadow: '0 0 40px rgba(239, 68, 68, 0.2)'
+      }}>
+        <span style={{ fontSize: '40px', fontWeight: 'bold' }}>!</span>
+      </div>
+      <h1 style={{ fontSize: '32px', fontWeight: '900', letterSpacing: '-0.05em', textTransform: 'uppercase', fontStyle: 'italic', marginBottom: '16px' }}>
+        SISTEMA INTERROMPIDO
+      </h1>
+      <p style={{ fontSize: '16px', fontWeight: '500', color: '#94a3b8', marginBottom: '32px', maxWidth: '500px' }}>
+        OSS! Sensei, ocorreu um erro técnico na renderização que interrompeu o fluxo normal. Use o Sentinela de Diagnóstico abaixo para depurar ou restaurar o seu tatame.
+      </p>
+      
+      <div style={{ 
+        backgroundColor: '#1e293b', 
+        padding: '24px', 
+        borderRadius: '24px', 
+        border: '1px solid rgba(255,255,255,0.1)',
+        textAlign: 'left',
+        maxWidth: '600px',
+        width: '100%',
+        marginBottom: '32px'
+      }}>
+        <p style={{ color: '#ef4444', fontWeight: 'bold', fontSize: '12px', textTransform: 'uppercase', marginBottom: '8px' }}>Log de Erro Primário:</p>
+        <pre style={{ margin: 0, fontSize: '13px', overflow: 'auto', color: '#cbd5e1', whiteSpace: 'pre-wrap' }}>{error.message}</pre>
+      </div>
+
+      <div style={{ display: 'flex', gap: '16px', flexWrap: 'wrap', justifyContent: 'center' }}>
+        <button 
+          onClick={() => setIsDiagnosticOpen(true)}
+          style={{ 
+            padding: '16px 40px', 
+            backgroundColor: '#2563eb', 
+            color: '#fff', 
+            border: 'none', 
+            borderRadius: '20px', 
+            fontWeight: '900', 
+            fontSize: '11px',
+            textTransform: 'uppercase',
+            letterSpacing: '0.15em',
+            cursor: 'pointer',
+            boxShadow: '0 10px 30px rgba(37, 99, 235, 0.2)',
+            transition: 'all 0.2s'
+          }}
+        >
+          🥋 Abrir Sentinela de Diagnóstico
+        </button>
+        <button 
+          onClick={() => {
+            localStorage.clear();
+            localStorage.setItem('language', 'pt');
+            localStorage.setItem('oss_language', 'pt');
+            window.location.reload();
+          }}
+          style={{ 
+            padding: '16px 40px', 
+            backgroundColor: '#dc2626', 
+            color: '#fff', 
+            border: 'none', 
+            borderRadius: '20px', 
+            fontWeight: '900', 
+            fontSize: '11px',
+            textTransform: 'uppercase',
+            letterSpacing: '0.15em',
+            cursor: 'pointer',
+            boxShadow: '0 10px 30px rgba(220, 38, 38, 0.2)',
+            transition: 'all 0.2s'
+          }}
+        >
+          🧹 Forçar Limpeza do Tatame
+        </button>
+      </div>
+
+      {isDiagnosticOpen && (
+        <DiagnosticSensei 
+          isOpen={isDiagnosticOpen} 
+          onClose={() => setIsDiagnosticOpen(false)} 
+          caughtError={error}
+        />
+      )}
     </div>
-    <h1 style={{ fontSize: '32px', fontWeight: '900', letterSpacing: '-0.05em', textTransform: 'uppercase', fontStyle: 'italic', marginBottom: '16px' }}>
-      SISTEMA INTERROMPIDO
-    </h1>
-    <p style={{ fontSize: '18px', fontWeight: '500', color: '#94a3b8', marginBottom: '32px', maxWidth: '500px' }}>
-      OSS! Sensei, ocorreu um erro técnico que impediu a evolução do sistema. O tatame está sendo limpo.
-    </p>
-    <div style={{ 
-      backgroundColor: '#1e293b', 
-      padding: '24px', 
-      borderRadius: '24px', 
-      border: '1px solid rgba(255,255,255,0.1)',
-      textAlign: 'left',
-      maxWidth: '600px',
-      width: '100%',
-      marginBottom: '32px'
-    }}>
-      <p style={{ color: '#ef4444', fontWeight: 'bold', fontSize: '12px', textTransform: 'uppercase', marginBottom: '8px' }}>Log de Erro:</p>
-      <pre style={{ margin: 0, fontSize: '13px', overflow: 'auto', color: '#cbd5e1', whiteSpace: 'pre-wrap' }}>{error.message}</pre>
-    </div>
-    <button 
-      onClick={() => window.location.reload()}
-      style={{ 
-        padding: '16px 40px', 
-        backgroundColor: '#2563eb', 
-        color: '#fff', 
-        border: 'none', 
-        borderRadius: '20px', 
-        fontWeight: '900', 
-        fontSize: '14px',
-        textTransform: 'uppercase',
-        letterSpacing: '0.1em',
-        cursor: 'pointer',
-        boxShadow: '0 20px 40px rgba(37, 99, 235, 0.3)',
-        transition: 'all 0.2s'
-      }}
-    >
-      REINICIAR SISTEMA
-    </button>
-  </div>
-);
+  );
+};
 
 class ErrorBoundary extends React.Component<{ children: React.ReactNode }, { hasError: boolean, error: Error | null }> {
   constructor(props: { children: React.ReactNode }) {

@@ -37,6 +37,7 @@ const CertificatesHub = lazy(() => import('./pages/CertificatesHub.js'));
 import NotificationCenter from './components/NotificationCenter.js';
 import DatabaseWarning from './components/DatabaseWarning.js';
 import { Toaster } from './components/ui/Toaster.js';
+import { DiagnosticSensei } from './components/DiagnosticSensei.js';
 import { useTranslation } from './contexts/LanguageContext.js';
 import { useTheme } from './contexts/ThemeContext.js';
 import { useProfile } from './contexts/ProfileContext.js';
@@ -324,6 +325,7 @@ const Header = ({ toggleSidebar, auth, onLogout }: { toggleSidebar: () => void, 
   const navigate = useNavigate();
   const [currentTime, setCurrentTime] = useState(new Date());
   const [temperature, setTemperature] = useState<number | null>(null);
+  const [isDiagnosticOpen, setIsDiagnosticOpen] = useState(false);
 
   useEffect(() => {
     const timer = setInterval(() => setCurrentTime(new Date()), 1000);
@@ -466,12 +468,24 @@ const Header = ({ toggleSidebar, auth, onLogout }: { toggleSidebar: () => void, 
         <NotificationCenter />
         
         <button 
+          onClick={() => setIsDiagnosticOpen(true)}
+          title="Sentinela de Diagnóstico"
+          className="p-3 bg-blue-600/10 hover:bg-blue-600/20 border border-blue-500/20 text-blue-600 dark:text-blue-400 rounded-2xl transition-all shadow-sm active:scale-95 flex items-center justify-center gap-2"
+        >
+          <Cpu size={18} className="animate-pulse" />
+          <span className="hidden md:inline text-[9px] font-black uppercase tracking-widest">Diagnóstico</span>
+        </button>
+        
+        <button 
           onClick={handleThemeToggle}
           className="p-3 bg-white dark:bg-white/5 border border-slate-200 dark:border-white/10 rounded-2xl text-slate-500 hover:text-blue-600 transition-all shadow-sm active:scale-95"
         >
           {resolvedTheme === 'dark' ? <Sun size={18} /> : <Moon size={18} />}
         </button>
       </div>
+      {isDiagnosticOpen && (
+        <DiagnosticSensei isOpen={isDiagnosticOpen} onClose={() => setIsDiagnosticOpen(false)} />
+      )}
     </header>
   );
 };

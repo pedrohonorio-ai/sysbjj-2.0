@@ -20,20 +20,21 @@ const languages = [
   { code: AppLanguage.RUSSIAN, name: 'Russian', native: 'Русский', flag: '🇷🇺' }
 ];
 
+const getAuthData = () => {
+  try {
+    const saved = localStorage.getItem('oss_auth');
+    return saved ? JSON.parse(saved) : {};
+  } catch (e) {
+    return {};
+  }
+};
+
 const Settings: React.FC = () => {
   const { language, setLanguage, t } = useTranslation();
   const { profile, updateProfile } = useProfile();
   const { exportData, importData } = useData();
   const { user } = useAuth();
   
-  const getAuthData = () => {
-    try {
-      const saved = localStorage.getItem('oss_auth');
-      return saved ? JSON.parse(saved) : {};
-    } catch (e) {
-      return {};
-    }
-  };
   const authData = getAuthData();
   const isAdmin = user?.role === 'admin' || authData.role === 'admin';
   const isDashfireAdmin = MASTER_ADMINS.includes(user?.email || '');
@@ -1044,8 +1045,8 @@ const Settings: React.FC = () => {
               {/* 1. Escolha do Plano */}
               <div className="space-y-3">
                 <span className="text-[10px] font-black text-slate-400 dark:text-slate-550 uppercase tracking-widest">1. Escolha o Plano ideal para sua Academia:</span>
-                <div className="grid grid-cols-2 sm:grid-cols-4 md:grid-cols-5 gap-3">
-                  {SUBSCRIPTION_PLANS.map((plan) => {
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                  {SUBSCRIPTION_PLANS.filter(plan => plan.id !== 'LIBERADO' && plan.id !== 'SOCIAL_PROJECT').map((plan) => {
                     const isSelected = selectedPlan === plan.id;
                     const priceNum = Number(plan.price || 0);
                     const studentsNum = Number(plan.students || 0);

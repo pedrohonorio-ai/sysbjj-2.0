@@ -272,7 +272,7 @@ const BusinessHub: React.FC<BusinessHubProps> = ({ defaultTab }) => {
   }, [sub, currentStudentsCount]);
 
   const officialPlans = useMemo(() => {
-    return SUBSCRIPTION_PLANS.map(p => ({
+    return SUBSCRIPTION_PLANS.filter(p => p.id !== 'LIBERADO' && p.id !== 'SOCIAL_PROJECT').map(p => ({
       id: p.id,
       name: p.name,
       price: Number(p.price || 0),

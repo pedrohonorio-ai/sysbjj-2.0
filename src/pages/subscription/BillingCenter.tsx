@@ -442,8 +442,8 @@ export const BillingCenter: React.FC = () => {
             </div>
 
             {/* Select Plan Mode */}
-            <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
-              {SUBSCRIPTION_PLANS.map((plan) => {
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+              {SUBSCRIPTION_PLANS.filter(plan => plan.id !== 'LIBERADO' && plan.id !== 'SOCIAL_PROJECT').map((plan) => {
                 const isSelected = selectedPlan === plan.id;
                 const priceNum = Number(plan.price || 0);
                 const studentsNum = Number(plan.students || 0);
