@@ -5,7 +5,7 @@ import { motion } from 'motion/react';
 import { 
   Users, Calendar, TrendingUp, DollarSign, Award, ArrowUpRight, ArrowDownRight, 
   Clock, ShieldCheck, Activity, Cake, History, CloudSun, Timer, 
-  RefreshCw, Wifi, WifiOff, Database, CheckCircle2, AlertTriangle 
+  RefreshCw, Wifi, WifiOff, Database, CheckCircle2, AlertTriangle, ChevronRight, ClipboardCheck
 } from 'lucide-react';
 import { useTranslation } from '../contexts/LanguageContext.js';
 import { useData } from '../contexts/DataContext.js';
@@ -179,6 +179,37 @@ const Dashboard: React.FC = () => {
     const bDate = new Date(s.birthDate);
     return bDate.getMonth() === today.getMonth() && bDate.getDate() === today.getDate();
   });
+
+  const monthBirthdays = useMemo(() => {
+    const currentMonth = today.getMonth();
+    return students
+      .filter(s => {
+        if (!s.birthDate) return false;
+        const bDate = new Date(s.birthDate);
+        return bDate.getMonth() === currentMonth;
+      })
+      .sort((a, b) => {
+        const dateA = new Date(a.birthDate).getDate();
+        const dateB = new Date(b.birthDate).getDate();
+        return dateA - dateB;
+      });
+  }, [students, today]);
+
+  const currentMonthName = useMemo(() => {
+    const months = [
+      'Janeiro', 'Fevereiro', 'Março', 'Abril', 'Maio', 'Junho',
+      'Julho', 'Agosto', 'Setembro', 'Outubro', 'Novembro', 'Dezembro'
+    ];
+    return months[today.getMonth()];
+  }, [today]);
+
+  const todayCheckInsCount = useMemo(() => {
+    const year = today.getFullYear();
+    const month = String(today.getMonth() + 1).padStart(2, '0');
+    const dateVal = String(today.getDate()).padStart(2, '0');
+    const localDateStr = `${year}-${month}-${dateVal}`;
+    return attendance ? (attendance[localDateStr] || []).length : 0;
+  }, [attendance, today]);
 
   const stats = [
     { title: safeT('dashboard.totalStudents', 'Total de Alunos'), value: students.length, icon: <Users size={24} />, color: 'bg-blue-500', trend: '+12%', isUp: true, link: '/students' },
@@ -608,6 +639,183 @@ const Dashboard: React.FC = () => {
           </div>
         </motion.div>
       )}
+
+      {/* 🥋 SENSEI CONTROL HUB: ACESSO RÁPIDO & ANIVERSARIANTES DO MÊS */}
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
+        
+        {/* COL 1: CENTRAL DE ACESSO RÁPIDO DO SENSEI */}
+        <div className="lg:col-span-5 bg-white dark:bg-slate-900 rounded-[3rem] border border-slate-200 dark:border-white/5 p-8 shadow-2xl relative overflow-hidden flex flex-col justify-between">
+          <div className="absolute top-0 right-0 w-32 h-32 bg-blue-600/5 rounded-full blur-[40px] pointer-events-none" />
+          
+          <div className="relative z-10 space-y-6">
+            <div>
+              <span className="text-[9px] font-black uppercase tracking-[0.2em] text-blue-600 bg-blue-50 dark:bg-blue-900/20 px-3 py-1.5 rounded-xl border border-blue-100 dark:border-blue-900/40">
+                Performance & Operações
+              </span>
+              <h2 className="text-2xl font-black text-slate-900 dark:text-white uppercase tracking-tighter italic mt-3 flex items-center gap-2">
+                Atalhos do Tatame
+              </h2>
+              <p className="text-[10px] font-bold text-slate-450 dark:text-slate-400 uppercase tracking-widest mt-1">
+                Acesse as ferramentas operacionais de uso diário instantaneamente
+              </p>
+            </div>
+
+            <div className="space-y-4">
+              <Link 
+                to="/dojo?tab=attendance"
+                className="group flex items-center justify-between p-5 bg-slate-50 hover:bg-blue-500/10 dark:bg-white/5 dark:hover:bg-blue-900/20 border border-slate-100 dark:border-white/5 hover:border-blue-550 dark:hover:border-blue-500/30 rounded-[2rem] transition-all cursor-pointer relative"
+              >
+                <div className="flex items-center gap-4.5">
+                  <div className="w-12 h-12 bg-blue-600 text-white rounded-2xl flex items-center justify-center shadow-lg shadow-blue-600/20 group-hover:scale-105 transition-transform">
+                    <ClipboardCheck size={22} />
+                  </div>
+                  <div>
+                    <h4 className="text-sm font-black text-slate-900 dark:text-white uppercase tracking-tight flex items-center gap-2">
+                      Chamada de Tatame
+                      {todayCheckInsCount > 0 ? (
+                        <span className="px-2 py-0.5 bg-emerald-500 text-slate-950 font-black text-[8px] uppercase tracking-wider rounded-lg">
+                          ATIVO
+                        </span>
+                      ) : (
+                        <span className="px-2 py-0.5 bg-amber-500 text-slate-950 font-black text-[8px] uppercase tracking-wider rounded-lg">
+                          PENDENTE
+                        </span>
+                      )}
+                    </h4>
+                    <p className="text-[10px] font-medium text-slate-500 dark:text-slate-400 uppercase tracking-widest mt-1">
+                       {todayCheckInsCount} alunos presentes hoje
+                    </p>
+                  </div>
+                </div>
+                <div className="w-10 h-10 bg-slate-200/50 dark:bg-white/5 rounded-xl flex items-center justify-center group-hover:bg-blue-600 group-hover:text-white transition-all text-slate-450 dark:text-slate-350">
+                  <ChevronRight size={18} />
+                </div>
+              </Link>
+
+              <div className="p-5 bg-slate-50 dark:bg-white/5 rounded-[2rem] border border-slate-100 dark:border-white/5 flex flex-col justify-between h-28 relative overflow-hidden">
+                <div className="absolute top-0 right-0 p-4 opacity-5 pointer-events-none">
+                  <Users size={64} className="text-slate-400" />
+                </div>
+                <div>
+                  <p className="text-[8px] font-black uppercase tracking-[0.2em] text-slate-450">Painel do Professor</p>
+                  <h4 className="text-xs font-black uppercase tracking-tight text-slate-800 dark:text-white mt-1">Dojo de Ensino Central</h4>
+                  <p className="text-[9.5px] font-bold text-slate-400 uppercase mt-0.5">Gerenciador unificado de turmas, progresso e técnicas.</p>
+                </div>
+                <Link
+                  to="/dojo"
+                  className="text-[9.5px] font-black text-blue-600 hover:text-blue-500 uppercase tracking-widest flex items-center gap-2 self-start mt-2 group/link"
+                >
+                  IR PARA O DOJO <ChevronRight size={14} className="group-hover/link:translate-x-1 transition-transform" />
+                </Link>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* COL 2: LISTA DE ANIVERSARIANTES DO MÊS */}
+        <div className="lg:col-span-7 bg-white dark:bg-slate-900 rounded-[3rem] border border-slate-200 dark:border-white/5 p-8 shadow-2xl relative overflow-hidden flex flex-col justify-between">
+          <div className="absolute top-0 right-0 w-32 h-32 bg-rose-600/5 rounded-full blur-[40px] pointer-events-none" />
+          
+          <div className="relative z-10 space-y-6">
+            <div className="flex items-center justify-between">
+              <div>
+                <span className="text-[9px] font-black uppercase tracking-[0.2em] text-rose-500 bg-rose-50 dark:bg-rose-900/20 px-3 py-1.5 rounded-xl border border-rose-100 dark:border-rose-900/40">
+                  Confraternização & Comunidade
+                </span>
+                <h2 className="text-2xl font-black text-slate-900 dark:text-white uppercase tracking-tighter italic mt-3 flex items-center gap-2">
+                  Aniversariantes de {currentMonthName}
+                </h2>
+                <p className="text-[10px] font-bold text-slate-450 dark:text-slate-400 uppercase tracking-widest mt-1">
+                  Mantenha a tradição e fortaleça a união do tatame celebrando os guerreiros
+                </p>
+              </div>
+              
+              <div className="px-4 py-2 bg-rose-500/10 border border-rose-550/20 rounded-2xl flex flex-col items-center shrink-0">
+                <span className="text-[14px] font-mono font-black text-rose-500 leading-none">
+                  {monthBirthdays.length}
+                </span>
+                <span className="text-[7.5px] font-black text-rose-400 uppercase tracking-widest mt-1">
+                  No Mês
+                </span>
+              </div>
+            </div>
+
+            {/* List with scrollbar */}
+            <div className="space-y-3 max-h-[240px] overflow-y-auto pr-2 scrollbar-thin">
+              {monthBirthdays.length === 0 ? (
+                <div className="py-12 text-center rounded-[2rem] border-2 border-dashed border-slate-100 dark:border-slate-800">
+                  <Cake size={32} className="mx-auto text-slate-300 dark:text-slate-700 mb-2" />
+                  <p className="text-[10px] font-black uppercase tracking-widest text-slate-400">
+                    Nenhum guerreiro faz aniversário este mês. OSS!
+                  </p>
+                </div>
+              ) : (
+                monthBirthdays.map((student) => {
+                  const bDate = student.birthDate ? new Date(student.birthDate) : null;
+                  const dayVal = bDate ? bDate.getDate() : null;
+                  const isBirthdayToday = bDate ? (bDate.getMonth() === today.getMonth() && bDate.getDate() === today.getDate()) : false;
+                  
+                  return (
+                    <div 
+                      key={student.id}
+                      className={`flex items-center justify-between p-4 rounded-2xl border transition-all ${
+                        isBirthdayToday 
+                          ? 'bg-gradient-to-r from-rose-500/10 to-orange-500/10 border-rose-500 shadow-md' 
+                          : 'bg-slate-50 dark:bg-white/5 border-slate-100 dark:border-slate-800 hover:bg-slate-100 dark:hover:bg-white/10'
+                      }`}
+                    >
+                      <div className="flex items-center gap-4">
+                        <div className={`w-10 h-10 rounded-xl font-black text-xs uppercase flex items-center justify-center shrink-0 ${
+                          isBirthdayToday 
+                            ? 'bg-rose-500 text-white' 
+                            : 'bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-300 border border-slate-100 dark:border-slate-700'
+                        }`}>
+                          {student.photoUrl ? (
+                            <img src={student.photoUrl} className="w-full h-full rounded-xl object-cover" referrerPolicy="no-referrer" />
+                          ) : (
+                            student.nickname ? student.nickname.slice(0, 2).toUpperCase() : student.name.slice(0, 2).toUpperCase()
+                          )}
+                        </div>
+                        <div>
+                          <div className="flex items-center gap-2">
+                            <span className="text-xs font-black uppercase tracking-tight text-slate-900 dark:text-white">
+                              {student.name}
+                            </span>
+                            {student.nickname && (
+                              <span className="px-2 py-0.5 bg-slate-200 dark:bg-slate-805 text-slate-500 dark:text-slate-400 font-mono text-[8px] uppercase tracking-wide rounded">
+                                {student.nickname}
+                              </span>
+                            )}
+                          </div>
+                          
+                          <div className="flex flex-wrap items-center gap-x-3 gap-y-1 mt-1 text-[8.5px] font-black uppercase tracking-widest text-slate-400">
+                            <span className="flex items-center gap-1">
+                              🥋 Faixa {student.belt || 'Branca'}
+                            </span>
+                            <span>•</span>
+                            <span className={student.status === 'Active' ? 'text-emerald-500' : 'text-slate-400'}>
+                              {student.status === 'Active' ? 'Ativo' : student.status === 'Overdue' ? 'Vencido' : 'Inativo'}
+                            </span>
+                          </div>
+                        </div>
+                      </div>
+
+                      <div className="text-right">
+                        <span className={`text-[10px] font-mono font-black ${isBirthdayToday ? 'text-rose-500 animate-pulse' : 'text-slate-700 dark:text-slate-200'}`}>
+                          {isBirthdayToday ? '🎂 HOJE!' : `Dia ${dayVal}`}
+                        </span>
+                        <p className="text-[8px] font-bold text-slate-400 uppercase mt-0.5">
+                          {isBirthdayToday ? 'FELELIZ ANIVERSÁRIO!' : 'Aniversário'}
+                        </p>
+                      </div>
+                    </div>
+                  );
+                })
+              )}
+            </div>
+          </div>
+        </div>
+      </div>
 
       <div className="grid grid-cols-1 xl:grid-cols-3 gap-8">
         <div className="xl:col-span-2 bg-white dark:bg-slate-900 rounded-[3rem] border border-slate-200 dark:border-white/5 p-8 shadow-2xl relative overflow-hidden">

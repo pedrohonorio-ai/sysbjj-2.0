@@ -238,8 +238,10 @@ const NewStudentModal = ({ onClose, defaultIsKid }: { onClose: () => void, defau
   const { addStudent, schedules, students } = useData();
   const [error, setError] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState<'basics' | 'legal' | 'technical' | 'health' | 'security'>('basics');
+  const [hasManuallyEditedCode, setHasManuallyEditedCode] = useState(false);
   
   const [formData, setFormData] = useState({
+    portalAccessCode: '',
     name: '',
     nickname: '',
     email: '',
@@ -352,6 +354,17 @@ const NewStudentModal = ({ onClose, defaultIsKid }: { onClose: () => void, defau
     }));
   }, [formData.birthDate, formData.gender, formData.weight]);
 
+  useEffect(() => {
+    if (!hasManuallyEditedCode && formData.name.trim().length >= 3) {
+      const prefix = formData.name.substring(0, 3).toUpperCase();
+      const randomNum = Math.floor(100 + Math.random() * 900);
+      setFormData(prev => ({
+        ...prev,
+        portalAccessCode: `SYS-${prefix}-${randomNum}`
+      }));
+    }
+  }, [formData.name, hasManuallyEditedCode]);
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError(null);
@@ -387,7 +400,7 @@ const NewStudentModal = ({ onClose, defaultIsKid }: { onClose: () => void, defau
         currentStreak: 0,
         rewardPoints: 0,
         behaviorScore: 100,
-        portalAccessCode: `SYS-${formData.name.substring(0, 3).toUpperCase()}-${Math.floor(Math.random()*1000)}`,
+        portalAccessCode: formData.portalAccessCode || `SYS-${formData.name.substring(0, 3).toUpperCase()}-${Math.floor(Math.random()*1000)}`,
       });
       onClose();
     } catch (err: any) {
@@ -545,6 +558,40 @@ const NewStudentModal = ({ onClose, defaultIsKid }: { onClose: () => void, defau
                     value={formData.email}
                     onChange={e => setFormData({...formData, email: e.target.value})}
                   />
+                </div>
+
+                <div className="md:col-span-2 space-y-2">
+                  <div className="flex items-center justify-between">
+                    <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Código de Acesso do Aluno (Portal do Aluno)</label>
+                    <span className="text-[8px] font-semibold text-amber-500 uppercase tracking-wider">Altamente Recomendado</span>
+                  </div>
+                  <div className="flex gap-2">
+                    <input 
+                      type="text" 
+                      className="flex-1 px-6 py-4 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-2xl outline-none focus:ring-2 focus:ring-blue-600 dark:text-white font-mono font-bold uppercase tracking-widest" 
+                      value={formData.portalAccessCode}
+                      onChange={e => {
+                        setHasManuallyEditedCode(true);
+                        setFormData({...formData, portalAccessCode: e.target.value.toUpperCase()});
+                      }}
+                      placeholder="Ex: SYS-PED-123"
+                    />
+                    <button 
+                      type="button"
+                      onClick={() => {
+                        const namePrefix = (formData.name || 'SYS').substring(0, 3).toUpperCase();
+                        const randomNum = Math.floor(100 + Math.random() * 900);
+                        setHasManuallyEditedCode(true);
+                        setFormData({
+                          ...formData,
+                          portalAccessCode: `SYS-${namePrefix}-${randomNum}`
+                        });
+                      }}
+                      className="px-4 py-2 bg-slate-200 hover:bg-slate-300 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 rounded-xl font-black uppercase text-[8px] tracking-widest transition-all shrink-0"
+                    >
+                      Gerar Novo
+                    </button>
+                  </div>
                 </div>
 
                 <div className="space-y-2">
@@ -1420,6 +1467,11 @@ const StudentDetailsModal = ({ student, onClose }: { student: Student; onClose: 
                       <Award size={14} /> PROFESSOR DE TURMA 🥋
                     </span>
                   )}
+                  {student.portalAccessCode && (
+                    <span className="px-4 py-1.5 sm:px-6 sm:py-2.5 rounded-xl text-[9px] sm:text-[11px] font-black uppercase tracking-widest bg-emerald-600 text-white flex items-center gap-2" title="Código de acesso ao portal do aluno">
+                      🔑 {student.portalAccessCode}
+                    </span>
+                  )}
                 </div>
               </div>
             </div>
@@ -1517,6 +1569,33 @@ const StudentDetailsModal = ({ student, onClose }: { student: Student; onClose: 
                         value={editFormData.email}
                         onChange={e => setEditFormData({...editFormData, email: e.target.value})}
                       />
+                    </div>
+
+                    <div className="md:col-span-2 space-y-2">
+                      <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Código de Acesso do Aluno (Portal do Aluno)</label>
+                      <div className="flex gap-2">
+                        <input 
+                          type="text" 
+                          className="flex-1 px-6 py-4 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-2xl outline-none focus:ring-2 focus:ring-blue-600 dark:text-white font-mono font-bold uppercase tracking-widest" 
+                          value={editFormData.portalAccessCode || ''}
+                          onChange={e => setEditFormData({...editFormData, portalAccessCode: e.target.value.toUpperCase()})}
+                          placeholder="Ex: SYS-PED-123"
+                        />
+                        <button 
+                          type="button"
+                          onClick={() => {
+                            const namePrefix = (editFormData.name || 'SYS').substring(0, 3).toUpperCase();
+                            const randomNum = Math.floor(100 + Math.random() * 900);
+                            setEditFormData({
+                              ...editFormData,
+                              portalAccessCode: `SYS-${namePrefix}-${randomNum}`
+                            });
+                          }}
+                          className="px-4 py-2 bg-slate-200 hover:bg-slate-300 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 rounded-xl font-black uppercase text-[8px] tracking-widest transition-all shrink-0"
+                        >
+                          Gerar Novo
+                        </button>
+                      </div>
                     </div>
 
                     <div className="space-y-2">
@@ -1989,6 +2068,63 @@ const StudentDetailsModal = ({ student, onClose }: { student: Student; onClose: 
                       <div className="text-center">
                         <p className="text-[8px] font-black text-blue-400 uppercase tracking-widest mb-1">{t('analysis.proPotential')}</p>
                         <p className="text-xl font-black uppercase text-blue-400">{student.isCompetitor ? 'High Perf' : t('common.standard')}</p>
+                      </div>
+                    </div>
+                  </div>
+                </section>
+
+                {/* 🥋 Central de Acesso - Portal do Aluno */}
+                <section className="space-y-4">
+                  <h3 className="text-[10px] font-black text-slate-400 uppercase tracking-widest flex items-center gap-2">
+                    <Zap size={14} className="text-amber-500" /> Acesso ao Portal do Aluno
+                  </h3>
+                  <div className="p-6 sm:p-8 rounded-[2rem] sm:rounded-[2.5rem] bg-slate-900 border border-slate-800 shadow-xl relative overflow-hidden group">
+                    <div className="absolute top-0 right-0 w-32 h-32 bg-amber-500/10 rounded-full blur-[40px] pointer-events-none" />
+                    <div className="flex flex-col md:flex-row items-center justify-between gap-6 relative z-10">
+                      <div className="flex-1 w-full text-center md:text-left">
+                        <h4 className="text-xs sm:text-sm font-black uppercase text-amber-500 tracking-wider">Código de Acesso Exclusivo</h4>
+                        <p className="text-slate-300 text-[11px] sm:text-xs mt-1">Seu aluno precisa deste código e do link abaixo para acessar a ficha dele:</p>
+                        <div className="mt-3.5 flex flex-wrap items-center justify-center md:justify-start gap-3">
+                          <code className="px-4 py-2 bg-slate-950 border border-white/10 rounded-xl text-sm font-mono font-black text-white select-all tracking-widest">
+                            {student.portalAccessCode || 'NÃO CONFIGURADO'}
+                          </code>
+                          <button 
+                            onClick={() => {
+                              if (student.portalAccessCode) {
+                                navigator.clipboard.writeText(student.portalAccessCode);
+                                alert("Código copiado! Envie para o aluno. OSS!");
+                              }
+                            }}
+                            className="px-4 py-2.5 bg-amber-500 hover:bg-amber-600 active:scale-95 transition-all text-slate-950 text-[10px] font-black uppercase tracking-widest rounded-xl shrink-0 cursor-pointer"
+                          >
+                            Copiar Código
+                          </button>
+                        </div>
+                      </div>
+                      
+                      <div className="flex flex-col items-center md:items-end justify-center pt-6 md:pt-0 md:pl-8 border-t md:border-t-0 md:border-l border-white/10 w-full md:w-auto">
+                        <span className="text-[8px] sm:text-[9px] font-black text-slate-400 uppercase tracking-widest block mb-1.5 text-center md:text-right">Link do Portal do Aluno</span>
+                        <div className="flex gap-2 w-full md:w-auto">
+                          <button 
+                            onClick={() => {
+                              const portalUrl = `${window.location.origin}/portal`;
+                              navigator.clipboard.writeText(portalUrl);
+                              alert("Link do Portal do Aluno copiado! OSS!");
+                            }}
+                            className="px-4 py-2.5 bg-slate-800 hover:bg-slate-700 active:scale-95 transition-all text-white text-[10px] font-black uppercase tracking-widest rounded-xl text-center w-full md:w-auto cursor-pointer border border-white/10"
+                          >
+                            Copiar Link do Portal
+                          </button>
+                          <a 
+                            href={`${window.location.origin}/portal`} 
+                            target="_blank" 
+                            rel="noopener noreferrer" 
+                            className="px-3 py-2.5 bg-slate-950 hover:bg-slate-900 active:scale-95 transition-all text-slate-400 hover:text-white rounded-xl text-center flex items-center justify-center border border-white/10 cursor-pointer"
+                            title="Abrir Portal"
+                          >
+                            🥋
+                          </a>
+                        </div>
                       </div>
                     </div>
                   </div>

@@ -78,6 +78,16 @@ const DojoHub: React.FC = () => {
   // Tab control
   const [activeTab, setActiveTab] = useState<SidebarTab>('overview');
 
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      const params = new URLSearchParams(window.location.search);
+      const tab = params.get('tab');
+      if (tab) {
+        setActiveTab(tab as SidebarTab);
+      }
+    }
+  }, []);
+
   // Custom interactive premium notifications
   const [toastMessage, setToastMessage] = useState<string | null>(null);
 
@@ -1666,7 +1676,6 @@ const DojoHub: React.FC = () => {
           {[
             { id: 'overview', label: 'Visão Geral', icon: <LayoutDashboard size={14} /> },
             { id: 'classes', label: 'Turmas & Cronograma', icon: <Calendar size={14} /> },
-            { id: 'lesson-plans', label: 'Plano de Aula', icon: <BookOpen size={14} /> },
             { id: 'techniques', label: 'Técnicas Ativas', icon: <Flame size={14} /> },
             { id: 'attendance', label: 'Chamada de Tatame', icon: <CalendarCheck size={14} /> },
             { id: 'performance', label: 'Desempenho & Combates', icon: <TrendingUp size={14} /> },

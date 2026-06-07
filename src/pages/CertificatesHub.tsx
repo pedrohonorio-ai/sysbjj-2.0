@@ -330,6 +330,22 @@ interface CustomPreset {
   teamLogoY?: number;
   shieldLogoX?: number;
   shieldLogoY?: number;
+  qrCodeX?: number;
+  qrCodeY?: number;
+  qrCodeSize?: number;
+  goldenSealX?: number;
+  goldenSealY?: number;
+  goldenSealSize?: number;
+  professorSignatureX?: number;
+  professorSignatureY?: number;
+  professorSignatureWidth?: number;
+  professorSignatureHeight?: number;
+  teamDirectorSignatureX?: number;
+  teamDirectorSignatureY?: number;
+  teamDirectorSignatureWidth?: number;
+  teamDirectorSignatureHeight?: number;
+  professorSignatureType?: 'upload' | 'digital' | 'none';
+  teamDirectorSignatureType?: 'upload' | 'digital' | 'none';
 }
 
 // Audit record structure (Requirement 14)
@@ -438,6 +454,30 @@ const CertificatesHub: React.FC = () => {
   const [teamLogoY, setTeamLogoY] = useState<number>(16);
   const [shieldLogoX, setShieldLogoX] = useState<number>(142); // Centered default (148.5 - 12.6/2 = 142.2)
   const [shieldLogoY, setShieldLogoY] = useState<number>(16);
+
+  // QR Code positioning (Requirement 9)
+  const [qrCodeX, setQrCodeX] = useState<number>(14);
+  const [qrCodeY, setQrCodeY] = useState<number>(176);
+  const [qrCodeSize, setQrCodeSize] = useState<number>(13);
+
+  // Golden authentic seal positioning (Requirement 8)
+  const [goldenSealX, setGoldenSealX] = useState<number>(272); // Center x coordinate
+  const [goldenSealY, setGoldenSealY] = useState<number>(185); // Center y coordinate
+  const [goldenSealSize, setGoldenSealSize] = useState<number>(15); // Diameter (radius is size/2)
+
+  // Signature positioning and scaling (Requirement 5)
+  const [professorSignatureX, setProfessorSignatureX] = useState<number>(50);
+  const [professorSignatureY, setProfessorSignatureY] = useState<number>(150);
+  const [professorSignatureWidth, setProfessorSignatureWidth] = useState<number>(45);
+  const [professorSignatureHeight, setProfessorSignatureHeight] = useState<number>(16);
+
+  const [teamDirectorSignatureX, setTeamDirectorSignatureX] = useState<number>(202);
+  const [teamDirectorSignatureY, setTeamDirectorSignatureY] = useState<number>(150);
+  const [teamDirectorSignatureWidth, setTeamDirectorSignatureWidth] = useState<number>(45);
+  const [teamDirectorSignatureHeight, setTeamDirectorSignatureHeight] = useState<number>(16);
+
+  const [professorSignatureType, setProfessorSignatureType] = useState<'upload' | 'digital' | 'none'>('digital');
+  const [teamDirectorSignatureType, setTeamDirectorSignatureType] = useState<'upload' | 'digital' | 'none'>('digital');
 
   // Background control (Requirement 1)
   const [customBackgroundUrl, setCustomBackgroundUrl] = useState<string>('');
@@ -666,7 +706,23 @@ const CertificatesHub: React.FC = () => {
       teamLogoX,
       teamLogoY,
       shieldLogoX,
-      shieldLogoY
+      shieldLogoY,
+      qrCodeX,
+      qrCodeY,
+      qrCodeSize,
+      goldenSealX,
+      goldenSealY,
+      goldenSealSize,
+      professorSignatureX,
+      professorSignatureY,
+      professorSignatureWidth,
+      professorSignatureHeight,
+      teamDirectorSignatureX,
+      teamDirectorSignatureY,
+      teamDirectorSignatureWidth,
+      teamDirectorSignatureHeight,
+      professorSignatureType,
+      teamDirectorSignatureType
     };
     const updated = [...savedPresets, newPreset];
     setSavedPresets(updated);
@@ -708,6 +764,22 @@ const CertificatesHub: React.FC = () => {
     if (preset.teamLogoY !== undefined) setTeamLogoY(preset.teamLogoY);
     if (preset.shieldLogoX !== undefined) setShieldLogoX(preset.shieldLogoX);
     if (preset.shieldLogoY !== undefined) setShieldLogoY(preset.shieldLogoY);
+    if (preset.qrCodeX !== undefined) setQrCodeX(preset.qrCodeX);
+    if (preset.qrCodeY !== undefined) setQrCodeY(preset.qrCodeY);
+    if (preset.qrCodeSize !== undefined) setQrCodeSize(preset.qrCodeSize);
+    if (preset.goldenSealX !== undefined) setGoldenSealX(preset.goldenSealX);
+    if (preset.goldenSealY !== undefined) setGoldenSealY(preset.goldenSealY);
+    if (preset.goldenSealSize !== undefined) setGoldenSealSize(preset.goldenSealSize);
+    if (preset.professorSignatureX !== undefined) setProfessorSignatureX(preset.professorSignatureX);
+    if (preset.professorSignatureY !== undefined) setProfessorSignatureY(preset.professorSignatureY);
+    if (preset.professorSignatureWidth !== undefined) setProfessorSignatureWidth(preset.professorSignatureWidth);
+    if (preset.professorSignatureHeight !== undefined) setProfessorSignatureHeight(preset.professorSignatureHeight);
+    if (preset.teamDirectorSignatureX !== undefined) setTeamDirectorSignatureX(preset.teamDirectorSignatureX);
+    if (preset.teamDirectorSignatureY !== undefined) setTeamDirectorSignatureY(preset.teamDirectorSignatureY);
+    if (preset.teamDirectorSignatureWidth !== undefined) setTeamDirectorSignatureWidth(preset.teamDirectorSignatureWidth);
+    if (preset.teamDirectorSignatureHeight !== undefined) setTeamDirectorSignatureHeight(preset.teamDirectorSignatureHeight);
+    if (preset.professorSignatureType !== undefined) setProfessorSignatureType(preset.professorSignatureType);
+    if (preset.teamDirectorSignatureType !== undefined) setTeamDirectorSignatureType(preset.teamDirectorSignatureType);
     logAction('Preset Layout Carregado', `Preset de layout "${preset.name}" carregado na tela de trabalho`, 'System');
   };
 
@@ -1019,56 +1091,87 @@ const CertificatesHub: React.FC = () => {
 
     // Signature 1
     doc.line(30, 168, 115, 168);
-    if (professorSignatureUrl) {
+    if (professorSignatureType === 'upload' && professorSignatureUrl) {
       try {
-        doc.addImage(professorSignatureUrl, 'PNG', 50, 150, 45, 16, undefined, 'FAST');
+        doc.addImage(professorSignatureUrl, 'PNG', professorSignatureX, professorSignatureY, professorSignatureWidth, professorSignatureHeight, undefined, 'FAST');
+      } catch (e) {}
+    } else if (professorSignatureType === 'digital') {
+      try {
+        doc.setFont('Times', 'italic');
+        doc.setFontSize(14);
+        doc.setTextColor(30, 64, 175); 
+        doc.text(professorName, professorSignatureX + (professorSignatureWidth / 2), professorSignatureY + (professorSignatureHeight / 2) + 2, { align: 'center' });
+        
+        doc.setFont('Helvetica', 'bold');
+        doc.setFontSize(4.5);
+        doc.setTextColor(16, 124, 65); 
+        doc.text("✓ ASSINADO DIGITALMENTE  |  SYSBJJ INTEGRITY", professorSignatureX + (professorSignatureWidth / 2), professorSignatureY + (professorSignatureHeight / 2) + 5.5, { align: 'center' });
       } catch (e) {}
     }
+    doc.setFont('Helvetica', 'normal');
+    doc.setFontSize(8);
+    doc.setTextColor(isThemeDark ? 210 : 70);
     doc.text(professorName, 72.5, 172, { align: 'center' });
     doc.text(`${professorGraduation} | ${professorRoleLabel}`, 72.5, 176, { align: 'center' });
 
     // Signature 2
     doc.line(182, 168, 267, 168);
-    if (teamDirectorSignatureUrl) {
+    if (teamDirectorSignatureType === 'upload' && teamDirectorSignatureUrl) {
       try {
-        doc.addImage(teamDirectorSignatureUrl, 'PNG', 202, 150, 45, 16, undefined, 'FAST');
+        doc.addImage(teamDirectorSignatureUrl, 'PNG', teamDirectorSignatureX, teamDirectorSignatureY, teamDirectorSignatureWidth, teamDirectorSignatureHeight, undefined, 'FAST');
+      } catch (e) {}
+    } else if (teamDirectorSignatureType === 'digital') {
+      try {
+        doc.setFont('Times', 'italic');
+        doc.setFontSize(14);
+        doc.setTextColor(30, 64, 175); 
+        doc.text(technicalDirectorName, teamDirectorSignatureX + (teamDirectorSignatureWidth / 2), teamDirectorSignatureY + (teamDirectorSignatureHeight / 2) + 2, { align: 'center' });
+        
+        doc.setFont('Helvetica', 'bold');
+        doc.setFontSize(4.5);
+        doc.setTextColor(16, 124, 65); 
+        doc.text("✓ ASSINADO DIGITALMENTE  |  SYSBJJ INTEGRITY", teamDirectorSignatureX + (teamDirectorSignatureWidth / 2), teamDirectorSignatureY + (teamDirectorSignatureHeight / 2) + 5.5, { align: 'center' });
       } catch (e) {}
     }
+    doc.setFont('Helvetica', 'normal');
+    doc.setFontSize(8);
+    doc.setTextColor(isThemeDark ? 210 : 70);
     doc.text(technicalDirectorName, 224.5, 172, { align: 'center' });
     doc.text(`${technicalDirectorRegistration} | ${technicalDirectorRoleLabel}`, 224.5, 176, { align: 'center' });
 
     // 12. Golden Seal of Authenticity graphics inside PDF (Requirement 8)
+    const sealRadius = goldenSealSize / 2;
     if (activeTheme.id === 'bjjlf_gold_royal' || activeTheme.id === 'bjjlf_black_gold') {
       // Draw golden rosette ribbons
       doc.setFillColor(180, 83, 9); // deep brown amber
-      doc.rect(267.5, 184, 3, 13, 'F');
-      doc.rect(273.5, 184, 3, 13, 'F');
+      doc.rect(goldenSealX - 4.5, goldenSealY - 1, 3, 13, 'F');
+      doc.rect(goldenSealX + 1.5, goldenSealY - 1, 3, 13, 'F');
       
       // Draw circular base of rosette
       doc.setFillColor(212, 175, 55); // gold base
-      doc.circle(272, 182, 10, 'F');
+      doc.circle(goldenSealX, goldenSealY - 3, sealRadius + 2.5, 'F');
       doc.setFillColor(31, 41, 55); // dark core
-      doc.circle(272, 182, 8.2, 'F');
+      doc.circle(goldenSealX, goldenSealY - 3, sealRadius + 0.7, 'F');
       
       doc.setFont('Times', 'bold');
-      doc.setFontSize(2.8);
+      doc.setFontSize(2.8 * (goldenSealSize / 15));
       doc.setTextColor(212, 175, 55);
-      doc.text("DEDICAÇÃO &", 272, 179.8, { align: 'center' });
-      doc.text("DISCIPLINA", 272, 182.0, { align: 'center' });
-      doc.text("SUPERAÇÃO &", 272, 184.2, { align: 'center' });
-      doc.text("LEGADO", 272, 186.4, { align: 'center' });
+      doc.text("DEDICAÇÃO &", goldenSealX, goldenSealY - 5.2, { align: 'center' });
+      doc.text("DISCIPLINA", goldenSealX, goldenSealY - 3.0, { align: 'center' });
+      doc.text("SUPERAÇÃO &", goldenSealX, goldenSealY - 0.8, { align: 'center' });
+      doc.text("LEGADO", goldenSealX, goldenSealY + 1.4, { align: 'center' });
     } else {
       // Standard Golden Seal
       doc.setFillColor(217, 119, 6); // Amber Gold Base
-      doc.circle(272, 185, 7.5, 'F');
+      doc.circle(goldenSealX, goldenSealY, sealRadius, 'F');
       doc.setDrawColor(254, 243, 199);
       doc.setLineWidth(0.4);
-      doc.circle(272, 185, 6.2);
+      doc.circle(goldenSealX, goldenSealY, sealRadius - 1.3);
       doc.setFont('Helvetica', 'bold');
-      doc.setFontSize(3.5);
+      doc.setFontSize(3.5 * (goldenSealSize / 15));
       doc.setTextColor(255, 255, 255);
-      doc.text("SYSBJJ", 272, 184, { align: 'center' });
-      doc.text("SECURE", 272, 186.2, { align: 'center' });
+      doc.text("SYSBJJ", goldenSealX, goldenSealY - 1, { align: 'center' });
+      doc.text("SECURE", goldenSealX, goldenSealY + 1.2, { align: 'center' });
     }
 
     // 13. QR Code validation capture (Requirement 9)
@@ -1077,8 +1180,8 @@ const CertificatesHub: React.FC = () => {
       if (qrCanvas) {
         const qrBase64 = qrCanvas.toDataURL('image/png');
         doc.setFillColor(255, 255, 255);
-        doc.rect(14, 176, 13, 13, 'F');
-        doc.addImage(qrBase64, 'PNG', 14.5, 176.5, 12, 12, undefined, 'FAST');
+        doc.rect(qrCodeX - 0.5, qrCodeY - 0.5, qrCodeSize + 1, qrCodeSize + 1, 'F');
+        doc.addImage(qrBase64, 'PNG', qrCodeX, qrCodeY, qrCodeSize, qrCodeSize, undefined, 'FAST');
       }
     } catch (e) {
       console.warn("Could not capture dynamic QR canvas for PDF export", e);
@@ -1523,14 +1626,14 @@ const CertificatesHub: React.FC = () => {
                       <div className="flex flex-col gap-0.5 mt-1 border-t border-white/5 pt-1 space-y-1">
                         <div className="flex items-center justify-between text-[7px] text-slate-400">
                           <span className="font-extrabold uppercase">Alinhar:</span>
-                          <div className="flex gap-1">
+                          <div className="flex flex-wrap gap-1 justify-end max-w-[75%]">
                             <button 
                               onClick={() => {
                                 setAcademyLogoX(16);
                                 setAcademyLogoY(16);
                               }}
                               title="Alinhar à Esquerda"
-                              className="px-1 py-0.5 bg-slate-900 border border-white/5 hover:border-slate-700 text-stone-200 rounded text-[6.5px] active:scale-95 transition-all"
+                              className="px-1 py-0.5 bg-slate-900 border border-white/5 hover:border-slate-700 text-stone-200 rounded text-[6px] active:scale-95 transition-all"
                             >
                               Esq
                             </button>
@@ -1541,7 +1644,7 @@ const CertificatesHub: React.FC = () => {
                                 setAcademyLogoY(16);
                               }}
                               title="Centralizar no Topo"
-                              className="px-1 py-0.5 bg-[#B58911] hover:bg-amber-600 text-white font-extrabold rounded text-[6.5px] active:scale-95 transition-all"
+                              className="px-1 py-0.5 bg-[#B58911] hover:bg-amber-600 text-white font-extrabold rounded text-[6px] active:scale-95 transition-all"
                             >
                               Cent
                             </button>
@@ -1552,9 +1655,40 @@ const CertificatesHub: React.FC = () => {
                                 setAcademyLogoY(16);
                               }}
                               title="Alinhar à Direita"
-                              className="px-1 py-0.5 bg-slate-900 border border-white/5 hover:border-slate-700 text-stone-200 rounded text-[6.5px] active:scale-95 transition-all"
+                              className="px-1 py-0.5 bg-slate-900 border border-white/5 hover:border-slate-700 text-stone-200 rounded text-[6px] active:scale-95 transition-all"
                             >
                               Dir
+                            </button>
+                            <button 
+                              onClick={() => {
+                                const logoSzMM = academyLogoSize * 0.35;
+                                setAcademyLogoX(148.5 - logoSzMM / 2);
+                              }}
+                              title="Centralizar Horizontal"
+                              className="px-1 py-0.5 bg-indigo-900/60 border border-indigo-700/50 hover:border-indigo-500 text-indigo-200 rounded text-[6px] active:scale-95 transition-all font-bold"
+                            >
+                              ↕ Horiz
+                            </button>
+                            <button 
+                              onClick={() => {
+                                const logoSzMM = academyLogoSize * 0.35;
+                                setAcademyLogoY(105 - logoSzMM / 2);
+                              }}
+                              title="Centralizar Vertical"
+                              className="px-1 py-0.5 bg-indigo-900/60 border border-indigo-700/50 hover:border-indigo-500 text-indigo-200 rounded text-[6px] active:scale-95 transition-all font-bold"
+                            >
+                              ↔ Vert
+                            </button>
+                            <button 
+                              onClick={() => {
+                                const logoSzMM = academyLogoSize * 0.35;
+                                setAcademyLogoX(148.5 - logoSzMM / 2);
+                                setAcademyLogoY(105 - logoSzMM / 2);
+                              }}
+                              title="Centro Total"
+                              className="px-1 py-0.5 bg-emerald-600 hover:bg-emerald-500 text-white font-black rounded text-[6px] active:scale-95 transition-all"
+                            >
+                              CENTRO
                             </button>
                           </div>
                         </div>
@@ -1604,14 +1738,14 @@ const CertificatesHub: React.FC = () => {
                       <div className="flex flex-col gap-0.5 mt-1 border-t border-white/5 pt-1 space-y-1">
                         <div className="flex items-center justify-between text-[7px] text-slate-400">
                           <span className="font-extrabold uppercase">Alinhar:</span>
-                          <div className="flex gap-1">
+                          <div className="flex flex-wrap gap-1 justify-end max-w-[75%]">
                             <button 
                               onClick={() => {
                                 setTeamLogoX(16);
                                 setTeamLogoY(16);
                               }}
                               title="Alinhar à Esquerda"
-                              className="px-1 py-0.5 bg-slate-900 border border-white/5 hover:border-slate-700 text-stone-200 rounded text-[6.5px] active:scale-95 transition-all"
+                              className="px-1 py-0.5 bg-slate-900 border border-white/5 hover:border-slate-700 text-stone-200 rounded text-[6px] active:scale-95 transition-all"
                             >
                               Esq
                             </button>
@@ -1622,7 +1756,7 @@ const CertificatesHub: React.FC = () => {
                                 setTeamLogoY(16);
                               }}
                               title="Centralizar no Topo"
-                              className="px-1 py-0.5 bg-[#B58911] hover:bg-amber-600 text-white font-extrabold rounded text-[6.5px] active:scale-95 transition-all"
+                              className="px-1 py-0.5 bg-[#B58911] hover:bg-amber-600 text-white font-extrabold rounded text-[6px] active:scale-95 transition-all"
                             >
                               Cent
                             </button>
@@ -1633,9 +1767,40 @@ const CertificatesHub: React.FC = () => {
                                 setTeamLogoY(16);
                               }}
                               title="Alinhar à Direita"
-                              className="px-1 py-0.5 bg-slate-900 border border-white/5 hover:border-slate-700 text-stone-200 rounded text-[6.5px] active:scale-95 transition-all"
+                              className="px-1 py-0.5 bg-slate-900 border border-white/5 hover:border-slate-700 text-stone-200 rounded text-[6px] active:scale-95 transition-all"
                             >
                               Dir
+                            </button>
+                            <button 
+                              onClick={() => {
+                                const logoSzMM = teamLogoSize * 0.35;
+                                setTeamLogoX(148.5 - logoSzMM / 2);
+                              }}
+                              title="Centralizar Horizontal"
+                              className="px-1 py-0.5 bg-indigo-900/60 border border-indigo-700/50 hover:border-indigo-500 text-indigo-200 rounded text-[6px] active:scale-95 transition-all font-bold"
+                            >
+                              ↔ Horiz
+                            </button>
+                            <button 
+                              onClick={() => {
+                                const logoSzMM = teamLogoSize * 0.35;
+                                setTeamLogoY(105 - logoSzMM / 2);
+                              }}
+                              title="Centralizar Vertical"
+                              className="px-1 py-0.5 bg-indigo-900/60 border border-indigo-700/50 hover:border-indigo-500 text-indigo-200 rounded text-[6px] active:scale-95 transition-all font-bold"
+                            >
+                              ↕ Vert
+                            </button>
+                            <button 
+                              onClick={() => {
+                                const logoSzMM = teamLogoSize * 0.35;
+                                setTeamLogoX(148.5 - logoSzMM / 2);
+                                setTeamLogoY(105 - logoSzMM / 2);
+                              }}
+                              title="Centro Total"
+                              className="px-1 py-0.5 bg-emerald-600 hover:bg-emerald-500 text-white font-black rounded text-[6px] active:scale-95 transition-all"
+                            >
+                              CENTRO
                             </button>
                           </div>
                         </div>
@@ -1685,14 +1850,14 @@ const CertificatesHub: React.FC = () => {
                       <div className="flex flex-col gap-0.5 mt-1 border-t border-white/5 pt-1 space-y-1">
                         <div className="flex items-center justify-between text-[7px] text-slate-400">
                           <span className="font-extrabold uppercase">Alinhar:</span>
-                          <div className="flex gap-1">
+                          <div className="flex flex-wrap gap-1 justify-end max-w-[75%]">
                             <button 
                               onClick={() => {
                                 setShieldLogoX(16);
                                 setShieldLogoY(16);
                               }}
                               title="Alinhar à Esquerda"
-                              className="px-1 py-0.5 bg-slate-900 border border-white/5 hover:border-slate-700 text-stone-200 rounded text-[6.5px] active:scale-95 transition-all"
+                              className="px-1 py-0.5 bg-slate-900 border border-white/5 hover:border-slate-700 text-stone-200 rounded text-[6px] active:scale-95 transition-all"
                             >
                               Esq
                             </button>
@@ -1703,7 +1868,7 @@ const CertificatesHub: React.FC = () => {
                                 setShieldLogoY(16);
                               }}
                               title="Centralizar no Topo"
-                              className="px-1 py-0.5 bg-[#B58911] hover:bg-amber-600 text-white font-extrabold rounded text-[6.5px] active:scale-95 transition-all"
+                              className="px-1 py-0.5 bg-[#B58911] hover:bg-amber-600 text-white font-extrabold rounded text-[6px] active:scale-95 transition-all"
                             >
                               Cent
                             </button>
@@ -1714,9 +1879,40 @@ const CertificatesHub: React.FC = () => {
                                 setShieldLogoY(16);
                               }}
                               title="Alinhar à Direita"
-                              className="px-1 py-0.5 bg-slate-900 border border-white/5 hover:border-slate-700 text-stone-200 rounded text-[6.5px] active:scale-95 transition-all"
+                              className="px-1 py-0.5 bg-slate-900 border border-white/5 hover:border-slate-700 text-stone-200 rounded text-[6px] active:scale-95 transition-all"
                             >
                               Dir
+                            </button>
+                            <button 
+                              onClick={() => {
+                                const logoSzMM = shieldLogoSize * 0.35;
+                                setShieldLogoX(148.5 - logoSzMM / 2);
+                              }}
+                              title="Centralizar Horizontal"
+                              className="px-1 py-0.5 bg-indigo-900/60 border border-indigo-700/50 hover:border-indigo-500 text-indigo-200 rounded text-[6px] active:scale-95 transition-all font-bold"
+                            >
+                              ↔ Horiz
+                            </button>
+                            <button 
+                              onClick={() => {
+                                const logoSzMM = shieldLogoSize * 0.35;
+                                setShieldLogoY(105 - logoSzMM / 2);
+                              }}
+                              title="Centralizar Vertical"
+                              className="px-1 py-0.5 bg-indigo-900/60 border border-indigo-700/50 hover:border-indigo-500 text-indigo-200 rounded text-[6px] active:scale-95 transition-all font-bold"
+                            >
+                              ↕ Vert
+                            </button>
+                            <button 
+                              onClick={() => {
+                                const logoSzMM = shieldLogoSize * 0.35;
+                                setShieldLogoX(148.5 - logoSzMM / 2);
+                                setShieldLogoY(105 - logoSzMM / 2);
+                              }}
+                              title="Centro Total"
+                              className="px-1 py-0.5 bg-emerald-600 hover:bg-emerald-500 text-white font-black rounded text-[6px] active:scale-95 transition-all"
+                            >
+                              CENTRO
                             </button>
                           </div>
                         </div>
@@ -1824,25 +2020,222 @@ const CertificatesHub: React.FC = () => {
             {selectedStudent && (
               <div className="p-6 bg-slate-900 border border-slate-800 rounded-[2rem] space-y-4">
                 <h3 className="text-xs font-black uppercase text-slate-400 tracking-widest flex items-center gap-1.5">
-                  <Settings2 size={13} className="text-purple-400" /> Assinaturas & Registros Oficiais
+                  <Settings2 size={13} className="text-purple-400" /> Assinaturas, QR Code & Selo Gold
                 </h3>
 
+                {/* Assinatura 1 */}
                 <div className="p-3 bg-slate-950 border border-white/5 rounded-2xl space-y-3">
-                  <p className="text-[9px] font-black text-amber-500 uppercase tracking-widest">Assinatura 1 - Professor Titular</p>
-                  <div className="grid grid-cols-2 gap-2">
-                    <input type="text" placeholder="Nome Professor" value={professorName} onChange={(e) => setProfessorName(e.target.value)} className="w-full h-8 px-2 bg-slate-900 border border-slate-800 rounded text-xs text-white placeholder-stone-500" />
-                    <input type="text" placeholder="Graduacão / Cargo" value={professorGraduation} onChange={(e) => setProfessorGraduation(e.target.value)} className="w-full h-8 px-2 bg-slate-900 border border-slate-800 rounded text-xs text-white placeholder-stone-500" />
+                  <div className="flex justify-between items-center">
+                    <p className="text-[9px] font-black text-amber-500 uppercase tracking-widest">Assinatura 1 - Professor Titular</p>
+                    <select 
+                      value={professorSignatureType} 
+                      onChange={(e) => setProfessorSignatureType(e.target.value as any)}
+                      className="bg-slate-900 text-[10px] text-white border border-slate-800 rounded px-1.5 py-0.5 focus:outline-none"
+                    >
+                      <option value="digital">Digital Caligráfica</option>
+                      <option value="upload">Upload Assinatura</option>
+                      <option value="none">Ocultar</option>
+                    </select>
                   </div>
-                  <input type="file" accept="image/*" onChange={(e) => handleFileUploadAsBase64(e, setProfessorSignatureUrl)} className="text-[7.5px] bg-slate-900 p-1 w-full rounded" />
+                  
+                  <div className="grid grid-cols-2 gap-2">
+                    <input type="text" placeholder="Nome Professor" value={professorName} onChange={(e) => setProfessorName(e.target.value)} className="w-full h-8 px-2 bg-slate-900 border border-slate-800 rounded text-xs text-white placeholder-stone-500 focus:outline-none focus:border-amber-500" />
+                    <input type="text" placeholder="Graduacão / Cargo" value={professorGraduation} onChange={(e) => setProfessorGraduation(e.target.value)} className="w-full h-8 px-2 bg-slate-900 border border-slate-800 rounded text-xs text-white placeholder-stone-500 focus:outline-none focus:border-amber-500" />
+                  </div>
+                  
+                  {professorSignatureType === 'upload' && (
+                    <div className="space-y-1">
+                      <span className="text-[8px] text-slate-400 block uppercase font-bold">Enviar arquivo da assinatura (PNG transparente recomendado)</span>
+                      <input type="file" accept="image/*" onChange={(e) => handleFileUploadAsBase64(e, setProfessorSignatureUrl)} className="text-[7.5px] bg-slate-900 p-1 w-full rounded cursor-pointer" />
+                    </div>
+                  )}
+
+                  {professorSignatureType !== 'none' && (
+                    <div className="bg-slate-900/60 p-2 rounded-xl border border-white/5 space-y-2">
+                      <span className="text-[8px] font-bold uppercase text-slate-300 block">Posicionamento da Assinatura 1 (mm)</span>
+                      <div className="grid grid-cols-2 gap-2 text-[8px] text-slate-400">
+                        <div className="space-y-1">
+                          <div className="flex justify-between items-center">
+                            <span>Pos X: {professorSignatureX}mm</span>
+                            <input type="range" min="0" max="297" value={professorSignatureX} onChange={(e) => setProfessorSignatureX(Number(e.target.value))} className="w-1/2 accent-amber-500 scale-90" />
+                          </div>
+                          <div className="flex justify-between items-center">
+                            <span>Pos Y: {professorSignatureY}mm</span>
+                            <input type="range" min="0" max="210" value={professorSignatureY} onChange={(e) => setProfessorSignatureY(Number(e.target.value))} className="w-1/2 accent-amber-500 scale-90" />
+                          </div>
+                        </div>
+                        <div className="space-y-1">
+                          <div className="flex justify-between items-center">
+                            <span>Larg: {professorSignatureWidth}mm</span>
+                            <input type="range" min="10" max="120" value={professorSignatureWidth} onChange={(e) => setProfessorSignatureWidth(Number(e.target.value))} className="w-1/2 accent-amber-500 scale-90" />
+                          </div>
+                          <div className="flex justify-between items-center">
+                            <span>Alt: {professorSignatureHeight}mm</span>
+                            <input type="range" min="5" max="50" value={professorSignatureHeight} onChange={(e) => setProfessorSignatureHeight(Number(e.target.value))} className="w-1/2 accent-amber-500 scale-90" />
+                          </div>
+                        </div>
+                      </div>
+                      <div className="flex gap-1.5 pt-1 border-t border-white/5">
+                        <button 
+                          onClick={() => {
+                            setProfessorSignatureX(50);
+                            setProfessorSignatureY(150);
+                            setProfessorSignatureWidth(45);
+                            setProfessorSignatureHeight(16);
+                          }}
+                          className="px-2 py-0.5 bg-slate-950 hover:bg-slate-800 rounded text-[7px] text-stone-300 uppercase font-black"
+                        >
+                          Padrão Esq
+                        </button>
+                        <button 
+                          onClick={() => {
+                            setProfessorSignatureX(126);
+                            setProfessorSignatureY(150);
+                            setProfessorSignatureWidth(45);
+                            setProfessorSignatureHeight(16);
+                          }}
+                          className="px-2 py-0.5 bg-[#B58911] hover:bg-amber-600 rounded text-[7px] text-white uppercase font-black"
+                        >
+                          Centralizar
+                        </button>
+                      </div>
+                    </div>
+                  )}
                 </div>
 
+                {/* Assinatura 2 */}
                 <div className="p-3 bg-slate-950 border border-white/5 rounded-2xl space-y-3">
-                  <p className="text-[9px] font-black text-amber-500 uppercase tracking-widest">Assinatura 2 - Diretor Técnico</p>
-                  <div className="grid grid-cols-2 gap-2">
-                    <input type="text" placeholder="Nome Diretor" value={technicalDirectorName} onChange={(e) => setTechnicalDirectorName(e.target.value)} className="w-full h-8 px-2 bg-slate-900 border border-slate-800 rounded text-xs text-white placeholder-stone-500" />
-                    <input type="text" placeholder="Registro / Estatuto" value={technicalDirectorRegistration} onChange={(e) => setTechnicalDirectorRegistration(e.target.value)} className="w-full h-8 px-2 bg-slate-900 border border-slate-800 rounded text-xs text-white placeholder-stone-500" />
+                  <div className="flex justify-between items-center">
+                    <p className="text-[9px] font-black text-amber-500 uppercase tracking-widest">Assinatura 2 - Diretor Técnico</p>
+                    <select 
+                      value={teamDirectorSignatureType} 
+                      onChange={(e) => setTeamDirectorSignatureType(e.target.value as any)}
+                      className="bg-slate-900 text-[10px] text-white border border-slate-800 rounded px-1.5 py-0.5 focus:outline-none"
+                    >
+                      <option value="digital">Digital Caligráfica</option>
+                      <option value="upload">Upload Assinatura</option>
+                      <option value="none">Ocultar</option>
+                    </select>
                   </div>
-                  <input type="file" accept="image/*" onChange={(e) => handleFileUploadAsBase64(e, setTeamDirectorSignatureUrl)} className="text-[7.5px] bg-slate-900 p-1 w-full rounded" />
+
+                  <div className="grid grid-cols-2 gap-2">
+                    <input type="text" placeholder="Nome Diretor" value={technicalDirectorName} onChange={(e) => setTechnicalDirectorName(e.target.value)} className="w-full h-8 px-2 bg-slate-900 border border-slate-800 rounded text-xs text-white placeholder-stone-500 focus:outline-none focus:border-amber-500" />
+                    <input type="text" placeholder="Registro / Estatuto" value={technicalDirectorRegistration} onChange={(e) => setTechnicalDirectorRegistration(e.target.value)} className="w-full h-8 px-2 bg-slate-900 border border-slate-800 rounded text-xs text-white placeholder-stone-500 focus:outline-none focus:border-amber-500" />
+                  </div>
+
+                  {teamDirectorSignatureType === 'upload' && (
+                    <div className="space-y-1">
+                      <span className="text-[8px] text-slate-400 block uppercase font-bold">Enviar arquivo da assinatura (PNG transparente recomendado)</span>
+                      <input type="file" accept="image/*" onChange={(e) => handleFileUploadAsBase64(e, setTeamDirectorSignatureUrl)} className="text-[7.5px] bg-slate-900 p-1 w-full rounded cursor-pointer" />
+                    </div>
+                  )}
+
+                  {teamDirectorSignatureType !== 'none' && (
+                    <div className="bg-slate-900/60 p-2 rounded-xl border border-white/5 space-y-2">
+                      <span className="text-[8px] font-bold uppercase text-slate-300 block">Posicionamento da Assinatura 2 (mm)</span>
+                      <div className="grid grid-cols-2 gap-2 text-[8px] text-slate-400">
+                        <div className="space-y-1">
+                          <div className="flex justify-between items-center">
+                            <span>Pos X: {teamDirectorSignatureX}mm</span>
+                            <input type="range" min="0" max="297" value={teamDirectorSignatureX} onChange={(e) => setTeamDirectorSignatureX(Number(e.target.value))} className="w-1/2 accent-amber-500 scale-90" />
+                          </div>
+                          <div className="flex justify-between items-center">
+                            <span>Pos Y: {teamDirectorSignatureY}mm</span>
+                            <input type="range" min="0" max="210" value={teamDirectorSignatureY} onChange={(e) => setTeamDirectorSignatureY(Number(e.target.value))} className="w-1/2 accent-amber-500 scale-90" />
+                          </div>
+                        </div>
+                        <div className="space-y-1">
+                          <div className="flex justify-between items-center">
+                            <span>Larg: {teamDirectorSignatureWidth}mm</span>
+                            <input type="range" min="10" max="120" value={teamDirectorSignatureWidth} onChange={(e) => setTeamDirectorSignatureWidth(Number(e.target.value))} className="w-1/2 accent-amber-500 scale-90" />
+                          </div>
+                          <div className="flex justify-between items-center">
+                            <span>Alt: {teamDirectorSignatureHeight}mm</span>
+                            <input type="range" min="5" max="50" value={teamDirectorSignatureHeight} onChange={(e) => setTeamDirectorSignatureHeight(Number(e.target.value))} className="w-1/2 accent-amber-500 scale-90" />
+                          </div>
+                        </div>
+                      </div>
+                      <div className="flex gap-1.5 pt-1 border-t border-white/5">
+                        <button 
+                          onClick={() => {
+                            setTeamDirectorSignatureX(202);
+                            setTeamDirectorSignatureY(150);
+                            setTeamDirectorSignatureWidth(45);
+                            setTeamDirectorSignatureHeight(16);
+                          }}
+                          className="px-2 py-0.5 bg-slate-950 hover:bg-slate-800 rounded text-[7px] text-stone-300 uppercase font-black"
+                        >
+                          Padrão Dir
+                        </button>
+                        <button 
+                          onClick={() => {
+                            setTeamDirectorSignatureX(126);
+                            setTeamDirectorSignatureY(150);
+                            setTeamDirectorSignatureWidth(45);
+                            setTeamDirectorSignatureHeight(16);
+                          }}
+                          className="px-2 py-0.5 bg-[#B58911] hover:bg-amber-600 rounded text-[7px] text-white uppercase font-black"
+                        >
+                          Centralizar
+                        </button>
+                      </div>
+                    </div>
+                  )}
+                </div>
+
+                {/* Direct Control of QR Code and Golden Seal Positions to prevent any overlap! */}
+                <div className="p-3 bg-slate-950 border border-white/5 rounded-2xl space-y-3">
+                  <p className="text-[10px] font-black text-amber-500 uppercase tracking-widest flex items-center gap-1">
+                    <span>⚙ Ajustes de Geometria: Código QR & Selo</span>
+                  </p>
+
+                  {/* QR CODE COORDS */}
+                  <div className="bg-slate-900/40 p-2 rounded-xl space-y-2">
+                    <span className="text-[8.5px] font-bold uppercase text-slate-300 block">Código QR de Autenticidade (Milímetros)</span>
+                    <div className="grid grid-cols-3 gap-2 text-[8px] text-slate-400">
+                      <div className="flex flex-col">
+                        <span>X: {qrCodeX}mm</span>
+                        <input type="range" min="0" max="297" value={qrCodeX} onChange={(e) => setQrCodeX(Number(e.target.value))} className="accent-amber-500 mt-1" />
+                      </div>
+                      <div className="flex flex-col">
+                        <span>Y: {qrCodeY}mm</span>
+                        <input type="range" min="0" max="210" value={qrCodeY} onChange={(e) => setQrCodeY(Number(e.target.value))} className="accent-amber-500 mt-1" />
+                      </div>
+                      <div className="flex flex-col">
+                        <span>Tamanho: {qrCodeSize}mm</span>
+                        <input type="range" min="0" max="40" value={qrCodeSize} onChange={(e) => setQrCodeSize(Number(e.target.value))} className="accent-amber-500 mt-1" />
+                      </div>
+                    </div>
+                    <div className="flex gap-1.5 mt-1 border-t border-white/5 pt-1">
+                      <button onClick={() => { setQrCodeX(14); setQrCodeY(176); setQrCodeSize(13); }} className="px-1.5 py-0.5 bg-slate-950 hover:bg-slate-800 rounded text-[7px] text-slate-300 font-bold uppercase">Padrão Esq Inf</button>
+                      <button onClick={() => { setQrCodeX(267); setQrCodeY(176); setQrCodeSize(13); }} className="px-1.5 py-0.5 bg-slate-950 hover:bg-slate-800 rounded text-[7px] text-slate-300 font-bold uppercase">Padrão Dir Inf</button>
+                      <button onClick={() => { setQrCodeX(142); setQrCodeY(176); setQrCodeSize(13); }} className="px-1.5 py-0.5 bg-[#B58911] hover:bg-amber-600 rounded text-[7px] text-white font-bold uppercase">Centralizar</button>
+                    </div>
+                  </div>
+
+                  {/* GOLDEN SEAL COORDS */}
+                  <div className="bg-slate-900/40 p-2 rounded-xl space-y-2">
+                    <span className="text-[8.5px] font-bold uppercase text-slate-300 block">Selo Metálico Gold (Milímetros)</span>
+                    <div className="grid grid-cols-3 gap-2 text-[8px] text-slate-400">
+                      <div className="flex flex-col">
+                        <span>X: {goldenSealX}mm</span>
+                        <input type="range" min="0" max="297" value={goldenSealX} onChange={(e) => setGoldenSealX(Number(e.target.value))} className="accent-amber-500 mt-1" />
+                      </div>
+                      <div className="flex flex-col">
+                        <span>Y: {goldenSealY}mm</span>
+                        <input type="range" min="0" max="210" value={goldenSealY} onChange={(e) => setGoldenSealY(Number(e.target.value))} className="accent-amber-500 mt-1" />
+                      </div>
+                      <div className="flex flex-col">
+                        <span>Diâmetro: {goldenSealSize}mm</span>
+                        <input type="range" min="0" max="40" value={goldenSealSize} onChange={(e) => setGoldenSealSize(Number(e.target.value))} className="accent-amber-500 mt-1" />
+                      </div>
+                    </div>
+                    <div className="flex gap-1.5 mt-1 border-t border-white/5 pt-1">
+                      <button onClick={() => { setGoldenSealX(272); setGoldenSealY(185); setGoldenSealSize(15); }} className="px-1.5 py-0.5 bg-slate-950 hover:bg-slate-800 rounded text-[7px] text-slate-300 font-bold uppercase">Padrão Dir Inf</button>
+                      <button onClick={() => { setGoldenSealX(14); setGoldenSealY(185); setGoldenSealSize(15); }} className="px-1.5 py-0.5 bg-slate-950 hover:bg-slate-800 rounded text-[7px] text-slate-300 font-bold uppercase">Padrão Esq Inf</button>
+                      <button onClick={() => { setGoldenSealX(148.5); setGoldenSealY(185); setGoldenSealSize(15); }} className="px-1.5 py-0.5 bg-[#B58911] hover:bg-amber-600 rounded text-[7px] text-white font-bold uppercase">Centralizar</button>
+                    </div>
+                  </div>
                 </div>
               </div>
             )}
@@ -2167,6 +2560,73 @@ const CertificatesHub: React.FC = () => {
                     </div>
                   )}
 
+                  {/* Absolute overlays for Professor and Director signatures (Requirement 5) */}
+                  {professorSignatureType === 'upload' && professorSignatureUrl && (
+                    <div 
+                      className="absolute pointer-events-none select-none z-20 flex items-center justify-center transition-all"
+                      style={{
+                        left: `${(professorSignatureX / 297) * 100}%`,
+                        top: `${(professorSignatureY / 210) * 100}%`,
+                        width: `${(professorSignatureWidth / 297) * 100}%`,
+                        height: `${(professorSignatureHeight / 210) * 100}%`,
+                      }}
+                    >
+                      <img src={professorSignatureUrl} alt="Prof Autograph" className="w-full h-full object-contain" />
+                    </div>
+                  )}
+
+                  {professorSignatureType === 'digital' && (
+                    <div 
+                      className="absolute pointer-events-none select-none z-20 flex flex-col items-center justify-center transition-all text-center leading-none"
+                      style={{
+                        left: `${(professorSignatureX / 297) * 100}%`,
+                        top: `${(professorSignatureY / 210) * 100}%`,
+                        width: `${(professorSignatureWidth / 297) * 100}%`,
+                        height: `${(professorSignatureHeight / 210) * 100}%`,
+                      }}
+                    >
+                      <span className="text-[13px] font-extrabold text-[#1E3A8A] dark:text-amber-200 select-none leading-none italic whitespace-nowrap" style={{ fontFamily: '"Alex Brush", cursive, sans-serif' }}>
+                        {professorName}
+                      </span>
+                      <span className="text-[3.5px] font-sans font-black text-emerald-600 dark:text-emerald-400 uppercase tracking-widest leading-none mt-1 select-none whitespace-nowrap opacity-90">
+                        ✓ SECURE AUTOGRAPH
+                      </span>
+                    </div>
+                  )}
+
+                  {teamDirectorSignatureType === 'upload' && teamDirectorSignatureUrl && (
+                    <div 
+                      className="absolute pointer-events-none select-none z-20 flex items-center justify-center transition-all"
+                      style={{
+                        left: `${(teamDirectorSignatureX / 297) * 100}%`,
+                        top: `${(teamDirectorSignatureY / 210) * 100}%`,
+                        width: `${(teamDirectorSignatureWidth / 297) * 100}%`,
+                        height: `${(teamDirectorSignatureHeight / 210) * 100}%`,
+                      }}
+                    >
+                      <img src={teamDirectorSignatureUrl} alt="Director Autograph" className="w-full h-full object-contain" />
+                    </div>
+                  )}
+
+                  {teamDirectorSignatureType === 'digital' && (
+                    <div 
+                      className="absolute pointer-events-none select-none z-20 flex flex-col items-center justify-center transition-all text-center leading-none"
+                      style={{
+                        left: `${(teamDirectorSignatureX / 297) * 100}%`,
+                        top: `${(teamDirectorSignatureY / 210) * 100}%`,
+                        width: `${(teamDirectorSignatureWidth / 297) * 100}%`,
+                        height: `${(teamDirectorSignatureHeight / 210) * 100}%`,
+                      }}
+                    >
+                      <span className="text-[13px] font-extrabold text-[#1E3A8A] dark:text-amber-200 select-none leading-none italic whitespace-nowrap" style={{ fontFamily: '"Alex Brush", cursive, sans-serif' }}>
+                        {technicalDirectorName}
+                      </span>
+                      <span className="text-[3.5px] font-sans font-black text-emerald-600 dark:text-emerald-400 uppercase tracking-widest leading-none mt-1 select-none whitespace-nowrap opacity-90">
+                        ✓ SECURE AUTOGRAPH
+                      </span>
+                    </div>
+                  )}
+
                   {/* Banner superior header content (Requirement 1) */}
                   <div className="relative z-10 flex items-center justify-between border-b border-dashed border-stone-800/20 pb-2">
                     {academyLogoUrl ? (
@@ -2301,48 +2761,61 @@ const CertificatesHub: React.FC = () => {
                   {/* Signatures graphics and lines */}
                   <div className="relative z-10 grid grid-cols-2 gap-8 pt-3 border-t border-dashed border-stone-700/20 text-center font-sans tracking-tight">
                     <div>
-                      {professorSignatureUrl ? (
-                        <img src={professorSignatureUrl} alt="Prof Signature" className="h-6 object-contain mx-auto pointer-events-none select-none opacity-90" />
-                      ) : (
-                        <p className="h-6" />
-                      )}
+                      <div className="h-6" />
                       <p className="text-[8px] font-extrabold uppercase text-slate-900 dark:text-white leading-none border-t border-dashed border-stone-700/30 pt-0.5">{professorName}</p>
                       <span className="text-[6.5px] uppercase font-black tracking-widest text-[#9C9C9C]">{professorGraduation} | {professorRoleLabel}</span>
                     </div>
 
                     <div>
-                      {teamDirectorSignatureUrl ? (
-                        <img src={teamDirectorSignatureUrl} alt="Tech Signature" className="h-6 object-contain mx-auto pointer-events-none select-none opacity-90" />
-                      ) : (
-                        <p className="h-6" />
-                      )}
+                      <div className="h-6" />
                       <p className="text-[8px] font-extrabold uppercase text-slate-900 dark:text-white leading-none border-t border-dashed border-stone-700/30 pt-0.5">{technicalDirectorName}</p>
                       <span className="text-[6.5px] uppercase font-black tracking-widest text-[#9C9C9C]">{technicalDirectorRegistration} | {technicalDirectorRoleLabel}</span>
                     </div>
                   </div>
 
-                  {/* Valid Unique QR Code Representation (Requirement 9) */}
-                  <div className="absolute bottom-3 left-4 md:bottom-5 md:left-6 z-25 p-0.5 bg-white rounded border border-stone-200 shadow-md">
-                    <QRCodeCanvas 
-                      id="validation-qr-canvas"
-                      value={`${window.location.origin}/certificates?verify=${certId}`}
-                      size={44}
-                      bgColor={"#FFFFFF"}
-                      fgColor={"#0F172A"}
-                      level={"Q"}
-                    />
-                  </div>
+                  {/* Valid Unique QR Code Representation (Requirement 9) - Configurable placement */}
+                  {qrCodeSize > 0 && (
+                    <div 
+                      className="absolute z-25 p-0.5 bg-white rounded border border-stone-200 shadow-md flex items-center justify-center transition-all"
+                      style={{
+                        left: `${(qrCodeX / 297) * 100}%`,
+                        top: `${(qrCodeY / 210) * 100}%`,
+                        width: `${(qrCodeSize / 297) * 100}%`,
+                        height: `${(qrCodeSize / 210) * 100}%`,
+                      }}
+                    >
+                      <QRCodeCanvas 
+                        id="validation-qr-canvas"
+                        value={`${window.location.origin}/certificates?verify=${certId}`}
+                        size={60}
+                        style={{ width: '100%', height: '100%' }}
+                        bgColor={"#FFFFFF"}
+                        fgColor={"#0F172A"}
+                        level={"Q"}
+                      />
+                    </div>
+                  )}
 
-                  {/* Golden circular vetorial stamp of authenticity (Requirement 8) */}
-                  <div className="absolute bottom-3 right-4 md:bottom-5 md:right-5 z-25">
-                    <div className="relative w-12 h-12 flex items-center justify-center rounded-full bg-gradient-to-tr from-amber-600 via-yellow-400 to-amber-500 border border-yellow-200/50 shadow-md">
-                      <div className="text-[3.5px] text-[#4d3a08] font-serif font-black text-center leading-none">
-                        <p className="uppercase">{LANG_DICTIONARY[certificateLanguage].sealText}</p>
-                        <p className="text-[5.5px] font-black text-amber-950 mt-0.5">SYSBJJ</p>
-                        <p className="text-[3px] font-mono select-all mt-0.5 max-w-[32px] truncate">{certId}</p>
+                  {/* Golden circular vetorial stamp of authenticity (Requirement 8) - Configurable Center */}
+                  {goldenSealSize > 0 && (
+                    <div 
+                      className="absolute z-25 flex items-center justify-center transition-all"
+                      style={{
+                        left: `${((goldenSealX - goldenSealSize / 2) / 297) * 100}%`,
+                        top: `${((goldenSealY - goldenSealSize / 2) / 210) * 100}%`,
+                        width: `${(goldenSealSize / 297) * 100}%`,
+                        height: `${(goldenSealSize / 210) * 100}%`,
+                      }}
+                    >
+                      <div className="w-full h-full flex flex-col items-center justify-center rounded-full bg-gradient-to-tr from-amber-600 via-yellow-400 to-amber-500 border border-yellow-200/50 shadow-md p-0.5 overflow-hidden">
+                        <div className="text-[#4d3a08] font-serif font-black text-center leading-none" style={{ fontSize: `${goldenSealSize * 0.38}px` }}>
+                          <p className="uppercase text-[0.25em] tracking-tight leading-none text-amber-950 font-bold whitespace-nowrap">{LANG_DICTIONARY[certificateLanguage].sealText}</p>
+                          <p className="text-[0.45em] font-black text-stone-900 mt-0.5 leading-none">SYSBJJ</p>
+                          <p className="text-[0.25em] font-mono select-all mt-0.5 text-stone-700 opacity-90 max-w-[90%] truncate mx-auto leading-none">{certId.slice(-6)}</p>
+                        </div>
                       </div>
                     </div>
-                  </div>
+                  )}
 
                   {/* General code reg date footer */}
                   <div className="text-[6.5px] uppercase font-mono font-bold tracking-widest italic flex justify-between items-center text-slate-400 pt-1.5 opacity-80 select-all border-t border-white/5 relative z-10">

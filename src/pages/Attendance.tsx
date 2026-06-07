@@ -632,7 +632,7 @@ const AttendancePage: React.FC = () => {
                       <div className="flex items-center gap-6">
                          <div className="text-center">
                             <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest leading-none mb-1">{t('attendance.time')}</p>
-                            <p className="text-2xl font-black tabular-nums text-slate-900 dark:text-white">{new Date().toLocaleTimeString(t('common.dateLocale'), { hour: '2-digit', minute: '2-digit' })}</p>
+                            <p className="text-2xl font-black tabular-nums text-slate-900 dark:text-white">{new Date().toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}</p>
                          </div>
                          <div className="w-px h-8 bg-slate-200 dark:bg-slate-700" />
                          <div className="text-center">
