@@ -185,6 +185,15 @@ const Dashboard: React.FC = () => {
     { title: safeT('dashboard.activeStudents', 'Alunos Ativos'), value: activeStudents, icon: <Activity size={24} />, color: 'bg-emerald-500', trend: '+5%', isUp: true, link: '/students' },
     { title: safeT('common.timer', 'Cronômetro de Luta'), value: 'PRO TIMER', icon: <Timer size={24} />, color: 'bg-rose-500', trend: 'IBJJF', isUp: true, link: '/timer' },
     { title: safeT('dashboard.monthlyRevenue', 'Faturamento Mensal'), value: `R$ ${Number(totalRevenue || 0).toLocaleString('pt-BR')}`, icon: <TrendingUp size={24} />, color: 'bg-purple-500', trend: '+18%', isUp: true, link: '/business?tab=finances' },
+    { 
+      title: safeT('dashboard.pendingPayments', 'Mensalidades Vencidas'), 
+      value: overdueStudents, 
+      icon: <AlertTriangle size={24} />, 
+      color: 'bg-amber-500', 
+      trend: overdueStudents > 0 ? '⚠️ Atenção' : '✓ OK', 
+      isUp: false, 
+      link: '/business?tab=finances' 
+    }
   ];
 
   const exportToPDF = () => {
@@ -536,7 +545,7 @@ const Dashboard: React.FC = () => {
         </motion.div>
       )}
 
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-6">
         {stats.map((stat, idx) => (
           <motion.div 
             key={idx}

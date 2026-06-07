@@ -35,6 +35,7 @@ import {
   ShieldAlert,
   FileWarning,
   AlertCircle,
+  AlertTriangle,
   FileCheck,
   Filter,
   ArrowRight,
@@ -3263,7 +3264,13 @@ const Students: React.FC = () => {
   const [classFilter, setClassFilter] = useState('');
   const [beltFilter, setBeltFilter] = useState('');
   const [statusFilter, setStatusFilter] = useState<StudentStatus | ''>('');
-  const [activeView, setActiveView] = useState<'adult' | 'kids' | 'competitors' | 'waitlist'>('adult');
+  const [activeView, setActiveView] = useState<'adult' | 'kids' | 'competitors' | 'waitlist' | 'cleanup'>('adult');
+  
+  // 🥋 ESTADOS DO PROTOCOLO SENSEI DE HIGIENIZAÇÃO DE CADASTROS (User Request 1)
+  const [cleanupType, setCleanupType] = useState<'unused' | 'faulty' | 'no_presence' | 'all_inactive'>('unused');
+  const [selectedForCleanup, setSelectedForCleanup] = useState<string[]>([]);
+  const [singleStudentToDelete, setSingleStudentToDelete] = useState<Student | null>(null);
+  const [showBulkDeletionConfirm, setShowBulkDeletionConfirm] = useState(false);
   const [selectedStudent, setSelectedStudent] = useState<Student | null>(null);
   const currentSelectedStudent = useMemo(() => {
     if (!selectedStudent) return null;
@@ -3344,6 +3351,97 @@ const Students: React.FC = () => {
     });
   }, [searchTerm, students, activeView, classFilter, beltFilter, statusFilter, instructorFilter, responsibleInstructorFilter, schedules]);
 
+  // 🥋 CLASSIFICAÇÃO DE CADASTROS DE ALUNOS PARADOS OU ERRADOS (User Request 1)
+  const cleanupStudents = useMemo(() => {
+    return students.filter(s => {
+      // Proteger administradores master de qualquer processo de limpeza automática
+      if (MASTER_ADMINS.includes(s.email || '')) return false;
+
+      // Filtro de termo de busca na tela de limpeza
+      const matchesSearch = !searchTerm || s.name.toLowerCase().includes(searchTerm.toLowerCase()) || (s.nickname && s.nickname.toLowerCase().includes(searchTerm.toLowerCase()));
+      if (!matchesSearch) return false;
+
+      if (cleanupType === 'unused') {
+        const hasNoAttendance = !s.attendanceCount || s.attendanceCount === 0;
+        const joinedDate = s.joinedAt ? new Date(s.joinedAt) : new Date(s.lastPromotionDate || '2026-01-01');
+        const daysSinceJoined = Math.floor((Date.now() - joinedDate.getTime()) / (1000 * 60 * 60 * 24));
+        const isOldJoined = daysSinceJoined > 90;
+        
+        let daysSinceLastClass = 999;
+        if (s.lastAttendanceDate) {
+          const lastClassDate = new Date(s.lastAttendanceDate);
+          daysSinceLastClass = Math.floor((Date.now() - lastClassDate.getTime()) / (1000 * 60 * 60 * 24));
+        }
+
+        const isInactiveOrUnused = s.status === StudentStatus.INACTIVE || hasNoAttendance;
+        const isOutdated = daysSinceLastClass > 90 || (hasNoAttendance && isOldJoined);
+
+        return isInactiveOrUnused && isOutdated;
+      }
+      
+      if (cleanupType === 'faulty') {
+        const isEmailInvalid = !s.email || !s.email.includes('@') || s.email.trim().length < 5;
+        const isPhoneInvalid = !s.phone || s.phone.replace(/\D/g, '').length < 8;
+        const isNameTooShort = !s.name || s.name.trim().length < 3;
+        
+        return isEmailInvalid || isPhoneInvalid || isNameTooShort;
+      }
+      
+      if (cleanupType === 'no_presence') {
+        const hasNoAttendance = !s.attendanceCount || s.attendanceCount === 0;
+        const joinedDate = s.joinedAt ? new Date(s.joinedAt) : new Date(s.lastPromotionDate || '2026-01-01');
+        const daysSinceJoined = Math.floor((Date.now() - joinedDate.getTime()) / (1000 * 60 * 60 * 24));
+        
+        return hasNoAttendance && daysSinceJoined > 10;
+      }
+      
+      if (cleanupType === 'all_inactive') {
+        return s.status === StudentStatus.INACTIVE || s.status === StudentStatus.SUSPENDED;
+      }
+
+      return false;
+    });
+  }, [students, cleanupType, searchTerm]);
+
+  const studentsToMap = useMemo(() => {
+    return activeView === 'cleanup' ? cleanupStudents : filteredStudents;
+  }, [activeView, cleanupStudents, filteredStudents]);
+
+  // Ações em lote e unitárias de saneamento
+  const handleToggleSelectForCleanup = (id: string) => {
+    setSelectedForCleanup(prev => 
+      prev.includes(id) ? prev.filter(item => item !== id) : [...prev, id]
+    );
+  };
+
+  const handleSelectAllForCleanup = () => {
+    if (selectedForCleanup.length === cleanupStudents.length) {
+      setSelectedForCleanup([]);
+    } else {
+      setSelectedForCleanup(cleanupStudents.map(s => s.id));
+    }
+  };
+
+  const handleConfirmSingleDelete = (student: Student) => {
+    setSingleStudentToDelete(student);
+  };
+
+  const handleExecuteSingleDelete = () => {
+    if (singleStudentToDelete) {
+      deleteStudent(singleStudentToDelete.id);
+      setSelectedForCleanup(prev => prev.filter(id => id !== singleStudentToDelete.id));
+      setSingleStudentToDelete(null);
+    }
+  };
+
+  const handleExecuteBulkDelete = () => {
+    selectedForCleanup.forEach(id => {
+      deleteStudent(id);
+    });
+    setSelectedForCleanup([]);
+    setShowBulkDeletionConfirm(false);
+  };
+
   const uniqueInstructors = useMemo(() => {
     const insts = new Set<string>();
     schedules.forEach(s => {
@@ -3422,117 +3520,165 @@ const Students: React.FC = () => {
       </div>
 
       <div className="flex flex-wrap items-center gap-3 w-full">
-        <div className="flex p-1 bg-white dark:bg-slate-800 rounded-xl w-full lg:max-w-md shadow-sm border border-slate-100 dark:border-slate-700">
+        <div className="flex p-1 bg-white dark:bg-slate-800 rounded-xl w-full lg:max-w-2xl shadow-sm border border-slate-100 dark:border-slate-700 overflow-x-auto scrollbar-hide whitespace-nowrap">
           <button 
             onClick={() => setActiveView('adult')}
-            className={`flex-1 flex items-center justify-center gap-2 py-2 rounded-lg text-[9px] font-black uppercase tracking-widest transition-all ${activeView === 'adult' ? 'bg-slate-900 text-white shadow-lg' : 'text-slate-500 hover:text-slate-600'}`}
+            className={`flex-shrink-0 px-4 py-2 rounded-lg text-[9px] font-black uppercase tracking-widest transition-all ${activeView === 'adult' ? 'bg-slate-900 text-white shadow-lg' : 'text-slate-500 hover:text-slate-600'}`}
           >
-            <User size={14}/> {t('common.adult')}
+            <User size={14} className="inline mr-1" /> {t('common.adult')}
           </button>
           <button 
             onClick={() => setActiveView('kids')}
-            className={`flex-1 flex items-center justify-center gap-2 py-2 rounded-lg text-[9px] font-black uppercase tracking-widest transition-all ${activeView === 'kids' ? 'bg-yellow-500 text-white shadow-lg' : 'text-slate-500 hover:text-slate-600'}`}
+            className={`flex-shrink-0 px-4 py-2 rounded-lg text-[9px] font-black uppercase tracking-widest transition-all ${activeView === 'kids' ? 'bg-yellow-500 text-white shadow-lg' : 'text-slate-500 hover:text-slate-600'}`}
           >
-            <Baby size={14}/> {t('common.kid')}
+            <Baby size={14} className="inline mr-1" /> {t('common.kid')}
           </button>
           <button 
             onClick={() => setActiveView('competitors')}
-            className={`flex-1 flex items-center justify-center gap-2 py-2 rounded-lg text-[9px] font-black uppercase tracking-widest transition-all ${activeView === 'competitors' ? 'bg-blue-600 text-white shadow-lg' : 'text-slate-500 hover:text-slate-600 dark:text-slate-400 dark:hover:text-slate-300'}`}
+            className={`flex-shrink-0 px-4 py-2 rounded-lg text-[9px] font-black uppercase tracking-widest transition-all ${activeView === 'competitors' ? 'bg-blue-600 text-white shadow-lg' : 'text-slate-500 hover:text-slate-600 dark:text-slate-400 dark:hover:text-slate-300'}`}
           >
-            <Medal size={14}/> {t('students.isCompetitor')}
+            <Medal size={14} className="inline mr-1" /> {t('students.isCompetitor')}
           </button>
           <button 
             onClick={() => setActiveView('waitlist')}
-            className={`flex-1 flex items-center justify-center gap-2 py-2 rounded-lg text-[9px] font-black uppercase tracking-widest transition-all ${activeView === 'waitlist' ? 'bg-indigo-600 text-white shadow-lg' : 'text-slate-500 hover:text-slate-600 dark:text-slate-400 dark:hover:text-slate-300'}`}
+            className={`flex-shrink-0 px-4 py-2 rounded-lg text-[9px] font-black uppercase tracking-widest transition-all ${activeView === 'waitlist' ? 'bg-indigo-600 text-white shadow-lg' : 'text-slate-500 hover:text-slate-600 dark:text-slate-400 dark:hover:text-slate-300'}`}
           >
-            <Clock size={14}/> {t('status.Waitlist')}
+            <Clock size={14} className="inline mr-1" /> {t('status.Waitlist')}
+          </button>
+          <button 
+            onClick={() => setActiveView('cleanup')}
+            className={`flex-shrink-0 px-4 py-2 rounded-lg text-[9px] font-black uppercase tracking-widest transition-all ${activeView === 'cleanup' ? 'bg-red-600 text-white shadow-lg' : 'text-red-500 hover:bg-red-50 dark:hover:bg-red-950/20'}`}
+          >
+            <Trash2 size={14} className="inline mr-1" /> Limpeza Adm
           </button>
         </div>
 
-        <div className="flex flex-wrap gap-3 flex-1">
-          <div className="relative flex-1 min-w-[140px]">
-            <Filter className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={12} />
-            <select 
-              className="w-full pl-9 pr-4 py-2.5 bg-white dark:bg-slate-800 border-none rounded-xl focus:ring-4 focus:ring-blue-500/10 transition-all text-[9px] font-black uppercase tracking-widest text-slate-900 dark:text-white appearance-none"
-              value={classFilter}
-              onChange={(e) => setClassFilter(e.target.value)}
-            >
-              <option value="">{t('common.allClasses')}</option>
-              {schedules.map(s => (
-                <option key={s.id} value={s.id}>{s.title}</option>
-              ))}
-            </select>
-          </div>
+        {activeView === 'cleanup' ? (
+          <div className="flex flex-wrap gap-3 flex-1 items-center justify-between">
+            <div className="flex flex-wrap items-center gap-3">
+              <span className="text-[10px] font-black uppercase text-slate-400 dark:text-slate-500 whitespace-nowrap">Saneamento:</span>
+              <div className="flex bg-slate-100 dark:bg-slate-800 p-1 rounded-xl border border-slate-200 dark:border-white/5 scrollbar-hide overflow-x-auto whitespace-nowrap">
+                {[
+                  { id: 'unused', name: 'Inativos +90 dias' },
+                  { id: 'faulty', name: 'Cadastros Incompletos' },
+                  { id: 'no_presence', name: 'Frequência Zero' },
+                  { id: 'all_inactive', name: 'Inativos e Suspensos' }
+                ].map((type) => (
+                  <button 
+                    key={type.id}
+                    onClick={() => { setCleanupType(type.id as any); setSelectedForCleanup([]); }}
+                    className={`px-3 py-1.5 rounded-lg text-[9px] font-black uppercase tracking-wider transition-all ${cleanupType === type.id ? 'bg-red-600 text-white shadow-md' : 'text-slate-505 text-slate-500 hover:text-slate-700'}`}
+                  >
+                    {type.name}
+                  </button>
+                ))}
+              </div>
+            </div>
 
-          <div className="relative flex-1 min-w-[140px]">
-             <UserCheck className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={12} />
-             <select 
-               className="w-full pl-9 pr-4 py-2.5 bg-white dark:bg-slate-800 border-none rounded-xl focus:ring-4 focus:ring-blue-500/10 transition-all text-[9px] font-black uppercase tracking-widest text-slate-900 dark:text-white appearance-none"
-               value={instructorFilter}
-               onChange={(e) => setInstructorFilter(e.target.value)}
-             >
-               <option value="">{t('common.allInstructors')}</option>
-               {uniqueInstructors.map(inst => (
-                 <option key={inst} value={inst}>{inst}</option>
-               ))}
-             </select>
-          </div>
-
-          <div className="relative flex-1 min-w-[140px]">
-             <User className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={12} />
-             <select 
-               className="w-full pl-9 pr-4 py-2.5 bg-white dark:bg-slate-800 border-none rounded-xl focus:ring-4 focus:ring-blue-500/10 transition-all text-[9px] font-black uppercase tracking-widest text-slate-900 dark:text-white appearance-none"
-               value={responsibleInstructorFilter}
-               onChange={(e) => setResponsibleInstructorFilter(e.target.value)}
-             >
-               <option value="">Prof. Responsável</option>
-               {responsibleInstructorsList.map(inst => (
-                 <option key={inst.id} value={inst.id}>{inst.name} ({inst.belt})</option>
-               ))}
-             </select>
-          </div>
-
-          <div className="flex-1 min-w-[300px] bg-white dark:bg-slate-800 rounded-xl p-1 flex items-center gap-1 overflow-x-auto scrollbar-hide border border-slate-100 dark:border-slate-700">
-            <button 
-              onClick={() => setBeltFilter('')}
-              className={`px-4 py-2 rounded-lg text-[8px] font-black uppercase tracking-widest transition-all whitespace-nowrap ${beltFilter === '' ? 'bg-slate-900 dark:bg-white text-white dark:text-slate-900 shadow-lg' : 'text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-700'}`}
-            >
-              {t('common.allBelts')}
-            </button>
-            {Object.keys(BELT_COLORS).map((belt) => {
-              const bgClass = BELT_COLORS[belt as keyof typeof BELT_COLORS] || 'bg-slate-500';
-              const isSelected = beltFilter === belt;
-              return (
+            <div className="flex items-center gap-2">
+              <button 
+                onClick={handleSelectAllForCleanup}
+                className="px-4 py-2 bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 rounded-xl text-[9px] font-black uppercase tracking-widest transition-all border border-slate-250 dark:border-white/5"
+              >
+                {selectedForCleanup.length === cleanupStudents.length ? 'Desmarcar Todos' : 'Marcar Todos'}
+              </button>
+              {selectedForCleanup.length > 0 && (
                 <button 
-                  key={belt}
-                  onClick={() => setBeltFilter(belt)}
-                  className={`px-3 py-2 rounded-lg flex items-center gap-2 transition-all border-2 ${isSelected ? 'border-blue-500 scale-105 shadow-md shadow-blue-500/20' : 'border-transparent opacity-60 hover:opacity-100'}`}
+                  onClick={() => setShowBulkDeletionConfirm(true)}
+                  className="px-4 py-2 bg-red-650 hover:bg-red-600 text-white rounded-xl text-[9px] font-black uppercase tracking-widest transition-all flex items-center gap-1.5 shadow-lg shadow-red-600/15"
                 >
-                  <div className={`w-10 h-3 rounded-sm ${bgClass} border border-black/20 shadow-inner relative overflow-hidden`}>
-                    <div className="absolute right-2 top-0 bottom-0 w-2 bg-slate-900/30" />
-                  </div>
-                  <span className={`text-[8px] font-black uppercase tracking-tighter whitespace-nowrap ${isSelected ? 'text-blue-600' : 'text-slate-500'}`}>
-                    {t(`belts.${belt}`)}
-                  </span>
+                  <Trash2 size={13} />
+                  Apagar Selecionados ({selectedForCleanup.length})
                 </button>
-              );
-            })}
+              )}
+            </div>
           </div>
+        ) : (
+          <div className="flex flex-wrap gap-3 flex-1">
+            <div className="relative flex-1 min-w-[140px]">
+              <Filter className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={12} />
+              <select 
+                className="w-full pl-9 pr-4 py-2.5 bg-white dark:bg-slate-800 border-none rounded-xl focus:ring-4 focus:ring-blue-500/10 transition-all text-[9px] font-black uppercase tracking-widest text-slate-900 dark:text-white appearance-none"
+                value={classFilter}
+                onChange={(e) => setClassFilter(e.target.value)}
+              >
+                <option value="">{t('common.allClasses')}</option>
+                {schedules.map(s => (
+                  <option key={s.id} value={s.id}>{s.title}</option>
+                ))}
+              </select>
+            </div>
 
-          <div className="relative flex-1 min-w-[140px]">
-            <Zap className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={12} />
-            <select 
-              className="w-full pl-9 pr-4 py-2.5 bg-white dark:bg-slate-800 border-none rounded-xl focus:ring-4 focus:ring-blue-500/10 transition-all text-[9px] font-black uppercase tracking-widest text-slate-900 dark:text-white appearance-none"
-              value={statusFilter}
-              onChange={(e) => setStatusFilter(e.target.value as StudentStatus)}
-            >
-              <option value="">{t('common.status')}</option>
-              {Object.values(StudentStatus).map(status => (
-                <option key={status} value={status}>{getStatusTranslation(status)}</option>
-              ))}
-            </select>
+            <div className="relative flex-1 min-w-[140px]">
+               <UserCheck className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={12} />
+               <select 
+                 className="w-full pl-9 pr-4 py-2.5 bg-white dark:bg-slate-800 border-none rounded-xl focus:ring-4 focus:ring-blue-500/10 transition-all text-[9px] font-black uppercase tracking-widest text-slate-900 dark:text-white appearance-none"
+                 value={instructorFilter}
+                 onChange={(e) => setInstructorFilter(e.target.value)}
+               >
+                 <option value="">{t('common.allInstructors')}</option>
+                 {uniqueInstructors.map(inst => (
+                   <option key={inst} value={inst}>{inst}</option>
+                 ))}
+               </select>
+            </div>
+
+            <div className="relative flex-1 min-w-[140px]">
+               <User className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={12} />
+               <select 
+                 className="w-full pl-9 pr-4 py-2.5 bg-white dark:bg-slate-800 border-none rounded-xl focus:ring-4 focus:ring-blue-500/10 transition-all text-[9px] font-black uppercase tracking-widest text-slate-900 dark:text-white appearance-none"
+                 value={responsibleInstructorFilter}
+                 onChange={(e) => setResponsibleInstructorFilter(e.target.value)}
+               >
+                 <option value="">Prof. Responsável</option>
+                 {responsibleInstructorsList.map(inst => (
+                   <option key={inst.id} value={inst.id}>{inst.name} ({inst.belt})</option>
+                 ))}
+               </select>
+            </div>
+
+            <div className="flex-1 min-w-[300px] bg-white dark:bg-slate-800 rounded-xl p-1 flex items-center gap-1 overflow-x-auto scrollbar-hide border border-slate-100 dark:border-slate-700">
+              <button 
+                onClick={() => setBeltFilter('')}
+                className={`px-4 py-2 rounded-lg text-[8px] font-black uppercase tracking-widest transition-all whitespace-nowrap ${beltFilter === '' ? 'bg-slate-900 dark:bg-white text-white dark:text-slate-900 shadow-lg' : 'text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-700'}`}
+              >
+                {t('common.allBelts')}
+              </button>
+              {Object.keys(BELT_COLORS).map((belt) => {
+                const bgClass = BELT_COLORS[belt as keyof typeof BELT_COLORS] || 'bg-slate-500';
+                const isSelected = beltFilter === belt;
+                return (
+                  <button 
+                    key={belt}
+                    onClick={() => setBeltFilter(belt)}
+                    className={`px-3 py-2 rounded-lg flex items-center gap-2 transition-all border-2 ${isSelected ? 'border-blue-500 scale-105 shadow-md shadow-blue-500/20' : 'border-transparent opacity-60 hover:opacity-100'}`}
+                  >
+                    <div className={`w-10 h-3 rounded-sm ${bgClass} border border-black/20 shadow-inner relative overflow-hidden`}>
+                      <div className="absolute right-2 top-0 bottom-0 w-2 bg-slate-900/30" />
+                    </div>
+                    <span className={`text-[8px] font-black uppercase tracking-tighter whitespace-nowrap ${isSelected ? 'text-blue-600' : 'text-slate-500'}`}>
+                      {t(`belts.${belt}`)}
+                    </span>
+                  </button>
+                );
+              })}
+            </div>
+
+            <div className="relative flex-1 min-w-[140px]">
+              <Zap className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={12} />
+              <select 
+                className="w-full pl-9 pr-4 py-2.5 bg-white dark:bg-slate-800 border-none rounded-xl focus:ring-4 focus:ring-blue-500/10 transition-all text-[9px] font-black uppercase tracking-widest text-slate-900 dark:text-white appearance-none"
+                value={statusFilter}
+                onChange={(e) => setStatusFilter(e.target.value as StudentStatus)}
+              >
+                <option value="">{t('common.status')}</option>
+                {Object.values(StudentStatus).map(status => (
+                  <option key={status} value={status}>{getStatusTranslation(status)}</option>
+                ))}
+              </select>
+            </div>
           </div>
-        </div>
+        )}
       </div>
 
       {viewMode === 'table' ? (
@@ -3542,6 +3688,9 @@ const Students: React.FC = () => {
             <table className="w-full text-left border-collapse lg:min-w-full">
               <thead className="bg-slate-50 dark:bg-slate-900/50">
                 <tr>
+                  {activeView === 'cleanup' && (
+                    <th className="px-6 py-4 text-[9px] font-black text-rose-600 uppercase tracking-[0.3em] text-center w-12">Selec.</th>
+                  )}
                   <th className="px-8 py-4 text-[9px] font-black text-slate-400 uppercase tracking-[0.3em]">{t('common.name')}</th>
                   <th className="px-8 py-4 text-[9px] font-black text-slate-400 uppercase tracking-[0.3em]">{t('students.currentBelt')}</th>
                   <th className="px-8 py-4 text-[9px] font-black text-slate-400 uppercase tracking-[0.3em]">{activeView === 'waitlist' ? t('common.waitlistRank') : t('common.statusMastery')}</th>
@@ -3551,17 +3700,44 @@ const Students: React.FC = () => {
               </thead>
               <tbody className="divide-y divide-slate-50 dark:divide-slate-800/50">
                 <AnimatePresence mode='popLayout'>
-                  {filteredStudents.map((student, idx) => (
-                    <motion.tr 
-                      key={student.id}
-                      initial={{ opacity: 0, x: -20 }}
-                      animate={{ opacity: 1, x: 0 }}
-                      exit={{ opacity: 0, scale: 0.95 }}
-                      transition={{ delay: idx * 0.03 }}
-                      className="hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-all cursor-pointer group" 
-                      onClick={() => setSelectedStudent(student)}
-                    >
-                      <td className="px-8 py-4">
+                  {studentsToMap.length === 0 ? (
+                    <tr>
+                      <td colSpan={activeView === 'cleanup' ? 6 : 5} className="text-center py-20 text-slate-400 uppercase text-[9px] font-black tracking-widest italic">
+                        🥋 OSS! Sem atletas listados nesta categoria.
+                      </td>
+                    </tr>
+                  ) : (
+                    studentsToMap.map((student, idx) => (
+                      <motion.tr 
+                        key={student.id}
+                        initial={{ opacity: 0, x: -20 }}
+                        animate={{ opacity: 1, x: 0 }}
+                        exit={{ opacity: 0, scale: 0.95 }}
+                        transition={{ delay: idx * 0.03 }}
+                        className={`hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-all cursor-pointer group ${
+                          activeView === 'cleanup' && selectedForCleanup.includes(student.id) 
+                            ? 'bg-rose-500/5 hover:bg-rose-500/10' 
+                            : ''
+                        }`}
+                        onClick={() => {
+                          if (activeView === 'cleanup') {
+                            handleToggleSelectForCleanup(student.id);
+                          } else {
+                            setSelectedStudent(student);
+                          }
+                        }}
+                      >
+                        {activeView === 'cleanup' && (
+                          <td className="px-6 py-4 text-center shrink-0" onClick={(e) => e.stopPropagation()}>
+                            <input 
+                              type="checkbox" 
+                              checked={selectedForCleanup.includes(student.id)}
+                              onChange={() => handleToggleSelectForCleanup(student.id)}
+                              className="cursor-pointer rounded border-slate-300 dark:border-white/10 text-rose-600 focus:ring-rose-500 h-4 w-4"
+                            />
+                          </td>
+                        )}
+                        <td className="px-8 py-4">
                         <div className="flex items-center gap-4">
                           <div className={`w-10 h-10 rounded-lg flex items-center justify-center font-black transition-all group-hover:rotate-12 shrink-0 overflow-hidden ${student.isKid ? 'bg-yellow-100 text-yellow-600' : 'bg-blue-50 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400'}`}>
                             {student.photoUrl ? (
@@ -3632,7 +3808,8 @@ const Students: React.FC = () => {
                         </div>
                       </td>
                     </motion.tr>
-                  ))}
+                  ))
+                )}
                 </AnimatePresence>
               </tbody>
             </table>
@@ -3643,16 +3820,33 @@ const Students: React.FC = () => {
       ) : (
         <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-6">
           <AnimatePresence mode='popLayout'>
-            {filteredStudents.map((student, idx) => (
-              <motion.div 
-                key={student.id}
-                initial={{ opacity: 0, scale: 0.95 }}
-                animate={{ opacity: 1, scale: 1 }}
-                exit={{ opacity: 0, scale: 0.95 }}
-                transition={{ delay: idx * 0.05 }}
-                onClick={() => setSelectedStudent(student)}
-                className="bg-white dark:bg-slate-900 rounded-[2.5rem] p-6 border border-slate-200 dark:border-slate-800 shadow-xl group hover:border-blue-600 transition-all cursor-pointer flex flex-col items-center text-center space-y-4"
-              >
+            {studentsToMap.length === 0 ? (
+              <div className="col-span-full text-center py-24 text-slate-400 font-bold uppercase text-[10px] tracking-widest italic bg-white dark:bg-slate-900 rounded-3xl p-8 border border-slate-200 dark:border-white/5 shadow-md">
+                🥋 OSS! Nenhum atleta encontrado nesta listagem.
+              </div>
+            ) : (
+              studentsToMap.map((student, idx) => {
+                const isSelectedForCleanup = selectedForCleanup.includes(student.id);
+                return (
+                  <motion.div 
+                    key={student.id}
+                    initial={{ opacity: 0, scale: 0.95 }}
+                    animate={{ opacity: 1, scale: 1 }}
+                    exit={{ opacity: 0, scale: 0.95 }}
+                    transition={{ delay: idx * 0.05 }}
+                    onClick={() => {
+                      if (activeView === 'cleanup') {
+                        handleToggleSelectForCleanup(student.id);
+                      } else {
+                        setSelectedStudent(student);
+                      }
+                    }}
+                    className={`bg-white dark:bg-slate-900 rounded-[2.5rem] p-6 border shadow-xl group transition-all cursor-pointer flex flex-col items-center text-center space-y-4 relative ${
+                      activeView === 'cleanup' && isSelectedForCleanup 
+                        ? 'border-rose-650 bg-rose-500/5 shadow-rose-500/5' 
+                        : 'border-slate-200 dark:border-slate-800 hover:border-blue-600'
+                    }`}
+                  >
                 <div className="relative">
                   <div className="absolute top-4 right-4 z-10">
                     <button 
@@ -3723,10 +3917,11 @@ const Students: React.FC = () => {
                    <div className="flex items-center gap-1 text-[10px] font-black text-slate-400 uppercase tracking-widest">
                       <Zap size={14} className="text-yellow-500" />
                       {student.rewardPoints || 0}
-                   </div>
-                </div>
-              </motion.div>
-            ))}
+                    </div>
+                 </div>
+               </motion.div>
+             ); })
+            )}
           </AnimatePresence>
         </div>
       )}
@@ -3734,86 +3929,136 @@ const Students: React.FC = () => {
         {/* Mobile/Tablet Card View */}
         <div className="lg:hidden divide-y divide-slate-100 dark:divide-slate-800">
           <AnimatePresence mode='popLayout'>
-            {filteredStudents.map((student, idx) => (
-              <motion.div 
-                key={student.id} 
-                initial={{ opacity: 0, y: 10 }}
-                animate={{ opacity: 1, y: 0 }}
-                exit={{ opacity: 0, scale: 0.95 }}
-                transition={{ delay: idx * 0.02 }}
-                className="p-4 sm:p-6 hover:bg-slate-50 dark:hover:bg-slate-800/30 transition-all cursor-pointer group active:bg-slate-100 dark:active:bg-slate-800"
-                onClick={() => setSelectedStudent(student)}
-              >
-                <div className="flex items-center justify-between mb-4">
-                  <div className="flex items-center gap-4">
-                    <div className={`w-12 h-12 rounded-xl flex items-center justify-center font-black transition-all group-hover:rotate-6 shrink-0 overflow-hidden ${student.isKid ? 'bg-yellow-100 text-yellow-600' : 'bg-blue-50 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400'}`}>
-                      {student.photoUrl ? (
-                        <img src={student.photoUrl} alt={student.name} className="w-full h-full object-cover" referrerPolicy="no-referrer" loading="lazy" />
-                      ) : (
-                        <span className="text-xl">{(student?.name || '?')[0]}</span>
-                      )}
-                    </div>
-                    <div className="min-w-0">
-                      <div className="flex flex-wrap items-center gap-1.5 min-h-[1.25rem]">
-                        <p className="font-black text-slate-900 dark:text-white text-base tracking-tight uppercase leading-none truncate uppercase">{student.name}</p>
-                        {(student.isInstructor || student.isClassProfessor) && (
-                          <span className="px-1.5 py-0.5 bg-red-600 text-white text-[7px] font-black uppercase tracking-widest rounded leading-none shrink-0 border border-red-500/10 shadow-sm shadow-red-500/20">🥋 PROF</span>
+            {studentsToMap.length === 0 ? (
+              <div className="text-center py-20 text-slate-400 uppercase text-[9px] font-black tracking-widest italic my-4">
+                🥋 OSS! Sem atletas listados nesta categoria.
+              </div>
+            ) : (
+              studentsToMap.map((student, idx) => {
+                const isSelectedForCleanup = selectedForCleanup.includes(student.id);
+                return (
+                  <motion.div 
+                    key={student.id} 
+                    initial={{ opacity: 0, y: 10 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    exit={{ opacity: 0, scale: 0.95 }}
+                    transition={{ delay: idx * 0.02 }}
+                    className={`p-4 sm:p-6 hover:bg-slate-50 dark:hover:bg-slate-800/30 transition-all cursor-pointer group active:bg-slate-100 dark:active:bg-slate-800 ${
+                      activeView === 'cleanup' && isSelectedForCleanup
+                        ? 'bg-rose-500/5 dark:bg-rose-955/10 border-l-4 border-rose-600'
+                        : ''
+                    }`}
+                    onClick={() => {
+                      if (activeView === 'cleanup') {
+                        handleToggleSelectForCleanup(student.id);
+                      } else {
+                        setSelectedStudent(student);
+                      }
+                    }}
+                  >
+                    <div className="flex items-center justify-between mb-4">
+                      <div className="flex items-center gap-4">
+                        {activeView === 'cleanup' && (
+                          <div className="mr-1" onClick={(e) => e.stopPropagation()}>
+                            <input 
+                              type="checkbox" 
+                              checked={isSelectedForCleanup}
+                              onChange={() => handleToggleSelectForCleanup(student.id)}
+                              className="cursor-pointer rounded border-slate-300 dark:border-white/10 text-rose-650 focus:ring-rose-500 h-4 w-4"
+                            />
+                          </div>
                         )}
-                        {student.isCompetitor && <Medal size={14} className="text-blue-600 shrink-0" />}
+                        <div className={`w-12 h-12 rounded-xl flex items-center justify-center font-black transition-all group-hover:rotate-6 shrink-0 overflow-hidden ${student.isKid ? 'bg-yellow-100 text-yellow-600' : 'bg-blue-50 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400'}`}>
+                          {student.photoUrl ? (
+                            <img src={student.photoUrl} alt={student.name} className="w-full h-full object-cover" referrerPolicy="no-referrer" loading="lazy" />
+                          ) : (
+                            <span className="text-xl">{(student?.name || '?')[0]}</span>
+                          )}
+                        </div>
+                        <div className="min-w-0">
+                          <div className="flex flex-wrap items-center gap-1.5 min-h-[1.25rem]">
+                            <p className="font-black text-slate-900 dark:text-white text-base tracking-tight uppercase leading-none truncate uppercase">{student.name}</p>
+                            {(student.isInstructor || student.isClassProfessor) && (
+                              <span className="px-1.5 py-0.5 bg-red-600 text-white text-[7px] font-black uppercase tracking-widest rounded leading-none shrink-0 border border-red-500/10 shadow-sm shadow-red-500/20">🥋 PROF</span>
+                            )}
+                            {student.isCompetitor && <Medal size={14} className="text-blue-600 shrink-0" />}
+                          </div>
+                          {student.nickname && <p className="text-[9px] text-slate-400 dark:text-slate-500 uppercase font-black mt-1 italic">"{student.nickname}"</p>}
+                        </div>
                       </div>
-                      {student.nickname && <p className="text-[9px] text-slate-400 dark:text-slate-500 uppercase font-black mt-1 italic">"{student.nickname}"</p>}
+                      <MoreVertical size={18} className="text-slate-300" />
                     </div>
-                  </div>
-                  <MoreVertical size={18} className="text-slate-300" />
-                </div>
 
-                <div className="flex flex-wrap items-center gap-2">
-                  <span className={`px-3 py-1.5 rounded-lg text-[9px] font-black uppercase tracking-widest shadow-sm border ${BELT_COLORS[student.belt] || 'bg-slate-100 dark:bg-slate-800 dark:border-slate-700 dark:text-slate-300'}`}>
-                    {t(`belts.${student.belt}`)}
-                  </span>
-                  
-                  {activeView === 'kids' ? (
-                    <div className="flex items-center gap-1.5 px-3 py-1.5 bg-yellow-50 dark:bg-yellow-900/10 rounded-lg border border-yellow-100 dark:border-yellow-900/20">
-                      <Medal size={12} className="text-yellow-600" />
-                      <span className="font-black text-yellow-700 dark:text-yellow-500 text-[9px] uppercase tracking-wider">{student.rewardPoints || 0} {t('common.meritPoints')}</span>
-                    </div>
-                  ) : (
-                    <div className="flex items-center gap-2">
-                      <span className={`px-3 py-1.5 rounded-full text-[8px] font-black uppercase tracking-wider shadow-sm border ${
-                        student.status === StudentStatus.ACTIVE ? 'bg-green-50 text-green-700 border-green-100 dark:bg-green-900/20 dark:border-green-900/30' : 
-                        student.status === StudentStatus.OVERDUE ? 'bg-red-50 text-red-700 border-red-100 dark:bg-red-900/20 dark:border-red-900/30' : 
-                        student.status === StudentStatus.WAITLIST ? 'bg-indigo-50 text-indigo-700 border-indigo-100 dark:bg-indigo-900/20 dark:border-indigo-900/30' :
-                        'bg-slate-50 text-slate-500 border-slate-100 dark:bg-slate-800 dark:border-slate-700'
-                      }`}>
-                        {getStatusTranslation(student.status)}
-                        {student.status === StudentStatus.WAITLIST && student.waitlistRank && ` #${student.waitlistRank}`}
+                    <div className="flex flex-wrap items-center gap-2">
+                      <span className={`px-3 py-1.5 rounded-lg text-[9px] font-black uppercase tracking-widest shadow-sm border ${BELT_COLORS[student.belt] || 'bg-slate-100 dark:bg-slate-800 dark:border-slate-700 dark:text-slate-300'}`}>
+                        {t(`belts.${student.belt}`)}
                       </span>
-                      {!student.liabilityWaiverAccepted && <ShieldAlert size={14} className="text-amber-500" />}
-                      {(!student.medicalCertificateUrl || (student.medicalCertificateExpiration && new Date(student.medicalCertificateExpiration) < new Date())) && (
-                        <FileWarning size={14} className="text-rose-500" />
+                      
+                      {activeView === 'kids' ? (
+                        <div className="flex items-center gap-1.5 px-3 py-1.5 bg-yellow-50 dark:bg-yellow-900/10 rounded-lg border border-yellow-100 dark:border-yellow-900/20">
+                          <Medal size={12} className="text-yellow-600" />
+                          <span className="font-black text-yellow-700 dark:text-yellow-500 text-[9px] uppercase tracking-wider">{student.rewardPoints || 0} {t('common.meritPoints')}</span>
+                        </div>
+                      ) : (
+                        <div className="flex items-center gap-2">
+                          <span className={`px-3 py-1.5 rounded-full text-[8px] font-black uppercase tracking-wider shadow-sm border ${
+                            student.status === StudentStatus.ACTIVE ? 'bg-green-50 text-green-700 border-green-100 dark:bg-green-900/20 dark:border-green-900/30' : 
+                            student.status === StudentStatus.OVERDUE ? 'bg-red-50 text-red-700 border-red-100 dark:bg-red-900/20 dark:border-red-900/30' : 
+                            student.status === StudentStatus.WAITLIST ? 'bg-indigo-50 text-indigo-700 border-indigo-100 dark:bg-indigo-900/20 dark:border-indigo-900/30' :
+                            'bg-slate-50 text-slate-500 border-slate-100 dark:bg-slate-800 dark:border-slate-700'
+                          }`}>
+                            {getStatusTranslation(student.status)}
+                            {student.status === StudentStatus.WAITLIST && student.waitlistRank && ` #${student.waitlistRank}`}
+                          </span>
+                          {!student.liabilityWaiverAccepted && <ShieldAlert size={14} className="text-amber-500" />}
+                          {(!student.medicalCertificateUrl || (student.medicalCertificateExpiration && new Date(student.medicalCertificateExpiration) < new Date())) && (
+                            <FileWarning size={14} className="text-rose-500" />
+                          )}
+                        </div>
                       )}
-                    </div>
-                  )}
 
-                  <div className="flex items-center gap-2 ml-auto">
-                    <p className="text-[10px] font-black dark:text-white tabular-nums">{student.attendanceCount || 0}</p>
-                    <p className="text-[8px] uppercase font-bold text-slate-400">{t('students.totalClasses')}</p>
-                  </div>
-                </div>
-              </motion.div>
-            ))}
+                      <div className="flex items-center gap-2 ml-auto">
+                        <p className="text-[10px] font-black dark:text-white tabular-nums">{student.attendanceCount || 0}</p>
+                        <p className="text-[8px] uppercase font-bold text-slate-400">{t('students.totalClasses')}</p>
+                      </div>
+                    </div>
+                  </motion.div>
+                );
+              })
+            )}
           </AnimatePresence>
         </div>
-
-        {filteredStudents.length === 0 && (
-          <div className="py-20 text-center text-slate-400 italic font-bold uppercase tracking-widest">
-            {t('students.noStudents')}
-          </div>
-        )}
       
       {selectedStudent && currentSelectedStudent && <StudentDetailsModal student={currentSelectedStudent} onClose={() => setSelectedStudent(null)} />}
       {isAddingStudent && <NewStudentModal defaultIsKid={activeView === 'kids'} onClose={() => setIsAddingStudent(false)} />}
       {isSelectingCompetitors && <CompetitorSelectorModal onClose={() => setIsSelectingCompetitors(false)} />}
+      {showBulkDeletionConfirm && (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-slate-950/85 backdrop-blur-sm animate-in fade-in duration-300">
+          <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-white/10 rounded-[2.5rem] max-w-md w-full p-8 shadow-2xl relative overflow-hidden animate-in zoom-in-95 duration-300 text-left">
+            <h3 className="text-xl font-black text-rose-600 dark:text-rose-450 uppercase tracking-tighter italic flex items-center gap-2">
+              <AlertTriangle className="text-rose-600" size={22} />
+              Confirmar Exclusão em Massa
+            </h3>
+            <p className="text-slate-500 dark:text-slate-400 text-xs mt-3 leading-relaxed">
+              Sensei, você selecionou <strong className="text-red-600">{selectedForCleanup.length}</strong> cadastros para deleção permanente. Todos os seus registros financeiros, frequências e históricos acadêmicos serão apagados do sistema e são **irrecuperáveis**.
+            </p>
+            <div className="mt-6 flex gap-3 justify-end">
+              <button 
+                onClick={() => setShowBulkDeletionConfirm(false)}
+                className="px-5 py-3 bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-800 dark:text-slate-200 text-[10px] font-black uppercase tracking-widest rounded-2xl transition-all"
+              >
+                Voltar (OSS)
+              </button>
+              <button 
+                onClick={handleExecuteBulkDelete}
+                className="px-5 py-3 bg-red-600 hover:bg-red-500 text-white text-[10px] font-black uppercase tracking-widest rounded-2xl transition-all shadow-lg"
+              >
+                Sim, Deletar Permanente
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {confirmModal && (
         <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-slate-950/80 backdrop-blur-md animate-in fade-in duration-300">

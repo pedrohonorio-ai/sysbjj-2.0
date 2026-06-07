@@ -1,5 +1,5 @@
 
-import React, { createContext, useContext, useState, useEffect, ReactNode, useCallback } from 'react';
+import React, { createContext, useContext, useState, useEffect, ReactNode, useCallback, useMemo } from 'react';
 import { Student, Payment, ClassSchedule, GalleryImage, ExtraRevenue, KimonoOrder, LessonPlan, LibraryTechnique, TechniqueCategory, BeltColor, Product, Plan, PaymentReceipt, TransactionLedger, SystemLog, AttendanceRecord, ExtraRevenueCategory, GraduationCriterion, GraduationHistory } from '../types.js';
 import CryptoJS from 'crypto-js';
 import { IBJJF_LESSONS } from '../constants/rulesData.js';
@@ -315,8 +315,40 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       isValid: true
     };
   });
-  const [attendance, setAttendance] = useState<AttendanceRecord[]>([]);
   const [presence, setPresence] = useState<{ email: string; lastSeen: number; role: string; userAgent: string; id: string }[]>([]);
+  
+  // 🥋 SENSEI DYNAMIC ATTENDANCE DERIVED MATRIX (Fixes empty attendance array bugs)
+  const attendance = useMemo(() => {
+    const allEvents: any[] = [];
+    students.forEach(student => {
+      if (student.attendanceHistory && Array.isArray(student.attendanceHistory)) {
+        student.attendanceHistory.forEach(history => {
+          allEvents.push({
+            studentId: student.id,
+            studentName: student.name,
+            ...history
+          });
+        });
+      }
+    });
+
+    const attendanceArray = [...allEvents] as any;
+    
+    const groups: Record<string, any[]> = {};
+    allEvents.forEach(event => {
+      const dateStr = event.date;
+      if (!groups[dateStr]) {
+        groups[dateStr] = [];
+      }
+      groups[dateStr].push(event);
+    });
+
+    Object.keys(groups).forEach(dateStr => {
+      attendanceArray[dateStr] = groups[dateStr];
+    });
+
+    return attendanceArray;
+  }, [students]);
   const [notifications, setNotifications] = useState<AppNotification[]>([]);
   const [dbStatus, setDbStatus] = useState<{ connected: boolean; error: string | null, troubleshooting?: string[], isDemoMode?: boolean }>({ 
     connected: true, 
