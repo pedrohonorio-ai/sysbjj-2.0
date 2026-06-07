@@ -324,6 +324,12 @@ interface CustomPreset {
   watermarkRotation: number;
   watermarkScale: number;
   enableAntiForgery: boolean;
+  academyLogoX?: number;
+  academyLogoY?: number;
+  teamLogoX?: number;
+  teamLogoY?: number;
+  shieldLogoX?: number;
+  shieldLogoY?: number;
 }
 
 // Audit record structure (Requirement 14)
@@ -424,6 +430,14 @@ const CertificatesHub: React.FC = () => {
   const [academyLogoSize, setAcademyLogoSize] = useState<number>(36);
   const [teamLogoSize, setTeamLogoSize] = useState<number>(36);
   const [shieldLogoSize, setShieldLogoSize] = useState<number>(36);
+
+  // Logo position and coordinates (millimeter coordinates inside horizontal A4 297mm x 210mm)
+  const [academyLogoX, setAcademyLogoX] = useState<number>(16);
+  const [academyLogoY, setAcademyLogoY] = useState<number>(16);
+  const [teamLogoX, setTeamLogoX] = useState<number>(249); // 281 - (36 * 0.35) = 268.4. Default standard left
+  const [teamLogoY, setTeamLogoY] = useState<number>(16);
+  const [shieldLogoX, setShieldLogoX] = useState<number>(142); // Centered default (148.5 - 12.6/2 = 142.2)
+  const [shieldLogoY, setShieldLogoY] = useState<number>(16);
 
   // Background control (Requirement 1)
   const [customBackgroundUrl, setCustomBackgroundUrl] = useState<string>('');
@@ -645,7 +659,14 @@ const CertificatesHub: React.FC = () => {
       watermarkOpacity,
       watermarkRotation,
       watermarkScale,
-      enableAntiForgery
+      enableAntiForgery,
+      // Add coordinates to preset
+      academyLogoX,
+      academyLogoY,
+      teamLogoX,
+      teamLogoY,
+      shieldLogoX,
+      shieldLogoY
     };
     const updated = [...savedPresets, newPreset];
     setSavedPresets(updated);
@@ -681,6 +702,12 @@ const CertificatesHub: React.FC = () => {
     setWatermarkRotation(preset.watermarkRotation);
     setWatermarkScale(preset.watermarkScale);
     setEnableAntiForgery(preset.enableAntiForgery);
+    if (preset.academyLogoX !== undefined) setAcademyLogoX(preset.academyLogoX);
+    if (preset.academyLogoY !== undefined) setAcademyLogoY(preset.academyLogoY);
+    if (preset.teamLogoX !== undefined) setTeamLogoX(preset.teamLogoX);
+    if (preset.teamLogoY !== undefined) setTeamLogoY(preset.teamLogoY);
+    if (preset.shieldLogoX !== undefined) setShieldLogoX(preset.shieldLogoX);
+    if (preset.shieldLogoY !== undefined) setShieldLogoY(preset.shieldLogoY);
     logAction('Preset Layout Carregado', `Preset de layout "${preset.name}" carregado na tela de trabalho`, 'System');
   };
 
@@ -854,21 +881,21 @@ const CertificatesHub: React.FC = () => {
     try {
       if (academyLogoUrl) {
         const logoSzMM = academyLogoSize * 0.35;
-        doc.addImage(academyLogoUrl, 'PNG', 16, 16, logoSzMM, logoSzMM, undefined, 'FAST');
+        doc.addImage(academyLogoUrl, 'PNG', academyLogoX, academyLogoY, logoSzMM, logoSzMM, undefined, 'FAST');
       }
     } catch (e) {}
 
     try {
       if (teamLogoUrl) {
         const logoSzMM = teamLogoSize * 0.35;
-        doc.addImage(teamLogoUrl, 'PNG', 281 - logoSzMM, 16, logoSzMM, logoSzMM, undefined, 'FAST');
+        doc.addImage(teamLogoUrl, 'PNG', teamLogoX, teamLogoY, logoSzMM, logoSzMM, undefined, 'FAST');
       }
     } catch (e) {}
 
     try {
       if (shieldLogoUrl) {
         const logoSzMM = shieldLogoSize * 0.35;
-        doc.addImage(shieldLogoUrl, 'PNG', 148.5 - logoSzMM / 2, 16, logoSzMM, logoSzMM, undefined, 'FAST');
+        doc.addImage(shieldLogoUrl, 'PNG', shieldLogoX, shieldLogoY, logoSzMM, logoSzMM, undefined, 'FAST');
       }
     } catch (e) {}
 
@@ -1479,47 +1506,245 @@ const CertificatesHub: React.FC = () => {
                   
                   <div className="grid grid-cols-3 gap-2.5">
                     {/* CT LOGO */}
-                    <div className="space-y-1">
-                      <p className="text-[7.5px] font-black text-stone-400 uppercase">CT LOGO (SUP. ESQ)</p>
+                    <div className="space-y-1 bg-slate-950/40 p-2 rounded-xl border border-white/5">
+                      <p className="text-[7.5px] font-black text-amber-500 uppercase">CT LOGO (SUP. ESQ)</p>
                       <input 
                         type="file" 
                         accept="image/*"
                         onChange={(e) => handleFileUploadAsBase64(e, setAcademyLogoUrl)} 
                         className="text-[8px] bg-slate-950 border border-white/5 p-1 w-full rounded"
                       />
-                      <div className="flex items-center gap-1 mt-1">
-                        <span className="text-[7px]">Siz:</span>
+                      <div className="flex items-center justify-between gap-1 mt-1">
+                        <span className="text-[7px] text-slate-400">Tam:</span>
                         <input type="range" min="15" max="95" value={academyLogoSize} onChange={(e) => setAcademyLogoSize(Number(e.target.value))} className="w-full scale-90" />
+                      </div>
+
+                      {/* CT LOGO CONTROLS */}
+                      <div className="flex flex-col gap-0.5 mt-1 border-t border-white/5 pt-1 space-y-1">
+                        <div className="flex items-center justify-between text-[7px] text-slate-400">
+                          <span className="font-extrabold uppercase">Alinhar:</span>
+                          <div className="flex gap-1">
+                            <button 
+                              onClick={() => {
+                                setAcademyLogoX(16);
+                                setAcademyLogoY(16);
+                              }}
+                              title="Alinhar à Esquerda"
+                              className="px-1 py-0.5 bg-slate-900 border border-white/5 hover:border-slate-700 text-stone-200 rounded text-[6.5px] active:scale-95 transition-all"
+                            >
+                              Esq
+                            </button>
+                            <button 
+                              onClick={() => {
+                                const logoSzMM = academyLogoSize * 0.35;
+                                setAcademyLogoX(148.5 - logoSzMM / 2);
+                                setAcademyLogoY(16);
+                              }}
+                              title="Centralizar no Topo"
+                              className="px-1 py-0.5 bg-[#B58911] hover:bg-amber-600 text-white font-extrabold rounded text-[6.5px] active:scale-95 transition-all"
+                            >
+                              Cent
+                            </button>
+                            <button 
+                              onClick={() => {
+                                const logoSzMM = academyLogoSize * 0.35;
+                                setAcademyLogoX(281 - logoSzMM);
+                                setAcademyLogoY(16);
+                              }}
+                              title="Alinhar à Direita"
+                              className="px-1 py-0.5 bg-slate-900 border border-white/5 hover:border-slate-700 text-stone-200 rounded text-[6.5px] active:scale-95 transition-all"
+                            >
+                              Dir
+                            </button>
+                          </div>
+                        </div>
+
+                        <div className="space-y-0.5">
+                          <div className="flex justify-between items-center text-[7px] text-slate-400">
+                            <span>Pos X: {Math.round(academyLogoX)}mm</span>
+                            <input 
+                              type="range" 
+                              min="0" 
+                              max="297" 
+                              value={Math.round(academyLogoX)} 
+                              onChange={(e) => setAcademyLogoX(Number(e.target.value))} 
+                              className="w-[45px] accent-amber-500 scale-75"
+                            />
+                          </div>
+                          <div className="flex justify-between items-center text-[7px] text-slate-400">
+                            <span>Pos Y: {Math.round(academyLogoY)}mm</span>
+                            <input 
+                              type="range" 
+                              min="0" 
+                              max="210" 
+                              value={Math.round(academyLogoY)} 
+                              onChange={(e) => setAcademyLogoY(Number(e.target.value))} 
+                              className="w-[45px] accent-amber-500 scale-75"
+                            />
+                          </div>
+                        </div>
                       </div>
                     </div>
 
                     {/* TEAM LOGO */}
-                    <div className="space-y-1">
-                      <p className="text-[7.5px] font-black text-stone-400 uppercase">TEAM LOGO (SUP. DIR)</p>
+                    <div className="space-y-1 bg-slate-950/40 p-2 rounded-xl border border-white/5">
+                      <p className="text-[7.5px] font-black text-amber-500 uppercase">TEAM LOGO (SUP. DIR)</p>
                       <input 
                         type="file" 
                         accept="image/*"
                         onChange={(e) => handleFileUploadAsBase64(e, setTeamLogoUrl)} 
                         className="text-[8px] bg-slate-950 border border-white/5 p-1 w-full rounded"
                       />
-                      <div className="flex items-center gap-1 mt-1">
-                        <span className="text-[7px]">Siz:</span>
+                      <div className="flex items-center justify-between gap-1 mt-1">
+                        <span className="text-[7px] text-slate-400">Tam:</span>
                         <input type="range" min="15" max="95" value={teamLogoSize} onChange={(e) => setTeamLogoSize(Number(e.target.value))} className="w-full scale-90" />
+                      </div>
+
+                      {/* TEAM LOGO CONTROLS */}
+                      <div className="flex flex-col gap-0.5 mt-1 border-t border-white/5 pt-1 space-y-1">
+                        <div className="flex items-center justify-between text-[7px] text-slate-400">
+                          <span className="font-extrabold uppercase">Alinhar:</span>
+                          <div className="flex gap-1">
+                            <button 
+                              onClick={() => {
+                                setTeamLogoX(16);
+                                setTeamLogoY(16);
+                              }}
+                              title="Alinhar à Esquerda"
+                              className="px-1 py-0.5 bg-slate-900 border border-white/5 hover:border-slate-700 text-stone-200 rounded text-[6.5px] active:scale-95 transition-all"
+                            >
+                              Esq
+                            </button>
+                            <button 
+                              onClick={() => {
+                                const logoSzMM = teamLogoSize * 0.35;
+                                setTeamLogoX(148.5 - logoSzMM / 2);
+                                setTeamLogoY(16);
+                              }}
+                              title="Centralizar no Topo"
+                              className="px-1 py-0.5 bg-[#B58911] hover:bg-amber-600 text-white font-extrabold rounded text-[6.5px] active:scale-95 transition-all"
+                            >
+                              Cent
+                            </button>
+                            <button 
+                              onClick={() => {
+                                const logoSzMM = teamLogoSize * 0.35;
+                                setTeamLogoX(281 - logoSzMM);
+                                setTeamLogoY(16);
+                              }}
+                              title="Alinhar à Direita"
+                              className="px-1 py-0.5 bg-slate-900 border border-white/5 hover:border-slate-700 text-stone-200 rounded text-[6.5px] active:scale-95 transition-all"
+                            >
+                              Dir
+                            </button>
+                          </div>
+                        </div>
+
+                        <div className="space-y-0.5">
+                          <div className="flex justify-between items-center text-[7px] text-slate-400">
+                            <span>Pos X: {Math.round(teamLogoX)}mm</span>
+                            <input 
+                              type="range" 
+                              min="0" 
+                              max="297" 
+                              value={Math.round(teamLogoX)} 
+                              onChange={(e) => setTeamLogoX(Number(e.target.value))} 
+                              className="w-[45px] accent-amber-500 scale-75"
+                            />
+                          </div>
+                          <div className="flex justify-between items-center text-[7px] text-slate-400">
+                            <span>Pos Y: {Math.round(teamLogoY)}mm</span>
+                            <input 
+                              type="range" 
+                              min="0" 
+                              max="210" 
+                              value={Math.round(teamLogoY)} 
+                              onChange={(e) => setTeamLogoY(Number(e.target.value))} 
+                              className="w-[45px] accent-amber-500 scale-75"
+                            />
+                          </div>
+                        </div>
                       </div>
                     </div>
 
                     {/* ACADEMY SHIELD */}
-                    <div className="space-y-1">
-                      <p className="text-[7.5px] font-black text-stone-400 uppercase">BRASÃO CENTRAL</p>
+                    <div className="space-y-1 bg-slate-950/40 p-2 rounded-xl border border-white/5">
+                      <p className="text-[7.5px] font-black text-amber-500 uppercase">BRASÃO CENTRAL</p>
                       <input 
                         type="file" 
                         accept="image/*"
                         onChange={(e) => handleFileUploadAsBase64(e, setShieldLogoUrl)} 
                         className="text-[8px] bg-slate-950 border border-white/5 p-1 w-full rounded"
                       />
-                      <div className="flex items-center gap-1 mt-1">
-                        <span className="text-[7px]">Siz:</span>
+                      <div className="flex items-center justify-between gap-1 mt-1">
+                        <span className="text-[7px] text-slate-400">Tam:</span>
                         <input type="range" min="15" max="95" value={shieldLogoSize} onChange={(e) => setShieldLogoSize(Number(e.target.value))} className="w-full scale-90" />
+                      </div>
+
+                      {/* SHIELD CONTROLS */}
+                      <div className="flex flex-col gap-0.5 mt-1 border-t border-white/5 pt-1 space-y-1">
+                        <div className="flex items-center justify-between text-[7px] text-slate-400">
+                          <span className="font-extrabold uppercase">Alinhar:</span>
+                          <div className="flex gap-1">
+                            <button 
+                              onClick={() => {
+                                setShieldLogoX(16);
+                                setShieldLogoY(16);
+                              }}
+                              title="Alinhar à Esquerda"
+                              className="px-1 py-0.5 bg-slate-900 border border-white/5 hover:border-slate-700 text-stone-200 rounded text-[6.5px] active:scale-95 transition-all"
+                            >
+                              Esq
+                            </button>
+                            <button 
+                              onClick={() => {
+                                const logoSzMM = shieldLogoSize * 0.35;
+                                setShieldLogoX(148.5 - logoSzMM / 2);
+                                setShieldLogoY(16);
+                              }}
+                              title="Centralizar no Topo"
+                              className="px-1 py-0.5 bg-[#B58911] hover:bg-amber-600 text-white font-extrabold rounded text-[6.5px] active:scale-95 transition-all"
+                            >
+                              Cent
+                            </button>
+                            <button 
+                              onClick={() => {
+                                const logoSzMM = shieldLogoSize * 0.35;
+                                setShieldLogoX(281 - logoSzMM);
+                                setShieldLogoY(16);
+                              }}
+                              title="Alinhar à Direita"
+                              className="px-1 py-0.5 bg-slate-900 border border-white/5 hover:border-slate-700 text-stone-200 rounded text-[6.5px] active:scale-95 transition-all"
+                            >
+                              Dir
+                            </button>
+                          </div>
+                        </div>
+
+                        <div className="space-y-0.5">
+                          <div className="flex justify-between items-center text-[7px] text-slate-400">
+                            <span>Pos X: {Math.round(shieldLogoX)}mm</span>
+                            <input 
+                              type="range" 
+                              min="0" 
+                              max="297" 
+                              value={Math.round(shieldLogoX)} 
+                              onChange={(e) => setShieldLogoX(Number(e.target.value))} 
+                              className="w-[45px] accent-amber-500 scale-75"
+                            />
+                          </div>
+                          <div className="flex justify-between items-center text-[7px] text-slate-400">
+                            <span>Pos Y: {Math.round(shieldLogoY)}mm</span>
+                            <input 
+                              type="range" 
+                              min="0" 
+                              max="210" 
+                              value={Math.round(shieldLogoY)} 
+                              onChange={(e) => setShieldLogoY(Number(e.target.value))} 
+                              className="w-[45px] accent-amber-500 scale-75"
+                            />
+                          </div>
+                        </div>
                       </div>
                     </div>
                   </div>
@@ -1899,10 +2124,53 @@ const CertificatesHub: React.FC = () => {
                     </div>
                   )}
 
+                  {/* Absolute overlays for uploaded logos to match PDF coordinates exactly */}
+                  {academyLogoUrl && (
+                    <div 
+                      className="absolute pointer-events-none select-none z-20 flex items-center justify-center transition-all"
+                      style={{
+                        left: `${(academyLogoX / 297) * 100}%`,
+                        top: `${(academyLogoY / 210) * 100}%`,
+                        width: `${((academyLogoSize * 0.35) / 297) * 100}%`,
+                        height: `${((academyLogoSize * 0.35) / 210) * 100}%`,
+                      }}
+                    >
+                      <img src={academyLogoUrl} alt="Academy Logo" className="w-full h-full object-contain" />
+                    </div>
+                  )}
+
+                  {teamLogoUrl && (
+                    <div 
+                      className="absolute pointer-events-none select-none z-20 flex items-center justify-center transition-all"
+                      style={{
+                        left: `${(teamLogoX / 297) * 100}%`,
+                        top: `${(teamLogoY / 210) * 100}%`,
+                        width: `${((teamLogoSize * 0.35) / 297) * 100}%`,
+                        height: `${((teamLogoSize * 0.35) / 210) * 100}%`,
+                      }}
+                    >
+                      <img src={teamLogoUrl} alt="Team Logo" className="w-full h-full object-contain" />
+                    </div>
+                  )}
+
+                  {shieldLogoUrl && (
+                    <div 
+                      className="absolute pointer-events-none select-none z-20 flex items-center justify-center transition-all"
+                      style={{
+                        left: `${(shieldLogoX / 297) * 100}%`,
+                        top: `${(shieldLogoY / 210) * 100}%`,
+                        width: `${((shieldLogoSize * 0.35) / 297) * 100}%`,
+                        height: `${((shieldLogoSize * 0.35) / 210) * 100}%`,
+                      }}
+                    >
+                      <img src={shieldLogoUrl} alt="Academy Shield" className="w-full h-full object-contain" />
+                    </div>
+                  )}
+
                   {/* Banner superior header content (Requirement 1) */}
                   <div className="relative z-10 flex items-center justify-between border-b border-dashed border-stone-800/20 pb-2">
                     {academyLogoUrl ? (
-                      <img src={academyLogoUrl} alt="Academy Logo" className="object-contain" style={{ width: `${academyLogoSize}px`, height: `${academyLogoSize}px` }} />
+                      <div style={{ width: `${academyLogoSize}px`, height: `${academyLogoSize}px` }} className="opacity-0 pointer-events-none" />
                     ) : (
                       <div className="p-2 bg-stone-900 text-white rounded font-sans font-black text-[9px] uppercase tracking-wider leading-none">DOJO</div>
                     )}
@@ -1914,9 +2182,9 @@ const CertificatesHub: React.FC = () => {
 
                     <div className="flex justify-end min-w-[40px]">
                       {teamLogoUrl ? (
-                        <img src={teamLogoUrl} alt="Team Logo" className="object-contain" style={{ width: `${teamLogoSize}px`, height: `${teamLogoSize}px` }} />
+                        <div style={{ width: `${teamLogoSize}px`, height: `${teamLogoSize}px` }} className="opacity-0 pointer-events-none" />
                       ) : shieldLogoUrl ? (
-                        <img src={shieldLogoUrl} alt="Academy Shield" className="object-contain" style={{ width: `${shieldLogoSize}px`, height: `${shieldLogoSize}px` }} />
+                        <div style={{ width: `${shieldLogoSize}px`, height: `${shieldLogoSize}px` }} className="opacity-0 pointer-events-none" />
                       ) : (
                         <Award size={26} className="text-[#B58911]" />
                       )}
