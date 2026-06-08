@@ -201,7 +201,24 @@ const MANDATORY_DICTIONARY: Record<string, string> = {
   "common.notSigned": "Pendente de Assinatura",
   "blockchain.certified": "Validado via Blockchain",
   "common.profession": "Profissão",
-  "common.legalTab": "Dados Jurídicos"
+  "common.legalTab": "Dados Jurídicos",
+  "common.years": "Anos",
+  "common.year": "Ano",
+  "common.age": "Idade",
+  "common.category": "Categoria",
+  "common.generate": "Gerar",
+  "common.report": "Relatório",
+  "common.profile": "Perfil",
+  "common.technical": "Ficha Técnica",
+  "common.evolution": "Evolução",
+  "common.forecast": "Previsão",
+  "common.guard": "Guarda",
+  "common.passing": "Passagem",
+  "common.submission": "Finalização",
+  "common.takedowns": "Quedas & Projeções",
+  "common.master": "Sensei Master",
+  "common.active": "Ativo",
+  "common.next": "PRÓXIMO"
 };
 
 // Technical terminology replacement map

@@ -875,7 +875,7 @@ const AttendancePage: React.FC = () => {
           </div>
 
           {/* TELEMETRIA DE TATAME EM TEMPO REAL PANEL */}
-          <div className="bg-slate-900 border border-slate-800 p-8 rounded-[3.5rem] shadow-2xl text-white space-y-6">
+          <div className="bg-slate-900 border border-slate-800 p-5 sm:p-8 rounded-[2rem] sm:rounded-[3.5rem] shadow-2xl text-white space-y-6">
             <header className="flex items-center gap-2">
               <Sparkles className="text-blue-500 animate-pulse shrink-0" size={18} />
               <h3 className="text-lg font-black uppercase tracking-tighter italic">Telemetria de Tatame</h3>

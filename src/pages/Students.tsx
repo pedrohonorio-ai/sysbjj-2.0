@@ -2646,7 +2646,7 @@ const StudentDetailsModal = ({ student, onClose }: { student: Student; onClose: 
                            <Zap size={24} />
                         </div>
                         <div className="text-center">
-                           <p className="text-[10px] font-black uppercase tracking-widest text-slate-400">NEXT</p>
+                           <p className="text-[10px] font-black uppercase tracking-widest text-slate-400">{t('common.next', 'PRÓXIMO')}</p>
                         </div>
                      </div>
                    </div>

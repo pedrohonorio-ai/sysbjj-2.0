@@ -1937,7 +1937,7 @@ const BeltSystem: React.FC = () => {
                         {/* Quedas */}
                         <div className="space-y-1">
                           <div className="flex justify-between text-[9px] font-bold">
-                            <span className="text-slate-500 dark:text-slate-400">Quedas & Projeções (Takedowns)</span>
+                            <span className="text-slate-500 dark:text-slate-400">Quedas & Projeções</span>
                             <span className="font-extrabold text-blue-600">{selectedStudent.examRequirements?.scoreTakedowns ?? 7} / 10</span>
                           </div>
                           <input 

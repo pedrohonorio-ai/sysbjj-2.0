@@ -807,12 +807,12 @@ const StudentPortal: React.FC = () => {
     }
     if (selectedModality === 'mma') {
       return [
-        { subject: 'Striking Boxer', A: Math.min(100, 55 + (base % 40)) },
-        { subject: 'Clinch Wrestling', A: Math.min(100, 50 + (student.attendanceCount % 30)) },
-        { subject: 'Submission BJJ', A: Math.min(100, 60 + (student.stripes * 6)) },
+        { subject: 'Boxe (Trocação)', A: Math.min(100, 55 + (base % 40)) },
+        { subject: 'Wrestling (Clinch)', A: Math.min(100, 50 + (student.attendanceCount % 30)) },
+        { subject: 'Submission (Sem Kimono)', A: Math.min(100, 60 + (student.stripes * 6)) },
         { subject: 'Trabalho de Grade', A: Math.min(100, 45 + (student.rulesKnowledge || 35)) },
         { subject: 'Cárdio/Resistência', A: Math.min(100, 65 + (student.currentStreak || 0) * 9) },
-        { subject: 'Ground-and-Pound', A: Math.min(100, 50 + (base % 30)) },
+        { subject: 'Ground and Pound (Solo)', A: Math.min(100, 50 + (base % 30)) },
       ];
     }
     if (selectedModality === 'judo') {
