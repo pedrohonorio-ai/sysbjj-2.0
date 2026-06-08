@@ -5,11 +5,13 @@ import { motion } from 'motion/react';
 import { 
   Users, Calendar, TrendingUp, DollarSign, Award, ArrowUpRight, ArrowDownRight, 
   Clock, ShieldCheck, Activity, Cake, History, CloudSun, Timer, 
-  RefreshCw, Wifi, WifiOff, Database, CheckCircle2, AlertTriangle, ChevronRight, ClipboardCheck
+  RefreshCw, Wifi, WifiOff, Database, CheckCircle2, AlertTriangle, ChevronRight, ClipboardCheck,
+  QrCode
 } from 'lucide-react';
 import { useTranslation } from '../contexts/LanguageContext.js';
 import { useData } from '../contexts/DataContext.js';
 import { useProfile } from '../contexts/ProfileContext.js';
+import { useAuth } from '../context/AuthContext.js';
 import { 
   AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
   ComposedChart, Bar, Line, Legend
@@ -33,6 +35,7 @@ const Dashboard: React.FC = () => {
   };
   const { students, payments, logs, verifyAuditIntegrity, ledger, attendance } = useData();
   const { profile } = useProfile();
+  const { isMasterAdmin } = useAuth();
   const [currentTime, setCurrentTime] = useState(new Date());
   const [temp, setTemp] = useState<number | null>(null);
   const [subscription, setSubscription] = useState<any>(null);
@@ -692,6 +695,32 @@ const Dashboard: React.FC = () => {
                 </div>
               </Link>
 
+              {/* PIX Payment Config Quick Access (Requisito: Atalho na Dashboard) */}
+              <Link 
+                to="/settings?tab=profile"
+                className="group flex items-center justify-between p-5 bg-slate-50 hover:bg-emerald-500/10 dark:bg-white/5 dark:hover:bg-emerald-900/20 border border-slate-100 dark:border-white/5 hover:border-emerald-555 dark:hover:border-emerald-500/30 rounded-[2rem] transition-all cursor-pointer relative"
+              >
+                <div className="flex items-center gap-4.5">
+                  <div className="w-12 h-12 bg-emerald-600 text-white rounded-2xl flex items-center justify-center shadow-lg shadow-emerald-500/20 group-hover:scale-105 transition-transform">
+                    <QrCode size={22} />
+                  </div>
+                  <div>
+                    <h4 className="text-sm font-black text-slate-900 dark:text-white uppercase tracking-tight flex items-center gap-2">
+                      Configurar Pagamento (PIX)
+                      <span className="px-2 py-0.5 bg-emerald-500 text-slate-950 font-black text-[8px] uppercase tracking-wider rounded-lg">
+                        PORTAL DO ALUNO
+                      </span>
+                    </h4>
+                    <p className="text-[10px] font-medium text-slate-500 dark:text-slate-400 uppercase tracking-widest mt-1">
+                      {profile.pixKey ? `Chave cadastrada: ${profile.pixKey}` : 'Ainda não cadastrado'}
+                    </p>
+                  </div>
+                </div>
+                <div className="w-10 h-10 bg-slate-200/50 dark:bg-white/5 rounded-xl flex items-center justify-center group-hover:bg-emerald-600 group-hover:text-white transition-all text-slate-450 dark:text-slate-350">
+                  <ChevronRight size={18} />
+                </div>
+              </Link>
+
               <div className="p-5 bg-slate-50 dark:bg-white/5 rounded-[2rem] border border-slate-100 dark:border-white/5 flex flex-col justify-between h-28 relative overflow-hidden">
                 <div className="absolute top-0 right-0 p-4 opacity-5 pointer-events-none">
                   <Users size={64} className="text-slate-400" />
@@ -936,7 +965,8 @@ const Dashboard: React.FC = () => {
       </div>
 
       {/* 🔌 OFFLINE SYNCHRONIZATION AND DATA INTEGRITY HEALTH MONITOR */}
-      <div className="bg-white dark:bg-slate-900 rounded-[3rem] border border-slate-200 dark:border-white/5 p-8 shadow-2xl">
+      {isMasterAdmin && (
+        <div className="bg-white dark:bg-slate-900 rounded-[3rem] border border-slate-200 dark:border-white/5 p-8 shadow-2xl">
          <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-8">
             <div>
                <h2 className="text-xl font-black text-slate-900 dark:text-white uppercase tracking-tighter italic flex items-center gap-2">
@@ -1117,9 +1147,11 @@ const Dashboard: React.FC = () => {
                </button>
             </div>
          </div>
-      </div>
+        </div>
+      )}
 
-      <div className="bg-white dark:bg-slate-900 rounded-[3rem] border border-slate-200 dark:border-white/5 p-8 shadow-2xl">
+      {isMasterAdmin && (
+        <div className="bg-white dark:bg-slate-900 rounded-[3rem] border border-slate-200 dark:border-white/5 p-8 shadow-2xl">
          <div className="flex items-center justify-between mb-8">
             <div>
                <h2 className="text-xl font-black text-slate-900 dark:text-white uppercase tracking-tighter italic flex items-center gap-2">
@@ -1165,7 +1197,8 @@ const Dashboard: React.FC = () => {
               </motion.div>
             ))}
          </div>
-      </div>
+        </div>
+      )}
     </div>
   );
 };

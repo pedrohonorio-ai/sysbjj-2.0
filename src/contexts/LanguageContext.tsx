@@ -14,23 +14,30 @@ interface LanguageContextType {
 const LanguageContext = createContext<LanguageContextType | undefined>(undefined);
 
 export const LanguageProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
-  const [language, setLanguageState] = useState<AppLanguage>(AppLanguage.PORTUGUESE_BR);
+  const [language, setLanguageState] = useState<AppLanguage>(() => {
+    const saved = localStorage.getItem('language');
+    if (saved === 'en') return AppLanguage.ENGLISH_US;
+    if (saved === 'es') return AppLanguage.SPANISH_ES;
+    return AppLanguage.PORTUGUESE_BR;
+  });
 
   useEffect(() => {
-    localStorage.setItem('language', 'pt');
-    localStorage.setItem('oss_language', 'pt');
+    localStorage.setItem('language', language);
+    localStorage.setItem('oss_language', language);
     
-    if (i18n.language !== 'pt') {
-      i18n.changeLanguage('pt');
+    const i18nLang = language === AppLanguage.PORTUGUESE_BR ? 'pt' : language;
+    if (i18n.language !== i18nLang) {
+      i18n.changeLanguage(i18nLang);
     }
   }, [language]);
 
   const setLanguage = (lang: AppLanguage) => {
-    setLanguageState(AppLanguage.PORTUGUESE_BR);
-    localStorage.setItem('language', 'pt');
-    localStorage.setItem('oss_language', 'pt');
-    if (i18n.language !== 'pt') {
-      i18n.changeLanguage('pt');
+    setLanguageState(lang);
+    localStorage.setItem('language', lang);
+    localStorage.setItem('oss_language', lang);
+    const i18nLang = lang === AppLanguage.PORTUGUESE_BR ? 'pt' : lang;
+    if (i18n.language !== i18nLang) {
+      i18n.changeLanguage(i18nLang);
     }
   };
 

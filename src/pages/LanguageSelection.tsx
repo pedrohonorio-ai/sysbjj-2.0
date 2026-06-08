@@ -6,8 +6,8 @@ import { Check, Globe } from 'lucide-react';
 
 const languages = [
   { code: AppLanguage.PORTUGUESE_BR, name: 'Português', native: 'Português (Brasil)', flag: '🇧🇷', active: true, reason: 'Idioma padrão e recomendado do ecossistema SYSBJJ' },
-  { code: AppLanguage.ENGLISH_US, name: 'English', native: 'English (US)', flag: '🇺🇸', active: false, reason: 'Indisponível - Foco operacional em português do Brasil' },
-  { code: AppLanguage.SPANISH_ES, name: 'Spanish', native: 'Español', flag: '🇪🇸', active: false, reason: 'Indisponível - Foco operacional em português do Brasil' }
+  { code: AppLanguage.ENGLISH_US, name: 'English', native: 'English (US)', flag: '🇺🇸', active: true, reason: 'English localization for international students' },
+  { code: AppLanguage.SPANISH_ES, name: 'Spanish', native: 'Español', flag: '🇪🇸', active: true, reason: 'Traducción oficial para practicantes de habla hispana' }
 ];
 
 const LanguageSelection: React.FC = () => {

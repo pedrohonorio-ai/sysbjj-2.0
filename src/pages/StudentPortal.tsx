@@ -941,6 +941,12 @@ const StudentPortal: React.FC = () => {
 
   const isOverdue = student.status === StudentStatus.OVERDUE || (!hasPaidCurrentMonth && student.dueDay < new Date().getDate());
 
+  const showBloodTypeSetting = profile?.showBloodType !== false;
+  const showMedicalConditionsSetting = profile?.showMedicalConditions !== false;
+  const showLiabilityWaiverSetting = profile?.showLiabilityWaiver !== false;
+  const showMedicalCertificateSetting = profile?.showMedicalCertificate !== false;
+  const hasAnyHealthSetting = showBloodTypeSetting || showMedicalConditionsSetting || showLiabilityWaiverSetting || showMedicalCertificateSetting;
+
   return (
     <div className="min-h-screen bg-slate-50 dark:bg-slate-950 pb-24 transition-colors">
       <main className="max-w-md mx-auto p-4 space-y-6">
@@ -1662,6 +1668,134 @@ const StudentPortal: React.FC = () => {
               </div>
             )}
 
+            {/* SAÚDE & FICHA MÉDICA (Requisito: Informações de Saúde) */}
+            {hasAnyHealthSetting && student && (
+              <div id="health-card" className="bg-white dark:bg-slate-900 rounded-[2.5rem] p-8 border border-slate-200 dark:border-slate-800 shadow-sm space-y-6">
+                <div>
+                  <p className="text-[9px] font-black text-rose-500 uppercase tracking-[0.2em] mb-1 flex items-center gap-1.5">
+                    <Activity size={12} className="animate-pulse" /> Saúde & Integridade Física
+                  </p>
+                  <h3 className="text-xl font-black text-slate-900 dark:text-white uppercase tracking-tighter leading-none">Dados Médicos & Termos</h3>
+                </div>
+
+                <div className="space-y-4">
+                  {/* Tipo Sanguíneo */}
+                  {showBloodTypeSetting && (
+                    <div className="p-4 bg-slate-50 dark:bg-slate-800/40 rounded-2xl border border-slate-100 dark:border-slate-800 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                      <div>
+                        <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest block mb-0.5">Tipo Sanguíneo</span>
+                        <span className="text-xs font-bold text-slate-750 dark:text-slate-300">
+                          {student.bloodType || 'Não informado'}
+                        </span>
+                      </div>
+                      <div className="flex gap-1.5 flex-wrap">
+                        {['A+', 'A-', 'B+', 'B-', 'AB+', 'AB-', 'O+', 'O-'].map(type => (
+                          <button
+                            key={type}
+                            onClick={() => updateStudent(student.id, { bloodType: type })}
+                            className={`px-2.5 py-1.5 rounded-lg text-[9px] font-black border transition-all cursor-pointer ${
+                              student.bloodType === type
+                                ? 'bg-rose-500 text-white border-rose-600 scale-105 shadow-sm'
+                                : 'bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-350 border-slate-200 dark:border-slate-700 hover:bg-slate-100 dark:hover:bg-slate-700'
+                            }`}
+                          >
+                            {type}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Observações Clínicas */}
+                  {showMedicalConditionsSetting && (
+                    <div className="p-4 bg-slate-50 dark:bg-slate-800/40 rounded-2xl border border-slate-100 dark:border-slate-800 space-y-3">
+                      <div>
+                        <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest block">Restrições e Condições Clínicas</span>
+                        <span className="text-[10px] font-medium text-slate-500 uppercase tracking-wide">Informe caso possua asma, alergias, lesões ou faça uso de medicamentos.</span>
+                      </div>
+                      <div className="flex gap-2">
+                        <input
+                          type="text"
+                          defaultValue={student.medicalConditions}
+                          onBlur={(e) => updateStudent(student.id, { medicalConditions: e.target.value })}
+                          placeholder="Ex: Asma moderada, alergia a dipirona..."
+                          className="flex-1 px-4 py-2 bg-white dark:bg-slate-850 border border-slate-200 dark:border-slate-700 rounded-xl text-xs font-bold text-slate-850 dark:text-white outline-none focus:ring-2 focus:ring-rose-500"
+                        />
+                        <button
+                          onClick={(e) => {
+                            const input = (e.currentTarget.previousSibling as HTMLInputElement);
+                            updateStudent(student.id, { medicalConditions: input.value });
+                          }}
+                          className="px-4 py-2 bg-slate-900 hover:bg-black dark:bg-slate-805 dark:hover:bg-slate-700 text-white border border-slate-200 dark:border-slate-700 rounded-xl text-[9px] font-black uppercase tracking-widest cursor-pointer transition-colors"
+                        >
+                          Salvar
+                        </button>
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Termo de Responsabilidade Técnica */}
+                  {showLiabilityWaiverSetting && (
+                    <div className="p-4 bg-slate-50 dark:bg-slate-800/40 rounded-2xl border border-slate-100 dark:border-slate-800 flex items-center justify-between">
+                      <div className="space-y-1">
+                        <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest block">Termo de Responsabilidade</span>
+                        <span className="text-xs font-bold dark:text-white">
+                          {student.liabilityWaiverAccepted ? (
+                            <span className="text-emerald-500 flex items-center gap-1.5"><CheckCircle2 size={13} /> {t('medical.accepted')}</span>
+                          ) : (
+                            <span className="text-amber-500 flex items-center gap-1.5"><AlertTriangle size={13} /> {t('medical.notAccepted')}</span>
+                          )}
+                        </span>
+                        {student.liabilityWaiverAccepted && student.liabilityWaiverDate && (
+                          <span className="text-[8px] font-mono text-slate-400 uppercase block tracking-wider">Assinado em {new Date(student.liabilityWaiverDate).toLocaleDateString()}</span>
+                        )}
+                      </div>
+                      {!student.liabilityWaiverAccepted && (
+                        <button
+                          onClick={() => setShowWaiver(true)}
+                          className="px-4 py-2.5 bg-amber-500 hover:bg-amber-400 text-slate-950 font-black uppercase text-[9px] tracking-widest rounded-xl transition-all cursor-pointer shadow-md active:scale-95"
+                        >
+                          Assinar Termo
+                        </button>
+                      )}
+                    </div>
+                  )}
+
+                  {/* Atestado Médico */}
+                  {showMedicalCertificateSetting && (
+                    <div className="p-4 bg-slate-50 dark:bg-slate-800/40 rounded-2xl border border-slate-100 dark:border-slate-800 flex items-center justify-between">
+                      <div className="space-y-1">
+                        <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest block">Atestado Médico (Aptidão Física)</span>
+                        <span className="text-xs font-bold dark:text-white">
+                          {student.medicalCertificateUrl ? (
+                            new Date(student.medicalCertificateExpiration!) < new Date() ? (
+                              <span className="text-red-500 flex items-center gap-1.5"><AlertCircle size={13} /> {t('medical.expired')}</span>
+                            ) : (
+                              <span className="text-emerald-500 flex items-center gap-1.5"><CheckCircle2 size={13} /> {t('medical.valid')}</span>
+                            )
+                          ) : (
+                            <span className="text-rose-500 flex items-center gap-1.5"><ShieldAlert size={13} /> {t('medical.missing')}</span>
+                          )}
+                        </span>
+                        {student.medicalCertificateExpiration && (
+                          <span className="text-[8px] font-mono text-slate-400 uppercase block tracking-wider">Validade: {new Date(student.medicalCertificateExpiration).toLocaleDateString()}</span>
+                        )}
+                      </div>
+                      <button
+                        onClick={() => {
+                          setMedicalIssueDate(new Date().toISOString().split('T')[0]);
+                          setShowMedicalUpload(true);
+                        }}
+                        className="px-4 py-2.5 bg-rose-600 hover:bg-rose-500 text-white font-black uppercase text-[9px] tracking-widest rounded-xl transition-all cursor-pointer shadow-md active:scale-95"
+                      >
+                        {student.medicalCertificateUrl ? 'Atualizar' : 'Upload'}
+                      </button>
+                    </div>
+                  )}
+                </div>
+              </div>
+            )}
+
             {/* MAPA DE EVOLUÇÃO TÉCNICA (Interactive positional levels - Requisito 3) */}
             <div className="bg-white dark:bg-slate-900 rounded-[2.5rem] p-8 border border-slate-200 dark:border-slate-800 shadow-sm space-y-6">
               <div>
@@ -1705,35 +1839,40 @@ const StudentPortal: React.FC = () => {
               </div>
 
               <div className="space-y-3">
-                {/* Sorted mock list with current athlete resolved dynamically in rank */}
-                {[
-                  { pos: 1, name: "Lucas 'Casca' Silveira", belt: "Roxa", points: 840, attendance: 92, active: true },
-                  { pos: 2, name: `${student.name} (Você)`, belt: student.belt, points: student.rewardPoints || 120, attendance: student.attendanceCount, isMe: true },
-                  { pos: 3, name: "Bruno Ribeiro", belt: "Marrom", points: 420, attendance: 48, active: true },
-                  { pos: 4, name: "Ana Souza", belt: "Roxa", points: 290, attendance: 29, active: true }
-                ].sort((a,b) => b.points - a.points).map((item, index) => (
-                  <div 
-                    key={index} 
-                    className={`p-3.5 rounded-2xl flex items-center justify-between border ${
-                      item.isMe 
-                        ? 'bg-blue-600/10 border-blue-600/30 text-slate-900 dark:text-white' 
-                        : 'bg-slate-50 dark:bg-slate-800/40 border-transparent text-slate-600 dark:text-slate-300'
-                    }`}
-                  >
-                    <div className="flex items-center gap-3">
-                      <span className={`w-6 h-6 rounded-lg text-[10px] font-black flex items-center justify-center ${
-                        index === 0 ? 'bg-amber-500 text-white shadow' : index === 1 ? 'bg-slate-350 text-white' : index === 2 ? 'bg-amber-850 text-white' : 'bg-slate-100 text-slate-400'
-                      }`}>
-                        #{index + 1}
-                      </span>
-                      <div>
-                        <h5 className="text-[10px] font-black uppercase text-slate-900 dark:text-white tracking-tight">{item.name}</h5>
-                        <p className="text-[8px] font-bold text-slate-450 uppercase tracking-widest mt-0.5">{item.belt} • {item.attendance} Presenças</p>
+                {/* Dynamically sorted list of real registered students */}
+                {[...students]
+                  .map(s => ({
+                    id: s.id,
+                    name: s.id === student.id ? `${s.name} (Você)` : (s.nickname ? `${s.name} (${s.nickname})` : s.name),
+                    belt: s.belt || 'Branca',
+                    points: s.rewardPoints || 0,
+                    attendance: s.attendanceCount || 0,
+                    isMe: s.id === student.id
+                  }))
+                  .sort((a,b) => b.points - a.points || b.attendance - a.attendance)
+                  .map((item, index) => (
+                    <div 
+                      key={item.id} 
+                      className={`p-3.5 rounded-2xl flex items-center justify-between border ${
+                        item.isMe 
+                          ? 'bg-blue-600/15 border-blue-600/30 text-slate-900 dark:text-white font-bold' 
+                          : 'bg-slate-50 dark:bg-slate-800/40 border-transparent text-slate-600 dark:text-slate-300'
+                      }`}
+                    >
+                      <div className="flex items-center gap-3">
+                        <span className={`w-6 h-6 rounded-lg text-[10px] font-black flex items-center justify-center ${
+                          index === 0 ? 'bg-amber-500 text-white shadow' : index === 1 ? 'bg-slate-350 text-white' : index === 2 ? 'bg-amber-850 text-white' : 'bg-slate-100 dark:bg-slate-800 text-slate-400'
+                        }`}>
+                          #{index + 1}
+                        </span>
+                        <div>
+                          <h5 className="text-[10px] font-black uppercase text-slate-900 dark:text-white tracking-tight">{item.name}</h5>
+                          <p className="text-[8px] font-bold text-slate-450 uppercase tracking-widest mt-0.5">{item.belt} • {item.attendance} Presenças</p>
+                        </div>
                       </div>
+                      <span className="text-xs font-black italic text-blue-500">{item.points} XP</span>
                     </div>
-                    <span className="text-xs font-black italic text-blue-500">{item.points} XP</span>
-                  </div>
-                ))}
+                  ))}
               </div>
             </div>
 
@@ -2071,41 +2210,47 @@ const StudentPortal: React.FC = () => {
             })()}
 
             {/* Technical Exam Requirements */}
-            <div className="bg-white dark:bg-slate-900 rounded-[2.5rem] p-8 border border-slate-200 dark:border-slate-800 shadow-sm space-y-6">
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-2">
-                  <ClipboardCheck size={20} className="text-amber-500" />
-                  <h3 className="text-sm font-black text-slate-900 dark:text-white uppercase tracking-tighter leading-none">{t('common.examRequirements')}</h3>
-                </div>
-                <span className="text-[9px] font-black text-amber-600 bg-amber-50 dark:bg-amber-900/20 px-3 py-1 rounded-full uppercase">
-                  {Object.values(student.examRequirements || {}).filter(v => v).length} / {((tObj(`beltRequirements.${graduationAnalysis?.nextBelt || 'White'}`) as string[]) || []).length}
-                </span>
-              </div>
-              
-              <div className="grid grid-cols-1 gap-2">
-                {((tObj(`beltRequirements.${graduationAnalysis?.nextBelt || 'White'}`) as string[]) || []).map((req, idx) => (
-                  <div 
-                    key={idx}
-                    className={`flex items-center gap-3 p-4 rounded-2xl border transition-all ${
-                      student.examRequirements?.[req]
-                        ? 'bg-amber-50/50 dark:bg-amber-900/10 border-amber-100 dark:border-amber-900/30'
-                        : 'bg-slate-50 dark:bg-slate-800/50 border-slate-100 dark:border-slate-700/50 opacity-60'
-                    }`}
-                  >
-                    <div className={`w-5 h-5 rounded-lg flex items-center justify-center ${
-                      student.examRequirements?.[req] ? 'bg-amber-500 text-white' : 'bg-slate-200 dark:bg-slate-700 text-transparent'
-                    }`}>
-                      <Check size={12} strokeWidth={4} />
+            {(() => {
+              const rawReqs = tObj(`beltRequirements.${graduationAnalysis?.nextBelt || 'White'}`);
+              const examReqs = Array.isArray(rawReqs) ? rawReqs : [];
+              return (
+                <div className="bg-white dark:bg-slate-900 rounded-[2.5rem] p-8 border border-slate-200 dark:border-slate-800 shadow-sm space-y-6">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-2">
+                      <ClipboardCheck size={20} className="text-amber-500" />
+                      <h3 className="text-sm font-black text-slate-900 dark:text-white uppercase tracking-tighter leading-none">{t('common.examRequirements')}</h3>
                     </div>
-                    <span className={`text-[10px] font-bold uppercase tracking-tight ${
-                      student.examRequirements?.[req] ? 'text-amber-900 dark:text-amber-200' : 'text-slate-500'
-                    }`}>
-                      {req}
+                    <span className="text-[9px] font-black text-amber-600 bg-amber-50 dark:bg-amber-900/20 px-3 py-1 rounded-full uppercase">
+                      {Object.values(student.examRequirements || {}).filter(v => v).length} / {examReqs.length}
                     </span>
                   </div>
-                ))}
-              </div>
-            </div>
+                  
+                  <div className="grid grid-cols-1 gap-2">
+                    {examReqs.map((req, idx) => (
+                      <div 
+                        key={idx}
+                        className={`flex items-center gap-3 p-4 rounded-2xl border transition-all ${
+                          student.examRequirements?.[req]
+                            ? 'bg-amber-50/50 dark:bg-amber-900/10 border-amber-100 dark:border-amber-900/30'
+                            : 'bg-slate-50 dark:bg-slate-800/50 border-slate-100 dark:border-slate-700/50 opacity-60'
+                        }`}
+                      >
+                        <div className={`w-5 h-5 rounded-lg flex items-center justify-center ${
+                          student.examRequirements?.[req] ? 'bg-amber-500 text-white' : 'bg-slate-200 dark:bg-slate-700 text-transparent'
+                        }`}>
+                          <Check size={12} strokeWidth={4} />
+                        </div>
+                        <span className={`text-[10px] font-bold uppercase tracking-tight ${
+                          student.examRequirements?.[req] ? 'text-amber-900 dark:text-amber-200' : 'text-slate-500'
+                        }`}>
+                          {req}
+                        </span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              );
+            })()}
 
             {/* Video Section Title */}
             <div className="flex items-center justify-between px-2 pt-4">

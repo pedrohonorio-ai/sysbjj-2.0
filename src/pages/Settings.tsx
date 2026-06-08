@@ -40,13 +40,21 @@ const Settings: React.FC = () => {
   const isDashfireAdmin = MASTER_ADMINS.includes(user?.email || '');
   
   const [formData, setFormData] = useState({
-    ...profile,
-    latitude: profile.latitude,
-    longitude: profile.longitude,
-    geofenceRadius: profile.geofenceRadius || 100,
-    pixKey: profile.pixKey || '',
-    pixName: profile.pixName || '',
-    pixCity: profile.pixCity || ''
+    name: profile?.name || '',
+    academyName: profile?.academyName || '',
+    logoUrl: profile?.logoUrl || '',
+    backgroundImageUrl: profile?.backgroundImageUrl || '',
+    pixKey: profile?.pixKey || '',
+    pixName: profile?.pixName || '',
+    pixCity: profile?.pixCity || '',
+    showBloodType: profile?.showBloodType ?? true,
+    showMedicalConditions: profile?.showMedicalConditions ?? true,
+    showLiabilityWaiver: profile?.showLiabilityWaiver ?? true,
+    showMedicalCertificate: profile?.showMedicalCertificate ?? true,
+    graduationRules: profile?.graduationRules || '',
+    latitude: profile?.latitude ?? 0,
+    longitude: profile?.longitude ?? 0,
+    geofenceRadius: profile?.geofenceRadius || 100,
   });
   const [showSuccess, setShowSuccess] = useState(false);
   const [isCapturing, setIsCapturing] = useState(false);
@@ -460,6 +468,25 @@ const Settings: React.FC = () => {
     return () => window.removeEventListener('pwa-installable', handleInstallable);
   }, []);
 
+  useEffect(() => {
+    if (profile) {
+      setFormData(prev => ({
+        ...prev,
+        ...profile,
+        latitude: profile.latitude,
+        longitude: profile.longitude,
+        geofenceRadius: profile.geofenceRadius || 100,
+        pixKey: profile.pixKey || '',
+        pixName: profile.pixName || '',
+        pixCity: profile.pixCity || '',
+        showBloodType: profile.showBloodType ?? true,
+        showMedicalConditions: profile.showMedicalConditions ?? true,
+        showLiabilityWaiver: profile.showLiabilityWaiver ?? true,
+        showMedicalCertificate: profile.showMedicalCertificate ?? true
+      }));
+    }
+  }, [profile]);
+
   const handleInstallApp = async () => {
     const promptEvent = (window as any).deferredPrompt;
     if (!promptEvent) return;
@@ -815,6 +842,87 @@ const Settings: React.FC = () => {
             <button onClick={handleSave} className="w-full sm:w-auto flex items-center justify-center gap-3 bg-blue-600 text-white px-8 sm:px-10 py-3.5 sm:py-4 rounded-2xl font-black uppercase text-[10px] sm:text-xs tracking-[0.2em] shadow-2xl hover:bg-blue-700 transition-all">
               <Save size={18} /> {t('settings.saveBtn')}
             </button>
+          </div>
+        </div>
+      </div>
+
+      <div className="bg-white dark:bg-slate-900 rounded-[2rem] sm:rounded-[2.5rem] border border-slate-200 dark:border-slate-800 shadow-sm overflow-hidden transition-all animate-in fade-in slide-in-from-bottom-2 duration-300">
+        <div className="p-6 sm:p-8 border-b border-slate-100 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-800/50 flex items-center justify-between">
+          <h3 className="text-xs sm:text-sm font-black text-slate-400 uppercase tracking-[0.15em] flex items-center gap-3">
+            <Activity size={18} className="text-rose-500 animate-pulse" /> CONFIGURAÇÕES DE SAÚDE DO ATLETA
+          </h3>
+          <button onClick={handleSave} className="flex items-center gap-2 bg-blue-600 text-white px-4 py-2 rounded-xl font-black uppercase text-[10px] tracking-widest shadow-lg hover:bg-blue-700 transition-all">
+            <Save size={14} /> {t('settings.saveBtn')}
+          </button>
+        </div>
+        <div className="p-6 sm:p-8 space-y-6">
+          <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest leading-relaxed">
+            Escolha as obrigatoriedades de saúde no Portal do Aluno. Campos desativados nesta seção serão ocultados para os alunos regulares no Portal do Aluno, permanecendo visíveis apenas para os administradores no painel interno.
+          </p>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div className="flex items-center justify-between p-5 bg-slate-50 dark:bg-slate-800/40 rounded-2xl border border-slate-100 dark:border-slate-800 transition-all">
+              <div className="space-y-1">
+                <p className="text-xs font-black uppercase dark:text-white">Tipo Sanguíneo</p>
+                <p className="text-[9px] font-bold text-slate-400 uppercase tracking-widest leading-normal">Solicitar tipo sanguíneo no portal</p>
+              </div>
+              <label className="relative inline-flex items-center cursor-pointer select-none">
+                <input 
+                  type="checkbox" 
+                  checked={formData.showBloodType} 
+                  onChange={e => setFormData({...formData, showBloodType: e.target.checked})} 
+                  className="sr-only peer" 
+                />
+                <div className="w-11 h-6 bg-slate-200 dark:bg-slate-700 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-600"></div>
+              </label>
+            </div>
+
+            <div className="flex items-center justify-between p-5 bg-slate-50 dark:bg-slate-800/40 rounded-2xl border border-slate-100 dark:border-slate-800 transition-all">
+              <div className="space-y-1">
+                <p className="text-xs font-black uppercase dark:text-white">Ficha de Observações Clínicas</p>
+                <p className="text-[9px] font-bold text-slate-400 uppercase tracking-widest leading-normal">Exibir restrições e asma/alergias no portal</p>
+              </div>
+              <label className="relative inline-flex items-center cursor-pointer select-none">
+                <input 
+                  type="checkbox" 
+                  checked={formData.showMedicalConditions} 
+                  onChange={e => setFormData({...formData, showMedicalConditions: e.target.checked})} 
+                  className="sr-only peer" 
+                />
+                <div className="w-11 h-6 bg-slate-200 dark:bg-slate-700 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-600"></div>
+              </label>
+            </div>
+
+            <div className="flex items-center justify-between p-5 bg-slate-50 dark:bg-slate-800/40 rounded-2xl border border-slate-100 dark:border-slate-800 transition-all">
+              <div className="space-y-1">
+                <p className="text-xs font-black uppercase dark:text-white">Termo de Responsabilidade Técnica</p>
+                <p className="text-[9px] font-bold text-slate-400 uppercase tracking-widest leading-normal">Exigir assinatura digital do termo pelos alunos</p>
+              </div>
+              <label className="relative inline-flex items-center cursor-pointer select-none">
+                <input 
+                  type="checkbox" 
+                  checked={formData.showLiabilityWaiver} 
+                  onChange={e => setFormData({...formData, showLiabilityWaiver: e.target.checked})} 
+                  className="sr-only peer" 
+                />
+                <div className="w-11 h-6 bg-slate-200 dark:bg-slate-700 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-600"></div>
+              </label>
+            </div>
+
+            <div className="flex items-center justify-between p-5 bg-slate-50 dark:bg-slate-800/40 rounded-2xl border border-slate-100 dark:border-slate-800 transition-all">
+              <div className="space-y-1">
+                <p className="text-xs font-black uppercase dark:text-white">Atestado Médico de Aptidão Executiva</p>
+                <p className="text-[9px] font-bold text-slate-400 uppercase tracking-widest leading-normal">Solicitar upload de atestado físico anual</p>
+              </div>
+              <label className="relative inline-flex items-center cursor-pointer select-none">
+                <input 
+                  type="checkbox" 
+                  checked={formData.showMedicalCertificate} 
+                  onChange={e => setFormData({...formData, showMedicalCertificate: e.target.checked})} 
+                  className="sr-only peer" 
+                />
+                <div className="w-11 h-6 bg-slate-200 dark:bg-slate-700 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-600"></div>
+              </label>
+            </div>
           </div>
         </div>
       </div>

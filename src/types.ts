@@ -187,6 +187,10 @@ export interface ProfessorProfile {
   latitude?: number;
   longitude?: number;
   geofenceRadius?: number; // em metros
+  showBloodType?: boolean;
+  showMedicalConditions?: boolean;
+  showLiabilityWaiver?: boolean;
+  showMedicalCertificate?: boolean;
 }
 
 export interface ProgressRecord {
@@ -271,10 +275,37 @@ export interface Plan {
 }
 
 export interface AttendanceRecord {
+  id?: string;
   date: string;
+  timestamp?: string;
   lessonPlanId?: string;
   classId?: string;
   notes?: string;
+  status?: 'present' | 'absent' | 'late' | 'trial';
+  registeredBy?: {
+    email: string;
+    name: string;
+    role: string;
+  };
+  origin?: 'MANUAL_PROFESSOR' | 'QR_CODE' | 'PORTAL_ALUNO' | 'RECONHECIMENTO_FACIAL';
+  deviceInfo?: {
+    device: string;
+    ip?: string;
+  };
+  gps?: {
+    latitude: number;
+    longitude: number;
+    distance?: number;
+  };
+  facialConfidence?: number;
+  audits?: {
+    action: 'create' | 'update' | 'delete';
+    userId: string;
+    userName: string;
+    timestamp: string;
+    reason?: string;
+  }[];
+  isDeleted?: boolean;
 }
 
 export interface PositionVideo {

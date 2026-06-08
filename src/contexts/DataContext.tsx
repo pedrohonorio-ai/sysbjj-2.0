@@ -163,7 +163,15 @@ interface DataContextType {
   addLedgerEntry: (entry: Omit<TransactionLedger, 'id' | 'timestamp' | 'previousHash' | 'hash'>) => void;
   deleteLedgerEntry: (id: string) => void;
   clearNotification: (id: string) => void;
-  recordAttendance: (studentIds: string[], lessonPlanId?: string, classId?: string, notes?: string) => void;
+  recordAttendance: (studentIds: string[], lessonPlanId?: string, classId?: string, notes?: string, customProps?: Partial<AttendanceRecord>) => Promise<void>;
+  updateAttendanceRecord: (
+    studentId: string,
+    recordId: string,
+    updates: Partial<AttendanceRecord>,
+    auditUser: { email: string; name: string; role: string },
+    action: 'update' | 'delete',
+    reason?: string
+  ) => Promise<void>;
   completeRuleLesson: (studentId: string, lessonId: string, points: number) => void;
   addSchedule: (schedule: Omit<ClassSchedule, 'id'>) => void;
   updateSchedule: (id: string, updates: Partial<ClassSchedule>) => void;
@@ -1134,18 +1142,50 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     return true;
   }, [ledger]);
 
-  const recordAttendance = useCallback(async (studentIds: string[], lessonPlanId?: string, classId?: string, notes?: string) => {
+  const recordAttendance = useCallback(async (
+    studentIds: string[], 
+    lessonPlanId?: string, 
+    classId?: string, 
+    notes?: string,
+    customProps?: Partial<AttendanceRecord>
+  ) => {
     const today = new Date().toISOString().split('T')[0];
+    const timestampStr = new Date().toISOString();
     
-    const updatedStudents = students.map(s => studentIds.includes(s.id) ? { 
-      ...s, 
-      attendanceCount: (s.attendanceCount || 0) + 1,
-      currentStreak: (s.currentStreak || 0) + 1,
-      attendanceHistory: [
-        ...(s.attendanceHistory || []),
-        { date: today, lessonPlanId, classId, notes }
-      ]
-    } : s);
+    const statusVal = customProps?.status || 'present';
+    const isAttending = statusVal === 'present' || statusVal === 'late' || statusVal === 'trial';
+    
+    const updatedStudents = students.map(s => {
+      if (studentIds.includes(s.id)) {
+        const history = s.attendanceHistory || [];
+        const baseRecord: AttendanceRecord = {
+          id: '_' + Math.random().toString(36).substring(2, 11),
+          date: today,
+          timestamp: timestampStr,
+          lessonPlanId,
+          classId,
+          notes,
+          status: statusVal,
+          origin: customProps?.origin || 'MANUAL_PROFESSOR',
+          ...customProps
+        };
+        
+        let newCount = s.attendanceCount || 0;
+        let newStreak = s.currentStreak || 0;
+        if (isAttending) {
+          newCount += 1;
+          newStreak += 1;
+        }
+
+        return {
+          ...s,
+          attendanceCount: newCount,
+          currentStreak: newStreak,
+          attendanceHistory: [...history, baseRecord]
+        };
+      }
+      return s;
+    });
 
     // Update local state first for responsiveness
     setStudents(updatedStudents);
@@ -1160,8 +1200,69 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
        }
     }
 
-    logAction('Chamada Realizada', `${studentIds.length} alunos marcaram presença`, 'User');
-  }, [students, logAction, user?.id]);
+    logAction('Chamada Realizada', `${studentIds.length} alunos marcados como ${statusVal} via ${customProps?.origin || 'MANUAL_PROFESSOR'}`, 'User');
+  }, [students, logAction, user?.id, dbStatus.isDemoMode]);
+
+  const updateAttendanceRecord = useCallback(async (
+    studentId: string,
+    recordId: string,
+    updates: Partial<AttendanceRecord>,
+    auditUser: { email: string; name: string; role: string },
+    action: 'update' | 'delete',
+    reason?: string
+  ) => {
+    const timestampStr = new Date().toISOString();
+    const updatedStudents = students.map(s => {
+      if (s.id === studentId) {
+        const history = (s.attendanceHistory || []).map(r => {
+          const isMatch = r.id === recordId || (!r.id && r.date === updates.date);
+          if (isMatch) {
+            const existingAudits = r.audits || [];
+            const newAudit = {
+              action,
+              userId: auditUser.email,
+              userName: auditUser.name,
+              timestamp: timestampStr,
+              reason
+            };
+            
+            const updatedRecord: AttendanceRecord = {
+              ...r,
+              ...updates,
+              audits: [...existingAudits, newAudit],
+            };
+            if (action === 'delete') {
+              updatedRecord.isDeleted = true;
+            }
+            return updatedRecord;
+          }
+          return r;
+        });
+
+        // Recalculate attendance count dynamically skipping soft-deleted and non-present ones!
+        const validAttendedRecords = history.filter(r => !r.isDeleted && (!r.status || r.status === 'present' || r.status === 'late' || r.status === 'trial'));
+        const newCount = validAttendedRecords.length;
+
+        return {
+          ...s,
+          attendanceCount: newCount,
+          attendanceHistory: history
+        };
+      }
+      return s;
+    });
+
+    setStudents(updatedStudents);
+
+    if (user?.id && !dbStatus.isDemoMode) {
+      const student = updatedStudents.find(s => s.id === studentId);
+      if (student) {
+        await api.saveData('students', user.id, student).catch(err => handleApiError(err, OperationType.UPDATE, `students/${studentId}`, setNotifications, setDbStatus));
+      }
+    }
+
+    logAction(`Presença ${action === 'delete' ? 'Removida' : 'Atualizada'}`, `Aluno: ${studentId}, Ação: ${action}, Motivo: ${reason || ''}`, 'User');
+  }, [students, logAction, user?.id, dbStatus.isDemoMode]);
 
   const completeRuleLesson = useCallback((studentId: string, lessonId: string, points: number) => {
     const student = students.find(s => s.id === studentId);
@@ -1572,7 +1673,7 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   return (
     <DataContext.Provider value={{ 
       students, payments, schedules, gallery, extraRevenue, orders, lessonPlans, techniques, products, plans, receipts, ledger, graduationHistory, professorRules, setProfessorRules, logs, attendance, presence, notifications, dbStatus, setDemoMode,
-      logAction, verifyAuditIntegrity, addStudent, updateStudent, deleteStudent, addPayment, addReceipt, approveReceipt, rejectReceipt, addLedgerEntry, deleteLedgerEntry, clearNotification, recordAttendance, completeRuleLesson,
+      logAction, verifyAuditIntegrity, addStudent, updateStudent, deleteStudent, addPayment, addReceipt, approveReceipt, rejectReceipt, addLedgerEntry, deleteLedgerEntry, clearNotification, recordAttendance, updateAttendanceRecord, completeRuleLesson,
       addSchedule, updateSchedule, deleteSchedule,
       addGalleryImage,
       addExtraRevenue, updateExtraRevenue, deleteExtraRevenue,

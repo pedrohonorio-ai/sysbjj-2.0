@@ -42,8 +42,10 @@
 html, body, #root {
   width: 100%;
   min-height: 100%;
+  min-height: 100dvh;
   overflow-x: hidden;
   overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
 }
 
 body {
@@ -51,8 +53,8 @@ body {
   background-color: #F8FAFC;
   color: #0F172A;
   -webkit-tap-highlight-color: transparent;
-  overscroll-behavior-y: contain;
-  padding: var(--sat) var(--sar) var(--sab) var(--sal);
+  overscroll-behavior-y: auto;
+  padding: env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left);
   transition: background-color 0.5s cubic-bezier(0.4, 0, 0.2, 1), color 0.5s cubic-bezier(0.4, 0, 0.2, 1);
   letter-spacing: -0.01em;
 }

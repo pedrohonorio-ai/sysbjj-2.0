@@ -20,7 +20,11 @@ const DEFAULT_PROFILE: ProfessorProfile = {
   pixName: "",
   pixCity: "",
   logoUrl: "",
-  backgroundImageUrl: ""
+  backgroundImageUrl: "",
+  showBloodType: true,
+  showMedicalConditions: true,
+  showLiabilityWaiver: true,
+  showMedicalCertificate: true
 };
 
 const ProfileContext = createContext<ProfileContextType | undefined>(undefined);

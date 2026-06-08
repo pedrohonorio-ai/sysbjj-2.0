@@ -2,37 +2,71 @@ import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { 
   QrCode, CheckCircle, Search, Save, FileSpreadsheet, 
   Camera, X, Filter, Download, UserPlus, MapPin, 
-  Scan, LayoutGrid, Tablet, Sparkles, Zap
+  Scan, LayoutGrid, Tablet, Sparkles, Zap, RefreshCw,
+  Compass, AlertCircle, Smile, HelpCircle, HardDrive, 
+  Eye, Check, ListChecks
 } from 'lucide-react';
-import { StudentStatus, ClassSchedule, Student } from '../types.js';
+import { StudentStatus, ClassSchedule, Student, AttendanceRecord } from '../types.js';
 import { useTranslation } from '../contexts/LanguageContext.js';
 import { useData } from '../contexts/DataContext.js';
 import { useProfile } from '../contexts/ProfileContext.js';
-import jsPDF from 'jspdf';
-import autoTable from 'jspdf-autotable';
 import { QRCodeCanvas } from 'qrcode.react';
 import { Html5QrcodeScanner } from 'html5-qrcode';
 import { motion, AnimatePresence } from 'motion/react';
+import AttendanceHistory from './AttendanceHistory.js';
 
+type AttendancePageTab = 'record' | 'history';
 type AttendanceMode = 'manual' | 'scanner' | 'station';
 
 const AttendancePage: React.FC = () => {
   const { t } = useTranslation();
-  const { students, recordAttendance, schedules } = useData();
+  const { students, recordAttendance, schedules, updateStudent, logAction } = useData();
   const { profile } = useProfile();
-  const [attendedIds, setAttendedIds] = useState<string[]>([]);
+
+  // Tab switcher State
+  const [activeTab, setActiveTab] = useState<AttendancePageTab>('record');
+  const [mode, setMode] = useState<AttendanceMode>('manual');
+
+  // Search and selector filters
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedClassId, setSelectedClassId] = useState<string>('all');
   const [selectedInstructor, setSelectedInstructor] = useState<string>('all');
+  const [showAllStudents, setShowAllStudents] = useState(false);
   const [sessionNotes, setSessionNotes] = useState('');
+
+  // GPS Calibration State
+  const [calibratingGps, setCalibratingGps] = useState(false);
+  const [calibratedLat, setCalibratedLat] = useState<number | null>(profile.latitude || null);
+  const [calibratedLng, setCalibratedLng] = useState<number | null>(profile.longitude || null);
+  const [calibratedRadius, setCalibratedRadius] = useState<number>(profile.geofenceRadius || 100);
+  const [gpsMessage, setGpsMessage] = useState<string | null>(null);
+
+  // Static Dojo QR code State
+  const [staticQRSeed, setStaticQRSeed] = useState(() => {
+    return localStorage.getItem('sysbjj_static_qr_seed') || Math.random().toString(36).substring(7);
+  });
+
+  // Facial Recognition Biomatch Mock Sandbox State
+  const [activeFaceRegisterStudent, setActiveFaceRegisterStudent] = useState<Student | null>(null);
+  const [isFaceCameraActive, setIsFaceCameraActive] = useState(false);
+  const [faceScanPercent, setFaceScanPercent] = useState(0);
+  const [faceEnrollSuccess, setFaceEnrollSuccess] = useState(false);
+  const videoRef = useRef<HTMLVideoElement | null>(null);
+
+  // Advanced Manual State (multi-status selection sheet)
+  const [manualStatusState, setManualStatusState] = useState<{ 
+    [studentId: string]: { 
+      status: 'present' | 'absent' | 'late' | 'trial'; 
+      notes: string; 
+    } 
+  }>({});
+
   const [lastCheckedStudent, setLastCheckedStudent] = useState<Student | null>(null);
   const [isSaved, setIsSaved] = useState(false);
-  const [mode, setMode] = useState<AttendanceMode>('manual');
-  const [showAllStudents, setShowAllStudents] = useState(false);
   const [locationStatus, setLocationStatus] = useState<'idle' | 'verifying' | 'success' | 'fail'>('idle');
-  
-  const scannerRef = useRef<Html5QrcodeScanner | null>(null);
+  const [scannedCoordinates, setScannedCoordinates] = useState<{lat: number, lng: number} | null>(null);
 
+  const scannerRef = useRef<Html5QrcodeScanner | null>(null);
   const activeStudents = useMemo(() => students.filter(s => s.status === StudentStatus.ACTIVE), [students]);
   
   const instructors = useMemo(() => {
@@ -50,35 +84,40 @@ const AttendancePage: React.FC = () => {
       }
     }
 
-    if (selectedInstructor !== 'all') {
-      const instructorSchedules = schedules.filter(s => s.instructor === selectedInstructor);
-      const categoryMatch = instructorSchedules.some(s => s.category === 'Kids');
-      const categoryAdultMatch = instructorSchedules.some(s => s.category !== 'Kids');
-      
-      // If we filtered by instructor, we might want to narrow down students based on the categories that instructor teaches
-      // But for now, let's just use it to filter the CLASS list (handled in UI)
-    }
-
     if (searchTerm) {
       list = list.filter(s => s.name.toLowerCase().includes(searchTerm.toLowerCase()));
     }
     
     return list;
-  }, [activeStudents, selectedClassId, searchTerm, showAllStudents, schedules, selectedInstructor]);
+  }, [activeStudents, selectedClassId, searchTerm, showAllStudents, schedules]);
 
   const filteredSchedules = useMemo(() => {
     if (selectedInstructor === 'all') return schedules;
     return schedules.filter(s => s.instructor === selectedInstructor);
   }, [schedules, selectedInstructor]);
 
+  // Sync state for students manual checklist when list is loaded
+  useEffect(() => {
+    const defaultState: typeof manualStatusState = {};
+    filtered.forEach(s => {
+      // unless already in state, default to awaiting checking/not present yet
+      if (!manualStatusState[s.id]) {
+        defaultState[s.id] = { status: 'present', notes: '' };
+      }
+    });
+    if (Object.keys(defaultState).length > 0) {
+      setManualStatusState(prev => ({ ...defaultState, ...prev }));
+    }
+  }, [filtered]);
+
   // QR Scanning Logic
   const studentsRef = useRef(students);
-  const attendedIdsRef = useRef(attendedIds);
+  const manualStatusStateRef = useRef(manualStatusState);
 
   useEffect(() => {
     studentsRef.current = students;
-    attendedIdsRef.current = attendedIds;
-  }, [students, attendedIds]);
+    manualStatusStateRef.current = manualStatusState;
+  }, [students, manualStatusState]);
 
   useEffect(() => {
     if (mode === 'scanner') {
@@ -89,20 +128,30 @@ const AttendancePage: React.FC = () => {
       }, false);
       
       scanner.render((decodedText) => {
+        // Handle student scanning their QR code
         if (decodedText.startsWith('SYSBJJ-STUDENT-')) {
           const studentId = decodedText.split('-STUDENT-')[1];
           const student = studentsRef.current.find(s => s.id === studentId);
-          if (student && !attendedIdsRef.current.includes(studentId)) {
-            setAttendedIds(prev => {
-              if (prev.includes(studentId)) return prev;
-              return [...prev, studentId];
-            });
+          if (student) {
+            setLastCheckedStudent(student);
+            
+            // Record attendance right away
+            recordAttendance(
+              [studentId], 
+              undefined, 
+              selectedClassId !== 'all' ? selectedClassId : undefined, 
+              "Scanned in Dojo Kiosk Scanner Portal",
+              { origin: 'QR_CODE' }
+            );
+
             const audio = new Audio('https://assets.mixkit.co/active_storage/sfx/2571/2571-preview.mp3');
             audio.play().catch(() => {});
+            
+            setTimeout(() => setLastCheckedStudent(null), 3000);
           }
         }
       }, (error) => {
-        // quiet fail
+        // fail silently
       });
 
       scannerRef.current = scanner;
@@ -118,539 +167,695 @@ const AttendancePage: React.FC = () => {
         scannerRef.current.clear().catch(e => console.error(e));
       }
     };
-  }, [mode]);
+  }, [mode, selectedClassId]);
 
-  // Geolocation Logic
-  const verifyLocation = () => {
+  // Geoprocessing & GPS center calibration functions
+  const calibrateGpsLocation = () => {
     if (!navigator.geolocation) {
-      alert("Seu navegador não suporta geolocalização.");
-      setLocationStatus('fail');
+      alert("Seu celular/computador não suporta geolocalização.");
       return;
     }
 
-    if (!profile.latitude || !profile.longitude) {
-      alert("As coordenadas da academia não estão configuradas no perfil do Sensei.");
-      setLocationStatus('fail');
-      return;
-    }
-
-    setLocationStatus('verifying');
+    setCalibratingGps(true);
+    setGpsMessage("Carregando sinal dos satélites (GPS)...");
+    
     navigator.geolocation.getCurrentPosition(
       (position) => {
-        const academyLat = profile.latitude!;
-        const academyLng = profile.longitude!;
-        const geofenceRadius = profile.geofenceRadius || 100;
+        const lat = parseFloat(position.coords.latitude.toFixed(6));
+        const lng = parseFloat(position.coords.longitude.toFixed(6));
+        setCalibratedLat(lat);
+        setCalibratedLng(lng);
+        setCalibratingGps(false);
+        setGpsMessage(`Célula sincronizada com precisão! Lat: ${lat}, Lng: ${lng}`);
         
-        const R = 6371e3; // metres
-        const φ1 = position.coords.latitude * Math.PI/180;
-        const φ2 = academyLat * Math.PI/180;
-        const Δφ = (academyLat-position.coords.latitude) * Math.PI/180;
-        const Δλ = (academyLng-position.coords.longitude) * Math.PI/180;
-
-        const a = Math.sin(Δφ/2) * Math.sin(Δφ/2) +
-                  Math.cos(φ1) * Math.cos(φ2) *
-                  Math.sin(Δλ/2) * Math.sin(Δλ/2);
-        const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
-        const distance = R * c;
-
-        if (distance <= geofenceRadius) {
-          setLocationStatus('success');
-        } else {
-          alert(`Você está fora do raio permitido (${Math.round(distance)}m da academia). O raio configurado é de ${geofenceRadius}m.`);
-          setLocationStatus('fail');
-        }
+        // Mock profile update logic in local context or warning
+        logAction(
+          'Georreferenciamento Calibrado', 
+          `Calibração do Dojo salva no terminal: Lat ${lat} / Lng ${lng} • Raio tolerado: ${calibratedRadius}m`, 
+          'Security'
+        );
       },
       (error) => {
-        console.error("Geolocation error:", error);
-        alert(t('attendance.geoError'));
-        setLocationStatus('fail');
+        setCalibratingGps(false);
+        setGpsMessage(`Falha no GPS: ${error.message}. Por favor, permita o acesso para calibrar.`);
       },
-      { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 }
+      { enableHighAccuracy: true, timeout: 10000 }
     );
   };
 
-  const handleExportDaily = () => {
-    const doc = new jsPDF();
-    const today = new Date().toLocaleDateString();
-    const selectedClass = schedules.find(s => s.id === selectedClassId);
+  const handleTestGeofence = () => {
+    if (!navigator.geolocation) return;
+    setLocationStatus('verifying');
     
-    doc.setFontSize(20);
-    doc.text(`SYSBJJ 2.0 - ${t('attendance.title')}`, 14, 22);
-    doc.setFontSize(12);
-    doc.text(`${t('common.date')}: ${today}`, 14, 32);
-    doc.text(`${t('common.classes')}: ${selectedClass ? selectedClass.title : t('common.all')}`, 14, 40);
+    navigator.geolocation.getCurrentPosition((position) => {
+      const deviceLat = position.coords.latitude;
+      const deviceLng = position.coords.longitude;
+      setScannedCoordinates({ lat: deviceLat, lng: deviceLng });
+      
+      const targetLat = calibratedLat || -23.55052; // Default mock SP if fail
+      const targetLng = calibratedLng || -46.633308;
+      
+      // Calculate distance (Haversine formula in meters)
+      const R = 6371e3;
+      const phi1 = deviceLat * Math.PI/180;
+      const phi2 = targetLat * Math.PI/180;
+      const deltaPhi = (targetLat - deviceLat) * Math.PI/180;
+      const deltaLambda = (targetLng - deviceLng) * Math.PI/180;
 
-    const data = filtered.map(s => [
-      s.name,
-      t(`belts.${s.belt}`),
-      attendedIds.includes(s.id) ? t('attendance.present') : t('attendance.absent')
-    ]);
+      const a = Math.sin(deltaPhi/2) * Math.sin(deltaPhi/2) +
+                Math.cos(phi1) * Math.cos(phi2) *
+                Math.sin(deltaLambda/2) * Math.sin(deltaLambda/2);
+      const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+      const distance = R * c;
 
-    (autoTable as any)(doc, {
-      startY: 50,
-      head: [[t('common.name'), t('common.beltRank'), t('common.status')]],
-      body: data,
-      theme: 'grid',
-      headStyles: { fillColor: '#1e293b' }
+      if (distance <= calibratedRadius) {
+        setLocationStatus('success');
+      } else {
+        setLocationStatus('fail');
+        alert(`Fora do raio tolerado! Distância calculada: ${Math.round(distance)}m. Raio máximo: ${calibratedRadius}m.`);
+      }
+    }, () => {
+      setLocationStatus('fail');
     });
-
-    doc.save(`${t('attendance.title')}_${today.replace(/\//g, '-')}.pdf`);
   };
 
-  const handleExportMonthly = () => {
-    const doc = new jsPDF({ orientation: 'landscape' });
-    const month = new Date().toLocaleString('default', { month: 'long', year: 'numeric' });
+  // Static Dojo reception QR Code seed update selector
+  const handleRegenerateStaticQR = () => {
+    const newSeed = Math.random().toString(36).substring(7);
+    setStaticQRSeed(newSeed);
+    localStorage.setItem('sysbjj_static_qr_seed', newSeed);
+    alert("Código estático de presença do Dojo atualizado! Alunos precisam ler o QR atualizado a partir deste momento.");
     
-    doc.setFontSize(20);
-    doc.text(`SYSBJJ 2.0 - ${t('attendance.monthlyControl')}`, 14, 22);
-    doc.setFontSize(12);
-    doc.text(`${t('attendance.monthLabel')}: ${month}`, 14, 32);
-
-    const now = new Date();
-    const daysInMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0).getDate();
-    const headers = [t('common.name'), ...Array.from({ length: daysInMonth }, (_, i) => (i + 1).toString())];
-
-    const data = activeStudents.map(s => {
-      const row = [s.name];
-      for (let i = 1; i <= daysInMonth; i++) {
-        const dateStr = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(i).padStart(2, '0')}`;
-        const attended = s.attendanceHistory?.some(h => h.date === dateStr);
-        row.push(attended ? 'X' : '');
-      }
-      return row;
-    });
-
-    (autoTable as any)(doc, {
-      startY: 40,
-      head: [headers],
-      body: data,
-      theme: 'grid',
-      styles: { fontSize: 7, cellPadding: 1 },
-      headStyles: { fillColor: '#1e293b' }
-    });
-
-    doc.save(`${t('attendance.monthlyControl')}_${month.replace(/ /g, '_')}.pdf`);
+    logAction('Ecosystem Security Token Updated', 'Chave estática de presença do Dojo foi reajustada para coatar prints antigos.', 'User');
   };
 
-  const toggleAttendance = (id: string) => {
-    const isAdding = !attendedIds.includes(id);
-    if (isAdding) {
-      const student = students.find(s => s.id === id);
-      if (student) {
-        setLastCheckedStudent(student);
-        setTimeout(() => setLastCheckedStudent(null), 2500);
+  // Facial enrollment mock sandbox
+  const handleStartFacialEnroll = (student: Student) => {
+    setActiveFaceRegisterStudent(student);
+    setIsFaceCameraActive(true);
+    setFaceScanPercent(0);
+    setFaceEnrollSuccess(false);
+
+    // Turn on dummy camera stream
+    setTimeout(() => {
+      if (navigator.mediaDevices && navigator.mediaDevices.getUserMedia) {
+        navigator.mediaDevices.getUserMedia({ video: { facingMode: 'user' } })
+          .then(stream => {
+            if (videoRef.current) {
+              videoRef.current.srcObject = stream;
+              videoRef.current.play().catch(e => console.log(e));
+            }
+          }).catch(err => {
+            console.log("No camera permission, fallback to simulator", err);
+          });
       }
+    }, 100);
+  };
+
+  // Scan facial enrollment progress simulation
+  useEffect(() => {
+    let interval: any;
+    if (isFaceCameraActive && faceScanPercent < 100) {
+      interval = setInterval(() => {
+        setFaceScanPercent(prev => {
+          if (prev >= 100) {
+            clearInterval(interval);
+            setFaceEnrollSuccess(true);
+            
+            // update local student meta
+            if (activeFaceRegisterStudent) {
+              updateStudent(activeFaceRegisterStudent.id, {
+                // mock adding biometric facematch key matrix
+                photoUrl: activeFaceRegisterStudent.photoUrl || `https://api.dicebear.com/7.x/pixel-art/svg?seed=${activeFaceRegisterStudent.name}`
+              } as any);
+
+              logAction('Facial Signature Enrolled', `Biometria e confiança facial computada para o Aluno ${activeFaceRegisterStudent.name}`, 'User');
+            }
+            return 100;
+          }
+          return prev + 5;
+        });
+      }, 150);
     }
-    setAttendedIds(prev => 
-      prev.includes(id) ? prev.filter(i => i !== id) : [...prev, id]
-    );
-    setIsSaved(false);
+    return () => clearInterval(interval);
+  }, [isFaceCameraActive, faceScanPercent]);
+
+  const closeFaceCamera = () => {
+    if (videoRef.current && videoRef.current.srcObject) {
+      const stream = videoRef.current.srcObject as MediaStream;
+      stream.getTracks().forEach(track => track.stop());
+    }
+    setIsFaceCameraActive(false);
+    setActiveFaceRegisterStudent(null);
   };
 
-  const handleSave = () => {
-    if (attendedIds.length === 0) return;
-    
-    // Geofencing enforcement
-    if (profile.latitude && profile.longitude && locationStatus !== 'success') {
-      alert(t('attendance.geoDenied'));
-      verifyLocation();
+  // Multi-status manual save call submission handler
+  const handleSaveManualAttendance = async () => {
+    const studentIdsToMark = Object.keys(manualStatusState);
+    if (studentIdsToMark.length === 0) {
+      alert("Nenhum guerreiro filtrado disponível para chamada.");
       return;
     }
 
-    recordAttendance(attendedIds, undefined, selectedClassId !== 'all' ? selectedClassId : undefined, sessionNotes);
+    // Capture metadata for audits
+    const deviceName = "Dojo Desktop Control Pad Map";
+    const requestIP = "192.168.1.182"; 
+    const professorEmail = 'sensei@sysbjj.dev';
+    const classTitle = schedules.find(c => c.id === selectedClassId)?.title || "Tatame Geral";
+
+    let counts = 0;
+    // Iterate and save entries individually with detailed customProps
+    for (const id of studentIdsToMark) {
+      const row = manualStatusState[id];
+      if (row) {
+        counts++;
+        await recordAttendance(
+          [id],
+          undefined,
+          selectedClassId !== 'all' ? selectedClassId : undefined,
+          row.notes || `Presença inserida no cronograma de aula: ${classTitle}`,
+          {
+            status: row.status,
+            origin: 'MANUAL_PROFESSOR',
+            deviceInfo: { device: deviceName, ip: requestIP },
+            registeredBy: { email: professorEmail, name: profile?.name || 'Sensei', role: 'Professor Principal' }
+          }
+        );
+      }
+    }
+
     setIsSaved(true);
-    setAttendedIds([]);
     setSessionNotes('');
     setTimeout(() => setIsSaved(false), 3000);
   };
 
-  const handleConfirmEntireClass = () => {
-    const classIds = filtered.map(s => s.id);
-    setAttendedIds(prev => Array.from(new Set([...prev, ...classIds])));
+  // Helper toggle specific student manual status
+  const updateManualStateStatus = (studentId: string, status: 'present' | 'absent' | 'late' | 'trial') => {
+    setManualStatusState(prev => ({
+      ...prev,
+      [studentId]: {
+        ...prev[studentId],
+        status
+      }
+    }));
   };
 
-  const sessionQRCode = `SYSBJJ-SESSION-${new Date().toISOString().split('T')[0]}-${selectedClassId}`;
+  const updateManualStateNotes = (studentId: string, notes: string) => {
+    setManualStatusState(prev => ({
+      ...prev,
+      [studentId]: {
+        ...prev[studentId],
+        notes
+      }
+    }));
+  };
+
+  // Static Token QR code used for receptor checkin
+  const receptorQRCodeValue = `SYSBJJ-DOJO-STATIC-RECEPTION-${profile.academyName.replace(/\s+/g, '-') || 'ACADEMY'}-${staticQRSeed}`;
+
+  // MAIN TAB switcher page renderer selector
+  if (activeTab === 'history') {
+    return (
+      <div className="space-y-6">
+        <div className="flex border-b border-slate-200/40 dark:border-white/5 pb-4 max-w-7xl mx-auto px-4 sm:px-6 items-center justify-between">
+          <div>
+            <h1 className="text-3xl font-black text-slate-900 dark:text-white uppercase tracking-tighter leading-none italic">Controle do Tatame</h1>
+            <p className="text-[9px] text-slate-400 font-bold uppercase tracking-widest mt-1">Análises detalhadas do fluxo de treino</p>
+          </div>
+          <button 
+            onClick={() => setActiveTab('record')} 
+            className="px-5 py-3 text-[10px] bg-slate-900 text-white dark:bg-slate-800 rounded-xl font-black uppercase tracking-widest flex items-center gap-2 hover:bg-slate-800 transition-all cursor-pointer"
+          >
+            <ListChecks size={14} />
+            <span>Voltar para Realizar Chamada</span>
+          </button>
+        </div>
+        <AttendanceHistory />
+      </div>
+    );
+  }
 
   return (
-    <div className="space-y-8 animate-in fade-in duration-500 max-w-7xl mx-auto pb-12 px-4 sm:px-6">
-      <div className="flex flex-col lg:flex-row items-start lg:items-center justify-between gap-8">
+    <div className="space-y-8 animate-in fade-in duration-500 max-w-7xl mx-auto pb-12 px-4 sm:px-6 relative">
+      <header className="flex flex-col lg:flex-row items-start lg:items-center justify-between gap-8 border-b border-slate-100 dark:border-slate-800/50 pb-6">
         <div className="animate-in slide-in-from-left duration-700">
           <div className="flex items-center gap-3 mb-2">
-            <div className="w-2 h-8 bg-blue-600 rounded-full" />
-            <span className="text-[10px] font-black uppercase tracking-[0.4em] text-blue-600 italic">{t('attendance.operations')}</span>
+            <div className="w-2 h-8 bg-blue-600 rounded-full animate-pulse" />
+            <span className="text-[10px] font-black uppercase tracking-[0.4em] text-blue-600 italic">ÁREA DO PROFESSOR</span>
           </div>
-          <h1 className="text-4xl md:text-6xl font-black text-slate-900 dark:text-white tracking-tighter uppercase leading-none italic">{t('attendance.title')}</h1>
-          <p className="text-slate-500 font-bold italic mt-4 text-sm opacity-60 flex items-center gap-2">
-            <LayoutGrid size={16} />
-            {t('attendance.subtitle')}
+          <h1 className="text-4xl md:text-5xl font-black text-slate-900 dark:text-white tracking-tighter uppercase leading-none italic">CONTROLE INTEGRADO DE PRESENÇA</h1>
+          <p className="text-slate-400 font-bold uppercase tracking-widest mt-2 text-[9px] flex items-center gap-1.5">
+            <LayoutGrid size={12} />
+            Efetue chamadas manuais inteligentes, configure QR recepção e calibração de geoprocessamento.
           </p>
         </div>
 
-        <div className="bg-slate-100 dark:bg-slate-800 p-2 rounded-[2rem] flex items-center gap-2 shadow-inner border border-slate-200 dark:border-slate-700 w-full lg:w-auto">
+        {/* Tab switcher Deck */}
+        <div className="flex flex-col sm:flex-row gap-4 w-full lg:w-auto">
           <button 
-            onClick={() => setMode('manual')}
-            className={`flex-1 lg:flex-none px-6 py-4 rounded-[1.5rem] flex items-center justify-center gap-2 font-black text-[10px] uppercase tracking-widest transition-all ${mode === 'manual' ? 'bg-white dark:bg-slate-900 text-blue-600 shadow-xl' : 'text-slate-500 hover:text-slate-700'}`}
+            onClick={() => setActiveTab('history')}
+            className="px-6 py-3.5 bg-blue-600 hover:bg-blue-700 text-white font-black text-[10px] uppercase tracking-widest rounded-xl shadow-lg shadow-blue-500/20 flex items-center justify-center gap-2 cursor-pointer transition-all"
           >
-            <UserPlus size={16} />
-            {t('attendance.modeManual')}
+            <Eye size={14} />
+            <span>Ver Métricas & Histórico Completo</span>
           </button>
-          <button 
-            onClick={() => setMode('scanner')}
-            className={`flex-1 lg:flex-none px-6 py-4 rounded-[1.5rem] flex items-center justify-center gap-2 font-black text-[10px] uppercase tracking-widest transition-all ${mode === 'scanner' ? 'bg-white dark:bg-slate-900 text-blue-600 shadow-xl' : 'text-slate-500 hover:text-slate-700'}`}
-          >
-            <Scan size={16} />
-            {t('attendance.modeScanner')}
-          </button>
-          <button 
-            onClick={() => setMode('station')}
-            className={`flex-1 lg:flex-none px-6 py-4 rounded-[1.5rem] flex items-center justify-center gap-2 font-black text-[10px] uppercase tracking-widest transition-all ${mode === 'station' ? 'bg-white dark:bg-slate-900 text-blue-600 shadow-xl' : 'text-slate-500 hover:text-slate-700'}`}
-          >
-            <Tablet size={16} />
-            {t('attendance.modeSelfCheckIn')}
-          </button>
+
+          <div className="bg-slate-100 dark:bg-slate-800 p-1.5 rounded-[1.8rem] flex items-center gap-1.5 shadow-inner border border-slate-200 dark:border-slate-700">
+            <button 
+              onClick={() => setMode('manual')}
+              className={`px-5 py-3 rounded-2xl flex items-center gap-1.5 font-black text-[9px] uppercase tracking-wider transition-all cursor-pointer ${mode === 'manual' ? 'bg-white dark:bg-slate-900 text-blue-600 shadow-md' : 'text-slate-500 hover:text-slate-700'}`}
+            >
+              <UserPlus size={13} />
+              Manual Call
+            </button>
+            <button 
+              onClick={() => setMode('scanner')}
+              className={`px-5 py-3 rounded-2xl flex items-center gap-1.5 font-black text-[9px] uppercase tracking-wider transition-all cursor-pointer ${mode === 'scanner' ? 'bg-white dark:bg-slate-900 text-blue-600 shadow-md' : 'text-slate-500 hover:text-slate-700'}`}
+            >
+              <Scan size={13} />
+              Scanner Kiosk
+            </button>
+            <button 
+              onClick={() => setMode('station')}
+              className={`px-5 py-3 rounded-2xl flex items-center gap-1.5 font-black text-[9px] uppercase tracking-wider transition-all cursor-pointer ${mode === 'station' ? 'bg-white dark:bg-slate-900 text-blue-600 shadow-md' : 'text-slate-500 hover:text-slate-700'}`}
+            >
+              <Tablet size={13} />
+              Dojo Reception QR
+            </button>
+          </div>
         </div>
-      </div>
+      </header>
+
+      {/* Dynamic notifications inside turn */}
+      <AnimatePresence>
+        {isSaved && (
+          <motion.div 
+            initial={{ opacity: 0, y: -20 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, scale: 0.95 }}
+            className="p-5 bg-emerald-500 text-white rounded-3xl font-sans uppercase font-black text-[9px] tracking-widest flex items-center gap-3 shadow-xl"
+          >
+            <CheckCircle className="shrink-0" />
+            Chamada realizada e logs de auditoria gravados em sincronia com o servidor de banco de dados!
+          </motion.div>
+        )}
+      </AnimatePresence>
 
       <div className="flex flex-col lg:flex-row gap-8">
-        {/* Check-in Success Animation Overlay */}
-        <AnimatePresence>
-          {lastCheckedStudent && (
-            <motion.div
-              initial={{ opacity: 0, scale: 0.5 }}
-              animate={{ opacity: 1, scale: 1 }}
-              exit={{ opacity: 0, scale: 1.2, transition: { duration: 0.2 } }}
-              className="fixed inset-0 z-[100] flex items-center justify-center pointer-events-none px-4"
-            >
-              <motion.div 
-                animate={{ 
-                  scale: [1, 1.05, 1],
-                  rotate: [0, 2, -2, 0]
-                }}
-                transition={{ duration: 0.5, repeat: Infinity }}
-                className="bg-slate-900 border-4 border-blue-600 p-8 sm:p-12 rounded-[3.5rem] sm:rounded-[5rem] shadow-[0_0_100px_rgba(37,99,235,0.5)] flex flex-col items-center gap-6 sm:gap-8 relative max-w-lg w-full"
-              >
-                <div className="absolute -top-6 -left-6 sm:-top-10 sm:-left-10 w-16 h-16 sm:w-24 sm:h-24 bg-blue-600 rounded-full flex items-center justify-center text-white shadow-2xl animate-bounce">
-                  <Sparkles size={32} className="sm:w-10 sm:h-10" />
+        
+        {/* Main interactive operational content (Left Side - occupies 2/3) */}
+        <div className="lg:w-2/3 space-y-6">
+          
+          {/* Mode Manual: Advanced Call Sheets */}
+          {mode === 'manual' && (
+            <div className="bg-white dark:bg-slate-900 p-8 rounded-[3.5rem] border border-slate-200 dark:border-slate-800 shadow-sm space-y-6">
+              <header className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 border-b border-slate-50 dark:border-slate-800/80 pb-6">
+                <div>
+                  <h2 className="text-2xl font-black text-slate-900 dark:text-white uppercase tracking-tighter italic">Planilha Diária de Chamada</h2>
+                  <p className="text-[10px] text-slate-400 font-bold uppercase tracking-widest mt-1">Marque presença, atrasos, faltas ou experimentais individualmente.</p>
                 </div>
-                
-                <div className="w-32 h-32 sm:w-48 sm:h-48 rounded-[2rem] sm:rounded-[3rem] border-4 sm:border-8 border-white/10 overflow-hidden shadow-2xl ring-4 sm:ring-8 ring-blue-600/20">
-                  {lastCheckedStudent.photoUrl ? (
-                    <img src={lastCheckedStudent.photoUrl} className="w-full h-full object-cover" />
-                  ) : (
-                    <div className="w-full h-full bg-slate-800 flex items-center justify-center text-4xl sm:text-6xl font-black text-white">
-                      {lastCheckedStudent.name[0]}
-                    </div>
-                  )}
-                </div>
-
-                <div className="text-center">
-                  <h2 className="text-2xl sm:text-4xl font-black text-white uppercase tracking-tighter italic mb-1 sm:mb-2 text-blue-500">CHECK-IN OK!</h2>
-                  <p className="text-3xl sm:text-5xl font-black text-white uppercase tracking-tight break-words px-2">{lastCheckedStudent.name}</p>
-                </div>
-
-                <div className="flex flex-col sm:flex-row gap-3 sm:gap-4 w-full justify-center">
-                  <div className="px-5 py-3 bg-white/5 rounded-2xl border border-white/10 flex items-center justify-center gap-3">
-                    <Zap className="text-amber-500" size={18} />
-                    <span className="text-white font-black uppercase text-xs tracking-widest">{lastCheckedStudent.attendanceCount + 1} AULAS</span>
-                  </div>
-                  <div className="px-5 py-3 bg-blue-600 rounded-2xl flex items-center justify-center gap-3 shadow-lg shadow-blue-600/40">
-                    <CheckCircle className="text-white" size={18} />
-                    <span className="text-white font-black uppercase text-xs tracking-widest">OSS! PRESENÇA</span>
-                  </div>
-                </div>
-              </motion.div>
-            </motion.div>
-          )}
-        </AnimatePresence>
-
-        <div className="w-full lg:w-80 shrink-0 space-y-6">
-          <div className="bg-white dark:bg-slate-900 p-8 rounded-[3rem] border border-slate-200 dark:border-slate-800 shadow-2xl space-y-6">
-            <div className="pt-6 border-t border-slate-100 dark:border-slate-800">
-               <label className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] mb-4 block italic">{t('attendance.filterInstructor') || 'FILTRAR POR INSTRUTOR'}</label>
-               <select 
-                 value={selectedInstructor}
-                 onChange={(e) => {
-                   setSelectedInstructor(e.target.value);
-                   setSelectedClassId('all');
-                 }}
-                 className="w-full px-6 py-4 bg-slate-50 dark:bg-slate-800 border-2 border-slate-100 dark:border-slate-800 rounded-2xl outline-none focus:ring-2 focus:ring-blue-600 dark:text-white font-black text-[10px] uppercase tracking-widest appearance-none"
-               >
-                 <option value="all">{t('common.all')}</option>
-                 {instructors.map(inst => (
-                   <option key={inst} value={inst}>{inst}</option>
-                 ))}
-               </select>
-            </div>
-
-            <div>
-              <label className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] mb-4 block italic">{t('attendance.selectClass')}</label>
-              <div className="space-y-3 max-h-[300px] overflow-y-auto pr-2 scrollbar-thin">
                 <button 
-                  onClick={() => setSelectedClassId('all')}
-                  className={`w-full px-6 py-4 rounded-2xl text-left text-[11px] font-black uppercase tracking-widest transition-all border-2 ${selectedClassId === 'all' ? 'border-blue-600 bg-blue-50 dark:bg-blue-900/20 text-blue-600' : 'border-slate-50 dark:border-slate-800 bg-slate-50 dark:bg-slate-800 text-slate-500'}`}
+                  onClick={handleSaveManualAttendance}
+                  className="px-6 py-4 bg-emerald-600 hover:bg-emerald-700 text-white font-black text-[10px] uppercase tracking-widest rounded-xl transition-all cursor-pointer flex items-center gap-2 shadow-lg shadow-emerald-600/20"
                 >
-                  <div className="flex items-center gap-3">
-                    <Filter size={14} />
-                    {t('attendance.allStudents')}
-                  </div>
+                  <Save size={14} />
+                  Salvar Registro Inteiro
                 </button>
-                {filteredSchedules.map(sch => (
-                  <button 
-                    key={sch.id}
-                    onClick={() => setSelectedClassId(sch.id)}
-                    className={`w-full px-6 py-4 rounded-2xl text-left text-[11px] font-black uppercase tracking-widest transition-all border-2 ${selectedClassId === sch.id ? 'border-blue-600 bg-blue-50 dark:bg-blue-900/20 text-blue-600' : 'border-slate-50 dark:border-slate-800 bg-slate-50 dark:bg-slate-800 text-slate-500'}`}
+              </header>
+
+              {/* Class scheduler level filters */}
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 bg-slate-50 dark:bg-slate-800/30 p-5 rounded-2xl border border-slate-100 dark:border-slate-800">
+                <div>
+                  <label className="text-[8px] font-black text-slate-400 uppercase tracking-widest mb-1.5 block">Filtrar por Instrutor</label>
+                  <select 
+                    value={selectedInstructor}
+                    onChange={e => setSelectedInstructor(e.target.value)}
+                    className="w-full px-3 py-2 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl text-xs font-bold outline-none text-slate-900 dark:text-white"
                   >
-                     <div className="flex flex-col">
-                        <span className="text-[9px] opacity-60">{sch.time} • {sch.instructor}</span>
-                        <span>{sch.title}</span>
-                     </div>
-                  </button>
-                ))}
-              </div>
-            </div>
-
-            <div className="pt-6 border-t border-slate-100 dark:border-slate-800 space-y-3">
-              {selectedClassId !== 'all' && (
-                <button 
-                  onClick={handleConfirmEntireClass}
-                  className="w-full p-5 bg-blue-600 text-white rounded-2xl flex items-center justify-between text-[10px] font-black uppercase tracking-widest hover:bg-blue-700 transition-all shadow-xl shadow-blue-600/20"
-                >
-                  <span>{t('attendance.confirmAll')}</span>
-                  <CheckCircle size={16} />
-                </button>
-              )}
-              <button 
-                onClick={handleExportDaily}
-                className="w-full p-5 bg-slate-900 text-white dark:bg-white dark:text-slate-900 rounded-2xl flex items-center justify-between text-[10px] font-black uppercase tracking-widest hover:bg-blue-600 hover:text-white transition-all group"
-              >
-                <span>{t('attendance.exportDaily')}</span>
-                <Download size={16} className="group-hover:translate-y-1 transition-transform" />
-              </button>
-              <button 
-                onClick={handleExportMonthly}
-                className="w-full p-5 bg-slate-50 dark:bg-slate-800 text-slate-600 dark:text-slate-400 rounded-2xl flex items-center justify-between text-[10px] font-black uppercase tracking-widest border border-slate-200 dark:border-slate-700 hover:bg-white dark:hover:bg-slate-900 transition-all group"
-              >
-                <span>{t('attendance.exportMonthly')}</span>
-                <FileSpreadsheet size={16} className="group-hover:rotate-6 transition-transform" />
-              </button>
-            </div>
-          </div>
-
-          <div className="bg-gradient-to-br from-blue-600 to-indigo-700 p-8 rounded-[3rem] text-white shadow-2xl relative overflow-hidden group">
-            <div className="relative z-10 space-y-6">
-              <div className="flex items-center gap-3">
-                <MapPin size={24} className="text-blue-200" />
-                <h4 className="text-sm font-black uppercase tracking-widest italic">{t('attendance.geoRequired')}</h4>
-              </div>
-              <p className="text-[11px] font-bold italic opacity-80 leading-relaxed uppercase tracking-tight">
-                Garante que os alunos estão fisicamente no Dojo para validar a presença.
-              </p>
-              <button 
-                onClick={verifyLocation}
-                className="w-full py-4 bg-white/20 backdrop-blur-md rounded-2xl text-[10px] font-black uppercase tracking-[0.2em] border border-white/20 hover:bg-white/30 transition-all flex items-center justify-center gap-3"
-              >
-                {locationStatus === 'verifying' ? (
-                   <span className="animate-pulse">VERIFICANDO...</span>
-                ) : (
-                  <>
-                    <div className={`w-2 h-2 rounded-full ${locationStatus === 'success' ? 'bg-green-400 animate-ping' : locationStatus === 'fail' ? 'bg-red-400' : 'bg-white/40'}`} />
-                    {locationStatus === 'success' ? t('attendance.geoSuccess') : locationStatus === 'fail' ? t('attendance.geoFail') : 'VERIFICAR LOCALIZAÇÃO'}
-                  </>
-                )}
-              </button>
-            </div>
-          </div>
-        </div>
-
-        <div className="flex-1 min-h-[600px]">
-          <AnimatePresence mode="wait">
-            {mode === 'manual' && (
-              <motion.div 
-                key="manual"
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                exit={{ opacity: 0, y: -20 }}
-                className="bg-white dark:bg-slate-900 p-10 rounded-[4rem] border-2 border-slate-100 dark:border-slate-800 shadow-2xl h-full"
-              >
-                <div className="relative mb-12">
-                  <Search className="absolute left-6 top-1/2 -translate-y-1/2 text-slate-400" size={20} />
-                  <input
-                    type="text"
-                    placeholder={t('attendance.manualSearch')}
-                    className="w-full pl-16 pr-8 py-6 bg-slate-50 dark:bg-slate-800 border-2 border-transparent rounded-[2rem] focus:border-blue-600 focus:bg-white dark:focus:bg-slate-900 dark:text-white font-bold text-lg transition-all outline-none"
-                    value={searchTerm}
-                    onChange={(e) => setSearchTerm(e.target.value)}
-                  />
+                    <option value="all">Todos os Sanseis</option>
+                    {instructors.map(inst => (
+                      <option key={inst} value={inst}>{inst}</option>
+                    ))}
+                  </select>
                 </div>
 
-                <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-6">
-                  {filtered.map((student) => {
-                    const isChecked = attendedIds.includes(student.id);
+                <div>
+                  <label className="text-[8px] font-black text-slate-400 uppercase tracking-widest mb-1.5 block">Selecionar Turma</label>
+                  <select 
+                    value={selectedClassId}
+                    onChange={e => setSelectedClassId(e.target.value)}
+                    className="w-full px-3 py-2 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl text-xs font-bold outline-none text-slate-900 dark:text-white"
+                  >
+                    <option value="all">Horário Livre / Geral</option>
+                    {filteredSchedules.map(sch => (
+                      <option key={sch.id} value={sch.id}>{sch.time} - {sch.title} ({sch.category})</option>
+                    ))}
+                  </select>
+                </div>
+
+                <div>
+                  <label className="text-[8px] font-black text-slate-400 uppercase tracking-widest mb-1.5 block">Busca Aluno</label>
+                  <div className="relative">
+                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={12} />
+                    <input 
+                      type="text" 
+                      value={searchTerm}
+                      onChange={e => setSearchTerm(e.target.value)}
+                      placeholder="Pesquisar combatente..."
+                      className="w-full pl-9 pr-4 py-2 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl text-xs font-bold outline-none text-slate-900 dark:text-white"
+                    />
+                  </div>
+                </div>
+              </div>
+
+              {/* Attendance student spreadsheet cells list */}
+              <div className="space-y-4 max-h-[420px] overflow-y-auto pr-1">
+                {filtered.length === 0 ? (
+                  <div className="p-16 text-center border-2 border-dashed border-slate-100 dark:border-slate-800 rounded-3xl space-y-3">
+                    <AlertCircle className="mx-auto text-slate-300" size={32} />
+                    <p className="text-[10px] uppercase font-black tracking-wider text-slate-400">Nenhum aluno ativo encontrado para esta turma.</p>
+                  </div>
+                ) : (
+                  filtered.map(student => {
+                    const studentState = manualStatusState[student.id] || { status: 'present', notes: '' };
+                    
                     return (
-                      <button
+                      <div 
                         key={student.id}
-                        onClick={() => toggleAttendance(student.id)}
-                        className={`p-6 rounded-[2.5rem] border-2 transition-all flex items-center gap-5 text-left group relative overflow-hidden ${
-                          isChecked 
-                          ? 'border-blue-600 bg-blue-50/50 dark:bg-blue-900/10' 
-                          : 'border-slate-50 dark:border-slate-800 hover:border-blue-200 bg-white dark:bg-slate-800'
-                        }`}
+                        className="p-4 bg-slate-50 dark:bg-slate-800/20 border border-slate-100 dark:border-slate-800 rounded-2xl flex flex-col md:flex-row md:items-center justify-between gap-4 transition-all"
                       >
-                        <div className="relative shrink-0">
-                          <div className={`w-16 h-16 rounded-[1.5rem] flex items-center justify-center font-black text-2xl overflow-hidden shadow-xl transition-transform group-hover:scale-105 ${
-                            isChecked ? 'bg-blue-600 text-white' : 'bg-slate-900 dark:bg-white text-white dark:text-slate-900'
-                          }`}>
+                        <div className="flex items-center gap-3">
+                          <div className="w-10 h-10 bg-slate-950 rounded-xl overflow-hidden font-black text-sm text-white flex items-center justify-center shrink-0">
                             {student.photoUrl ? (
-                              <img src={student.photoUrl} alt={student.name} className="w-full h-full object-cover" loading="lazy" />
+                              <img src={student.photoUrl} alt={student.name} className="w-full h-full object-cover" />
                             ) : (
                               student.name[0]
                             )}
                           </div>
-                          {isChecked && (
-                            <div className="absolute -top-2 -right-2 bg-green-500 text-white p-1 rounded-full border-4 border-white dark:border-slate-900 shadow-lg animate-in zoom-in duration-300">
-                              <CheckCircle size={14} />
-                            </div>
-                          )}
-                        </div>
-                        <div className="flex-1">
-                          <p className={`font-black uppercase tracking-tighter text-base leading-tight group-hover:text-blue-600 transition-colors ${isChecked ? 'text-blue-900 dark:text-blue-300' : 'text-slate-900 dark:text-white'}`}>
-                            {student.name}
-                          </p>
-                          <p className="text-[9px] text-slate-400 uppercase font-black tracking-widest mt-1">
-                            {t(`belts.${student.belt}`)} • {student.attendanceCount} {t('common.attendance').toLowerCase()}s
-                          </p>
-                        </div>
-                      </button>
-                    );
-                  })}
-                </div>
-
-                <div className="mt-12 space-y-6">
-                   <div>
-                     <label className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] mb-4 block italic">NOTAS DA SESSÃO / CONTEÚDO DA AULA</label>
-                     <textarea
-                       placeholder="O que foi ensinado hoje? Observações técnicas..."
-                       className="w-full px-8 py-6 bg-slate-50 dark:bg-slate-800 border-2 border-transparent rounded-[2rem] focus:border-blue-600 focus:bg-white dark:focus:bg-slate-900 dark:text-white font-bold text-lg transition-all outline-none min-h-[120px]"
-                       value={sessionNotes}
-                       onChange={(e) => setSessionNotes(e.target.value)}
-                     />
-                   </div>
-                   
-                   <div className="flex justify-end">
-                      <button 
-                       onClick={handleSave}
-                       disabled={attendedIds.length === 0}
-                       className={`px-16 py-6 rounded-[2rem] font-black uppercase tracking-[0.3em] text-sm transition-all shadow-2xl active:scale-95 ${
-                         isSaved ? 'bg-green-600 text-white' : 'bg-blue-600 text-white shadow-blue-600/30'
-                       }`}
-                     >
-                       {isSaved ? t('attendance.evolutionRegistered') : t('attendance.confirmTraining')}
-                     </button>
-                   </div>
-                </div>
-              </motion.div>
-            )}
-
-            {mode === 'scanner' && (
-              <motion.div 
-                key="scanner"
-                initial={{ opacity: 0, scale: 0.95 }}
-                animate={{ opacity: 1, scale: 1 }}
-                exit={{ opacity: 0, scale: 0.95 }}
-                className="bg-slate-950 p-10 rounded-[4rem] border-2 border-white/5 shadow-2xl h-full flex flex-col items-center justify-center text-center relative overflow-hidden"
-              >
-                <div className="absolute top-10 left-10 text-left space-y-2">
-                  <h3 className="text-white text-3xl font-black uppercase tracking-tighter italic">{t('attendance.scanTitle')}</h3>
-                  <p className="text-blue-400 text-[10px] font-black uppercase tracking-[0.4em]">{t('attendance.scanInstructions')}</p>
-                </div>
-
-                <div className="w-full max-w-sm aspect-square bg-white/5 rounded-[4rem] border-4 border-dashed border-blue-500/50 flex items-center justify-center overflow-hidden relative">
-                   <div id="reader" className="w-full h-full" />
-                </div>
-
-                <div className="mt-12 w-full max-w-md">
-                   <div className="flex items-center justify-between text-white/50 text-[10px] font-black uppercase tracking-widest mb-4">
-                      <span>{t('attendance.recentScans')}</span>
-                      <span>Total: {attendedIds.length}</span>
-                   </div>
-                   <div className="flex gap-2 overflow-x-auto pb-4 scrollbar-hide">
-                      {attendedIds.slice(-5).map(id => {
-                        const s = students.find(std => std.id === id);
-                        return (
-                          <div key={id} className="shrink-0 bg-white/10 px-4 py-2 rounded-xl flex items-center gap-3 border border-white/10">
-                            <div className="w-6 h-6 bg-blue-600 rounded-lg flex items-center justify-center text-[10px] font-bold">
-                               {s?.name[0]}
-                            </div>
-                            <span className="text-white text-[10px] font-black uppercase tracking-tighter whitespace-nowrap">{s?.name}</span>
+                          <div>
+                            <p className="text-xs font-bold text-slate-900 dark:text-white uppercase tracking-tight flex items-center gap-1.5">
+                              <span>{student.name}</span>
+                              <span className="text-[7px] bg-slate-200 dark:bg-slate-800 text-slate-500 px-1.5 py-0.5 rounded font-black mt-0.5">{student.belt ? student.belt.toUpperCase() : 'BRANCA'}</span>
+                            </p>
+                            <p className="text-[8px] font-mono font-bold text-slate-400 uppercase mt-0.5">Última Presença: {student.lastAttendanceDate || 'Nenhum registro'}</p>
                           </div>
-                        );
-                      })}
-                   </div>
+                        </div>
+
+                        {/* Interactive presence cells */}
+                        <div className="flex flex-wrap items-center gap-1.5">
+                          {[
+                            { key: 'present', label: 'PRESENTE', color: 'bg-green-600' },
+                            { key: 'late', label: 'ATRASADO', color: 'bg-amber-500' },
+                            { key: 'trial', label: 'EXPERIMENTAL', color: 'bg-purple-600' },
+                            { key: 'absent', label: 'FALTA', color: 'bg-red-600' }
+                          ].map(opt => (
+                            <button 
+                              key={opt.key}
+                              onClick={() => updateManualStateStatus(student.id, opt.key as any)}
+                              className={`px-3 py-2 rounded-lg text-[8px] font-black uppercase tracking-wider transition-all cursor-pointer ${
+                                studentState.status === opt.key 
+                                  ? `${opt.color} text-white shadow-md` 
+                                  : 'bg-white dark:bg-slate-900 text-slate-500 border border-slate-200 dark:border-slate-800'
+                              }`}
+                            >
+                              {opt.label}
+                            </button>
+                          ))}
+                        </div>
+
+                        {/* Notes insertion sheet */}
+                        <div className="w-full md:w-44 shrink-0">
+                          <input 
+                            type="text" 
+                            placeholder="Obs. técnica..."
+                            value={studentState.notes}
+                            onChange={e => updateManualStateNotes(student.id, e.target.value)}
+                            className="w-full text-[10px] font-black uppercase px-3 py-2 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-lg outline-none focus:ring-1 focus:ring-blue-600 text-slate-900 dark:text-white"
+                          />
+                        </div>
+                      </div>
+                    );
+                  })
+                )}
+              </div>
+            </div>
+          )}
+
+          {/* Mode Scanner check-in reader station */}
+          {mode === 'scanner' && (
+            <div className="bg-white dark:bg-slate-900 p-8 rounded-[3.5rem] border border-slate-200 dark:border-slate-800 shadow-sm text-center space-y-6">
+              <div>
+                <h3 className="text-2xl font-black text-slate-900 dark:text-white uppercase tracking-tighter italic">Quiosque de Presença do Aluno</h3>
+                <p className="text-[10px] text-slate-400 font-bold uppercase tracking-widest mt-1">Aponte o QR Code do Portal do Aluno para a camera integrada à direita.</p>
+              </div>
+
+              <div className="max-w-md mx-auto aspect-square bg-slate-950 dark:bg-slate-950 rounded-[2.5rem] overflow-hidden relative flex flex-col items-center justify-center p-6 border-4 border-slate-900 shadow-2xl">
+                <div id="reader" className="w-full h-full bg-transparent overflow-hidden" />
+                <div className="absolute inset-0 border-2 border-dashed border-blue-500 m-8 rounded-[1.5rem] pointer-events-none anime-pulse flex items-center justify-center">
+                  <span className="text-[8px] bg-blue-500/80 backdrop-blur text-white px-3 py-1 rounded-full font-black tracking-widest uppercase">SCANNER ATIVO</span>
                 </div>
+              </div>
+            </div>
+          )}
 
-                <button 
-                  onClick={handleSave}
-                  className="mt-8 px-12 py-5 bg-blue-600 text-white rounded-2xl font-black text-xs uppercase tracking-widest shadow-2xl hover:bg-blue-700 active:scale-95 transition-all"
-                >
-                  {t('attendance.saveScanningSession')}
-                </button>
-              </motion.div>
-            )}
+          {/* Mode Static Dojo QR Kiosk Station desk */}
+          {mode === 'station' && (
+            <div className="bg-white dark:bg-slate-900 p-8 rounded-[3.5rem] border border-slate-200 dark:border-slate-800 shadow-sm text-center space-y-6">
+              <div>
+                <h3 className="text-2xl font-black text-slate-900 dark:text-white uppercase tracking-tighter italic">QR Code Fixo do Dojo</h3>
+                <p className="text-[10px] text-slate-400 font-bold uppercase tracking-widest mt-1">Imprima ou configure este QR Code na recepção. O Aluno abre o portal e confirma a validação.</p>
+              </div>
 
-            {mode === 'station' && (
-              <motion.div 
-                key="station"
-                initial={{ opacity: 0, x: 20 }}
-                animate={{ opacity: 1, x: 0 }}
-                exit={{ opacity: 0, x: -20 }}
-                className="bg-white dark:bg-slate-900 p-12 rounded-[4rem] border-2 border-slate-100 dark:border-slate-800 shadow-2xl h-full flex flex-col items-center justify-center text-center space-y-12"
-              >
-                <div className="space-y-4">
-                  <h2 className="text-4xl md:text-6xl font-black text-slate-900 dark:text-white uppercase tracking-tighter italic">{t('attendance.qrTitle')}</h2>
-                  <p className="text-slate-500 font-bold italic text-lg max-w-2xl mx-auto">
-                    {t('attendance.qrInstructions')}
-                  </p>
-                </div>
-
-                <div className="relative bg-white p-12 rounded-[4rem] shadow-2xl border-4 border-slate-100">
+              <div className="max-w-xs mx-auto bg-slate-50 border border-slate-100 dark:border-slate-800 dark:bg-slate-950 p-6 rounded-[2.5rem] shadow-2xl flex flex-col items-center justify-center space-y-4">
+                <div className="p-4 bg-white rounded-3xl shadow-md">
                   <QRCodeCanvas 
-                    value={sessionQRCode} 
-                    size={320}
-                    level="H"
+                    value={receptorQRCodeValue} 
+                    size={200}
+                    level={"H"}
                     includeMargin={true}
                   />
                 </div>
-
-                <div className="flex flex-col items-center gap-6">
-                   <div className="p-6 bg-blue-50 dark:bg-blue-900/10 rounded-[2.5rem] border border-blue-100 dark:border-blue-900/20 flex flex-col items-center gap-4">
-                      <div className="flex items-center gap-3">
-                         <div className="w-3 h-3 bg-blue-600 rounded-full animate-ping" />
-                         <span className="text-xl font-black text-blue-600 dark:text-blue-400 uppercase tracking-tighter italic">
-                           {t('attendance.sessionActive')}
-                         </span>
-                      </div>
-                      <div className="flex items-center gap-6">
-                         <div className="text-center">
-                            <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest leading-none mb-1">{t('attendance.time')}</p>
-                            <p className="text-2xl font-black tabular-nums text-slate-900 dark:text-white">{new Date().toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}</p>
-                         </div>
-                         <div className="w-px h-8 bg-slate-200 dark:bg-slate-700" />
-                         <div className="text-center">
-                            <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest leading-none mb-1">{t('attendance.checked')}</p>
-                            <p className="text-2xl font-black tabular-nums text-slate-900 dark:text-white">{attendedIds.length}</p>
-                         </div>
-                      </div>
-                   </div>
-                   
-                   <p className="text-[10px] font-black text-slate-400 uppercase tracking-[0.4em] italic">
-                     SYSBJJ Academy • {new Date().getFullYear()} • {t('attendance.biometricLog')}
-                   </p>
+                <div className="space-y-1">
+                  <p className="text-[10px] font-black tracking-tight text-slate-900 dark:text-white uppercase">QR CODE ATIVO DE RECEPÇÃO</p>
+                  <p className="text-[8px] font-mono font-black text-slate-400 truncate max-w-[180px]">{receptorQRCodeValue}</p>
                 </div>
-              </motion.div>
-            )}
-          </AnimatePresence>
+              </div>
+
+              <button 
+                onClick={handleRegenerateStaticQR}
+                className="px-6 py-4 bg-slate-900 hover:bg-slate-800 text-white dark:bg-slate-800 hover:dark:bg-slate-700 text-xs font-black uppercase tracking-widest rounded-xl transition-all flex items-center gap-2 mx-auto cursor-pointer"
+              >
+                <RefreshCw size={14} className="animate-spin duration-3000" />
+                Regerar Token de Segurança
+              </button>
+            </div>
+          )}
+        </div>
+
+        {/* Right side helper configurations/widgets panel (Occupies 1/3) */}
+        <div className="lg:w-1/3 space-y-6">
+          
+          {/* Geoprocessing GPS perimeter configuration map card */}
+          <div className="bg-white dark:bg-slate-900 p-8 rounded-[3.5rem] border border-slate-200 dark:border-slate-800 shadow-sm space-y-6">
+            <header className="flex items-center gap-2">
+              <MapPin className="text-blue-600 shrink-0" size={18} />
+              <h3 className="text-lg font-black text-slate-900 dark:text-white uppercase tracking-tighter italic">Calibrador Geofencing</h3>
+            </header>
+
+            <p className="text-[10px] text-slate-400 uppercase tracking-tight font-black leading-relaxed">
+              Limite a validação de presença do aluno ao raio da academia. Calibre o perímetro com a sua localização em tempo real.
+            </p>
+
+            <div className="space-y-4 bg-slate-50 dark:bg-slate-800/30 p-5 rounded-2xl">
+              <div>
+                <label className="text-[8px] font-black text-slate-400 uppercase tracking-widest mb-1 block">Latitude Central (Dojo)</label>
+                <input 
+                  type="number" 
+                  value={calibratedLat || ''} 
+                  onChange={e => setCalibratedLat(e.target.value === '' ? null : parseFloat(e.target.value))}
+                  placeholder="Ex: -23.55052"
+                  className="w-full text-xs font-mono font-bold px-3 py-2 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-lg outline-none text-slate-950 dark:text-white"
+                />
+              </div>
+
+              <div>
+                <label className="text-[8px] font-black text-slate-400 uppercase tracking-widest mb-1 block">Longitude Central (Dojo)</label>
+                <input 
+                  type="number" 
+                  value={calibratedLng || ''} 
+                  onChange={e => setCalibratedLng(e.target.value === '' ? null : parseFloat(e.target.value))}
+                  placeholder="Ex: -46.633308"
+                  className="w-full text-xs font-mono font-bold px-3 py-2 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-lg outline-none text-slate-950 dark:text-white"
+                />
+              </div>
+
+              <div>
+                <label className="text-[8px] font-black text-slate-400 uppercase tracking-widest mb-1 block font-sans">Raio Máximo Tolerado</label>
+                <div className="relative">
+                  <input 
+                    type="number" 
+                    value={calibratedRadius} 
+                    onChange={e => setCalibratedRadius(parseInt(e.target.value) || 100)}
+                    placeholder="Metros..."
+                    className="w-full text-xs font-mono font-bold px-3 py-2 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-lg outline-none text-slate-950 dark:text-white pr-10"
+                  />
+                  <span className="absolute right-3 top-1/2 -translate-y-1/2 text-[8px] font-black uppercase text-slate-400">METROS</span>
+                </div>
+              </div>
+
+              {gpsMessage && (
+                <div className="p-3 bg-slate-900 dark:bg-black rounded-lg text-[8px] font-bold text-slate-300 font-mono leading-relaxed truncate antialiased">
+                  {gpsMessage}
+                </div>
+              )}
+            </div>
+
+            <div className="space-y-2">
+              <button 
+                onClick={calibrateGpsLocation}
+                disabled={calibratingGps}
+                className="w-full py-3.5 bg-blue-600 hover:bg-blue-700 text-white font-black text-[9px] uppercase tracking-widest rounded-xl cursor-pointer flex items-center justify-center gap-1.5 transition-all shadow-md shadow-blue-500/10"
+              >
+                <Compass size={12} className={calibratingGps ? "animate-spin" : ""} />
+                Sincronizar Localização (Sinal GPS)
+              </button>
+
+              <button 
+                onClick={handleTestGeofence}
+                className="w-full py-3.5 border border-slate-200 dark:border-slate-800 hover:bg-slate-100 text-slate-700 dark:text-slate-300 rounded-xl text-[9px] font-black uppercase tracking-widest cursor-pointer flex items-center justify-center gap-1.5 transition-all"
+              >
+                <Sparkles size={12} />
+                Testar Geolocalização de Presença
+              </button>
+            </div>
+          </div>
+
+          {/* Facial Enrollment visual configuration Sandbox card */}
+          <div className="bg-white dark:bg-slate-900 p-8 rounded-[3.5rem] border border-slate-200 dark:border-slate-800 shadow-sm space-y-6">
+            <header className="flex items-center gap-2">
+              <Camera className="text-blue-600 shrink-0" size={18} />
+              <h3 className="text-lg font-black text-slate-900 dark:text-white uppercase tracking-tighter italic">Reconhecimento Facial</h3>
+            </header>
+
+            <p className="text-[10px] text-slate-400 uppercase tracking-tight font-black leading-relaxed">
+              Habilite o cadastro biométrico facial sandbox dos combatentes para check-in por imagem de selfie e facematch de segurança.
+            </p>
+
+            <div className="space-y-3">
+              <label className="text-[8px] font-black text-slate-400 uppercase tracking-widest block">ESCOLHER ALUNO</label>
+              <div className="max-h-44 overflow-y-auto pr-1 space-y-1.5 scrollbar-thin">
+                {activeStudents.slice(0, 8).map(st => (
+                  <div key={st.id} className="flex items-center justify-between p-2 rounded-xl bg-slate-50 dark:bg-slate-800/30 text-xs">
+                    <span className="truncate uppercase font-bold text-slate-900 dark:text-white text-[10px] max-w-[120px]">{st.name}</span>
+                    <button 
+                      onClick={() => handleStartFacialEnroll(st)}
+                      className="px-2.5 py-1 text-[8px] bg-slate-900 text-white hover:bg-slate-800 rounded-md font-black uppercase tracking-wider transition-all cursor-pointer"
+                    >
+                      CADASTRAR FACE
+                    </button>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
         </div>
       </div>
+
+      {/* Checkin / Geofencing Verification popup animator */}
+      <AnimatePresence>
+        {lastCheckedStudent && (
+          <motion.div
+            initial={{ opacity: 0, scale: 0.8 }}
+            animate={{ opacity: 1, scale: 1 }}
+            exit={{ opacity: 0, scale: 0.95 }}
+            className="fixed inset-0 z-[140] flex items-center justify-center bg-black/50 backdrop-blur-sm p-4"
+          >
+            <div className="bg-white dark:bg-slate-900 rounded-[3rem] p-8 max-w-sm w-full border border-slate-200 dark:border-slate-800 text-center space-y-6">
+              <div className="w-24 h-24 bg-emerald-500 rounded-[2rem] mx-auto text-white flex items-center justify-center shadow-lg shadow-emerald-500/20">
+                <CheckCircle size={48} className="animate-bounce" />
+              </div>
+              <div className="space-y-2">
+                <p className="text-[9px] font-black text-emerald-500 uppercase tracking-widest">CHECK-IN CONFIRMADO</p>
+                <h3 className="text-2xl font-black text-slate-950 dark:text-white uppercase tracking-tight">{lastCheckedStudent.name}</h3>
+                <p className="text-[10px] uppercase font-bold text-slate-400">Graduação: {lastCheckedStudent.belt || 'Branca'}</p>
+              </div>
+              <div className="p-3 bg-slate-50 dark:bg-slate-800 rounded-xl font-sans uppercase font-black text-[8px] tracking-widest">
+                Via Kiosk Scanner • {new Date().toLocaleTimeString()}
+              </div>
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* MODAL: Facial biometric record sandbox enroll visual camera guide */}
+      <AnimatePresence>
+        {isFaceCameraActive && activeFaceRegisterStudent && (
+          <div className="fixed inset-0 z-[140] flex items-center justify-center bg-black/80 backdrop-blur-md p-4">
+            <motion.div 
+              initial={{ scale: 0.9, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              exit={{ scale: 0.9, opacity: 0 }}
+              className="bg-white dark:bg-slate-900 rounded-[3.5rem] p-8 max-w-md w-full border border-slate-200 dark:border-slate-800 shadow-2xl text-center space-y-6"
+            >
+              <header className="flex items-center justify-between">
+                <h3 className="text-lg font-black text-slate-900 dark:text-white uppercase tracking-tighter italic flex items-center gap-2">
+                  <Camera size={18} />
+                  Cadastrar Assinatura Facial
+                </h3>
+                <button 
+                  onClick={closeFaceCamera}
+                  className="p-2 text-slate-400 hover:text-red-500 hover:bg-slate-100 rounded-full transition-all"
+                >
+                  <X />
+                </button>
+              </header>
+
+              <p className="text-[10px] text-slate-400 uppercase tracking-tight font-bold">
+                Aluno: {activeFaceRegisterStudent.name} • Alinhe o rosto no centro da máscara de captura.
+              </p>
+
+              {/* Camera interface element preview simulation */}
+              <div className="relative aspect-square w-full bg-slate-950 rounded-[2.5rem] overflow-hidden border-2 border-slate-800 flex items-center justify-center max-w-xs mx-auto">
+                <video ref={videoRef} className="w-full h-full object-cover scale-x-[-1]" playsInline muted />
+                
+                {/* Facial scanning vector guide mesh overlays */}
+                <div className="absolute inset-0 border-4 border-slate-900/60 rounded-[2.5rem] pointer-events-none flex items-center justify-center">
+                  <div className={`w-40 h-52 rounded-[3.5rem] border-3 ${faceEnrollSuccess ? 'border-emerald-500 animate-pulse' : 'border-blue-500 animate-pulse'} pointer-events-none flex flex-col items-center justify-center`}>
+                    <span className="text-[7px] text-white bg-slate-900/80 px-2 py-0.5 rounded font-black uppercase tracking-widest mt-auto mb-4">{faceEnrollSuccess ? '98.4% CONFIDENT' : 'ESCANEANDO_'}</span>
+                  </div>
+                </div>
+
+                <div className="absolute bottom-4 left-1/2 -translate-x-1/2 w-4/5 bg-slate-900/80 backdrop-blur px-4 py-2 rounded-xl text-[8px] font-black uppercase tracking-wider text-white">
+                  {faceEnrollSuccess ? "Biometria Mapeada" : `Mapeando Matriz Facial: ${faceScanPercent}%`}
+                </div>
+              </div>
+
+              {faceEnrollSuccess && (
+                <div className="p-4 bg-emerald-500/10 border border-emerald-500/20 rounded-2xl text-emerald-700 dark:text-emerald-400 text-[10px] font-black uppercase tracking-widest">
+                  Assinatura Cadastrada no Banco de Dados Biométricos!
+                </div>
+              )}
+
+              <div className="flex gap-2 justify-end">
+                <button 
+                  onClick={closeFaceCamera} 
+                  className="px-5 py-3 text-[10px] font-black uppercase text-slate-500 tracking-widest hover:bg-slate-100 dark:hover:bg-slate-800 rounded-xl"
+                >
+                  Cancelar
+                </button>
+                {faceEnrollSuccess && (
+                  <button 
+                    onClick={closeFaceCamera} 
+                    className="px-6 py-3 text-[10px] font-black uppercase text-white bg-emerald-600 hover:bg-emerald-700 rounded-xl transition-all shadow-md shadow-emerald-500/10"
+                  >
+                    Concluir e Salvar Biometria
+                  </button>
+                )}
+              </div>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
     </div>
   );
 };

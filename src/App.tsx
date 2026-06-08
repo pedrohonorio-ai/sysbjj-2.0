@@ -467,14 +467,16 @@ const Header = ({ toggleSidebar, auth, onLogout }: { toggleSidebar: () => void, 
 
         <NotificationCenter />
         
-        <button 
-          onClick={() => setIsDiagnosticOpen(true)}
-          title="Sentinela de Diagnóstico"
-          className="p-3 bg-blue-600/10 hover:bg-blue-600/20 border border-blue-500/20 text-blue-600 dark:text-blue-400 rounded-2xl transition-all shadow-sm active:scale-95 flex items-center justify-center gap-2"
-        >
-          <Cpu size={18} className="animate-pulse" />
-          <span className="hidden md:inline text-[9px] font-black uppercase tracking-widest">Diagnóstico</span>
-        </button>
+        {isMasterAdmin && (
+          <button 
+            onClick={() => setIsDiagnosticOpen(true)}
+            title="Sentinela de Diagnóstico"
+            className="p-3 bg-blue-600/10 hover:bg-blue-600/20 border border-blue-500/20 text-blue-600 dark:text-blue-400 rounded-2xl transition-all shadow-sm active:scale-95 flex items-center justify-center gap-2"
+          >
+            <Cpu size={18} className="animate-pulse" />
+            <span className="hidden md:inline text-[9px] font-black uppercase tracking-widest">Diagnóstico</span>
+          </button>
+        )}
         
         <button 
           onClick={handleThemeToggle}

@@ -3819,8 +3819,8 @@ const Students: React.FC = () => {
 
       {viewMode === 'table' ? (
         <div className="bg-white dark:bg-slate-900 rounded-[1.5rem] sm:rounded-[2rem] border border-slate-200 dark:border-slate-800 shadow-xl overflow-hidden">
-          {/* Desktop View Table */}
-          <div className="hidden lg:block overflow-x-auto scrollbar-thin scrollbar-thumb-slate-200 dark:scrollbar-thumb-slate-700">
+          {/* Desktop & Mobile View Table (Fully Scrollable) */}
+          <div className="w-full overflow-x-auto scrollbar-thin scrollbar-thumb-slate-200 dark:scrollbar-thumb-slate-700">
             <table className="w-full text-left border-collapse lg:min-w-full">
               <thead className="bg-slate-50 dark:bg-slate-900/50">
                 <tr>
