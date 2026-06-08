@@ -541,21 +541,21 @@ const AttendancePage: React.FC = () => {
               className={`px-5 py-3 rounded-2xl flex items-center gap-1.5 font-black text-[9px] uppercase tracking-wider transition-all cursor-pointer ${mode === 'manual' ? 'bg-white dark:bg-slate-900 text-blue-600 shadow-md' : 'text-slate-500 hover:text-slate-700'}`}
             >
               <UserPlus size={13} />
-              Manual Call
+              Chamada Manual
             </button>
             <button 
               onClick={() => setMode('scanner')}
               className={`px-5 py-3 rounded-2xl flex items-center gap-1.5 font-black text-[9px] uppercase tracking-wider transition-all cursor-pointer ${mode === 'scanner' ? 'bg-white dark:bg-slate-900 text-blue-600 shadow-md' : 'text-slate-500 hover:text-slate-700'}`}
             >
               <Scan size={13} />
-              Scanner Kiosk
+              Totem Sensor (Totem)
             </button>
             <button 
               onClick={() => setMode('station')}
               className={`px-5 py-3 rounded-2xl flex items-center gap-1.5 font-black text-[9px] uppercase tracking-wider transition-all cursor-pointer ${mode === 'station' ? 'bg-white dark:bg-slate-900 text-blue-600 shadow-md' : 'text-slate-500 hover:text-slate-700'}`}
             >
               <Tablet size={13} />
-              Dojo Reception QR
+              QR Fixo do Dojo
             </button>
           </div>
         </div>
