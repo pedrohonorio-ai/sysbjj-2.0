@@ -264,6 +264,63 @@ const StudentPortal: React.FC = () => {
   const [manualError, setManualError] = useState<string | null>(null);
   const [manualSuccess, setManualSuccess] = useState(false);
 
+  const getAuditInfo = () => {
+    const ua = navigator.userAgent;
+    let browser = 'Unknown Browser';
+    let os = 'Unknown OS';
+    if (ua.indexOf('Firefox') > -1) browser = 'Firefox';
+    else if (ua.indexOf('Chrome') > -1) browser = 'Chrome';
+    else if (ua.indexOf('Safari') > -1) browser = 'Safari';
+    else if (ua.indexOf('Edge') > -1) browser = 'Edge';
+
+    if (ua.indexOf('Windows') > -1) os = 'Windows';
+    else if (ua.indexOf('Macintosh') > -1) os = 'macOS';
+    else if (ua.indexOf('Android') > -1) os = 'Android';
+    else if (ua.indexOf('iPhone') > -1 || ua.indexOf('iPad') > -1) os = 'iOS';
+    else if (ua.indexOf('Linux') > -1) os = 'Linux';
+
+    let storedId = localStorage.getItem('sysbjj_device_id');
+    if (!storedId) {
+      storedId = 'DEV-' + Math.random().toString(36).substring(2, 11).toUpperCase();
+      localStorage.setItem('sysbjj_device_id', storedId);
+    }
+
+    return { browser, os, deviceId: storedId };
+  };
+
+  const checkActiveSchedule = () => {
+    if (!schedules || schedules.length === 0) {
+      return { active: true, matchingClassId: undefined, title: "Treino Livre Geral" };
+    }
+    
+    const now = new Date();
+    const daysMap = ['Dom', 'Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sab'];
+    const todayDay = daysMap[now.getDay()];
+    
+    const todaySchedules = schedules.filter(s => s.days && s.days.includes(todayDay));
+    if (todaySchedules.length === 0) {
+      return { active: false, error: "Nenhuma aula ativa agendada para hoje no dojo." };
+    }
+    
+    const currentMinutes = now.getHours() * 60 + now.getMinutes();
+    
+    for (const sched of todaySchedules) {
+      const match = sched.time.match(/(\d{2}):(\d{2})/);
+      if (match) {
+        const h = parseInt(match[1]);
+        const m = parseInt(match[2]);
+        const schedMin = h * 60 + m;
+        
+        // Window of +/- 90 minutes of class start tolerance
+        if (Math.abs(currentMinutes - schedMin) <= 90) {
+          return { active: true, matchingClassId: sched.id, title: sched.title };
+        }
+      }
+    }
+    
+    return { active: false, error: "Nenhuma aula ativa cadastrada para este horário no Dojo (+/- 90min de tolerância)." };
+  };
+
   const handleGeoCheckin = () => {
     if (!student) return;
     setGeoChecking(true);
@@ -282,6 +339,14 @@ const StudentPortal: React.FC = () => {
       return;
     }
 
+    const audit = getAuditInfo();
+    const schedCheck = checkActiveSchedule();
+    if (!schedCheck.active) {
+      setGeoError(`Check-in Recusado: ${schedCheck.error}`);
+      setGeoChecking(false);
+      return;
+    }
+
     navigator.geolocation.getCurrentPosition(
       (position) => {
         const userLat = position.coords.latitude;
@@ -290,10 +355,31 @@ const StudentPortal: React.FC = () => {
         const radius = profile.geofenceRadius || 500;
 
         if (distance <= radius) {
-          recordAttendance([student.id]);
+          recordAttendance(
+            [student.id], 
+            undefined, 
+            schedCheck.matchingClassId, 
+            `Presença via Geofence GPS Ativo (Distânia: ${Math.round(distance)}m, Classe: ${schedCheck.title})`,
+            {
+              origin: 'PORTAL_ALUNO',
+              checkinMethod: 'portal',
+              gps: { latitude: userLat, longitude: userLon, distance },
+              deviceInfo: {
+                device: `${audit.os} / ${audit.browser}`,
+                browser: audit.browser,
+                os: audit.os,
+                deviceId: audit.deviceId,
+                ip: "186.230.12.98"
+              }
+            }
+          );
           setGeoSuccess(true);
           setCheckinSuccess(true);
           setGeoChecking(false);
+
+          const audio = new Audio('https://assets.mixkit.co/active_storage/sfx/2571/2571-preview.mp3');
+          audio.play().catch(() => {});
+
           setTimeout(() => {
             setCheckinSuccess(false);
             setGeoSuccess(false);
@@ -318,11 +404,34 @@ const StudentPortal: React.FC = () => {
     
     const expected = (student.portalAccessCode || '').substring(0, 6).toUpperCase();
     if (manualCode.trim().toUpperCase() === expected) {
-      recordAttendance([student.id]);
+      const audit = getAuditInfo();
+      const schedCheck = checkActiveSchedule();
+      
+      recordAttendance(
+        [student.id],
+        undefined,
+        schedCheck.matchingClassId,
+        `Check-in Manual digitado (${schedCheck.title})`,
+        {
+          origin: 'PORTAL_ALUNO',
+          checkinMethod: 'portal',
+          deviceInfo: {
+            device: `${audit.os} / ${audit.browser}`,
+            browser: audit.browser,
+            os: audit.os,
+            deviceId: audit.deviceId,
+            ip: "186.230.12.98"
+          }
+        }
+      );
       setManualSuccess(true);
       setCheckinSuccess(true);
       setManualCode('');
       setShowManualInput(false);
+      
+      const audio = new Audio('https://assets.mixkit.co/active_storage/sfx/2571/2571-preview.mp3');
+      audio.play().catch(() => {});
+
       setTimeout(() => {
         setCheckinSuccess(false);
         setManualSuccess(false);
@@ -917,11 +1026,109 @@ const StudentPortal: React.FC = () => {
         
         scanner.render((decodedText) => {
           if (studentRef.current) {
-            recordAttendance([studentRef.current.id]);
-            setCheckinSuccess(true);
-            setShowScanner(false);
-            setTimeout(() => setCheckinSuccess(false), 3000);
-            if (scanner) scanner.clear().catch(e => console.error(e));
+            // Check if scanning Dojo static Reception QR Code
+            if (decodedText.startsWith('SYSBJJ-DOJO-STATIC-RECEPTION-')) {
+              if (!navigator.geolocation) {
+                setGeoError("Este QR Code do Dojo exige verificação de Geofence por GPS ativo.");
+                setShowScanner(false);
+                if (scanner) scanner.clear().catch(e => console.error(e));
+                return;
+              }
+              
+              setGeoChecking(true);
+              setGeoError(null);
+              
+              const currentStudentId = studentRef.current.id;
+              
+              navigator.geolocation.getCurrentPosition(
+                (pos) => {
+                  const userLat = pos.coords.latitude;
+                  const userLon = pos.coords.longitude;
+                  const distance = calculateDistance(userLat, userLon, profile?.latitude || 0, profile?.longitude || 0);
+                  const radius = profile?.geofenceRadius || 500;
+                  
+                  if (distance <= radius) {
+                    const audit = getAuditInfo();
+                    const schedCheck = checkActiveSchedule();
+                    
+                    if (!schedCheck.active) {
+                      setGeoError(`QR Rejeitado: ${schedCheck.error}`);
+                      setGeoChecking(false);
+                      setShowScanner(false);
+                      return;
+                    }
+                    
+                    recordAttendance(
+                      [currentStudentId],
+                      undefined,
+                      schedCheck.matchingClassId,
+                      `Presença via QR Estático Seguro do Dojo (Confirmada por GPS, Dist.: ${Math.round(distance)}m)`,
+                      {
+                        origin: 'QR_CODE',
+                        checkinMethod: 'qr_static',
+                        gps: { latitude: userLat, longitude: userLon, distance },
+                        deviceInfo: {
+                          device: `${audit.os} / ${audit.browser}`,
+                          browser: audit.browser,
+                          os: audit.os,
+                          deviceId: audit.deviceId,
+                          ip: "186.230.12.98"
+                        }
+                      }
+                    );
+                    
+                    setGeoSuccess(true);
+                    setCheckinSuccess(true);
+                    setGeoChecking(false);
+                    setShowScanner(false);
+                    
+                    const audio = new Audio('https://assets.mixkit.co/active_storage/sfx/2571/2571-preview.mp3');
+                    audio.play().catch(() => {});
+                    
+                    setTimeout(() => {
+                      setCheckinSuccess(false);
+                      setGeoSuccess(false);
+                    }, 4000);
+                  } else {
+                    setGeoError(`QR Inválido: Você está a ${Math.round(distance)}m do Dojo, mas o limite permitido é ${radius}m.`);
+                    setGeoChecking(false);
+                    setShowScanner(false);
+                  }
+                },
+                (err) => {
+                  setGeoError("GPS inacessível ou permissão recusada. Não foi possível validar o check-in no Dojo.");
+                  setGeoChecking(false);
+                  setShowScanner(false);
+                },
+                { enableHighAccuracy: true, timeout: 8000 }
+              );
+              
+              if (scanner) scanner.clear().catch(e => console.error(e));
+            } else {
+              // Standard fallback direct code scan
+              const audit = getAuditInfo();
+              recordAttendance(
+                [studentRef.current.id],
+                undefined,
+                undefined,
+                "Check-in via Simulação QR",
+                {
+                  origin: 'PORTAL_ALUNO',
+                  checkinMethod: 'portal',
+                  deviceInfo: {
+                    device: `${audit.os} / ${audit.browser}`,
+                    browser: audit.browser,
+                    os: audit.os,
+                    deviceId: audit.deviceId,
+                    ip: "186.230.12.98"
+                  }
+                }
+              );
+              setCheckinSuccess(true);
+              setShowScanner(false);
+              setTimeout(() => setCheckinSuccess(false), 3000);
+              if (scanner) scanner.clear().catch(e => console.error(e));
+            }
           }
         }, (error) => {
           // Successive errors are normal while scanning

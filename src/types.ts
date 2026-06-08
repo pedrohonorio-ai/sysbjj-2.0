@@ -291,13 +291,18 @@ export interface AttendanceRecord {
   deviceInfo?: {
     device: string;
     ip?: string;
+    browser?: string;
+    os?: string;
+    deviceId?: string;
   };
   gps?: {
     latitude: number;
     longitude: number;
     distance?: number;
   };
+  checkinMethod?: 'manual' | 'qr_static' | 'qr_dynamic' | 'portal' | 'facial' | 'admin_override';
   facialConfidence?: number;
+  proofUrl?: string; // Comprovante / documento de justificativa
   audits?: {
     action: 'create' | 'update' | 'delete';
     userId: string;
