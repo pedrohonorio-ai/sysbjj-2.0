@@ -386,7 +386,7 @@ const CurriculumHub: React.FC = () => {
                   placeholder="Buscar turmas por nome, professor..."
                   value={mainSearchTerm}
                   onChange={e => setMainSearchTerm(e.target.value)}
-                  className="w-full bg-white dark:bg-slate-850 pl-11 pr-4 py-2.5 rounded-xl border border-slate-200 dark:border-white/5 text-xs text-slate-800 dark:text-white outline-none focus:ring-1 focus:ring-blue-500"
+                  className="w-full bg-slate-100 dark:bg-slate-800 pl-11 pr-4 py-2.5 rounded-xl border border-slate-300 dark:border-slate-700 text-xs text-slate-900 dark:text-white outline-none focus:ring-2 focus:ring-blue-500 shadow-inner"
                 />
               </div>
 
@@ -576,7 +576,7 @@ const CurriculumHub: React.FC = () => {
                         type="text"
                         value={currentClass.title}
                         onChange={e => handleUpdateClassField({ title: e.target.value.toUpperCase() })}
-                        className="w-full bg-slate-50 dark:bg-slate-850 px-4 py-3 rounded-xl border border-slate-200 dark:border-slate-800 text-xs font-black uppercase tracking-tight text-slate-900 dark:text-white focus:outline-none focus:ring-1 focus:ring-blue-600"
+                        className="w-full bg-slate-100 dark:bg-slate-800 px-4 py-3 rounded-xl border border-slate-300 dark:border-slate-700 text-xs font-bold uppercase tracking-tight text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-600 shadow-inner"
                         placeholder="EX: FUNDAMENTOS BJJ"
                       />
                     </div>
@@ -587,7 +587,7 @@ const CurriculumHub: React.FC = () => {
                         type="text"
                         value={currentClass.instructor}
                         onChange={e => handleUpdateClassField({ instructor: e.target.value })}
-                        className="w-full bg-slate-50 dark:bg-slate-850 px-4 py-3 rounded-xl border border-slate-200 dark:border-slate-800 text-xs font-black text-slate-900 dark:text-white focus:outline-none focus:ring-1 focus:ring-blue-600"
+                        className="w-full bg-slate-100 dark:bg-slate-800 px-4 py-3 rounded-xl border border-slate-300 dark:border-slate-700 text-xs font-bold text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-600 shadow-inner"
                         placeholder="EX: SENSEI PEDRO PAULO"
                       />
                     </div>
@@ -597,7 +597,7 @@ const CurriculumHub: React.FC = () => {
                       <select
                         value={currentClass.minBelt || 'Branca'}
                         onChange={e => handleUpdateClassField({ minBelt: e.target.value })}
-                        className="w-full bg-slate-50 dark:bg-slate-850 px-4 py-3 rounded-xl border border-slate-200 dark:border-slate-800 text-xs font-bold text-slate-800 dark:text-white focus:outline-none focus:ring-1 focus:ring-blue-600"
+                        className="w-full bg-slate-100 dark:bg-slate-800 px-4 py-3 rounded-xl border border-slate-300 dark:border-slate-700 text-xs font-bold text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-600 shadow-inner"
                       >
                         {BELTS_LIST.map(belt => <option key={belt} value={belt}>{belt.toUpperCase()}</option>)}
                       </select>
@@ -608,7 +608,7 @@ const CurriculumHub: React.FC = () => {
                       <select
                         value={currentClass.maxBelt || 'Preta'}
                         onChange={e => handleUpdateClassField({ maxBelt: e.target.value })}
-                        className="w-full bg-slate-50 dark:bg-slate-850 px-4 py-3 rounded-xl border border-slate-200 dark:border-slate-800 text-xs font-bold text-slate-800 dark:text-white focus:outline-none focus:ring-1 focus:ring-blue-600"
+                        className="w-full bg-slate-100 dark:bg-slate-800 px-4 py-3 rounded-xl border border-slate-300 dark:border-slate-700 text-xs font-bold text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-600 shadow-inner"
                       >
                         {BELTS_LIST.map(belt => <option key={belt} value={belt}>{belt.toUpperCase()}</option>)}
                       </select>
@@ -622,7 +622,7 @@ const CurriculumHub: React.FC = () => {
                         max="150"
                         value={currentClass.maxStudents || 30}
                         onChange={e => handleUpdateClassField({ maxStudents: parseInt(e.target.value) || 30 })}
-                        className="w-full bg-slate-50 dark:bg-slate-850 px-4 py-3 rounded-xl border border-slate-200 dark:border-slate-800 text-xs font-bold text-slate-900 dark:text-white focus:outline-none focus:ring-1 focus:ring-blue-600"
+                        className="w-full bg-slate-100 dark:bg-slate-800 px-4 py-3 rounded-xl border border-slate-300 dark:border-slate-700 text-xs font-bold text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-600 shadow-inner"
                       />
                     </div>
 
@@ -631,7 +631,7 @@ const CurriculumHub: React.FC = () => {
                       <select
                         value={currentClass.category}
                         onChange={e => handleUpdateClassField({ category: e.target.value })}
-                        className="w-full bg-slate-50 dark:bg-slate-850 px-4 py-3 rounded-xl border border-slate-200 dark:border-slate-800 text-xs font-bold text-slate-800 dark:text-white focus:outline-none focus:ring-1 focus:ring-blue-600"
+                        className="w-full bg-slate-100 dark:bg-slate-800 px-4 py-3 rounded-xl border border-slate-300 dark:border-slate-700 text-xs font-bold text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-600 shadow-inner"
                       >
                         <option value="Adulto">Adulto</option>
                         <option value="Kids">Kids</option>
@@ -645,7 +645,7 @@ const CurriculumHub: React.FC = () => {
                     <textarea 
                       value={currentClass.notes || ''}
                       onChange={e => handleUpdateClassField({ notes: e.target.value })}
-                      className="w-full bg-slate-50 dark:bg-slate-850 px-4 py-3 rounded-xl border border-slate-200 dark:border-slate-800 text-xs text-slate-800 dark:text-white focus:outline-none font-bold"
+                      className="w-full bg-slate-100 dark:bg-slate-800 px-4 py-3 rounded-xl border border-slate-300 dark:border-slate-700 text-xs text-slate-900 dark:text-white focus:outline-none font-bold shadow-inner"
                       rows={3}
                       placeholder="Diretrizes pedagógicas da turma..."
                     />
@@ -673,7 +673,7 @@ const CurriculumHub: React.FC = () => {
                         type="time"
                         value={currentClass.time}
                         onChange={e => handleUpdateClassField({ time: e.target.value })}
-                        className="w-full bg-slate-50 dark:bg-slate-850 px-4 py-3 rounded-xl border border-slate-200 dark:border-slate-800 text-base font-black tracking-tight text-slate-900 dark:text-white focus:outline-none tabular-nums"
+                        className="w-full bg-slate-100 dark:bg-slate-800 px-4 py-3 rounded-xl border border-slate-300 dark:border-slate-700 text-base font-black tracking-tight text-slate-900 dark:text-white focus:outline-none tabular-nums shadow-inner"
                       />
                     </div>
 
@@ -685,7 +685,7 @@ const CurriculumHub: React.FC = () => {
                         max="240"
                         value={currentClass.duration || 90}
                         onChange={e => handleUpdateClassField({ duration: parseInt(e.target.value) || 90 })}
-                        className="w-full bg-slate-50 dark:bg-slate-850 px-4 py-3 rounded-xl border border-slate-200 dark:border-slate-800 text-base font-black text-slate-900 dark:text-white focus:outline-none"
+                        className="w-full bg-slate-100 dark:bg-slate-800 px-4 py-3 rounded-xl border border-slate-300 dark:border-slate-700 text-base font-black text-slate-900 dark:text-white focus:outline-none shadow-inner"
                       />
                     </div>
                   </div>
@@ -743,7 +743,7 @@ const CurriculumHub: React.FC = () => {
                         type="text"
                         value={currentClass.currentModule || 'Guarda Fechada Básica'}
                         onChange={e => handleUpdateClassField({ currentModule: e.target.value })}
-                        className="w-full bg-slate-50 dark:bg-slate-850 px-4 py-3 rounded-xl border border-slate-200 dark:border-slate-800 text-xs font-bold text-slate-900 dark:text-white focus:outline-none"
+                        className="w-full bg-slate-100 dark:bg-slate-800 px-4 py-3 rounded-xl border border-slate-300 dark:border-slate-700 text-xs font-bold text-slate-900 dark:text-white focus:outline-none shadow-inner"
                         placeholder="Módulo pedagógico corrente"
                       />
                     </div>
@@ -754,7 +754,7 @@ const CurriculumHub: React.FC = () => {
                         type="text"
                         value={currentClass.pedagogicalObjectives || 'Instrução do desequilíbrio e pegadas táticas.'}
                         onChange={e => handleUpdateClassField({ pedagogicalObjectives: e.target.value })}
-                        className="w-full bg-slate-50 dark:bg-slate-850 px-4 py-3 rounded-xl border border-slate-200 dark:border-slate-800 text-xs font-bold text-slate-900 dark:text-white focus:outline-none"
+                        className="w-full bg-slate-100 dark:bg-slate-800 px-4 py-3 rounded-xl border border-slate-300 dark:border-slate-700 text-xs font-bold text-slate-900 dark:text-white focus:outline-none shadow-inner"
                         placeholder="Quais competências focar este mês?"
                       />
                     </div>
@@ -812,7 +812,7 @@ const CurriculumHub: React.FC = () => {
                             placeholder="Buscar técnica ou digitar..."
                             value={newPlannedTechName}
                             onChange={e => setNewPlannedTechName(e.target.value)}
-                            className="flex-1 bg-white dark:bg-slate-800 px-3 py-2 rounded-lg border border-slate-200 dark:border-slate-700 text-xs text-slate-800 dark:text-white focus:outline-none"
+                            className="flex-1 bg-slate-100 dark:bg-slate-800 px-3 py-2 rounded-lg border border-slate-300 dark:border-slate-700 text-xs text-slate-900 dark:text-white focus:outline-none shadow-inner"
                           />
                           <button 
                             type="button"
@@ -906,7 +906,7 @@ const CurriculumHub: React.FC = () => {
                           placeholder="Pesquisar por nome..."
                           value={enrollSearchTerm}
                           onChange={e => setEnrollSearchTerm(e.target.value)}
-                          className="w-full bg-white dark:bg-slate-800 pl-9 pr-3 py-2 rounded-xl border border-slate-200 dark:border-slate-700 text-xs text-slate-800 dark:text-white focus:outline-none"
+                          className="w-full bg-slate-100 dark:bg-slate-800 pl-9 pr-3 py-2 rounded-xl border border-slate-300 dark:border-slate-700 text-xs text-slate-900 dark:text-white focus:outline-none shadow-inner"
                         />
                       </div>
 
@@ -1142,7 +1142,7 @@ const CurriculumHub: React.FC = () => {
                     placeholder="EX: FUNDAMENTOS / AVANÇADO / NO GI"
                     value={newClassFormData.title}
                     onChange={e => setNewClassFormData({...newClassFormData, title: e.target.value.toUpperCase()})}
-                    className="w-full px-4 py-3 bg-slate-50 dark:bg-slate-850 border border-slate-200 dark:border-slate-800 rounded-xl text-xs font-bold focus:ring-1 focus:ring-blue-600 outline-none text-slate-950 dark:text-white uppercase"
+                    className="w-full px-4 py-3 bg-slate-100 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-xl text-xs font-bold focus:ring-2 focus:ring-blue-600 outline-none text-slate-900 dark:text-white uppercase shadow-inner"
                     required
                   />
                 </div>
@@ -1154,7 +1154,7 @@ const CurriculumHub: React.FC = () => {
                     placeholder="EX: PROFESSOR PEDRO PAULO"
                     value={newClassFormData.instructor}
                     onChange={e => setNewClassFormData({...newClassFormData, instructor: e.target.value})}
-                    className="w-full px-4 py-3 bg-slate-50 dark:bg-slate-850 border border-slate-200 dark:border-slate-800 rounded-xl text-xs font-bold focus:ring-1 focus:ring-blue-600 outline-none text-slate-950 dark:text-white"
+                    className="w-full px-4 py-3 bg-slate-100 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-xl text-xs font-bold focus:ring-2 focus:ring-blue-600 outline-none text-slate-900 dark:text-white shadow-inner"
                     required
                   />
                 </div>
@@ -1164,7 +1164,7 @@ const CurriculumHub: React.FC = () => {
                   <select 
                     value={newClassFormData.category}
                     onChange={e => setNewClassFormData({...newClassFormData, category: e.target.value})}
-                    className="w-full px-4 py-3 bg-slate-50 dark:bg-slate-850 border border-slate-200 dark:border-slate-800 rounded-xl text-xs font-bold focus:ring-1 focus:ring-blue-600 outline-none text-slate-800 dark:text-white"
+                    className="w-full px-4 py-3 bg-slate-100 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-xl text-xs font-bold focus:ring-2 focus:ring-blue-600 outline-none text-slate-900 dark:text-white shadow-inner"
                   >
                     <option value="Adulto">Adulto</option>
                     <option value="Kids">Kids</option>
@@ -1179,7 +1179,7 @@ const CurriculumHub: React.FC = () => {
                       type="time" 
                       value={newClassFormData.time}
                       onChange={e => setNewClassFormData({...newClassFormData, time: e.target.value})}
-                      className="w-full px-4 py-3 bg-slate-50 dark:bg-slate-850 border border-slate-200 dark:border-slate-800 rounded-xl text-xs font-bold focus:ring-1 focus:ring-blue-600 outline-none text-slate-950 dark:text-white transition-all tabular-nums"
+                      className="w-full px-4 py-3 bg-slate-100 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-xl text-xs font-bold focus:ring-2 focus:ring-blue-600 outline-none text-slate-900 dark:text-white transition-all tabular-nums shadow-inner"
                       required
                     />
                   </div>
@@ -1191,7 +1191,7 @@ const CurriculumHub: React.FC = () => {
                       max="240"
                       value={newClassFormData.duration}
                       onChange={e => setNewClassFormData({...newClassFormData, duration: parseInt(e.target.value) || 90})}
-                      className="w-full px-4 py-3 bg-slate-50 dark:bg-slate-850 border border-slate-200 dark:border-slate-800 rounded-xl text-xs font-bold focus:ring-1 focus:ring-blue-600 outline-none text-slate-950 dark:text-white"
+                      className="w-full px-4 py-3 bg-slate-100 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-xl text-xs font-bold focus:ring-2 focus:ring-blue-600 outline-none text-slate-900 dark:text-white shadow-inner"
                       required
                     />
                   </div>
