@@ -377,7 +377,7 @@ async function startServer() {
     app.use(express.static(distPath));
     
     // SPA Fallback: Use a middleware that serves index.html for non-API requests
-    app.use((req, res, next) => {
+    app.all('/{*path}', (req, res, next) => {
       if (req.path.startsWith('/api')) return next();
       res.sendFile(path.join(distPath, 'index.html'));
     });

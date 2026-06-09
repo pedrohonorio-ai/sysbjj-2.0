@@ -17,7 +17,7 @@ export default defineConfig({
       includeAssets: ['favicon.ico', 'robots.txt', 'apple-touch-icon.png'],
       manifest: false, // Usamos nosso manifesto manual
       workbox: {
-        globPatterns: ['**/*.{js,css,html,ico,png,svg,woff2,webmanifest}'],
+        globPatterns: ['**/*.{js,css,html,ico,png,svg,webmanifest}'],
         cleanupOutdatedCaches: true,
         runtimeCaching: [
           {

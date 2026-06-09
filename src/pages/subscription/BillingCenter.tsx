@@ -408,7 +408,7 @@ export const BillingCenter: React.FC = () => {
         <div className="space-y-2 relative z-10 text-center md:text-left">
           <div className="flex items-center justify-center md:justify-start gap-1.5 text-[#00E5FF] leading-none">
             <CreditCard size={14} />
-            <span className="text-[9px] font-black uppercase tracking-widest">SaaS Billing & Enterprise Hub</span>
+            <span className="text-[9px] font-black uppercase tracking-widest">Central de Faturamento & Gestão SaaS</span>
           </div>
           <h1 className="text-3xl font-black text-white italic uppercase tracking-tighter">
             Central de Faturamento & Pagamentos PIX

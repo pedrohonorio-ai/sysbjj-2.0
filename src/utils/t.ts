@@ -216,9 +216,23 @@ const MANDATORY_DICTIONARY: Record<string, string> = {
   "common.passing": "Passagem",
   "common.submission": "Finalização",
   "common.takedowns": "Quedas & Projeções",
+  "common.takedown": "Queda / Projeção",
   "common.master": "Sensei Master",
   "common.active": "Ativo",
-  "common.next": "PRÓXIMO"
+  "common.next": "PRÓXIMO",
+  "common.loading": "Carregando...",
+  "common.search": "Pesquisar",
+  "common.student": "Aluno",
+  "common.export": "Exportar",
+  "common.import": "Importar",
+  "common.save": "Salvar",
+  "common.delete": "Excluir",
+  "common.editAction": "Editar",
+  "common.create": "Criar",
+  "common.update": "Atualizar",
+  "common.success": "Sucesso",
+  "common.error": "Erro",
+  "common.warning": "Aviso"
 };
 
 // Technical terminology replacement map

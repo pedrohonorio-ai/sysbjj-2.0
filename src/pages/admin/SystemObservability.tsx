@@ -198,7 +198,7 @@ export const SystemObservability: React.FC = () => {
             <div className="space-y-1">
               <div className="flex items-center justify-center md:justify-start gap-2">
                 <span className="h-2 w-2 rounded-full bg-emerald-500 animate-pulse" />
-                <span className="text-[10px] font-black tracking-widest text-indigo-400 uppercase italic">SaaS Telemetry Core</span>
+                <span className="text-[10px] font-black tracking-widest text-indigo-400 uppercase italic">Núcleo de Telemetria SaaS</span>
               </div>
               <h1 className="text-3xl font-black text-white tracking-tighter uppercase leading-none">
                 CENTRAL DE OBSERVABILIDADE SENSEI MASTER

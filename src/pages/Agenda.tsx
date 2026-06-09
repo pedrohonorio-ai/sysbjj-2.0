@@ -422,7 +422,7 @@ const Agenda: React.FC = () => {
                   <div className="flex items-center gap-2">
                     <span className="text-xs font-black uppercase tracking-widest text-slate-900 dark:text-white font-sans">{dayOfWeek}</span>
                     {isToday && (
-                      <span className="bg-emerald-600 text-white text-[7px] font-black px-1.5 py-0.5 rounded uppercase leading-none shadow-sm shadow-emerald-600/30">Hoje</span>
+                      <span className="text-[7px] font-black uppercase px-1.5 py-0.5 rounded-full bg-blue-600 text-white tracking-widest">HOJE</span>
                     )}
                   </div>
                   <span className="text-[8.5px] font-mono text-slate-400 uppercase font-black">{dayClasses.length} treinos</span>

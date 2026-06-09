@@ -29,6 +29,7 @@ const AttendanceHistory: React.FC = () => {
   const [editingRecord, setEditingRecord] = useState<{ studentId: string; record: AttendanceRecord } | null>(null);
   const [editStatus, setEditStatus] = useState<'present' | 'absent' | 'late' | 'trial'>('present');
   const [editNotes, setEditNotes] = useState('');
+  const [editReason, setEditReason] = useState('');
   const [deletingRecord, setDeletingRecord] = useState<{ studentId: string; record: AttendanceRecord } | null>(null);
   const [auditReason, setAuditReason] = useState('');
   const [showNotificationPopup, setShowNotificationPopup] = useState<string | null>(null);
@@ -237,10 +238,15 @@ const AttendanceHistory: React.FC = () => {
     setEditingRecord({ studentId, record });
     setEditStatus(record.status || 'present');
     setEditNotes(record.notes || '');
+    setEditReason('Ajuste operacional de chamada pelo professor');
   };
 
   const submitEdit = async () => {
     if (!editingRecord) return;
+    if (!editReason.trim()) {
+      alert("Por favor, digite o motivo da alteração.");
+      return;
+    }
     
     const professorUser = {
       email: 'sensei@sysbjj.com',
@@ -258,7 +264,7 @@ const AttendanceHistory: React.FC = () => {
       },
       professorUser,
       'update',
-      `Manual modification: Status => ${editStatus.toUpperCase()}`
+      editReason
     );
 
     setEditingRecord(null);
@@ -923,6 +929,18 @@ const AttendanceHistory: React.FC = () => {
                     onChange={e => setEditNotes(e.target.value)}
                     placeholder="Adicione notas ou correções sobre esta aula..."
                     className="w-full text-xs font-bold p-4 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-800 rounded-2xl outline-none focus:ring-1 focus:ring-blue-600 min-h-[90px] dark:text-white"
+                  />
+                </div>
+
+                <div>
+                  <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-2 block">Motivo de Alteração (Auditoria)</label>
+                  <input 
+                    type="text"
+                    required
+                    value={editReason}
+                    onChange={e => setEditReason(e.target.value)}
+                    placeholder="Ex: Aluno esqueceu de registrar o QR code ou erro na chamada"
+                    className="w-full text-xs font-bold p-4 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-800 rounded-2xl outline-none focus:ring-1 focus:ring-blue-600 dark:text-white"
                   />
                 </div>
               </div>
