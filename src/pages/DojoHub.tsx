@@ -592,10 +592,6 @@ const DojoHub: React.FC = () => {
         return <BeltSystem />;
       
       case 'classes':
-      case 'lesson-plans':
-        return <CurriculumHub />;
-      
-      case 'techniques':
         return <CurriculumHub />;
       
       case 'exams':
@@ -1675,8 +1671,7 @@ const DojoHub: React.FC = () => {
           
           {[
             { id: 'overview', label: 'Visão Geral', icon: <LayoutDashboard size={14} /> },
-            { id: 'classes', label: 'Turmas & Cronograma', icon: <Calendar size={14} /> },
-            { id: 'techniques', label: 'Técnicas Ativas', icon: <Flame size={14} /> },
+            { id: 'classes', label: 'Gestão de Turmas', icon: <Calendar size={14} /> },
             { id: 'attendance', label: 'Chamada de Tatame', icon: <CalendarCheck size={14} /> },
             { id: 'performance', label: 'Desempenho & Combates', icon: <TrendingUp size={14} /> },
             { id: 'ai-guardian', label: 'Guardião IA (Retenção/Ped)', icon: <Sparkles size={14} className="text-amber-500 animate-pulse" /> },

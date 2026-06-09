@@ -123,6 +123,15 @@ export interface ClassSchedule {
   category: string;
   days: string[]; // ['Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sab', 'Dom']
   notes?: string;
+  minBelt?: string;
+  maxBelt?: string;
+  maxStudents?: number;
+  duration?: number;
+  plannedTechniques?: string[]; // IDs or names of planned techniques
+  completedTechniques?: string[]; // IDs or names of completed techniques
+  currentModule?: string;
+  pedagogicalObjectives?: string;
+  enrolledStudents?: string[]; // student IDs matriculados in this class
 }
 
 export interface IBJJFRule {
