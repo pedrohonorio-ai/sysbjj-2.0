@@ -15,9 +15,9 @@ interface AlarmTone {
 
 const ALARM_TONES: AlarmTone[] = [
   { id: 'default', name: 'Beep Padrão', description: 'Beep contínuo clássico de tatame.' },
-  { id: 'its_time_mate', name: 'ITS TIME MATE!', description: 'Ritmo acelerado britânico em staccato.' },
-  { id: 'bugle', name: 'Alvorada Militar', description: 'Arpejo melódico clássico de corneta de alvorada.' },
-  { id: 'end_of_fight', name: 'FIM DA LUTA!', description: 'Gongo triplo pesado e buzzer de alta pressão.' }
+  { id: 'its_time_mate', name: 'Voz Japonesa / MATE!', description: 'Sensei japonês comando de combate "ITS TIME" & "MATE!" com gongo e Taiko (15s).' },
+  { id: 'bugle', name: 'Alvorada Militar (Corneta)', description: 'Toque autêntico de corneta militar completo com harmônicos de sopro (15s).' },
+  { id: 'end_of_fight', name: 'FIM DA LUTA!', description: 'Gongo triplo pesado e buzzer de alta pressão estendido (15s).' }
 ];
 
 const FightTimer: React.FC = () => {
@@ -42,8 +42,9 @@ const FightTimer: React.FC = () => {
     return (saved as any) || 'default';
   });
   const [isRinging, setIsRinging] = useState(false);
-  const [ringingTimeRemaining, setRingingTimeRemaining] = useState(10);
+  const [ringingTimeRemaining, setRingingTimeRemaining] = useState(15);
   const activeAlarmRef = useRef<any>(null);
+  const testTimeoutRef = useRef<any>(null);
   const [testingTone, setTestingTone] = useState<string | null>(null);
 
   useEffect(() => {
@@ -71,7 +72,7 @@ const FightTimer: React.FC = () => {
     }
   }, []);
 
-  const playAlarmTone = useCallback((toneId: string, durationSec: number = 10) => {
+  const playAlarmTone = useCallback((toneId: string, durationSec: number = 15) => {
     if (activeAlarmRef.current) {
       activeAlarmRef.current.stop();
     }
@@ -79,8 +80,9 @@ const FightTimer: React.FC = () => {
     try {
       const audioCtx = new (window.AudioContext || (window as any).webkitAudioContext)();
       let isStopped = false;
-      const oscillators: OscillatorNode[] = [];
-      const gainNodes: GainNode[] = [];
+      const oscillators: any[] = [];
+      const gainNodes: any[] = [];
+      const timeouts: any[] = [];
       let intervalId: any = null;
 
       const playNote = (freq: number, startDelay: number, noteDuration: number, type: 'sine' | 'square' | 'sawtooth' | 'triangle' = 'sine', volume = 0.1) => {
@@ -109,31 +111,269 @@ const FightTimer: React.FC = () => {
         }
       };
 
+      const speakJapaneseVoice = (phrase: string, startDelaySec: number) => {
+        if (isStopped) return;
+        const tId = setTimeout(() => {
+          if (isStopped) return;
+          try {
+            const synth = window.speechSynthesis;
+            if (!synth) return;
+            
+            synth.cancel(); // Clears any ongoing speech
+            const utterance = new SpeechSynthesisUtterance(phrase);
+            
+            const voices = synth.getVoices();
+            let jpVoice = voices.find(v => v.lang.toLowerCase().includes('jp'));
+            if (jpVoice) {
+              utterance.voice = jpVoice;
+              utterance.rate = 0.72; // deep slow commanding flow
+              utterance.pitch = 0.82;
+            } else {
+              const fallback = voices.find(v => v.lang.startsWith('en') || v.lang.startsWith('pt'));
+              if (fallback) utterance.voice = fallback;
+              utterance.rate = 0.75;
+              utterance.pitch = 0.6; // heavy authoritative master pitch
+            }
+            
+            synth.speak(utterance);
+          } catch (err) {
+            console.error('Speech synthesis error:', err);
+          }
+        }, startDelaySec * 1000);
+        timeouts.push(tId);
+      };
+
+      // AUTHENTIC BUGLE BRASS SYNTH FOR "ALVORADA MILITAR"
+      const playBugleNote = (freq: number, startDelay: number, noteDuration: number, volume = 0.22) => {
+        if (isStopped) return;
+        try {
+          const oscTriangle = audioCtx.createOscillator();
+          const oscSaw = audioCtx.createOscillator();
+          const gainNode = audioCtx.createGain();
+          const filterNode = audioCtx.createBiquadFilter();
+
+          oscTriangle.type = 'triangle';
+          oscTriangle.frequency.setValueAtTime(freq, audioCtx.currentTime + startDelay);
+          
+          oscSaw.type = 'sawtooth';
+          oscSaw.frequency.setValueAtTime(freq, audioCtx.currentTime + startDelay);
+
+          filterNode.type = 'lowpass';
+          const filterTime = audioCtx.currentTime + startDelay;
+          filterNode.frequency.setValueAtTime(300, filterTime);
+          filterNode.frequency.exponentialRampToValueAtTime(freq * 3.5, filterTime + 0.08);
+          filterNode.frequency.linearRampToValueAtTime(freq * 1.8, filterTime + noteDuration * 0.4);
+          filterNode.frequency.exponentialRampToValueAtTime(300, filterTime + noteDuration);
+
+          gainNode.gain.setValueAtTime(0, filterTime);
+          gainNode.gain.linearRampToValueAtTime(volume, filterTime + 0.04);
+          gainNode.gain.setValueAtTime(volume * 0.9, filterTime + noteDuration * 0.5);
+          gainNode.gain.exponentialRampToValueAtTime(0.00001, filterTime + noteDuration);
+
+          const lfo = audioCtx.createOscillator();
+          const lfoGain = audioCtx.createGain();
+          lfo.frequency.value = 6.2;
+          lfoGain.gain.value = 3.5;
+          lfo.connect(lfoGain);
+          lfoGain.connect(oscTriangle.frequency);
+          lfoGain.connect(oscSaw.frequency);
+
+          const sawGain = audioCtx.createGain();
+          sawGain.gain.value = 0.35;
+          oscSaw.connect(sawGain);
+          sawGain.connect(filterNode);
+          
+          oscTriangle.connect(filterNode);
+          filterNode.connect(gainNode);
+          gainNode.connect(audioCtx.destination);
+
+          lfo.start(filterTime);
+          oscTriangle.start(filterTime);
+          oscSaw.start(filterTime);
+          
+          lfo.stop(filterTime + noteDuration);
+          oscTriangle.stop(filterTime + noteDuration);
+          oscSaw.stop(filterTime + noteDuration);
+
+          oscillators.push(oscTriangle, oscSaw, lfo);
+          gainNodes.push(gainNode);
+        } catch (e) {
+          console.error(e);
+        }
+      };
+
+      // TAIKO DRUM FOR DEEP COMMANDING RYHTHM
+      const playTaikoDrum = (delay: number, volume = 0.4) => {
+        if (isStopped) return;
+        try {
+          const osc = audioCtx.createOscillator();
+          const gain = audioCtx.createGain();
+          const filter = audioCtx.createBiquadFilter();
+          
+          filter.type = 'lowpass';
+          filter.frequency.setValueAtTime(220, audioCtx.currentTime + delay);
+          
+          osc.type = 'sine';
+          osc.frequency.setValueAtTime(130, audioCtx.currentTime + delay);
+          osc.frequency.exponentialRampToValueAtTime(42, audioCtx.currentTime + delay + 0.35);
+          
+          gain.gain.setValueAtTime(0, audioCtx.currentTime + delay);
+          gain.gain.linearRampToValueAtTime(volume, audioCtx.currentTime + delay + 0.02);
+          gain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + delay + 0.75);
+          
+          osc.connect(filter);
+          filter.connect(gain);
+          gain.connect(audioCtx.destination);
+          
+          osc.start(audioCtx.currentTime + delay);
+          osc.stop(audioCtx.currentTime + delay + 0.8);
+          
+          oscillators.push(osc);
+          gainNodes.push(gain);
+        } catch (e) {
+          console.error(e);
+        }
+      };
+
+      // DRAMATIC COPPER GONG IMPACT
+      const playGong = (delay: number, volume = 0.28) => {
+        if (isStopped) return;
+        try {
+          const osc1 = audioCtx.createOscillator();
+          const osc2 = audioCtx.createOscillator();
+          const osc3 = audioCtx.createOscillator();
+          const gain = audioCtx.createGain();
+          const filter = audioCtx.createBiquadFilter();
+
+          osc1.type = 'sine';
+          osc1.frequency.setValueAtTime(95, audioCtx.currentTime + delay);
+          
+          osc2.type = 'sawtooth';
+          osc2.frequency.setValueAtTime(210, audioCtx.currentTime + delay);
+          
+          osc3.type = 'sine';
+          osc3.frequency.setValueAtTime(380, audioCtx.currentTime + delay);
+
+          filter.type = 'bandpass';
+          filter.frequency.setValueAtTime(320, audioCtx.currentTime + delay);
+          filter.Q.setValueAtTime(1.2, audioCtx.currentTime + delay);
+
+          gain.gain.setValueAtTime(0, audioCtx.currentTime + delay);
+          gain.gain.linearRampToValueAtTime(volume, audioCtx.currentTime + delay + 0.08);
+          gain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + delay + 2.8);
+
+          osc1.connect(gain);
+          osc2.connect(filter);
+          filter.connect(gain);
+          osc3.connect(gain);
+          gain.connect(audioCtx.destination);
+
+          osc1.start(audioCtx.currentTime + delay);
+          osc2.start(audioCtx.currentTime + delay);
+          osc3.start(audioCtx.currentTime + delay);
+
+          osc1.stop(audioCtx.currentTime + delay + 3.0);
+          osc2.stop(audioCtx.currentTime + delay + 3.0);
+          osc3.stop(audioCtx.currentTime + delay + 3.0);
+
+          oscillators.push(osc1, osc2, osc3);
+          gainNodes.push(gain);
+        } catch (e) {
+          console.error(e);
+        }
+      };
+
       if (toneId === 'its_time_mate') {
         const playSeq = () => {
-          const t = 0;
-          playNote(659.25, t, 0.12, 'square', 0.1);      // E5
-          playNote(783.99, t + 0.15, 0.12, 'square', 0.1); // G5
-          playNote(659.25, t + 0.3, 0.12, 'square', 0.1);  // E5
-          playNote(783.99, t + 0.45, 0.12, 'square', 0.1); // G5
-          playNote(880.00, t + 0.6, 0.12, 'square', 0.1);  // A5
-          playNote(987.77, t + 0.75, 0.35, 'sine', 0.14);  // B5
+          // Play majestic oriental gong + repetitive heavy Japanese Taiko drum sequence to drive training/fight intensity
+          playGong(0, 0.4);
+          playTaikoDrum(0.1, 0.5);
+          playTaikoDrum(0.5, 0.35);
+          playTaikoDrum(1.0, 0.45);
+          playTaikoDrum(1.4, 0.35);
+          playTaikoDrum(2.0, 0.5);
+          
+          playTaikoDrum(3.0, 0.45);
+          playTaikoDrum(3.4, 0.35);
+          playTaikoDrum(4.0, 0.5);
+          
+          playTaikoDrum(6.0, 0.45);
+          playTaikoDrum(6.4, 0.35);
+          playTaikoDrum(7.0, 0.5);
+
+          playTaikoDrum(9.0, 0.45);
+          playTaikoDrum(9.4, 0.35);
+          playTaikoDrum(10.0, 0.5);
+
+          playTaikoDrum(12.0, 0.45);
+          playTaikoDrum(12.4, 0.35);
+          playTaikoDrum(13.0, 0.5);
+
+          // Voice of Japanese martial arts master speaking commandingly
+          speakJapaneseVoice("It's time! Mate! Mate!", 0.8);
+          speakJapaneseVoice("Sore made! Hajime! Oss!", 5.2);
+          speakJapaneseVoice("Mate! It's time! Oss!", 10.5);
         };
         playSeq();
-        intervalId = setInterval(playSeq, 1300);
 
       } else if (toneId === 'bugle') {
-        const playSeq = () => {
-          playNote(392.00, 0, 0.2, 'triangle', 0.15);     // G4
-          playNote(523.25, 0.22, 0.2, 'triangle', 0.15);  // C5
-          playNote(659.25, 0.44, 0.2, 'triangle', 0.15);  // E5
-          playNote(783.99, 0.66, 0.35, 'triangle', 0.18); // G5
-          playNote(659.25, 1.05, 0.2, 'triangle', 0.15);  // E5
-          playNote(783.99, 1.25, 0.25, 'triangle', 0.15); // G5
-          playNote(523.25, 1.55, 0.4, 'triangle', 0.15);  // C5
+        const playAlvorada = () => {
+          // Phrase 1 (0s - 4.2s)
+          playBugleNote(392.00, 0.0, 0.18, 0.18); // G4
+          playBugleNote(523.25, 0.2, 0.18, 0.18); // C5
+          playBugleNote(659.25, 0.4, 0.18, 0.18); // E5
+          playBugleNote(523.25, 0.6, 0.35, 0.18); // C5
+
+          playBugleNote(392.00, 1.0, 0.18, 0.18); // G4
+          playBugleNote(523.25, 1.2, 0.18, 0.18); // C5
+          playBugleNote(659.25, 1.4, 0.18, 0.18); // E5
+          playBugleNote(523.25, 1.6, 0.35, 0.18); // C5
+
+          playBugleNote(392.00, 2.0, 0.15, 0.18); // G4
+          playBugleNote(523.25, 2.2, 0.15, 0.18); // C5
+          playBugleNote(659.25, 2.4, 0.15, 0.18); // E5
+          playBugleNote(783.99, 2.6, 0.5, 0.20);  // G5
+          playBugleNote(659.25, 3.2, 0.18, 0.18); // E5
+          playBugleNote(523.25, 3.4, 0.18, 0.18); // C5
+          playBugleNote(392.00, 3.6, 0.5, 0.18);  // G4
+
+          // Phrase 2 (4.2s - 8.4s)
+          playBugleNote(392.00, 4.2, 0.18, 0.18);
+          playBugleNote(523.25, 4.4, 0.18, 0.18);
+          playBugleNote(659.25, 4.6, 0.18, 0.18);
+          playBugleNote(523.25, 4.8, 0.35, 0.18);
+
+          playBugleNote(392.00, 5.2, 0.18, 0.18);
+          playBugleNote(523.25, 5.4, 0.18, 0.18);
+          playBugleNote(659.25, 5.6, 0.18, 0.18);
+          playBugleNote(523.25, 5.8, 0.35, 0.18);
+
+          playBugleNote(392.00, 6.2, 0.15, 0.18);
+          playBugleNote(523.25, 6.4, 0.15, 0.18);
+          playBugleNote(659.25, 6.6, 0.15, 0.18);
+          playBugleNote(783.99, 6.8, 0.5, 0.20);
+          playBugleNote(659.25, 7.4, 0.3, 0.18);
+          playBugleNote(523.25, 7.8, 0.8, 0.20); // Resolve C5
+
+          // Phrase 3 (High flourish 8.8s - 11.5s)
+          playBugleNote(783.99, 8.8, 0.25, 0.18); // G5
+          playBugleNote(783.99, 9.1, 0.25, 0.18); // G5
+          playBugleNote(783.99, 9.4, 0.5, 0.19);  // G5
+          playBugleNote(783.99, 10.0, 0.25, 0.18); // G5
+          playBugleNote(659.25, 10.3, 0.25, 0.18); // E5
+          playBugleNote(523.25, 10.6, 0.5, 0.19);  // C5
+
+          // Phrase 4 (Resolution ending 11.2s - 15.0s)
+          playBugleNote(392.00, 11.2, 0.18, 0.18); // G4
+          playBugleNote(523.25, 11.4, 0.18, 0.18); // C5
+          playBugleNote(659.25, 11.6, 0.18, 0.18); // E5
+          playBugleNote(523.25, 11.8, 0.35, 0.18); // C5
+          playBugleNote(659.25, 12.2, 0.3, 0.18);  // E5
+          playBugleNote(783.99, 12.6, 0.5, 0.20);  // G5
+          playBugleNote(659.25, 13.2, 0.3, 0.18);  // E5
+          playBugleNote(523.25, 13.6, 1.2, 0.22);  // Final long resonant C5 note!
         };
-        playSeq();
-        intervalId = setInterval(playSeq, 2000);
+        playAlvorada();
 
       } else if (toneId === 'end_of_fight') {
         const playSeq = () => {
@@ -146,20 +386,46 @@ const FightTimer: React.FC = () => {
           doubleGong(0);
           doubleGong(0.6);
           doubleGong(1.2);
+          doubleGong(3.0);
+          doubleGong(3.6);
+          doubleGong(6.0);
+          doubleGong(6.6);
+          doubleGong(9.0);
+          doubleGong(9.6);
+          doubleGong(12.0);
+          doubleGong(12.6);
         };
         playSeq();
-        intervalId = setInterval(playSeq, 1900);
       } else {
         const playSeq = () => {
           playNote(880.00, 0, 0.7, 'sine', 0.16);
+          playNote(880.00, 1.0, 0.7, 'sine', 0.16);
+          playNote(880.00, 2.0, 0.7, 'sine', 0.16);
+          playNote(880.00, 3.0, 0.7, 'sine', 0.16);
+          playNote(880.00, 4.0, 0.7, 'sine', 0.16);
+          playNote(880.00, 5.0, 0.7, 'sine', 0.16);
+          playNote(880.00, 6.0, 0.7, 'sine', 0.16);
+          playNote(880.00, 7.0, 0.7, 'sine', 0.16);
+          playNote(880.00, 8.0, 0.7, 'sine', 0.16);
+          playNote(880.00, 9.0, 0.7, 'sine', 0.16);
+          playNote(880.00, 10.0, 0.7, 'sine', 0.16);
+          playNote(880.00, 11.0, 0.7, 'sine', 0.16);
+          playNote(880.00, 12.0, 0.7, 'sine', 0.16);
+          playNote(880.00, 13.0, 0.7, 'sine', 0.16);
+          playNote(880.00, 14.0, 0.7, 'sine', 0.16);
         };
         playSeq();
-        intervalId = setInterval(playSeq, 1000);
       }
 
       const cleanup = () => {
         isStopped = true;
         if (intervalId) clearInterval(intervalId);
+        timeouts.forEach(clearTimeout);
+        try {
+          if (window.speechSynthesis) {
+            window.speechSynthesis.cancel();
+          }
+        } catch (e) {}
         oscillators.forEach(osc => {
           try { osc.stop(); } catch (e) {}
         });
@@ -189,17 +455,31 @@ const FightTimer: React.FC = () => {
       activeAlarmRef.current = null;
     }
     setTestingTone(null);
+    if (testTimeoutRef.current) {
+      clearTimeout(testTimeoutRef.current);
+    }
+    try {
+      if (window.speechSynthesis) {
+        window.speechSynthesis.cancel();
+      }
+    } catch (e) {}
   }, []);
 
   const testTone = (toneId: 'default' | 'its_time_mate' | 'bugle' | 'end_of_fight') => {
-    if (testingTone) {
+    if (testingTone === toneId) {
       stopAlarm();
+      return;
     }
+    stopAlarm();
     setTestingTone(toneId);
-    playAlarmTone(toneId, 3); // Play for 3-second preview
-    setTimeout(() => {
-      setTestingTone(prev => prev === toneId ? null : prev);
-    }, 3000);
+    playAlarmTone(toneId, 15); // Play full 15s preview!
+    
+    if (testTimeoutRef.current) {
+      clearTimeout(testTimeoutRef.current);
+    }
+    testTimeoutRef.current = setTimeout(() => {
+      setTestingTone(null);
+    }, 15000);
   };
 
   const toggleFullscreen = () => {
@@ -228,11 +508,11 @@ const FightTimer: React.FC = () => {
               setCurrentRound(c => c + 1);
               return 360; 
             } else {
-              // Final end of Fight! Trigger the 10s custom end ring
+              // Final end of Fight! Trigger the 15s custom end ring
               setIsRunning(false);
               setIsRinging(true);
-              setRingingTimeRemaining(10);
-              playAlarmTone(selectedTone, 10);
+              setRingingTimeRemaining(15);
+              playAlarmTone(selectedTone, 15);
               return 0;
             }
           }
@@ -577,7 +857,7 @@ const FightTimer: React.FC = () => {
                           Toques Personalizados do Tatame
                        </h4>
                        <p className="text-[10px] text-slate-400 font-medium uppercase tracking-widest mt-1">
-                          Selecione o sinal sonoro de 10s para o encerramento do temporizador.
+                          Selecione o sinal sonoro de 15s para o encerramento do temporizador.
                        </p>
                     </div>
                     <div className="flex gap-2">
