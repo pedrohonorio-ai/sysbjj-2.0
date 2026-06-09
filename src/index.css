@@ -20,6 +20,13 @@
   --color-elite-accent: #3b82f6;
   --color-elite-glow: rgba(59, 130, 246, 0.5);
 
+  --color-slate-150: #e2e8f0;
+  --color-slate-250: #cbd5e1;
+  --color-slate-450: #94a3b8;
+  --color-slate-750: #334155;
+  --color-slate-850: #1e293b;
+  --color-slate-990: #020617;
+
   --shadow-elite: 0 20px 50px -12px rgba(0, 0, 0, 0.5);
   --shadow-glass: 0 8px 32px 0 rgba(31, 38, 135, 0.1);
 }

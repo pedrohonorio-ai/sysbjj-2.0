@@ -1119,7 +1119,7 @@ const CurriculumHub: React.FC = () => {
       {/* NEW TURMA MODAL - Matriz Form */}
       {isAddingClass && (
         <div className="fixed inset-0 bg-slate-950/80 backdrop-blur-md z-[120] flex items-center justify-center p-4 overflow-y-auto">
-          <div className="bg-white dark:bg-slate-900 rounded-[2.5rem] p-6 sm:p-10 max-w-2xl w-full border border-slate-200 dark:border-slate-800 select-none animate-in zoom-in-95 duration-300 my-auto max-h-[90vh] overflow-y-auto">
+          <div className="bg-white dark:bg-slate-900 rounded-[2.5rem] p-6 sm:p-10 max-w-2xl w-full border border-slate-200 dark:border-slate-800 animate-in zoom-in-95 duration-300 my-auto max-h-[90vh] overflow-y-auto">
             <div className="flex justify-between items-center border-b border-slate-150 dark:border-slate-800 pb-4 mb-6">
               <div>
                 <h2 className="text-2xl font-black text-slate-900 dark:text-white uppercase tracking-tighter italic">Adicionar Nova Turma</h2>
