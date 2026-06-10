@@ -6,6 +6,9 @@
       "use": "@vercel/static-build",
       "config": {
         "distDir": "dist"
+        "engines": {
+  "node": "18.x"
+}
       }
     }
   ]
