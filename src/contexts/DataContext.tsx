@@ -387,6 +387,7 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         degrees: Number(s.degrees || 0),
         stripes: Number(s.stripes || 0)
       }));
+      console.log('[LOAD STUDENTS]', normalized);
       setStudents(normalized);
     } else if (batchResults.students) {
       setStudents([]);
@@ -597,6 +598,8 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         const batchResults = await runSingletonBatch(async () => {
           return await api.fetchBatchData(collections, user.id);
         });
+
+        console.log('[FETCH RESPONSE]', batchResults);
 
         applyBatchResults(batchResults);
         
@@ -855,8 +858,13 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       // Optimistic Update
       setStudents(prev => [...prev, newStudent]);
       
+      console.log('[ADD STUDENT]', newStudent);
       if (user?.id && !dbStatus.isDemoMode) {
-        await api.saveData('students', user.id, newStudent).catch(err => handleApiError(err, OperationType.CREATE, 'students', setNotifications, setDbStatus));
+        const responseData = await api.saveData('students', user.id, newStudent).catch(err => {
+          handleApiError(err, OperationType.CREATE, 'students', setNotifications, setDbStatus);
+          return null;
+        });
+        console.log('[STUDENT CREATED]', responseData);
         // Invalida o cache para forçar re-fetch no próximo load
         sessionStorage.removeItem("sysbjj_batch");
         sessionStorage.removeItem("sysbjj_batch_time");

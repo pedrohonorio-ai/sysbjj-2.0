@@ -158,6 +158,7 @@ export default async function batchHandler(req: AuthRequest, res: Response) {
                   }
                 }
               }
+              console.log('[DB LOAD]', data);
               break;
             case 'payments': 
               data = await prisma.payment.findMany({ 

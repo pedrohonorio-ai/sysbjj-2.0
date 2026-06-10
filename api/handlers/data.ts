@@ -240,6 +240,7 @@ export async function dataHandler(req: AuthRequest, res: Response) {
         case 'students':
           try {
             data = await prisma.student.findMany({ where: { userId: uid }, orderBy: { joinedAt: 'desc' } });
+            console.log('[DB LOAD]', data);
           } catch (err: any) {
             console.warn("⚠️ [PRISMA FALLBACK] Error finding students, using safe select fallback:", err.message);
             try {
@@ -509,12 +510,14 @@ export async function dataHandler(req: AuthRequest, res: Response) {
 
           try {
             result = await performStudentSave(cleanPayload, id);
+            console.log('[DB SAVE]', result);
           } catch (upsertError: any) {
             console.warn("⚠️ [PRISMA UPSERT FALLBACK] Failed to save student with full graduation fields, stripping them:", upsertError.message);
             // Exclude fields: graduationDate, nextDegreeDate, estimatedCoralDate, estimatedRedDate
             const { graduationDate, nextDegreeDate, estimatedCoralDate, estimatedRedDate, ...safePayload } = cleanPayload;
             try {
               result = await performStudentSave(safePayload, id);
+              console.log('[DB SAVE]', result);
             } catch (fallbackError: any) {
               console.error("🚨 [PRISMA UPSERT CRITICAL] Safe student save also failed:", fallbackError.message);
               throw fallbackError;
