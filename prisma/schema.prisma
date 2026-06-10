@@ -3,439 +3,297 @@ generator client {
 }
 
 datasource db {
-  provider = "postgresql"
-  url      = env("DATABASE_URL")
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
   directUrl = env("DIRECT_URL")
 }
 
-// OS SENSEI: Definindo modelos principais para a evolução do sistema
+//
+// ENUMS (padronização enterprise)
+//
+
+enum UserRole {
+  ADMIN
+  MASTER
+  USER
+  STUDENT
+}
+
+enum SubscriptionStatus {
+  ACTIVE
+  PENDING
+  EXPIRED
+  SUSPENDED
+  FREE
+}
+
+enum PaymentStatus {
+  PENDING
+  APPROVED
+  REJECTED
+}
+
+enum Belt {
+  BRANCA
+  AZUL
+  ROXA
+  MARROM
+  PRETA
+}
+
+enum PresenceRole {
+  ADMIN
+  USER
+  STUDENT
+}
+
+//
+// USER
+//
 
 model User {
-  id             String    @id @default(cuid())
-  email          String    @unique
-  password       String    // Hashed password
-  name           String?
-  role           String    @default("admin") // admin | student
-  createdAt      DateTime  @default(now())
-  updatedAt      DateTime  @updatedAt
+  id        String   @id @default(cuid())
+  email     String   @unique
+  password  String
+  name      String?
+  role      UserRole @default(USER)
 
-  deletedAt      DateTime?
-  active         Boolean   @default(true)
-  lastLoginAt    DateTime?
-  lastActivityAt DateTime?
+  active    Boolean  @default(true)
+  deletedAt DateTime?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
   subscription Subscription?
+  students     Student[]
 }
+
+//
+// SUBSCRIPTION
+//
 
 model Subscription {
-  id               String   @id @default(cuid())
-  userId           String   @unique
+  id        String @id @default(cuid())
+  userId    String @unique
 
-  plan             String   @default("FREE")
+  plan      String @default("FREE")
 
-  studentLimit     Int      @default(20)
-  maxStudents      Int      @default(20)
-  currentStudents  Int      @default(0)
+  status    SubscriptionStatus @default(ACTIVE)
 
-  monthlyPrice     Float    @default(0)
+  studentLimit    Int @default(20)
+  currentStudents  Int @default(0)
 
-  // OS SENSEI: Enterprise flexibilization fields
-  billingCycle     String   @default("MONTHLY") // MONTHLY | QUARTERLY | SEMIANNUAL | YEARLY | LIFETIME | FREE | CUSTOM
-  status           String   @default("ACTIVE")  // ACTIVE | PENDING | EXPIRED | SUSPENDED | FREE_GRANTED
-  expiresAt        DateTime?
-  renewalEnabled   Boolean  @default(false)
-  grantedByAdmin   Boolean  @default(false)
-  customPrice      Float?
-  paymentDate      DateTime?
-  
-  // OS SENSEI: Social projects extension
-  isSocialProject  Boolean  @default(false)
-  nonprofit        Boolean  @default(false)
-  socialProjectName String?
-  socialDescription String?
-  approvedBy       String?
+  monthlyPrice Float @default(0)
 
-  paymentStatus    String   @default("PENDING")
+  expiresAt DateTime?
 
-  pixKey           String?
-  pixHolder        String?
-  pixCity          String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
-  active           Boolean  @default(true)
-
-  startedAt        DateTime @default(now())
-  createdAt        DateTime @default(now())
-  updatedAt        DateTime @updatedAt
-
-  // Preparação para Pagamentos
-  stripeCustomerId   String?
-  subscriptionStatus String?
-
-  user          User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 }
 
-model SubscriptionPaymentHistory {
-  id           String   @id @default(cuid())
-  userId       String
-  amount       Float
-  date         DateTime @default(now())
-  proofUrl     String?  // Comprovante (opcional ou base64)
-  billingCycle String?  // Período contratado
-  status       String   @default("APPROVED") // APPROVED | PENDING | REJECTED
-  approvedBy   String?  // Aprovado por (email ou ID)
-  notes        String?  // Observações
-  createdAt    DateTime @default(now())
-
-  @@index([userId])
-}
+//
+// STUDENT (CORE DO SISTEMA)
+//
 
 model Student {
-  id               String   @id @default(cuid())
-  userId           String   // Referência ao ID do modelo User (Auth Local)
-  name             String
-  nickname         String?
-  email            String?
-  phone            String?
-  birthDate        String?
-  gender           String?
-  cpf              String?
-  rg               String?
-  weight           Float?
-  height           Float?
-  category         String?
-  weightClass      String?
-  federationId     String?
-  lastPromotionDate String?
-  status           String   @default("Active")
-  belt             String   @default("Branca")
-  degrees          Int      @default(0)
-  stripes          Int      @default(0)
-  beltSince        DateTime?
-  nextPromotion    DateTime?
-  promotionNotes   String?
-  professorCriteria Boolean  @default(true)
-  ibjjfEligible    Boolean  @default(true)
-  photoUrl         String?
-  monthlyValue     Float    @default(0)
-  dueDay           Int      @default(10)
-  active           Boolean  @default(true)
-  isKid            Boolean  @default(false)
-  isInstructor     Boolean  @default(false)
-  behaviorScore    Int      @default(0)
-  rewardPoints     Int      @default(0)
-  rulesKnowledge   Int      @default(0)
-  securityAuditStatus String?
-  lastPaymentDate  String?
-  attendanceCount  Int      @default(0)
-  currentStreak    Int      @default(0)
-  lastSeen         BigInt?
-  observations     String?
-  photo            String?   // Alias ou campo alternativo usado no frontend
-  isReadyForPromotion Boolean @default(false)
-  planId           String?
-  portalAccessCode String?
-  graduationNotes  String?
-  blackBeltDate    DateTime?
-  graduationDate   DateTime?
-  blackBeltDegree  Int      @default(0)
-  lastDegreeDate   DateTime?
-  nextDegreeDate   DateTime?
-  graduationEligibleDate DateTime?
-  estimatedCoralDate DateTime?
-  estimatedRedDate DateTime?
-  pros             String?
-  cons             String?
-  emergencyContact String?
-  emergencyPhone   String?
-  medicalConditions String?
-  address          String?
-  city             String?
-  state            String?
-  zipCode          String?
-  bloodType        String?
-  responsiblePerson String?
-  responsibleEmail String?
-  responsiblePhone String?
-  responsibleCpf   String?
-  civilStatus      String?
-  occupation       String?
-  nationality      String?
-  rgIssuer         String?
-  lgpdConsent      Boolean  @default(false)
-  contractUrl      String?
-  billingPaused    Boolean  @default(false)
-  isCompetitor     Boolean  @default(false)
-  isWaitlist       Boolean  @default(false)
-  waitlistRank     Int?
-  technicalNotes   String?
-  medicalCertificateUrl String?
-  medicalCertificateDate String?
-  medicalCertificateExpiration String?
-  liabilityWaiverAccepted Boolean @default(false)
-  liabilityWaiverDate String?
-  classId          String?
-  lastAttendanceDate String?
-  joinedAt         DateTime @default(now())
-  updatedAt        DateTime @updatedAt
-  
-  // Campos Complexos como JSON para flexibilidade
+  id       String @id @default(cuid())
+  userId   String
+
+  name     String
+  nickname String?
+
+  email    String?
+  phone    String?
+
+  birthDate DateTime?
+
+  gender String?
+  cpf    String?
+  rg     String?
+
+  weight Float?
+  height Float?
+
+  belt     Belt @default(BRANCA)
+  degrees   Int  @default(0)
+  stripes   Int  @default(0)
+
+  status String @default("ACTIVE")
+
+  monthlyValue Float @default(0)
+
+  active Boolean @default(true)
+
+  isInstructor Boolean @default(false)
+  isKid        Boolean @default(false)
+
+  behaviorScore Int @default(0)
+  rewardPoints  Int @default(0)
+
+  lastSeen DateTime?
+
+  photoUrl String?
+
+  address String?
+  city    String?
+  state   String?
+
+  lgpdConsent Boolean @default(false)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // JSON FLEX (enterprise)
   attendanceHistory Json?
-  history           Json?
   techniques        Json?
   goals             Json?
   feedbacks         Json?
-  homeWorkoutHistory Json?
-  completedRuleLessons Json?
-  customIndicators  Json?
-  positionVideos    Json?
-  milestones        Json?
-  examRequirements  Json?
-  graduationHistory Json?
-  technicalMetrics  Json?
-  performanceRatings Json?
-  sparringLogs      Json?
-  competitions      Json?
   documents         Json?
-  graduationHistoryRecords GraduationHistory[]
+
+  graduationHistory GraduationHistory[]
 
   @@index([userId])
-  @@index([userId, status, active])
-  @@index([updatedAt(sort: Desc)])
+  @@index([userId, active])
 }
 
-model Payment {
-  id          String   @id @default(cuid())
-  userId      String
-  studentId   String?
-  name        String
-  amount      Float
-  date        String
-  method      String
-  status      String   @default("Paid")
-  reference   String?  // Referência adicional (mês/ano)
-  timestamp   DateTime @default(now())
-
-  @@index([userId])
-  @@index([studentId])
-  @@index([userId, status])
-}
-
-model ClassSchedule {
-  id          String   @id @default(cuid())
-  userId      String
-  time        String
-  title       String
-  instructor  String
-  category    String
-  days        String[]
-  notes       String?
-  active      Boolean  @default(true)
-
-  @@index([userId])
-}
-
-model SystemLog {
-  id           String   @id @default(cuid())
-  userId       String
-  timestamp    BigInt
-  userEmail    String
-  action       String
-  details      String
-  category     String
-  deviceInfo   String
-  previousHash String?
-  hash         String?
-
-  @@index([userId])
-}
-
-model TransactionLedger {
-  id           String   @id @default(cuid())
-  userId       String
-  type         String
-  amount       Float
-  description  String
-  category     String
-  method       String
-  studentId    String?
-  timestamp    BigInt
-  previousHash String
-  hash         String
-
-  @@index([userId])
-  @@index([userId, type, category])
-}
-
-model PaymentReceipt {
-  id          String   @id @default(cuid())
-  userId      String
-  studentId   String
-  studentName String
-  amount      Float
-  method      String
-  proofUrl    String?
-  status      String   @default("Pending")
-  timestamp   BigInt
-  notes       String?
-
-  @@index([userId])
-  @@index([studentId])
-}
-
-model ExtraRevenue {
-  id            String   @id @default(cuid())
-  userId        String
-  description   String
-  amount        Float
-  category      String
-  date          String
-  paymentMethod String
-  studentId     String?
-
-  @@index([userId])
-  @@index([userId, category])
-}
-
-model LessonPlan {
-  id               String   @id @default(cuid())
-  userId           String
-  date             String?
-  title            String
-  objective        String?
-  warmup           String?
-  technique        String?  // Pode ser descrição ou JSON de IDs de técnicas
-  techniques       Json?    // Lista de técnicas detalhadas
-  specificTraining String?
-  sparring         String?
-  notes            String?
-  beltLevel        String?
-  category         String?
-  isPublished      Boolean  @default(false)
-  ruleFocus        String?
-  active           Boolean  @default(true)
-
-  @@index([userId])
-}
-
-model LibraryTechnique {
-  id          String   @id @default(cuid())
-  userId      String
-  name        String
-  category    String
-  beltLevel   String
-  description String
-  videoUrl    String?
-  difficulty  Int?     // 1-5
-  tags        String[]
-
-  @@index([userId])
-}
-
-model Product {
-  id       String   @id @default(cuid())
-  userId   String
-  name     String
-  price    Float
-  category String
-  stock    Int      @default(0)
-
-  @@index([userId])
-}
-
-model KimonoOrder {
-  id          String   @id @default(cuid())
-  userId      String
-  studentId   String
-  studentName String
-  item        String
-  size        String
-  color       String?
-  type        String?  // 'Kimono' | 'Rash Guard' | 'Faixa' | 'Outros'
-  amount      Float?
-  price       Float?
-  paid        Boolean  @default(false)
-  status      String   @default("Pending")
-  date        String?
-  timestamp   DateTime @default(now())
-
-  @@index([userId])
-}
+//
+// PRESENCE (CORRIGIDO - seu erro veio daqui)
+//
 
 model Presence {
-  id        String   @id @default(cuid())
+  id        String @id @default(cuid())
+
   userId    String
   email     String
-  role      String?
+
+  role      PresenceRole @default(USER)
+
   lastSeen  BigInt
+
   userAgent String?
   deviceId  String
+
+  createdAt DateTime @default(now())   // ✅ FIX DO SEU ERRO
+  updatedAt DateTime @updatedAt
 
   @@unique([email, deviceId])
   @@index([userId])
 }
 
-model ProfessorProfile {
-  id                 String   @id @default(cuid())
-  userId             String   @unique
-  name               String
-  academyName        String
-  belt               String
-  stripes            Int
-  specialization     String?
-  avatarUrl          String?
-  pixKey             String?
-  pixName            String?
-  pixCity            String?
-  graduationRules    String?
-  customCriteria     Json?    // GraduationCriterion[]
-  logoUrl            String?
-  backgroundImageUrl String?
-  technicalFocus     String?
-  technicalFocusDescription String?
-  latitude           Float?
-  longitude          Float?
-  geofenceRadius     Float?
+//
+// SUBSCRIPTION PAYMENT HISTORY
+//
 
-  @@index([userId])
-}
-
-model Plan {
-  id          String   @id @default(cuid())
-  userId      String
-  name        String
-  price       Float
-  description String
-  benefits    String[]
-
-  @@index([userId])
-}
-
-model GraduationHistory {
-  id              String   @id @default(cuid())
-  studentId       String
-  previousBelt    String
-  newBelt         String
-  previousStripes Int      @default(0)
-  newStripes      Int      @default(0)
-  promotedAt      DateTime @default(now())
-  promotedBy      String?
-  notes           String?
-  ibjjfValidated  Boolean  @default(true)
-  student         Student  @relation(fields: [studentId], references: [id], onDelete: Cascade)
-
-  @@index([studentId])
-}
-
-model Notification {
-  id        String   @id @default(cuid())
+model SubscriptionPaymentHistory {
+  id        String @id @default(cuid())
   userId    String
-  title     String
-  message   String
-  type      String   // AUTH | PAYMENT | STUDENT | SYSTEM | BELT | ATTENDANCE | SECURITY
-  priority  String   // LOW | MEDIUM | HIGH | CRITICAL
-  read      Boolean  @default(false)
+
+  amount    Float
+  status    PaymentStatus @default(APPROVED)
+
+  billingCycle String?
+
+  proofUrl String?
+  notes    String?
+
   createdAt DateTime @default(now())
 
   @@index([userId])
 }
 
+//
+// PAYMENT
+//
+
+model Payment {
+  id        String @id @default(cuid())
+
+  userId    String
+  studentId String?
+
+  name      String
+  amount    Float
+
+  method    String
+  status    PaymentStatus @default(APPROVED)
+
+  reference String?
+
+  createdAt DateTime @default(now())
+
+  @@index([userId])
+  @@index([studentId])
+}
+
+//
+// SYSTEM LOG
+//
+
+model SystemLog {
+  id        String @id @default(cuid())
+
+  userId    String
+  email     String
+
+  action    String
+  category  String
+  details   String
+
+  deviceInfo String
+
+  timestamp BigInt
+
+  createdAt DateTime @default(now())
+
+  @@index([userId])
+}
+
+//
+// GRADUATION HISTORY
+//
+
+model GraduationHistory {
+  id        String @id @default(cuid())
+
+  studentId String
+
+  previousBelt Belt
+  newBelt      Belt
+
+  previousStripes Int @default(0)
+  newStripes      Int @default(0)
+
+  notes String?
+
+  promotedAt DateTime @default(now())
+
+  student Student @relation(fields: [studentId], references: [id], onDelete: Cascade)
+
+  @@index([studentId])
+}
+
+//
+// CLASS SCHEDULE
+//
+
+model ClassSchedule {
+  id        String @id @default(cuid())
+
+  userId    String
+
+  title     String
+  instructor String
+  category  String
+
+  days String[]
+
+  time String
+
+  active Boolean @default(true)
+
+  createdAt DateTime @default(now())
+
+  @@index([userId])
+}
