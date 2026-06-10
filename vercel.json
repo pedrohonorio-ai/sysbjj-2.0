@@ -1,11 +1,4 @@
 {
-  "version": 2,
-  "framework": null,
-  "functions": {
-    "api/**/*.ts": {
-      "runtime": "nodejs20.x"
-    }
-  },
   "cleanUrls": true,
   "trailingSlash": false,
   "rewrites": [
