@@ -612,15 +612,18 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
 
         // Auto-initialization for empty accounts
         if (!batchResults.students || batchResults.students.length === 0) {
-           if (import.meta.env.DEV) {
-             console.log("Oss! Iniciando dados padrão para novo Sensei...");
-           }
-           for (const s of INITIAL_STUDENTS) {
-             const id = `STU-${Date.now()}-${Math.random().toString(36).substr(2, 5)}`;
-             await api.saveData('students', user.id, { ...s, id });
-           }
-           const refreshedStudents = await api.fetchData('students', user.id);
-           setStudents(Array.isArray(refreshedStudents) ? refreshedStudents : []);
+          const localStudents = loadSafely('oss_students', []);
+          if (localStudents.length === 0) {
+            if (import.meta.env.DEV) {
+              console.log("Oss! Iniciando dados padrão para novo Sensei...");
+            }
+            for (const s of INITIAL_STUDENTS) {
+              const id = `STU-${Date.now()}-${Math.random().toString(36).substr(2, 5)}`;
+              await api.saveData('students', user.id, { ...s, id });
+            }
+            const refreshedStudents = await api.fetchData('students', user.id);
+            setStudents(Array.isArray(refreshedStudents) ? refreshedStudents : []);
+          }
         }
       } catch (error) {
         handleApiError(error, OperationType.LIST, 'all', setNotifications, setDbStatus);

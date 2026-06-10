@@ -486,24 +486,37 @@ export async function dataHandler(req: AuthRequest, res: Response) {
             estimatedRedDate: estimatedRedDateParsed
           };
 
+          const performStudentSave = async (payloadToUse: any, studentId: string | undefined | null) => {
+            if (studentId && studentId !== 'new' && studentId !== 'new-stu') {
+              const exists = await prisma.student.findUnique({ where: { id: studentId } });
+              if (exists) {
+                return await prisma.student.update({
+                  where: { id: studentId },
+                  data: { ...payloadToUse, userId: uid }
+                });
+              } else {
+                return await prisma.student.create({
+                  data: { ...payloadToUse, id: studentId, userId: uid }
+                });
+              }
+            } else {
+              const newId = `STUD-${Date.now()}-${Math.random().toString(36).substring(2, 7)}`;
+              return await prisma.student.create({
+                data: { ...payloadToUse, id: newId, userId: uid }
+              });
+            }
+          };
+
           try {
-            result = await prisma.student.upsert({
-              where: { id: id || 'new-stu' },
-              create: { ...cleanPayload, userId: uid },
-              update: { ...cleanPayload, userId: uid }
-            });
+            result = await performStudentSave(cleanPayload, id);
           } catch (upsertError: any) {
-            console.warn("⚠️ [PRISMA UPSERT FALLBACK] Failed to upsert student with full graduation fields, stripping them:", upsertError.message);
+            console.warn("⚠️ [PRISMA UPSERT FALLBACK] Failed to save student with full graduation fields, stripping them:", upsertError.message);
             // Exclude fields: graduationDate, nextDegreeDate, estimatedCoralDate, estimatedRedDate
             const { graduationDate, nextDegreeDate, estimatedCoralDate, estimatedRedDate, ...safePayload } = cleanPayload;
             try {
-              result = await prisma.student.upsert({
-                where: { id: id || 'new-stu' },
-                create: { ...safePayload, userId: uid },
-                update: { ...safePayload, userId: uid }
-              });
+              result = await performStudentSave(safePayload, id);
             } catch (fallbackError: any) {
-              console.error("🚨 [PRISMA UPSERT CRITICAL] Safe student upsert also failed:", fallbackError.message);
+              console.error("🚨 [PRISMA UPSERT CRITICAL] Safe student save also failed:", fallbackError.message);
               throw fallbackError;
             }
           }
