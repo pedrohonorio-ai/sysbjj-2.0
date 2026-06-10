@@ -381,7 +381,7 @@ if (req.method === 'GET') {
 
       break;
 
-    default:
+        default:
 
       if (!anyPrisma[collection]) {
         return res.status(404).json({
@@ -390,23 +390,16 @@ if (req.method === 'GET') {
       }
 
       try {
-
         data = await anyPrisma[collection].findMany({
           where: {
             userId: uid
           }
         });
-
       } catch {
-
         try {
-
           data = await anyPrisma[collection].findMany();
-
         } catch {
-
           data = [];
-
         }
       }
 
@@ -422,11 +415,10 @@ if (req.method === 'GET') {
     serializeData(finalData)
   );
 }
-```
 
-    }
-
-    if (req.method === 'POST') {
+if (req.method === 'POST') {
+  const { userId: _, id, ...payload } = req.body;
+  let result;
       const { userId: _, id, ...payload } = req.body;
       let result;
       
