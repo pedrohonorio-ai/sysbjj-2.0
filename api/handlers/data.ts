@@ -2,6 +2,9 @@ import { Response } from 'express';
 import { prisma } from '../../prisma/client.js';
 import { AuthRequest } from '../authMiddleware.js';
 
+/* =========================
+   SERIALIZER (BIGINT SAFE)
+========================= */
 export const serializeData = (data: any) => {
   return JSON.parse(
     JSON.stringify(data, (k, v) =>
@@ -14,6 +17,9 @@ export const serializeData = (data: any) => {
   );
 };
 
+/* =========================
+   STUDENT ENRICHMENT
+========================= */
 export const enrichStudent = (s: any) => {
   if (!s || typeof s !== 'object') return s;
 
@@ -27,36 +33,39 @@ export const enrichStudent = (s: any) => {
     beltSinceDate = s.joinedAt ? new Date(s.joinedAt) : new Date();
   }
 
-  const rightNow = new Date();
-  const diffMonths =
-    (rightNow.getFullYear() - beltSinceDate.getFullYear()) * 12 +
-    (rightNow.getMonth() - beltSinceDate.getMonth());
+  const now = new Date();
 
-  let minTime = 12;
+  const diffMonths =
+    (now.getFullYear() - beltSinceDate.getFullYear()) * 12 +
+    (now.getMonth() - beltSinceDate.getMonth());
 
   const belt = String(s.belt || 'Branca').toLowerCase();
 
-  if (belt.includes('azul')) minTime = 24;
-  else if (belt.includes('roxa')) minTime = 18;
-  else if (belt.includes('preta')) minTime = 36;
-  else if (belt.includes('coral')) minTime = 84;
-  else if (belt.includes('vermelha')) minTime = 120;
-  else minTime = 12;
+  let minMonths = 12;
+  if (belt.includes('azul')) minMonths = 24;
+  else if (belt.includes('roxa')) minMonths = 18;
+  else if (belt.includes('marrom')) minMonths = 12;
+  else if (belt.includes('preta')) minMonths = 36;
+  else if (belt.includes('coral')) minMonths = 84;
+  else if (belt.includes('vermelha')) minMonths = 120;
 
-  const isEligible = diffMonths >= minTime;
+  const eligible = diffMonths >= minMonths;
 
-  const estNextPromotion = new Date(beltSinceDate);
-  estNextPromotion.setMonth(estNextPromotion.getMonth() + minTime);
+  const nextPromotion = new Date(beltSinceDate);
+  nextPromotion.setMonth(nextPromotion.getMonth() + minMonths);
 
   return {
     ...s,
     stripe: s.stripes ?? 0,
     instructorId: s.userId || '',
-    graduationDate:
-      s.graduationDate || s.beltSince || s.joinedAt || new Date().toISOString(),
-    graduationEligible: isEligible,
+    graduationEligible: eligible,
     nextGraduationEstimate:
-      s.nextPromotion || estNextPromotion.toISOString(),
+      s.nextPromotion || nextPromotion.toISOString(),
+    graduationDate:
+      s.graduationDate ||
+      s.beltSince ||
+      s.joinedAt ||
+      new Date().toISOString(),
     beltHistory: s.beltHistory || []
   };
 };
@@ -66,6 +75,28 @@ export const enrichStudentsList = (data: any) => {
   return enrichStudent(data);
 };
 
+/* =========================
+   SAFE SELECT (EXPORT FIXED)
+========================= */
+export const SAFE_STUDENT_SELECT = {
+  id: true,
+  userId: true,
+  name: true,
+  nickname: true,
+  email: true,
+  phone: true,
+  belt: true,
+  stripes: true,
+  degrees: true,
+  status: true,
+  active: true,
+  joinedAt: true,
+  updatedAt: true
+};
+
+/* =========================
+   MAIN HANDLER
+========================= */
 export async function dataHandler(req: AuthRequest, res: Response) {
   const userId = req.user?.id;
 
@@ -84,7 +115,6 @@ export async function dataHandler(req: AuthRequest, res: Response) {
   }
 
   const uid = String(userId);
-  const anyPrisma = prisma as any;
 
   try {
     await prisma.$queryRaw`SELECT 1`;
@@ -149,17 +179,9 @@ export async function dataHandler(req: AuthRequest, res: Response) {
           break;
 
         default:
-          if (!anyPrisma[collection]) {
-            return res
-              .status(404)
-              .json({ error: `Coleção não encontrada: ${collection}` });
-          }
-
-          data = await anyPrisma[collection].findMany({
-            where: { userId: uid }
+          return res.status(404).json({
+            error: `Coleção não suportada: ${collection}`
           });
-
-          break;
       }
 
       const finalData =
@@ -174,8 +196,8 @@ export async function dataHandler(req: AuthRequest, res: Response) {
        POST
     ========================= */
     if (req.method === 'POST') {
-      const { userId: _, id, ...payload } = req.body;
-      let result;
+      const { id, ...payload } = req.body || {};
+      let result: any;
 
       switch (collection) {
         case 'students': {
@@ -219,34 +241,17 @@ export async function dataHandler(req: AuthRequest, res: Response) {
 
           result = await prisma.notification.upsert({
             where: { id: finalId },
-            create: {
-              ...payload,
-              id: finalId,
-              userId: uid
-            },
-            update: {
-              ...payload,
-              userId: uid
-            }
+            create: { ...payload, id: finalId, userId: uid },
+            update: { ...payload, userId: uid }
           });
 
           break;
         }
 
         default: {
-          if (!anyPrisma[collection]) {
-            return res
-              .status(404)
-              .json({ error: `Coleção não suportada: ${collection}` });
-          }
-
-          result = await anyPrisma[collection].upsert({
-            where: { id: id || 'new' },
-            create: { ...payload, userId: uid },
-            update: { ...payload, userId: uid }
+          return res.status(404).json({
+            error: `Coleção não suportada: ${collection}`
           });
-
-          break;
         }
       }
 
