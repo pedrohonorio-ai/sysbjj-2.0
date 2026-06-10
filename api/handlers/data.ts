@@ -165,171 +165,265 @@ export const SAFE_STUDENT_SELECT = {
 };
 
 export async function dataHandler(req: AuthRequest, res: Response) {
-  const userId = req.user?.id;
-  
-  if (req.params.collection === 'profile') {
-    console.log("PROFILE START");
-    console.log("AUTH:", req.headers.authorization);
-    console.log("USER:", req.user);
-    console.log("QUERY:", req.query);
-    console.log("BODY:", req.body);
-  }
-  
-  console.log('[API START]', req.originalUrl || req.url);
-  console.log('[USER]', userId);
-  console.log('[BODY]', req.body);
+const userId = req.user?.id;
 
-  if (!userId) {
-    if (req.params.collection === 'profile') {
-      console.log("PROFILE 400 REASON: sem usuário");
-    }
-    return res.status(401).json({ 
-      error: "Sessão inválida",
-      sensei_tip: "O Tatame está fechado para este usuário. Reconecte-se." 
-    });
-  }
+console.log('[API START]', req.originalUrl || req.url);
+console.log('[USER]', userId);
 
-  let { collection } = req.params;
-  if (!collection) {
-    if (req.params.collection === 'profile') {
-      console.log("PROFILE 400 REASON: COLLECTION é obrigatório");
-    }
-    return res.status(400).json({ error: "O parâmetro COLLECTION é obrigatório." });
-  }
-  if (collection === 'notifications') {
-    collection = 'notification';
-  }
+if (!userId) {
+return res.status(401).json({
+error: 'Sessão inválida'
+});
+}
 
-  if (req.body === undefined) {
-    if (req.method === 'GET') {
-      req.body = {};
-    } else {
-      if (collection === 'profile') {
-        console.log("PROFILE 400 REASON: BODY é obrigatório");
-      }
-      return res.status(400).json({ error: "O parâmetro BODY é obrigatório." });
-    }
-  }
+let { collection } = req.params;
 
-  // 🥋 Validar conexão com banco antes de qualquer operação
-  try {
-    await prisma.$queryRaw`SELECT 1`;
-  } catch (dbErr: any) {
-    console.error("🥋 [PRISMA CONNECTIVITY FAIL] dataHandler:", dbErr.message || dbErr);
-    // Retornamos fallback amigável em JSON sem travar
-    if (req.method === 'GET') {
-      if (collection === 'profile') {
-        return res.status(200).json(null);
-      }
-      if (collection === 'presence') {
-        return res.status(200).json([]);
-      }
-      return res.status(200).json([]);
-    } else {
-      return res.status(200).json({ success: true, message: "Modo Offline / Sem Banco" });
-    }
-  }
+if (!collection) {
+return res.status(400).json({
+error: 'Collection obrigatória'
+});
+}
 
-  const uid = String(userId);
-  const anyPrisma = prisma as any;
+if (collection === 'notifications') {
+collection = 'notification';
+}
 
-  try {
-    if (req.method === 'GET') {
-      let data;
-      switch(collection) {
-       case 'students':
-  try {
-
-    console.log('====================');
-    console.log('[STUDENTS GET]');
-    console.log('USER ID:', uid);
-
-    data = await prisma.student.findMany({
-      where: {
-        userId: uid
-      },
-      orderBy: {
-        joinedAt: 'desc'
-      }
-    });
-
-    console.log('FOUND:', data.length);
-
-    if (data.length > 0) {
-      console.log('[FIRST STUDENT]', data[0]);
-    }
-
-    console.log('[DB LOAD]', data);
-    console.log('====================');
-  "⚠️ [PRISMA FALLBACK] Error finding students:",
-  err?.message || err
-);
+if (req.body === undefined) {
+req.body = {};
+}
 
 try {
-  data = await prisma.student.findMany({
-    where: {
-      userId: uid
-    },
-    orderBy: {
-      joinedAt: 'desc'
-    },
-    select: {
-      id: true,
-      userId: true,
-      name: true,
-      nickname: true,
-      email: true,
-      phone: true,
-      status: true,
-      belt: true,
-      degrees: true,
-      stripes: true,
-      active: true,
-      joinedAt: true
-    }
-  });
-} catch (fallbackErr: any) {
-  console.error(
-    "🚨 [PRISMA FALLBACK CRITICAL]",
-    fallbackErr?.message || fallbackErr
-  );
+await prisma.$queryRaw`SELECT 1`;
+} catch (dbErr: any) {
+console.error(
+'🥋 [PRISMA CONNECTIVITY FAIL]',
+dbErr?.message || dbErr
+);
 
-  try {
-    data = await prisma.student.findMany({
-      where: {
-        userId: uid
-      }
-    });
-  } catch (ultraErr: any) {
-    console.error(
-      "🚨 [PRISMA ULTRALIMIT]",
-      ultraErr?.message || ultraErr
-    );
-
-    data = [];
-  }
+```
+if (req.method === 'GET') {
+  return res.status(200).json([]);
 }
-                  console.error("🚨 [PRISMA FALLBACK] Graduation history failed completely, returning empty:", fallbackErr.message);
-                  data = [];
-                }
-              }
-            } else {
-              try {
-                data = await anyPrisma[collection].findMany({ where: { userId: uid } });
-              } catch (e1) {
-                try {
-                  data = await anyPrisma[collection].findMany();
-                } catch (e2) {
-                  data = [];
-                }
-              }
-            }
-          } else {
-            return res.status(404).json({ error: `Coleção não encontrada: ${collection}` });
+
+return res.status(200).json({
+  success: true,
+  offline: true
+});
+```
+
+}
+
+const uid = String(userId);
+const anyPrisma = prisma as any;
+
+try {
+
+```
+if (req.method === 'GET') {
+
+  let data: any = [];
+
+  switch (collection) {
+
+    case 'students':
+
+      try {
+
+        console.log('====================');
+        console.log('[STUDENTS GET]');
+        console.log('USER:', uid);
+
+        data = await prisma.student.findMany({
+          where: {
+            userId: uid
+          },
+          orderBy: {
+            joinedAt: 'desc'
           }
+        });
+
+        console.log('FOUND:', data.length);
+
+      } catch (err: any) {
+
+        console.warn(
+          '⚠️ [PRISMA FALLBACK]',
+          err?.message || err
+        );
+
+        try {
+
+          data = await prisma.student.findMany({
+            where: {
+              userId: uid
+            },
+            select: {
+              id: true,
+              userId: true,
+              name: true,
+              nickname: true,
+              email: true,
+              phone: true,
+              status: true,
+              belt: true,
+              degrees: true,
+              stripes: true,
+              active: true,
+              joinedAt: true
+            }
+          });
+
+        } catch (fallbackErr: any) {
+
+          console.error(
+            '🚨 [PRISMA FALLBACK CRITICAL]',
+            fallbackErr?.message || fallbackErr
+          );
+
+          data = [];
+        }
       }
-      const finalData = collection === 'students' ? enrichStudentsList(data) : data;
-      return res.json(serializeData(finalData));
+
+      break;
+
+    case 'payments':
+
+      data = await prisma.payment.findMany({
+        where: {
+          userId: uid
+        },
+        orderBy: {
+          timestamp: 'desc'
+        },
+        take: 200
+      });
+
+      break;
+
+    case 'schedules':
+
+      data = await prisma.classSchedule.findMany({
+        where: {
+          userId: uid
+        }
+      });
+
+      break;
+
+    case 'logs':
+
+      data = await prisma.systemLog.findMany({
+        where: {
+          userId: uid
+        },
+        orderBy: {
+          timestamp: 'desc'
+        },
+        take: 100
+      });
+
+      break;
+
+    case 'presence':
+
+      try {
+
+        data = await prisma.presence.findMany({
+          where: {
+            userId: uid
+          }
+        });
+
+      } catch {
+
+        data = [];
+
+      }
+
+      break;
+
+    case 'profile':
+
+      try {
+
+        data = await prisma.professorProfile.findUnique({
+          where: {
+            userId: uid
+          }
+        });
+
+      } catch {
+
+        data = null;
+
+      }
+
+      break;
+
+    case 'notification':
+
+      try {
+
+        data = await prisma.notification.findMany({
+          where: {
+            userId: uid
+          },
+          orderBy: {
+            createdAt: 'desc'
+          }
+        });
+
+      } catch {
+
+        data = [];
+
+      }
+
+      break;
+
+    default:
+
+      if (!anyPrisma[collection]) {
+        return res.status(404).json({
+          error: `Coleção não encontrada: ${collection}`
+        });
+      }
+
+      try {
+
+        data = await anyPrisma[collection].findMany({
+          where: {
+            userId: uid
+          }
+        });
+
+      } catch {
+
+        try {
+
+          data = await anyPrisma[collection].findMany();
+
+        } catch {
+
+          data = [];
+
+        }
+      }
+
+      break;
+  }
+
+  const finalData =
+    collection === 'students'
+      ? enrichStudentsList(data)
+      : data;
+
+  return res.json(
+    serializeData(finalData)
+  );
+}
+```
+
     }
 
     if (req.method === 'POST') {
