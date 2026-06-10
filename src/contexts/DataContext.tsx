@@ -391,8 +391,7 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       }));
       console.log('[RAW STUDENTS]', batchResults.students);
       console.log('[NORMALIZED STUDENTS]', normalized);
-      console.log('[STATE STUDENTS BEFORE]', students);
-      console.log('[STATE STUDENTS AFTER]', normalized);
+      console.log('[LOAD STUDENTS COUNT]', normalized.length);
       console.log('[LOAD STUDENTS]', normalized);
       setStudents(normalized);
     } else if (batchResults.students) {
@@ -448,7 +447,7 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     } else if (batchResults.notifications) {
       setNotifications([]);
     }
-  }, [saveSafely, students, user?.id]);
+  }, [saveSafely]);
 
   const isAuthenticated = !!user || (authRole === 'student' && !!studentCode);
 
@@ -622,34 +621,49 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         
         setDbStatus({ connected: true, error: null });
 
-        // Auto-initialization for empty accounts
-        if (!batchResults.students || batchResults.students.length === 0) {
-          const localStudents = loadSafely('oss_students', []);
-          if (localStudents.length === 0) {
-            if (import.meta.env.DEV) {
-              console.log("Oss! Iniciando dados padrão para novo Sensei...");
-            }
-            for (const s of INITIAL_STUDENTS) {
-              const id = `STU-${Date.now()}-${Math.random().toString(36).substr(2, 5)}`;
-              await api.saveData('students', user.id, { ...s, id });
-            }
-            const refreshedStudents = await api.fetchData('students', user.id);
-            setStudents(Array.isArray(refreshedStudents) ? refreshedStudents : []);
-          }
-        }
-      } catch (error) {
-        handleApiError(error, OperationType.LIST, 'all', setNotifications, setDbStatus);
-      } finally {
-        fetchingRef.current = false;
-        loadingRef.current = false;
-      }
-    };
+       // Auto-initialization for truly new accounts only
+const remoteStudents = Array.isArray(batchResults?.students)
+  ? batchResults.students
+  : [];
 
-    if (!initializedRef.current) {
-      initializedRef.current = true;
-      fetchAllData();
-    }
-    
+const localStudents = loadSafely('oss_students', []);
+
+console.log('[AUTO-SEED CHECK]', {
+  remoteCount: remoteStudents.length,
+  localCount: localStudents.length,
+  userId: user?.id
+});
+
+// Só cria dados de exemplo se:
+// 1) Banco está vazio
+// 2) LocalStorage está vazio
+// 3) Estado atual também está vazio
+if (
+  remoteStudents.length === 0 &&
+  localStudents.length === 0 &&
+  students.length === 0
+) {
+  if (import.meta.env.DEV) {
+    console.log('[AUTO-SEED] Nova conta detectada');
+  }
+
+  for (const s of INITIAL_STUDENTS) {
+    const id = `STU-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`;
+
+    await api.saveData('students', user.id, {
+      ...s,
+      id
+    });
+  }
+
+  const refreshedStudents = await api.fetchData('students', user.id);
+
+  setStudents(
+    Array.isArray(refreshedStudents)
+      ? refreshedStudents
+      : []
+  );
+}
     // Refresh periodicamente (opcional se não usar realtime)
     const interval = setInterval(fetchAllData, 60000); // 1 minuto
     return () => clearInterval(interval);
