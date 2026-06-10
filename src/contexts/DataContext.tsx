@@ -857,6 +857,9 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       
       if (user?.id && !dbStatus.isDemoMode) {
         await api.saveData('students', user.id, newStudent).catch(err => handleApiError(err, OperationType.CREATE, 'students', setNotifications, setDbStatus));
+        // Invalida o cache para forçar re-fetch no próximo load
+        sessionStorage.removeItem("sysbjj_batch");
+        sessionStorage.removeItem("sysbjj_batch_time");
       }
       
       logAction('Novo Cadastro', `Alunos ${student.name} cadastrado`, 'User');
@@ -888,6 +891,9 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     
     if (user?.id && !dbStatus.isDemoMode) {
       await api.saveData('students', user.id, { ...finalUpdates, id }).catch(err => handleApiError(err, OperationType.UPDATE, `students/${id}`, setNotifications, setDbStatus));
+      // Invalida o cache para forçar re-fetch no próximo load
+      sessionStorage.removeItem("sysbjj_batch");
+      sessionStorage.removeItem("sysbjj_batch_time");
     }
     logAction('Atualização de Cadastro', `Dados do aluno ID ${id} atualizados`, 'User');
   }, [logAction, user?.id, dbStatus.isDemoMode]);
@@ -898,6 +904,9 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     
     if (user?.id && !dbStatus.isDemoMode) {
       api.deleteData('students', id, user.id).catch(err => handleApiError(err, OperationType.DELETE, `students/${id}`, setNotifications, setDbStatus));
+      // Invalida o cache para forçar re-fetch no próximo load
+      sessionStorage.removeItem("sysbjj_batch");
+      sessionStorage.removeItem("sysbjj_batch_time");
     }
     logAction('Exclusão de Cadastro', `Aluno ID ${id} removido do sistema`, 'Security');
   }, [logAction, user?.id, dbStatus.isDemoMode]);
