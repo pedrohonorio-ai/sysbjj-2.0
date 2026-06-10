@@ -4,15 +4,11 @@
   "version": "2.0.0",
   "type": "module",
   "scripts": {
-    "dev": "tsx server.ts",
-    "scripts": {
-  "dev": "vite",
-  "build": "prisma generate && vite build",
-  "postinstall": "prisma generate",
-  "vercel-build": "prisma generate && prisma db push && vite build"
-}
+    "dev": "vite",
+    "build": "prisma generate && vite build",
     "start": "node dist/server.js",
     "postinstall": "prisma generate",
+    "vercel-build": "prisma generate && prisma db push && vite build",
     "lint": "tsc --noEmit",
     "scan:i18n": "node scripts/find-hardcoded-texts.js",
     "fix:i18n": "node scripts/fix-i18n.js",
