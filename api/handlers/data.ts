@@ -2,34 +2,35 @@ import { Response } from 'express';
 import { prisma } from '../../prisma/client.js';
 import { AuthRequest } from '../authMiddleware.js';
 
-/* =========================================================
-   SERIALIZER (SAFE FOR BIGINT / JSON / PRISMA)
-========================================================= */
+/* =========================
+   SERIALIZER (BIGINT SAFE)
+========================= */
 export const serializeData = (data: any) => {
   return JSON.parse(
-    JSON.stringify(data, (_k, v) =>
+    JSON.stringify(data, (_, v) =>
       typeof v === 'bigint'
-        ? (v <= Number.MAX_SAFE_INTEGER ? Number(v) : v.toString())
+        ? Number(v) <= Number.MAX_SAFE_INTEGER
+          ? Number(v)
+          : v.toString()
         : v
     )
   );
 };
 
-/* =========================================================
-   STUDENT ENRICHMENT (SaaS RULE ENGINE)
-========================================================= */
+/* =========================
+   STUDENT ENRICHMENT (ENTERPRISE)
+========================= */
 export const enrichStudent = (s: any) => {
   if (!s || typeof s !== 'object') return s;
 
-  let beltSinceDate: Date;
-
-  if (s.beltSince) {
-    beltSinceDate = new Date(s.beltSince);
-  } else if (s.lastPromotionDate) {
-    beltSinceDate = new Date(s.lastPromotionDate + 'T12:00:00');
-  } else {
-    beltSinceDate = s.joinedAt ? new Date(s.joinedAt) : new Date();
-  }
+  const beltSinceDate =
+    s.beltSince
+      ? new Date(s.beltSince)
+      : s.lastPromotionDate
+        ? new Date(`${s.lastPromotionDate}T12:00:00`)
+        : s.joinedAt
+          ? new Date(s.joinedAt)
+          : new Date();
 
   const now = new Date();
 
@@ -37,7 +38,7 @@ export const enrichStudent = (s: any) => {
     (now.getFullYear() - beltSinceDate.getFullYear()) * 12 +
     (now.getMonth() - beltSinceDate.getMonth());
 
-  const belt = String(s.belt || 'Branca').toLowerCase();
+  const belt = String(s.belt || 'branca').toLowerCase();
 
   let minMonths = 12;
 
@@ -55,17 +56,12 @@ export const enrichStudent = (s: any) => {
 
   return {
     ...s,
-
-    stripe: s.stripes ?? 0,
-    instructorId: s.userId ?? '',
-
+    stripes: s.stripes ?? 0,
+    instructorId: s.userId || '',
     graduationDate:
       s.graduationDate || s.beltSince || s.joinedAt || new Date().toISOString(),
-
     graduationEligible: eligible,
-    nextGraduationEstimate:
-      s.nextPromotion || nextPromotion.toISOString(),
-
+    nextGraduationEstimate: nextPromotion.toISOString(),
     beltHistory: s.beltHistory || []
   };
 };
@@ -75,9 +71,9 @@ export const enrichStudentsList = (data: any) => {
   return enrichStudent(data);
 };
 
-/* =========================================================
-   SAFE SELECT (FIX EXPORT ERROR)
-========================================================= */
+/* =========================
+   SAFE SELECT
+========================= */
 export const SAFE_STUDENT_SELECT = {
   id: true,
   userId: true,
@@ -94,9 +90,24 @@ export const SAFE_STUDENT_SELECT = {
   updatedAt: true
 };
 
-/* =========================================================
-   MAIN HANDLER (ENTERPRISE SaaS ROUTER)
-========================================================= */
+/* =========================
+   COLLECTION ROUTER (ENTERPRISE CONTROLLED)
+========================= */
+const ALLOWED_COLLECTIONS = [
+  'students',
+  'payments',
+  'schedules',
+  'logs',
+  'profile',
+  'notification',
+  'presence'
+] as const;
+
+type Collection = typeof ALLOWED_COLLECTIONS[number];
+
+/* =========================
+   MAIN HANDLER
+========================= */
 export async function dataHandler(req: AuthRequest, res: Response) {
   const userId = req.user?.id;
 
@@ -104,29 +115,24 @@ export async function dataHandler(req: AuthRequest, res: Response) {
     return res.status(401).json({ error: 'Sessão inválida' });
   }
 
-  const uid = String(userId);
-  let { collection } = req.params;
+  let { collection } = req.params as { collection: Collection | string };
 
   if (!collection) {
     return res.status(400).json({ error: 'Collection obrigatória' });
   }
 
-  if (collection === 'notifications') {
-    collection = 'notification';
+  if (!ALLOWED_COLLECTIONS.includes(collection as Collection)) {
+    return res.status(404).json({
+      error: `Coleção não suportada: ${collection}`
+    });
   }
 
-  const anyPrisma = prisma as any;
+  const uid = String(userId);
 
-  /* =========================
-     HEALTH CHECK DB
-  ========================= */
   try {
     await prisma.$queryRaw`SELECT 1`;
   } catch {
-    return res.status(200).json({
-      success: true,
-      offline: true
-    });
+    return res.status(200).json({ success: true, offline: true });
   }
 
   try {
@@ -166,12 +172,6 @@ export async function dataHandler(req: AuthRequest, res: Response) {
           });
           break;
 
-        case 'presence':
-          data = await prisma.presence.findMany({
-            where: { userId: uid }
-          });
-          break;
-
         case 'profile':
           data = await prisma.professorProfile.findUnique({
             where: { userId: uid }
@@ -185,17 +185,11 @@ export async function dataHandler(req: AuthRequest, res: Response) {
           });
           break;
 
-        default:
-          if (!anyPrisma[collection]) {
-            return res.status(404).json({
-              error: `Coleção não suportada: ${collection}`
-            });
-          }
-
-          data = await anyPrisma[collection].findMany({
-            where: { userId: uid }
+        case 'presence':
+          data = await prisma.presence.findMany({
+            where: { userId: uid },
+            orderBy: { createdAt: 'desc' }
           });
-
           break;
       }
 
@@ -218,24 +212,51 @@ export async function dataHandler(req: AuthRequest, res: Response) {
         case 'students': {
           const isNew = !id || id === 'new';
 
-          if (isNew) {
-            result = await prisma.student.create({
-              data: {
-                ...payload,
-                id: `STUD-${Date.now()}`,
-                userId: uid
-              }
-            });
-          } else {
-            result = await prisma.student.update({
-              where: { id },
-              data: {
-                ...payload,
-                userId: uid,
-                updatedAt: new Date()
-              }
-            });
-          }
+          const cleanPayload = {
+            ...payload,
+            belt: payload.belt || 'Branca',
+            stripes: Number(payload.stripes) || 0
+          };
+
+          result = isNew
+            ? await prisma.student.create({
+                data: {
+                  ...cleanPayload,
+                  id: `STUD-${Date.now()}`,
+                  userId: uid
+                }
+              })
+            : await prisma.student.update({
+                where: { id },
+                data: {
+                  ...cleanPayload,
+                  userId: uid,
+                  updatedAt: new Date()
+                }
+              });
+
+          break;
+        }
+
+        case 'presence': {
+          const presenceId =
+            id && id !== 'new'
+              ? id
+              : `PRES-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+
+          result = await prisma.presence.upsert({
+            where: { id: presenceId },
+            create: {
+              ...payload,
+              id: presenceId,
+              userId: uid,
+              createdAt: new Date()
+            },
+            update: {
+              ...payload,
+              userId: uid
+            }
+          });
 
           break;
         }
@@ -244,65 +265,28 @@ export async function dataHandler(req: AuthRequest, res: Response) {
           const finalId =
             id && id !== 'new'
               ? id
-              : `notif-${Date.now()}-${Math.random().toString(36).slice(2, 9)}`;
+              : `NOTIF-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
 
           result = await prisma.notification.upsert({
             where: { id: finalId },
-            create: { ...payload, id: finalId, userId: uid },
-            update: { ...payload, userId: uid }
-          });
-
-          break;
-        }
-
-        case 'presence': {
-          result = await prisma.presence.upsert({
-            where: {
-              email_deviceId: {
-                email: String(payload.email || ''),
-                deviceId: String(payload.deviceId || 'default')
-              }
+            create: {
+              ...payload,
+              id: finalId,
+              userId: uid
             },
-            create: { ...payload, userId: uid },
-            update: { ...payload }
+            update: {
+              ...payload,
+              userId: uid
+            }
           });
 
           break;
         }
 
-        case 'profile': {
-          result = await prisma.professorProfile.upsert({
-            where: { userId: uid },
-            create: { ...payload, userId: uid },
-            update: { ...payload, userId: uid }
+        default:
+          return res.status(404).json({
+            error: `Operação não suportada: ${collection}`
           });
-
-          break;
-        }
-
-        case 'logs': {
-          result = await prisma.systemLog.create({
-            data: { ...payload, userId: uid }
-          });
-
-          break;
-        }
-
-        default: {
-          if (!anyPrisma[collection]) {
-            return res.status(404).json({
-              error: `Coleção não suportada: ${collection}`
-            });
-          }
-
-          result = await anyPrisma[collection].upsert({
-            where: { id: id || 'new' },
-            create: { ...payload, userId: uid },
-            update: { ...payload, userId: uid }
-          });
-
-          break;
-        }
       }
 
       const finalResult =
@@ -312,9 +296,10 @@ export async function dataHandler(req: AuthRequest, res: Response) {
 
       return res.json(serializeData(finalResult));
     }
-  } catch (error) {
-    console.error('[API ERROR]', error);
 
+    return res.status(405).json({ error: 'Método não permitido' });
+
+  } catch (error) {
     return res.status(500).json({
       success: false,
       error: error instanceof Error ? error.message : String(error)
