@@ -3,295 +3,230 @@ generator client {
 }
 
 datasource db {
-  provider  = "postgresql"
-  url       = env("DATABASE_URL")
-  directUrl = env("DIRECT_URL")
+  provider   = "postgresql"
+  url        = env("DATABASE_URL")
+  directUrl  = env("DIRECT_URL")
 }
 
-//
-// ENUMS (padronização enterprise)
-//
-
-enum UserRole {
-  ADMIN
-  MASTER
-  USER
-  STUDENT
-}
-
-enum SubscriptionStatus {
-  ACTIVE
-  PENDING
-  EXPIRED
-  SUSPENDED
-  FREE
-}
-
-enum PaymentStatus {
-  PENDING
-  APPROVED
-  REJECTED
-}
-
-enum Belt {
-  BRANCA
-  AZUL
-  ROXA
-  MARROM
-  PRETA
-}
-
-enum PresenceRole {
-  ADMIN
-  USER
-  STUDENT
-}
-
-//
-// USER
-//
+/* =========================
+   USER / AUTH
+========================= */
 
 model User {
-  id        String   @id @default(cuid())
-  email     String   @unique
-  password  String
-  name      String?
-  role      UserRole @default(USER)
+  id             String   @id @default(cuid())
+  email          String   @unique
+  password       String
+  name           String?
+  role           String   @default("admin")
 
-  active    Boolean  @default(true)
-  deletedAt DateTime?
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
 
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  deletedAt      DateTime?
+  active         Boolean  @default(true)
 
-  subscription Subscription?
-  students     Student[]
+  lastLoginAt    DateTime?
+  lastActivityAt DateTime?
+
+  subscription   Subscription?
+  students       Student[]
 }
 
-//
-// SUBSCRIPTION
-//
+/* =========================
+   SUBSCRIPTION (SAAS CORE)
+========================= */
 
 model Subscription {
-  id        String @id @default(cuid())
-  userId    String @unique
+  id               String   @id @default(cuid())
+  userId           String   @unique
 
-  plan      String @default("FREE")
+  plan             String   @default("FREE")
 
-  status    SubscriptionStatus @default(ACTIVE)
+  studentLimit     Int      @default(20)
+  maxStudents      Int      @default(20)
+  currentStudents  Int      @default(0)
 
-  studentLimit    Int @default(20)
-  currentStudents  Int @default(0)
+  monthlyPrice     Float    @default(0)
 
-  monthlyPrice Float @default(0)
+  billingCycle     String   @default("MONTHLY")
+  status           String   @default("ACTIVE")
 
-  expiresAt DateTime?
+  expiresAt        DateTime?
+  renewalEnabled   Boolean  @default(false)
 
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
 
-  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  user             User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
 }
 
-//
-// STUDENT (CORE DO SISTEMA)
-//
+/* =========================
+   SUBSCRIPTION HISTORY
+========================= */
+
+model SubscriptionPaymentHistory {
+  id           String   @id @default(cuid())
+  userId       String
+  amount       Float
+  date         DateTime @default(now())
+
+  proofUrl     String?
+  billingCycle String?
+  status       String   @default("APPROVED")
+  approvedBy   String?
+  notes        String?
+
+  createdAt    DateTime @default(now())
+
+  @@index([userId])
+}
+
+/* =========================
+   STUDENT CORE (SAAS MAIN)
+========================= */
 
 model Student {
-  id       String @id @default(cuid())
-  userId   String
+  id               String   @id @default(cuid())
+  userId           String
 
-  name     String
-  nickname String?
+  name             String
+  nickname         String?
+  email            String?
+  phone            String?
 
-  email    String?
-  phone    String?
+  birthDate        String?
+  gender           String?
 
-  birthDate DateTime?
+  cpf              String?
+  rg               String?
 
-  gender String?
-  cpf    String?
-  rg     String?
+  weight           Float?
+  height           Float?
 
-  weight Float?
-  height Float?
+  category         String?
+  weightClass      String?
 
-  belt     Belt @default(BRANCA)
-  degrees   Int  @default(0)
-  stripes   Int  @default(0)
+  federationId     String?
 
-  status String @default("ACTIVE")
+  lastPromotionDate String?
 
-  monthlyValue Float @default(0)
+  status           String   @default("Active")
+  belt             String   @default("Branca")
 
-  active Boolean @default(true)
+  degrees          Int      @default(0)
+  stripes          Int      @default(0)
 
-  isInstructor Boolean @default(false)
-  isKid        Boolean @default(false)
+  beltSince        DateTime?
+  nextPromotion    DateTime?
 
-  behaviorScore Int @default(0)
-  rewardPoints  Int @default(0)
+  monthlyValue     Float    @default(0)
 
-  lastSeen DateTime?
+  active           Boolean  @default(true)
+  isInstructor     Boolean  @default(false)
 
-  photoUrl String?
+  behaviorScore    Int      @default(0)
+  rewardPoints     Int      @default(0)
 
-  address String?
-  city    String?
-  state   String?
+  attendanceCount  Int      @default(0)
 
-  lgpdConsent Boolean @default(false)
+  lastSeen         BigInt?
 
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  observations     String?
 
-  // JSON FLEX (enterprise)
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+
   attendanceHistory Json?
+  history           Json?
   techniques        Json?
   goals             Json?
   feedbacks         Json?
-  documents         Json?
 
-  graduationHistory GraduationHistory[]
+  graduationHistoryRecords GraduationHistory[]
 
   @@index([userId])
-  @@index([userId, active])
+  @@index([userId, status])
 }
 
-//
-// PRESENCE (CORRIGIDO - seu erro veio daqui)
-//
+/* =========================
+   PAYMENT
+========================= */
+
+model Payment {
+  id          String   @id @default(cuid())
+  userId      String
+  studentId   String?
+
+  name        String
+  amount      Float
+  date        String
+  method      String
+  status      String   @default("Paid")
+
+  createdAt   DateTime @default(now())
+
+  @@index([userId])
+}
+
+/* =========================
+   PRESENCE (FIX CRÍTICO)
+========================= */
 
 model Presence {
-  id        String @id @default(cuid())
-
+  id        String   @id @default(cuid())
   userId    String
   email     String
-
-  role      PresenceRole @default(USER)
+  role      String?
 
   lastSeen  BigInt
-
   userAgent String?
   deviceId  String
 
-  createdAt DateTime @default(now())   // ✅ FIX DO SEU ERRO
-  updatedAt DateTime @updatedAt
+  createdAt DateTime @default(now())  // 🔥 FIX PRINCIPAL
 
   @@unique([email, deviceId])
   @@index([userId])
 }
 
-//
-// SUBSCRIPTION PAYMENT HISTORY
-//
-
-model SubscriptionPaymentHistory {
-  id        String @id @default(cuid())
-  userId    String
-
-  amount    Float
-  status    PaymentStatus @default(APPROVED)
-
-  billingCycle String?
-
-  proofUrl String?
-  notes    String?
-
-  createdAt DateTime @default(now())
-
-  @@index([userId])
-}
-
-//
-// PAYMENT
-//
-
-model Payment {
-  id        String @id @default(cuid())
-
-  userId    String
-  studentId String?
-
-  name      String
-  amount    Float
-
-  method    String
-  status    PaymentStatus @default(APPROVED)
-
-  reference String?
-
-  createdAt DateTime @default(now())
-
-  @@index([userId])
-  @@index([studentId])
-}
-
-//
-// SYSTEM LOG
-//
-
-model SystemLog {
-  id        String @id @default(cuid())
-
-  userId    String
-  email     String
-
-  action    String
-  category  String
-  details   String
-
-  deviceInfo String
-
-  timestamp BigInt
-
-  createdAt DateTime @default(now())
-
-  @@index([userId])
-}
-
-//
-// GRADUATION HISTORY
-//
+/* =========================
+   GRADUATION
+========================= */
 
 model GraduationHistory {
-  id        String @id @default(cuid())
+  id              String   @id @default(cuid())
+  studentId       String
 
-  studentId String
+  previousBelt    String
+  newBelt         String
 
-  previousBelt Belt
-  newBelt      Belt
+  previousStripes Int      @default(0)
+  newStripes      Int      @default(0)
 
-  previousStripes Int @default(0)
-  newStripes      Int @default(0)
+  promotedAt      DateTime @default(now())
+  promotedBy      String?
 
-  notes String?
+  notes           String?
+  ibjjfValidated  Boolean  @default(true)
 
-  promotedAt DateTime @default(now())
-
-  student Student @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  student         Student  @relation(fields: [studentId], references: [id], onDelete: Cascade)
 
   @@index([studentId])
 }
 
-//
-// CLASS SCHEDULE
-//
+/* =========================
+   NOTIFICATION
+========================= */
 
-model ClassSchedule {
-  id        String @id @default(cuid())
-
+model Notification {
+  id        String   @id @default(cuid())
   userId    String
-
   title     String
-  instructor String
-  category  String
-
-  days String[]
-
-  time String
-
-  active Boolean @default(true)
+  message   String
+  type      String
+  priority  String
+  read      Boolean  @default(false)
 
   createdAt DateTime @default(now())
 
