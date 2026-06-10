@@ -8,7 +8,7 @@
     "build": "prisma generate && vite build",
     "start": "node dist/server.js",
     "postinstall": "prisma generate",
-    "vercel-build": "prisma generate && vite build"
+    "vercel-build": "prisma generate && vite build",
     "lint": "tsc --noEmit",
     "scan:i18n": "node scripts/find-hardcoded-texts.js",
     "fix:i18n": "node scripts/fix-i18n.js",
