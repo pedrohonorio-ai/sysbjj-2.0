@@ -3487,6 +3487,9 @@ const Students: React.FC = () => {
     });
   }, [searchTerm, students, activeView, classFilter, beltFilter, statusFilter, instructorFilter, responsibleInstructorFilter, schedules]);
 
+  console.log('[CONTEXT STUDENTS]', students);
+  console.log('[FILTERED STUDENTS]', filteredStudents);
+
   // 🥋 CLASSIFICAÇÃO DE CADASTROS DE ALUNOS PARADOS OU ERRADOS (User Request 1)
   const cleanupStudents = useMemo(() => {
     return students.filter(s => {

@@ -373,6 +373,8 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   const applyBatchResults = useCallback((batchResults: any) => {
     if (!batchResults) return;
 
+    console.log('[AUTH USER]', user?.id);
+
     if (batchResults.graduationHistory && Array.isArray(batchResults.graduationHistory)) {
       setGraduationHistory(batchResults.graduationHistory);
       saveSafely('oss_graduation_history', batchResults.graduationHistory);
@@ -387,9 +389,16 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         degrees: Number(s.degrees || 0),
         stripes: Number(s.stripes || 0)
       }));
+      console.log('[RAW STUDENTS]', batchResults.students);
+      console.log('[NORMALIZED STUDENTS]', normalized);
+      console.log('[STATE STUDENTS BEFORE]', students);
+      console.log('[STATE STUDENTS AFTER]', normalized);
       console.log('[LOAD STUDENTS]', normalized);
       setStudents(normalized);
     } else if (batchResults.students) {
+      console.log('[RAW STUDENTS] is empty or not an array:', batchResults.students);
+      console.log('[STATE STUDENTS BEFORE]', students);
+      console.log('[STATE STUDENTS AFTER]', []);
       setStudents([]);
     }
     if (batchResults.payments) {
@@ -439,7 +448,7 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     } else if (batchResults.notifications) {
       setNotifications([]);
     }
-  }, [saveSafely]);
+  }, [saveSafely, students, user?.id]);
 
   const isAuthenticated = !!user || (authRole === 'student' && !!studentCode);
 
@@ -895,6 +904,7 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     }
 
     // Optimistic Update
+    console.log('[UPDATE STUDENT]', id, finalUpdates);
     setStudents(prev => prev.map(s => s.id === id ? { ...s, ...finalUpdates } : s));
     
     if (user?.id && !dbStatus.isDemoMode) {
@@ -908,6 +918,7 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
 
   const deleteStudent = useCallback((id: string) => {
     // Optimistic Update
+    console.log('[DELETE STUDENT]', id);
     setStudents(prev => prev.filter(s => s.id !== id));
     
     if (user?.id && !dbStatus.isDemoMode) {
