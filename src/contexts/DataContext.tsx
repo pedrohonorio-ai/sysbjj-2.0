@@ -617,57 +617,61 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
           sessionStorage.setItem("sysbjj_batch_time", String(Date.now()));
         } catch (e) {
           console.warn("🥋 Failed saving session cache", e);
+         setDbStatus({
+          connected: true,
+          error: null
+        });
+
+        // Auto-seed apenas para contas realmente novas
+        const remoteStudents = Array.isArray(batchResults?.students)
+          ? batchResults.students
+          : [];
+
+        const localStudents = loadSafely('oss_students', []);
+
+        console.log('[AUTO-SEED CHECK]', {
+          remoteCount: remoteStudents.length,
+          localCount: localStudents.length,
+          userId: user?.id
+        });
+
+        if (
+          remoteStudents.length === 0 &&
+          localStudents.length === 0 &&
+          students.length === 0
+        ) {
+          console.log('[AUTO-SEED] Nova conta detectada');
+
+          // NÃO cria alunos automaticamente
+          // Apenas registra a condição
         }
-        
-        setDbStatus({ connected: true, error: null });
 
-       // Auto-initialization for truly new accounts only
-const remoteStudents = Array.isArray(batchResults?.students)
-  ? batchResults.students
-  : [];
+      } catch (error) {
+        handleApiError(
+          error,
+          OperationType.LIST,
+          'all',
+          setNotifications,
+          setDbStatus
+        );
+      } finally {
+        fetchingRef.current = false;
+        loadingRef.current = false;
+      }
+    };
 
-const localStudents = loadSafely('oss_students', []);
+    fetchAllData();
 
-console.log('[AUTO-SEED CHECK]', {
-  remoteCount: remoteStudents.length,
-  localCount: localStudents.length,
-  userId: user?.id
-});
+    const interval = setInterval(fetchAllData, 60000);
 
-// Só cria dados de exemplo se:
-// 1) Banco está vazio
-// 2) LocalStorage está vazio
-// 3) Estado atual também está vazio
-if (
-  remoteStudents.length === 0 &&
-  localStudents.length === 0 &&
-  students.length === 0
-) {
-  if (import.meta.env.DEV) {
-    console.log('[AUTO-SEED] Nova conta detectada');
-  }
-
-  for (const s of INITIAL_STUDENTS) {
-    const id = `STU-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`;
-
-    await api.saveData('students', user.id, {
-      ...s,
-      id
-    });
-  }
-
-  const refreshedStudents = await api.fetchData('students', user.id);
-
-  setStudents(
-    Array.isArray(refreshedStudents)
-      ? refreshedStudents
-      : []
-  );
-}
-    // Refresh periodicamente (opcional se não usar realtime)
-    const interval = setInterval(fetchAllData, 60000); // 1 minuto
     return () => clearInterval(interval);
-  }, [isAuthenticated, user?.id, applyBatchResults]);
+
+  }, [
+    isAuthenticated,
+    user?.id,
+    applyBatchResults,
+    students.length
+  ]);
 
   // Persistência automática em cada mudança (Local Storage as fallback for UI smoothness)
   useEffect(() => { saveSafely('oss_students', students); }, [students, saveSafely]);
