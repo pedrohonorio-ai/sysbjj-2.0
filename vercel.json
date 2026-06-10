@@ -1,15 +1,14 @@
 {
-  "version": 2,
-  "buildCommand": "prisma generate && vite build",
-  "outputDirectory": "dist",
-  "rewrites": [
-    {
-      "source": "/api/(.*)",
-      "destination": "/api/index.ts"
-    },
-    {
-      "source": "/(.*)",
-      "destination": "/index.html"
-    }
-  ]
+  "name": "sysbjj-2-0",
+  "version": "2.0.0",
+  "private": true,
+  "engines": {
+    "node": "18.x"
+  },
+  "scripts": {
+    "dev": "vite",
+    "build": "prisma generate && vite build",
+    "start": "vite preview",
+    "postinstall": "prisma generate"
+  }
 }
