@@ -1,36 +1,41 @@
 {
   "version": 2,
-  "builds": [
+  "framework": null,
+  "functions": {
+    "api/**/*.ts": {
+      "runtime": "nodejs20.x"
+    }
+  },
+  "cleanUrls": true,
+  "trailingSlash": false,
+  "rewrites": [
     {
-      "src": "api/index.ts",
-      "use": "@vercel/node"
+      "source": "/api/(.*)",
+      "destination": "/api/index.ts"
     },
     {
-      "src": "package.json",
-      "use": "@vercel/static-build",
-      "config": {
-        "distDir": "dist"
-      }
+      "source": "/(.*)",
+      "destination": "/index.html"
     }
   ],
-  "routes": [
+  "headers": [
     {
-      "src": "/api/(.*)",
-      "dest": "api/index.ts"
+      "source": "/api/(.*)",
+      "headers": [
+        {
+          "key": "Cache-Control",
+          "value": "no-store"
+        }
+      ]
     },
     {
-      "src": "/assets/(.+)",
-      "headers": {
-        "Cache-Control": "public, max-age=31536000, immutable"
-      },
-      "dest": "/assets/$1"
-    },
-    {
-      "handle": "filesystem"
-    },
-    {
-      "src": "/((?!api|assets|icons|favicon\\.ico|favicon\\.svg|manifest\\.json|manifest\\.webmanifest|.*\\.[a-zA-Z0-9]+$).*)",
-      "dest": "/index.html"
+      "source": "/assets/(.*)",
+      "headers": [
+        {
+          "key": "Cache-Control",
+          "value": "public, max-age=31536000, immutable"
+        }
+      ]
     }
   ]
 }
