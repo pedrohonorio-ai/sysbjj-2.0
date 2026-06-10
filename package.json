@@ -5,8 +5,12 @@
   "type": "module",
   "scripts": {
     "dev": "tsx server.ts",
-    "build": "node scripts/generate-icons.js && prisma generate && vite build && tsx build-server.ts",
-    "vercel-build": "node scripts/generate-icons.js && prisma generate && vite build",
+    "scripts": {
+  "dev": "vite",
+  "build": "prisma generate && vite build",
+  "postinstall": "prisma generate",
+  "vercel-build": "prisma generate && prisma db push && vite build"
+}
     "start": "node dist/server.js",
     "postinstall": "prisma generate",
     "lint": "tsc --noEmit",
