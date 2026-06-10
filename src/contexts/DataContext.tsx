@@ -613,14 +613,16 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         
         // Store in Session Cache on success
         try {
-          sessionStorage.setItem("sysbjj_batch", JSON.stringify(batchResults));
-          sessionStorage.setItem("sysbjj_batch_time", String(Date.now()));
-        } catch (e) {
-          console.warn("🥋 Failed saving session cache", e);
-         setDbStatus({
-          connected: true,
-          error: null
-        });
+         sessionStorage.setItem("sysbjj_batch", JSON.stringify(batchResults));
+sessionStorage.setItem("sysbjj_batch_time", String(Date.now()));
+} catch (e) {
+  console.warn("🥋 Failed saving session cache", e);
+}
+
+setDbStatus({
+  connected: true,
+  error: null
+});
 
         // Auto-seed apenas para contas realmente novas
         const remoteStudents = Array.isArray(batchResults?.students)
