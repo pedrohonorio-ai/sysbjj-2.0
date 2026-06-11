@@ -8,223 +8,320 @@ datasource db {
   directUrl = env("DIRECT_URL")
 }
 
-/* =========================
-   USER (SAAS CORE)
-========================= */
-
 model User {
-  id             String   @id @default(cuid())
-  email          String   @unique
+  id             String        @id @default(cuid())
+  email          String        @unique
   password       String
   name           String?
-  role           String   @default("admin")
-
-  active         Boolean  @default(true)
+  role           String        @default("admin")
+  active         Boolean       @default(true)
   deletedAt      DateTime?
-
-  createdAt      DateTime @default(now())
-  updatedAt      DateTime @updatedAt
-
+  createdAt      DateTime      @default(now())
+  updatedAt      DateTime      @updatedAt
   lastLoginAt    DateTime?
   lastActivityAt DateTime?
-
   subscription   Subscription?
-  students       Student[] @relation("UserStudents")
+  students       Student[]     @relation("UserStudents")
 }
-
-/* =========================
-   SUBSCRIPTION
-========================= */
 
 model Subscription {
-  id              String   @id @default(cuid())
-  userId          String   @unique
-
-  plan            String   @default("FREE")
-
-  studentLimit    Int      @default(20)
-  currentStudents Int      @default(0)
-  monthlyPrice    Float    @default(0)
-
-  billingCycle    String   @default("MONTHLY")
-  status          String   @default("ACTIVE")
-
+  id              String    @id @default(cuid())
+  userId          String    @unique
+  plan            String    @default("FREE")
+  studentLimit    Int       @default(20)
+  maxStudents     Int       @default(20)
+  currentStudents Int       @default(0)
+  monthlyPrice    Float     @default(0)
+  customPrice     Float?
+  billingCycle    String    @default("MONTHLY")
+  status          String    @default("ACTIVE")
+  paymentStatus   String    @default("ACTIVE")
+  active          Boolean   @default(true)
   expiresAt       DateTime?
-  renewalEnabled  Boolean  @default(false)
-
-  createdAt       DateTime @default(now())
-  updatedAt       DateTime @updatedAt
-
-  user            User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-
+  startedAt       DateTime?
+  paymentDate     DateTime?
+  renewalEnabled  Boolean   @default(false)
+  grantedByAdmin  Boolean   @default(false)
+  isSocialProject Boolean   @default(false)
+  socialProjectName String?
+  socialDescription String?
+  approvedBy      String?
+  nonprofit       Boolean   @default(false)
+  pixKey          String?
+  pixHolder       String?
+  pixCity         String?
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+  user            User      @relation(fields: [userId], references: [id], onDelete: Cascade)
   @@index([userId])
 }
-
-/* =========================
-   PAYMENT HISTORY
-========================= */
 
 model SubscriptionPaymentHistory {
   id           String   @id @default(cuid())
   userId       String
   amount       Float
-
   date         DateTime @default(now())
   proofUrl     String?
   billingCycle String?
   status       String   @default("APPROVED")
-
   approvedBy   String?
   notes        String?
-
   createdAt    DateTime @default(now())
-
   @@index([userId])
 }
 
-/* =========================
-   STUDENT (CORE SAAS)
-========================= */
-
 model Student {
-  id        String @id @default(cuid())
-  userId    String
-
-  user      User   @relation("UserStudents", fields: [userId], references: [id], onDelete: Cascade)
-
-  name      String
-  nickname  String?
-  email     String?
-  phone     String?
-
-  birthDate String?
-  gender    String?
-
-  cpf       String?
-  rg        String?
-
-  weight    Float?
-  height    Float?
-
-  category  String?
-  belt      String  @default("Branca")
-
-  stripes   Int     @default(0)
-  degrees   Int     @default(0)
-
-  status    String  @default("Active")
-
-  monthlyValue Float @default(0)
-
-  attendanceCount Int @default(0)
-
-  behaviorScore   Int @default(0)
-  rewardPoints    Int @default(0)
-
-  active    Boolean @default(true)
-  isInstructor Boolean @default(false)
-
-  lastSeen  BigInt?
-
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-
+  id               String   @id @default(cuid())
+  userId           String
+  user             User     @relation("UserStudents", fields: [userId], references: [id], onDelete: Cascade)
+  name             String
+  nickname         String?
+  email            String?
+  phone            String?
+  birthDate        String?
+  gender           String?
+  cpf              String?
+  rg               String?
+  weight           Float?
+  height           Float?
+  category         String?
+  belt             String   @default("Branca")
+  stripes          Int      @default(0)
+  degrees          Int      @default(0)
+  status           String   @default("Active")
+  monthlyValue     Float    @default(0)
+  dueDay           Int?
+  attendanceCount  Int      @default(0)
+  currentStreak    Int      @default(0)
+  behaviorScore    Int      @default(0)
+  rewardPoints     Int      @default(0)
+  active           Boolean  @default(true)
+  isInstructor     Boolean  @default(false)
+  isKid            Boolean  @default(false)
+  lastSeen         BigInt?
+  photoUrl         String?
+  lastAttendanceDate DateTime?
+  lastPaymentDate  DateTime?
+  joinedAt         DateTime @default(now())
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
   attendanceHistory Json?
   history          Json?
   techniques       Json?
   goals            Json?
   feedbacks        Json?
-
+  completedRuleLessons Json?
+  milestones       Json?
+  technicalMetrics Json?
+  performanceRatings Json?
+  sparringLogs     Json?
+  competitions     Json?
   graduationHistoryRecords GraduationHistory[]
-
   @@index([userId])
   @@index([userId, status])
 }
-
-/* =========================
-   PAYMENT
-========================= */
 
 model Payment {
   id        String   @id @default(cuid())
   userId    String
   studentId String?
-
   name      String
   amount    Float
   date      String
   method    String
   status    String   @default("Paid")
-
   createdAt DateTime @default(now())
-
   @@index([userId])
   @@index([studentId])
 }
 
-/* =========================
-   PRESENCE (FIXED 100%)
-========================= */
+model PaymentReceipt {
+  id        String   @id @default(cuid())
+  userId    String
+  studentId String?
+  amount    Float
+  date      String?
+  method    String?
+  notes     String?
+  timestamp BigInt
+  createdAt DateTime @default(now())
+  @@index([userId])
+}
+
+model ClassSchedule {
+  id        String   @id @default(cuid())
+  userId    String
+  title     String
+  day       String
+  time      String
+  duration  Int?
+  instructor String?
+  level     String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  @@index([userId])
+}
 
 model Presence {
   id        String   @id @default(cuid())
   userId    String
-
   email     String
   role      String?
-
   lastSeen  BigInt
   userAgent String?
   deviceId  String
-
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
-
   @@unique([email, deviceId])
   @@index([userId])
 }
 
-/* =========================
-   GRADUATION
-========================= */
-
 model GraduationHistory {
   id              String   @id @default(cuid())
   studentId       String
-
   previousBelt    String
   newBelt         String
-
-  previousStripes Int @default(0)
-  newStripes      Int @default(0)
-
+  previousStripes Int      @default(0)
+  newStripes      Int      @default(0)
   promotedAt      DateTime @default(now())
   promotedBy      String?
-
   notes           String?
-  ibjjfValidated  Boolean @default(true)
-
-  student         Student @relation(fields: [studentId], references: [id], onDelete: Cascade)
-
+  ibjjfValidated  Boolean  @default(true)
+  student         Student  @relation(fields: [studentId], references: [id], onDelete: Cascade)
   @@index([studentId])
 }
-
-/* =========================
-   NOTIFICATION
-========================= */
 
 model Notification {
   id        String   @id @default(cuid())
   userId    String
-
   title     String
   message   String
   type      String
   priority  String
-
   read      Boolean  @default(false)
-
   createdAt DateTime @default(now())
+  @@index([userId])
+}
 
+model SystemLog {
+  id         String   @id @default(cuid())
+  userId     String
+  userEmail  String
+  action     String
+  details    String?
+  category   String?
+  deviceInfo String?
+  timestamp  BigInt
+  createdAt  DateTime @default(now())
+  @@index([userId])
+}
+
+model ProfessorProfile {
+  id          String   @id @default(cuid())
+  userId      String   @unique
+  name        String?
+  academyName String?
+  bio         String?
+  photoUrl    String?
+  phone       String?
+  address     String?
+  city        String?
+  state       String?
+  belt        String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  @@index([userId])
+}
+
+model Plan {
+  id          String   @id @default(cuid())
+  userId      String
+  name        String
+  price       Float
+  description String?
+  features    Json?
+  active      Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  @@index([userId])
+}
+
+model TransactionLedger {
+  id        String   @id @default(cuid())
+  userId    String
+  type      String
+  amount    Float
+  category  String?
+  description String?
+  date      String?
+  timestamp BigInt
+  createdAt DateTime @default(now())
+  @@index([userId])
+}
+
+model ExtraRevenue {
+  id          String   @id @default(cuid())
+  userId      String
+  description String
+  amount      Float
+  date        String?
+  category    String?
+  createdAt   DateTime @default(now())
+  @@index([userId])
+}
+
+model LessonPlan {
+  id          String   @id @default(cuid())
+  userId      String
+  title       String
+  description String?
+  content     Json?
+  belt        String?
+  duration    Int?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  @@index([userId])
+}
+
+model LibraryTechnique {
+  id          String   @id @default(cuid())
+  userId      String
+  title       String
+  description String?
+  category    String?
+  belt        String?
+  videoUrl    String?
+  content     Json?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  @@index([userId])
+}
+
+model Product {
+  id          String   @id @default(cuid())
+  userId      String
+  name        String
+  description String?
+  price       Float
+  stock       Int      @default(0)
+  category    String?
+  imageUrl    String?
+  active      Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  @@index([userId])
+}
+
+model KimonoOrder {
+  id          String   @id @default(cuid())
+  userId      String
+  studentId   String?
+  productId   String?
+  quantity    Int      @default(1)
+  totalPrice  Float
+  status      String   @default("pending")
+  notes       String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
   @@index([userId])
 }
