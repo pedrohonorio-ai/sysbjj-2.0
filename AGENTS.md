@@ -27,3 +27,41 @@ To empower BJJ professors to evolve in two critical fronts:
 The backend is organized as follows. **Never recreate, move, or add files outside this structure.**
 
 ### Backend Structure (FIXED — DO NOT CHANGE)
+api/
+index.ts          ← ONLY file allowed here. Entry point for Vercel Serverless.
+backend/
+admin/
+diagnose.ts
+neon-status.ts
+reset-system-metrics.ts
+system-metrics.ts
+handlers/
+auth.ts
+batch.ts
+bi.ts
+data.ts
+health-db-rls.ts
+health-db.ts
+health.ts
+routes/
+subscription.ts
+authMiddleware.ts
+safeHandler.ts
+subscriptionMiddleware.ts
+subscriptionService.ts
+utils.ts
+prisma/
+client.ts
+schema.prisma
+server/
+config/
+masterAdmin.ts
+middleware/
+requireMaster.ts
+
+### Rules
+- The `api/` folder must contain **only** `index.ts`. Never add subfolders or extra files there.
+- All handlers, routes, admin, and middleware files live in `backend/`.
+- All imports in `api/index.ts` must point to `../backend/`.
+- Never run `prisma db push` in the build command. Use only `prisma generate && vite build`.
+- The Vercel Hobby plan allows max 12 Serverless Functions. Keep `api/` with 1 file only.
