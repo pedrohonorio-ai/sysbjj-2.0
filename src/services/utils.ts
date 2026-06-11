@@ -1,5 +1,4 @@
 import { Response } from 'express';
-
 export const handleApiError = (res: Response, error: any, collection: string) => {
     const dbUrl = process.env.DATABASE_URL || "";
     const message = error.message || String(error);
