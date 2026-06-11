@@ -155,7 +155,7 @@ const Sidebar = ({ isOpen, toggle, onLogout, isMasterAdmin }: { isOpen: boolean,
         onTouchMove={handleTouchMove}
         onTouchEnd={handleTouchEnd}
         className={`fixed inset-y-0 left-0 z-[60] bg-white dark:bg-slate-950 border-r border-slate-200 dark:border-slate-800 text-slate-900 dark:text-slate-100 transform transition-all duration-500 ease-[cubic-bezier(0.2,0.8,0.2,1)] flex flex-col overflow-y-auto scrollbar-hide
-        ${isOpen ? 'translate-x-0 w-72 shadow-3xl shadow-blue-500/10' : '-translate-x-full shadow-none'}`}
+        ${isOpen ? 'translate-x-0 w-72 min-w-[240px] shadow-3xl shadow-blue-500/10' : '-translate-x-full shadow-none'}`}
       >
         
         <div className={`flex-none flex items-center justify-between p-6 h-24 overflow-hidden shrink-0 border-b border-slate-100 dark:border-slate-800/50`}>

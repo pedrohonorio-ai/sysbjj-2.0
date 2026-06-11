@@ -158,3 +158,17 @@ body {
     @apply bg-white dark:bg-slate-900/40 rounded-[2.5rem] border border-slate-200 dark:border-white/5 shadow-xl shadow-slate-200/20 dark:shadow-none hover:shadow-2xl dark:hover:bg-slate-900/60 transition-all duration-500;
   }
 }
+
+html, body, #root {
+  overflow-x: hidden !important;
+  overflow-y: auto !important;
+  -webkit-overflow-scrolling: touch !important;
+  touch-action: pan-y !important;
+}
+@media (max-width: 1024px) {
+  html, body, #root {
+    height: auto !important;
+    min-height: 100dvh !important;
+  }
+}
+
