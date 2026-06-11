@@ -5,21 +5,21 @@ import { createServer as createViteServer } from "vite";
 import path from "path";
 import { fileURLToPath } from "url";
 import { prisma } from "./prisma/client.js";
-import { handleApiError } from "./api/utils.js";
-import healthHandler from "./api/handlers/health.js";
-import healthDbHandler from "./api/handlers/health-db.js";
-import healthDbRlsHandler from "./api/handlers/health-db-rls.js";
-import biHandler from "./api/handlers/bi.js";
-import { loginHandler, registerHandler, forgotPasswordHandler, resetPasswordHandler } from "./api/handlers/auth.js";
-import { authenticate, AuthRequest } from "./api/authMiddleware.js";
-import batchHandler from "./api/handlers/batch.js";
-import { dataHandler } from "./api/handlers/data.js";
+import { handleApiError } from "./backend/utils.js";
+import healthHandler from "./backend/handlers/health.js";
+import healthDbHandler from "./backend/handlers/health-db.js";
+import healthDbRlsHandler from "./backend/handlers/health-db-rls.js";
+import biHandler from "./backend/handlers/bi.js";
+import { loginHandler, registerHandler, forgotPasswordHandler, resetPasswordHandler } from "./backend/handlers/auth.js";
+import { authenticate, AuthRequest } from "./backend/authMiddleware.js";
+import batchHandler from "./backend/handlers/batch.js";
+import { dataHandler } from "./backend/handlers/data.js";
 import { requireMaster } from "./server/middleware/requireMaster.js";
-import subscriptionRouter from "./api/routes/subscription.js";
-import neonStatusHandler from "./api/admin/neon-status.js";
-import resetSystemMetricsHandler from "./api/admin/reset-system-metrics.js";
-import systemMetricsHandler from "./api/admin/system-metrics.js";
-import { safeHandler } from "./api/safeHandler.js";
+import subscriptionRouter from "./backend/routes/subscription.js";
+import neonStatusHandler from "./backend/admin/neon-status.js";
+import resetSystemMetricsHandler from "./backend/admin/reset-system-metrics.js";
+import systemMetricsHandler from "./backend/admin/system-metrics.js";
+import { safeHandler } from "./backend/safeHandler.js";
 
 // GLOBAL ERROR HANDLERS
 process.on('uncaughtException', (err) => {
@@ -308,7 +308,7 @@ async function startServer() {
         
         // Recalculate plan on student deletion
         if (collection === 'students' && result.count > 0) {
-          import('./api/subscriptionService.js').then(m => m.updateSubscriptionPlan(String(userId)));
+          import('./backend/subscriptionService.js').then(m => m.updateSubscriptionPlan(String(userId)));
 
           // Log exclusion audit
           try {

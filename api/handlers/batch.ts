@@ -163,7 +163,7 @@ export default async function batchHandler(req: AuthRequest, res: Response) {
             case 'payments': 
               data = await prisma.payment.findMany({ 
                 where: { userId: uid }, 
-                orderBy: { createdAt: 'desc' }, 
+                orderBy: { timestamp: 'desc' }, 
                 take: defaultPaymentsTake
               }); 
               break;

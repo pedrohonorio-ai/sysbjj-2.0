@@ -153,7 +153,7 @@ export async function dataHandler(req: AuthRequest, res: Response) {
         case 'payments':
           data = await prisma.payment.findMany({
             where: { userId: uid },
-            orderBy: { timestamp: 'desc' },
+            orderBy: { createdAt: 'desc' },
             take: 200
           });
           break;

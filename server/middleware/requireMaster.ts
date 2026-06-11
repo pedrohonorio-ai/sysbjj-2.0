@@ -1,5 +1,5 @@
 import { Response, NextFunction } from "express";
-import { AuthRequest } from "../../api/authMiddleware.js";
+import { AuthRequest } from "../../backend/authMiddleware.js";
 
 export const requireMaster = (req: AuthRequest, res: Response, next: NextFunction): any => {
   if (!req.user || req.user.role !== "MASTER") {
