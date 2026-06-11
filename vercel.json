@@ -1,3 +1,4 @@
+```json
 {
   "version": 2,
   "buildCommand": "prisma generate && vite build",
@@ -7,15 +8,16 @@
       "maxDuration": 30
     }
   },
-  "ignoreCommand": "exit 1",
   "rewrites": [
     {
       "source": "/api/(.*)",
       "destination": "/api/index.ts"
     },
     {
-      "source": "/(.*)",
+      "source": "/((?!api/|assets/|icons/|favicon.ico).*)",
       "destination": "/index.html"
     }
   ]
 }
+```
+
