@@ -1,4 +1,4 @@
-import { Student } from '../../types.js';
+import { Student } from '../../types';
 
 export const validateStudent = (student: Partial<Student>, t: any): { isValid: boolean; errors: string[] } => {
   const errors: string[] = [];

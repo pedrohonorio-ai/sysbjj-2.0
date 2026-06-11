@@ -1,6 +1,6 @@
 import { Request, Response, NextFunction } from 'express';
 import jwt from 'jsonwebtoken';
-import { prisma } from '../prisma/client.js';
+import { prisma } from '../prisma/client';
 
 // 🥋 SYSBJJ 2.0 - JWT_SECRET CLEANUP UTILITY
 const getCleanSecret = (secret: string | undefined): string => {

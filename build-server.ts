@@ -11,13 +11,13 @@ async function build() {
     bundle: true,
     platform: 'node',
     format: 'esm',
-    outfile: 'dist/server.js',
+    outfile: 'dist/server',
     external: ['express', 'vite', '@prisma/client', 'url', 'path'], // Keep these external to avoid giant bundle and issues
     banner: {
       js: "import { createRequire } from 'module'; const require = createRequire(import.meta.url);", // Compatibility for ESM
     },
   });
-  console.log('Sensei! Server built successfully in dist/server.js');
+  console.log('Sensei! Server built successfully in dist/server');
 }
 
 build().catch((err) => {

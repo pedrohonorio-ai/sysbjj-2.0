@@ -1,7 +1,7 @@
 import { Response } from 'express';
-import { prisma } from '../../prisma/client.js';
-import { AuthRequest } from '../authMiddleware.js';
-import { isMasterUser } from './neon-status.js';
+import { prisma } from '../../prisma/client';
+import { AuthRequest } from '../authMiddleware';
+import { isMasterUser } from './neon-status';
 
 export default async function resetSystemMetricsHandler(req: AuthRequest, res: Response): Promise<any> {
   if (!req.user || !isMasterUser(req.user.email)) {

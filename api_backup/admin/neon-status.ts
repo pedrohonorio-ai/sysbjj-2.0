@@ -1,6 +1,6 @@
 import { Response } from 'express';
-import { prisma } from '../../prisma/client.js';
-import { AuthRequest } from '../authMiddleware.js';
+import { prisma } from '../../prisma/client';
+import { AuthRequest } from '../authMiddleware';
 
 export const isMasterUser = (email: string): boolean => {
   return email.toLowerCase() === 'pedro.honorio@gm.rio';

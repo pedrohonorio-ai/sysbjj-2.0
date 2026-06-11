@@ -1,5 +1,5 @@
-import { cacheManager } from './cacheManager.js';
-import { isJwtExpired } from '../utils/jwt.js';
+import { cacheManager } from './cacheManager';
+import { isJwtExpired } from '../utils/jwt';
 
 /**
  * 🥋 SYSBJJ 2.0 - ENTERPRISE API CLIENT

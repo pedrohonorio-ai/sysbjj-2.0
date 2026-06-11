@@ -1,5 +1,5 @@
 
-import { AppLanguage } from './types.js';
+import { AppLanguage } from './types';
 
 const en = {
   common: {

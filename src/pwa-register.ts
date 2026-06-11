@@ -2,7 +2,7 @@ import { Workbox } from 'workbox-window';
 
 export function registerServiceWorker() {
   if (typeof window !== 'undefined' && 'serviceWorker' in navigator && import.meta.env.PROD) {
-    const wb = new Workbox('/sw.js');
+    const wb = new Workbox('/sw');
     
     wb.addEventListener('installed', (event) => {
       if (event.isUpdate) {

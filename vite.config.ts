@@ -111,8 +111,8 @@ export default defineConfig({
     rollupOptions: {
       output: {
         assetFileNames: 'assets/[name]-[hash][extname]',
-        chunkFileNames: 'assets/[name]-[hash].js',
-        entryFileNames: 'assets/[name]-[hash].js',
+        chunkFileNames: 'assets/[name]-[hash]',
+        entryFileNames: 'assets/[name]-[hash]',
         // OSS SENSEI: Forçamos bundle único garantido para evitar cópias do React
         manualChunks: undefined
       }

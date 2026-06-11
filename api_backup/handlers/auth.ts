@@ -1,9 +1,9 @@
 import { Request, Response } from 'express';
 import * as bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
-import { prisma } from '../../prisma/client.js';
-import { handleApiError } from '../utils.js';
-import { MASTER_ADMIN_EMAIL } from '../../server/config/masterAdmin.js';
+import { prisma } from '../../prisma/client';
+import { handleApiError } from '../utils';
+import { MASTER_ADMIN_EMAIL } from '../../server/config/masterAdmin';
 
 const getCleanSecret = (secret: string | undefined): string => {
   if (!secret) return 'sysbjj-enterprise-oss-secret-2024';

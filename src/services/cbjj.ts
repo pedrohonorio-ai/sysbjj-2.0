@@ -1,5 +1,5 @@
 
-import { CBJJCategory, Gender } from '../types.js';
+import { CBJJCategory, Gender } from '../types';
 
 export const calculateCBJJCategory = (birthDate: string): CBJJCategory => {
   const birthYear = new Date(birthDate).getFullYear();

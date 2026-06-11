@@ -1,13 +1,13 @@
-import { Student, BeltColor, KidsBeltColor, CBJJCategory } from '../../types.js';
-import { calculateCBJJCategory } from '../cbjj.js';
+import { Student, BeltColor, KidsBeltColor, CBJJCategory } from '../../types';
+import { calculateCBJJCategory } from '../cbjj';
 import { 
   BELT_RULES, 
   KIDS_BELT_SEQUENCE, 
   ADULT_BELT_SEQUENCE, 
   KIDS_BELT_LABELS, 
   ADULT_BELT_LABELS 
-} from './beltRules.js';
-import { getNextBlackBeltProgression } from '../../utils/graduation/blackBeltEngine.js';
+} from './beltRules';
+import { getNextBlackBeltProgression } from '../../utils/graduation/blackBeltEngine';
 
 export interface EligibilityResult {
   isEligible: boolean;

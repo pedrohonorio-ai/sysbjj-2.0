@@ -1,7 +1,7 @@
 import { Response } from 'express';
-import { prisma } from '../../prisma/client.js';
-import { handleApiError } from '../utils.js';
-import { AuthRequest } from '../authMiddleware.js';
+import { prisma } from '../../prisma/client';
+import { handleApiError } from '../utils';
+import { AuthRequest } from '../authMiddleware';
 
 export const serializeData = (data: any) => {
   return JSON.parse(JSON.stringify(data, (k, v) => 
@@ -525,7 +525,7 @@ export async function dataHandler(req: AuthRequest, res: Response) {
           }
 
           // Trigger automatic upgrade if allowed or update state
-          import('../subscriptionService.js').then(m => m.updateSubscriptionPlan(uid));
+          import('../subscriptionService').then(m => m.updateSubscriptionPlan(uid));
           break;
         case 'presence':
           const cleanEmail = String(payload.email || '');

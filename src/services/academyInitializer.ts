@@ -1,4 +1,4 @@
-import { Student, ClassSchedule, Plan, PaymentReceipt, BeltColor, StudentStatus } from '../types.js';
+import { Student, ClassSchedule, Plan, PaymentReceipt, BeltColor, StudentStatus } from '../types';
 
 export const INITIAL_STUDENTS: Omit<Student, 'id'>[] = [];
 

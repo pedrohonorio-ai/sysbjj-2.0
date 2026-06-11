@@ -1,5 +1,5 @@
-import { api } from '../services/api.js';
-import { getPendingOps, updateRetry, removeOperation, QueuedOperation, addSyncHistoryEntry } from './sync-storage.js';
+import { api } from '../services/api';
+import { getPendingOps, updateRetry, removeOperation, QueuedOperation, addSyncHistoryEntry } from './sync-storage';
 
 const BASE_DELAY = 1500;    // 1.5s
 const MAX_DELAY = 30000;    // 30s

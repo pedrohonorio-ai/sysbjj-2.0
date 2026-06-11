@@ -1,5 +1,5 @@
 import { Request, Response } from 'express';
-import { prisma } from '../../prisma/client.js';
+import { prisma } from '../../prisma/client';
 export default async function healthDbHandler(req: Request, res: Response) {
   const getSource = () => {
     if (process.env.VERCEL) return "VERCEL (Serverless)";

@@ -1,6 +1,6 @@
 import { Response, NextFunction } from 'express';
-import { prisma } from '../prisma/client.js';
-import { AuthRequest } from './authMiddleware.js';
+import { prisma } from '../prisma/client';
+import { AuthRequest } from './authMiddleware';
 
 export const checkStudentLimit = async (req: AuthRequest, res: Response, next: NextFunction) => {
   const userId = req.user?.id;

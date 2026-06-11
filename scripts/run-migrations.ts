@@ -1,5 +1,5 @@
-import "../init-env.js"; // 🥋 OSS SENSEI: Must be first to clean env and configure direct SSL
-import { prisma } from "../prisma/client.js";
+import "../init-env"; // 🥋 OSS SENSEI: Must be first to clean env and configure direct SSL
+import { prisma } from "../prisma/client";
 
 async function executeMigration() {
   console.log("🥋 OSS SENSEI: Iniciando migração manual do banco de dados no Neon...");

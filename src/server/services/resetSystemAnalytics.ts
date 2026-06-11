@@ -1,4 +1,4 @@
-import { prisma } from "../../../prisma/client.js";
+import { prisma } from "../../../prisma/client";
 
 export const resetSystemAnalytics = async (userId: string) => {
   // 1. Purge financial records, logs and historic metrics

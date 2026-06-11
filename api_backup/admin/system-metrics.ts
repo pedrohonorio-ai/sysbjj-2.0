@@ -1,7 +1,7 @@
 import { Response } from 'express';
-import { prisma } from '../../prisma/client.js';
-import { AuthRequest } from '../authMiddleware.js';
-import { isMasterUser } from './neon-status.js';
+import { prisma } from '../../prisma/client';
+import { AuthRequest } from '../authMiddleware';
+import { isMasterUser } from './neon-status';
 import os from 'os';
 
 export default async function systemMetricsHandler(req: AuthRequest, res: Response): Promise<any> {

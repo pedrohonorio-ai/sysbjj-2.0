@@ -1,5 +1,5 @@
 import { useEffect } from 'react';
-import { processSyncQueue, triggerImmediateSync } from '../lib/sync-queue.js';
+import { processSyncQueue, triggerImmediateSync } from '../lib/sync-queue';
 
 /**
  * 🥋 useOfflineSync: Hook global do ecossistema SYSBJJ para sincronização secundária automática.

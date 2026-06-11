@@ -1,5 +1,5 @@
 import { Request, Response } from 'express';
-import { prisma } from '../../prisma/client.js';
+import { prisma } from '../../prisma/client';
 
 const DIAGNOSTIC_SECRET = process.env.DIAGNOSTIC_SECRET || 'change-me-in-production';
 

@@ -1,26 +1,26 @@
-import "./init-env.js"; // 🥋 OSS SENSEI: Deve ser o PRIMEIRO import
+import "./init-env"; // 🥋 OSS SENSEI: Deve ser o PRIMEIRO import
 import express from "express";
 import cors from "cors";
 import { createServer as createViteServer } from "vite";
 import path from "path";
 import { fileURLToPath } from "url";
-import { prisma } from "./prisma/client.js";
-import { handleApiError } from "./backend/utils.js";
-import healthHandler from "./backend/handlers/health.js";
-import healthDbHandler from "./backend/handlers/health-db.js";
-import healthDbRlsHandler from "./backend/handlers/health-db-rls.js";
-import biHandler from "./backend/handlers/bi.js";
-import { loginHandler, registerHandler, forgotPasswordHandler, resetPasswordHandler } from "./backend/handlers/auth.js";
-import { authenticate, AuthRequest } from "./backend/authMiddleware.js";
-import batchHandler from "./backend/handlers/batch.js";
-import { dataHandler } from "./backend/handlers/data.js";
-import { requireMaster } from "./server/middleware/requireMaster.js";
-import subscriptionRouter from "./backend/routes/subscription.js";
-import neonStatusHandler from "./backend/admin/neon-status.js";
-import resetSystemMetricsHandler from "./backend/admin/reset-system-metrics.js";
-import systemMetricsHandler from "./backend/admin/system-metrics.js";
-import { safeHandler } from "./backend/safeHandler.js";
-import { updateSubscriptionPlan } from "./backend/subscriptionService.js";
+import { prisma } from "./prisma/client";
+import { handleApiError } from "./backend/utils";
+import healthHandler from "./backend/handlers/health";
+import healthDbHandler from "./backend/handlers/health-db";
+import healthDbRlsHandler from "./backend/handlers/health-db-rls";
+import biHandler from "./backend/handlers/bi";
+import { loginHandler, registerHandler, forgotPasswordHandler, resetPasswordHandler } from "./backend/handlers/auth";
+import { authenticate, AuthRequest } from "./backend/authMiddleware";
+import batchHandler from "./backend/handlers/batch";
+import { dataHandler } from "./backend/handlers/data";
+import { requireMaster } from "./server/middleware/requireMaster";
+import subscriptionRouter from "./backend/routes/subscription";
+import neonStatusHandler from "./backend/admin/neon-status";
+import resetSystemMetricsHandler from "./backend/admin/reset-system-metrics";
+import systemMetricsHandler from "./backend/admin/system-metrics";
+import { safeHandler } from "./backend/safeHandler";
+import { updateSubscriptionPlan } from "./backend/subscriptionService";
 
 // GLOBAL ERROR HANDLERS
 process.on('uncaughtException', (err) => {

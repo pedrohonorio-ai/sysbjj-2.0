@@ -1,4 +1,4 @@
-import { enterpriseApi } from './enterpriseApi.js';
+import { enterpriseApi } from './enterpriseApi';
 
 /**
  * 🥋 API Service for SYSBJJ 2.0 (ENTERPRISE EDITION)
@@ -76,7 +76,7 @@ export const api = {
           delete cleanData.id;
         }
 
-        const { enqueueOperation } = await import('../lib/sync-storage.js');
+        const { enqueueOperation } = await import('../lib/sync-storage');
         await enqueueOperation({
           collection,
           operation: entityId ? 'update' : 'create',
@@ -139,7 +139,7 @@ export const api = {
       console.warn(`🥋 [OFFLINE SYNC ACTIVE] Falha ao deletar dados de '${collection}/${id}'. Gravando em IndexedDB.`, error);
       
       try {
-        const { enqueueOperation } = await import('../lib/sync-storage.js');
+        const { enqueueOperation } = await import('../lib/sync-storage');
         await enqueueOperation({
           collection,
           operation: 'delete',

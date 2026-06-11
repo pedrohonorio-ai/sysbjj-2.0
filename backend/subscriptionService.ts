@@ -1,4 +1,4 @@
-import { prisma } from '../prisma/client.js';
+import { prisma } from '../prisma/client';
 export const PLANS = {
   FREE: { name: "FREE", maxStudents: 20, price: 0 },
   BRONZE: { name: "BRONZE", maxStudents: 50, price: 20 },

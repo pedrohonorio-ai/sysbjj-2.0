@@ -1,4 +1,4 @@
-import i18n from '../i18n/index.js';
+import i18n from '../i18n/index';
 
 // Priority fallback dict for mandatory keys in pt-BR
 const MANDATORY_DICTIONARY: Record<string, string> = {

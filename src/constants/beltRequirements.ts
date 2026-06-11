@@ -1,5 +1,5 @@
 
-import { BeltColor, KidsBeltColor } from '../types.js';
+import { BeltColor, KidsBeltColor } from '../types';
 
 export const BELT_REQUIREMENTS: Record<string, string[]> = {
   [BeltColor.WHITE]: [
