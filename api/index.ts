@@ -4,7 +4,7 @@ import { prisma } from "../prisma/client";
 import healthHandler from "../backend/handlers/health";
 import healthDbHandler from "../backend/handlers/health-db";
 import healthDbRlsHandler from "../backend/handlers/health-db-rls";
-import biHandler from "../backend/handlers/bi";
+//import biHandler from "../backend/handlers/bi";
 import { loginHandler, registerHandler, forgotPasswordHandler, resetPasswordHandler } from "../backend/handlers/auth";
 import { authenticate, AuthRequest } from "../backend/authMiddleware";
 import batchHandler from "../backend/handlers/batch";
@@ -13,9 +13,9 @@ import subscriptionRouter from "../backend/routes/subscription";
 import { requireMaster } from "../server/middleware/requireMaster";
 import { safeHandler } from "../backend/safeHandler";
 import { updateSubscriptionPlan } from "../backend/subscriptionService";
-import neonStatusHandler from "../backend/admin/neon-status";
-import resetSystemMetricsHandler from "../backend/admin/reset-system-metrics";
-import systemMetricsHandler from "../backend/admin/system-metrics";
+//import neonStatusHandler from "../backend/admin/neon-status";
+//import resetSystemMetricsHandler from "../backend/admin/reset-system-metrics";
+//import systemMetricsHandler from "../backend/admin/system-metrics";
 import diagnoseHandler from "../backend/admin/diagnose";
 
 process.on('unhandledRejection', (reason: any, promise: Promise<any>) => {
@@ -227,9 +227,9 @@ const protectedRouter = express.Router() as any;
 protectedRouter.use(authenticate as any);
 
 protectedRouter.use("/admin", requireMaster as any);
-protectedRouter.get("/admin/neon-status", safeHandler(neonStatusHandler as any));
-protectedRouter.get("/admin/system-metrics", safeHandler(systemMetricsHandler as any));
-protectedRouter.post("/admin/reset-system-metrics", safeHandler(resetSystemMetricsHandler as any));
+// protectedRouter.get("/admin/neon-status", safeHandler(neonStatusHandler as any));
+// protectedRouter.get("/admin/system-metrics", safeHandler(systemMetricsHandler as any));
+// protectedRouter.post("/admin/reset-system-metrics", safeHandler(resetSystemMetricsHandler as any));
 protectedRouter.use("/system-logs", requireMaster as any);
 protectedRouter.use("/governance", requireMaster as any);
 protectedRouter.use("/master", requireMaster as any);
@@ -272,7 +272,7 @@ protectedRouter.delete("/delete-student", requireMaster as any, safeHandler(asyn
 
 protectedRouter.get("/health-db", safeHandler(healthDbHandler));
 protectedRouter.get("/health-db-rls", safeHandler(healthDbRlsHandler));
-protectedRouter.get("/bi", safeHandler(biHandler));
+// protectedRouter.get("/bi", safeHandler(biHandler));
 protectedRouter.get("/batch", safeHandler(batchHandler));
 
 protectedRouter.use("/subscription", subscriptionRouter);
