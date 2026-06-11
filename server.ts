@@ -20,6 +20,7 @@ import neonStatusHandler from "./backend/admin/neon-status.js";
 import resetSystemMetricsHandler from "./backend/admin/reset-system-metrics.js";
 import systemMetricsHandler from "./backend/admin/system-metrics.js";
 import { safeHandler } from "./backend/safeHandler.js";
+import { updateSubscriptionPlan } from "./backend/subscriptionService.js";
 
 // GLOBAL ERROR HANDLERS
 process.on('uncaughtException', (err) => {
@@ -34,6 +35,10 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
 async function startServer() {
+  if (process.env.TEST_IMPORT === "true") {
+    console.log("🥋 OS SENSEI! TEST IMPORT IN SERVER SUCCESSFUL. OSS!");
+    process.exit(0);
+  }
   console.log("OS SENSEI! Iniciando servidor...");
   const app = express();
   const PORT = 3000;
@@ -308,7 +313,7 @@ async function startServer() {
         
         // Recalculate plan on student deletion
         if (collection === 'students' && result.count > 0) {
-          import('./backend/subscriptionService.js').then(m => m.updateSubscriptionPlan(String(userId)));
+          updateSubscriptionPlan(String(userId));
 
           // Log exclusion audit
           try {

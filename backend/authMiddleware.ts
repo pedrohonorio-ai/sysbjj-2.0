@@ -1,5 +1,6 @@
 import { Request, Response, NextFunction } from 'express';
 import jwt from 'jsonwebtoken';
+import { prisma } from '../prisma/client.js';
 
 // 🥋 SYSBJJ 2.0 - JWT_SECRET CLEANUP UTILITY
 const getCleanSecret = (secret: string | undefined): string => {
@@ -52,14 +53,12 @@ export const authenticate = (req: AuthRequest, res: Response, next: NextFunction
     };
 
     // 🥋 OSS SENSEI: Registra atividade em background sem bloquear a requisição principal
-    import('../prisma/client.js').then(({ prisma }) => {
-      if (prisma && decoded.id) {
-        prisma.user.update({
-          where: { id: decoded.id },
-          data: { lastActivityAt: new Date(), active: true }
-        }).catch(() => {});
-      }
-    }).catch(() => {});
+    if (prisma && decoded.id) {
+      prisma.user.update({
+        where: { id: decoded.id },
+        data: { lastActivityAt: new Date(), active: true }
+      }).catch(() => {});
+    }
 
     next();
   } catch (err: any) {

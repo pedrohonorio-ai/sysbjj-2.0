@@ -12,6 +12,7 @@ import { dataHandler } from "../backend/handlers/data.js";
 import subscriptionRouter from "../backend/routes/subscription.js";
 import { requireMaster } from "../server/middleware/requireMaster.js";
 import { safeHandler } from "../backend/safeHandler.js";
+import { updateSubscriptionPlan } from "../backend/subscriptionService.js";
 import neonStatusHandler from "../backend/admin/neon-status.js";
 import resetSystemMetricsHandler from "../backend/admin/reset-system-metrics.js";
 import systemMetricsHandler from "../backend/admin/system-metrics.js";
@@ -307,7 +308,7 @@ protectedRouter.delete("/data/:collection/:id", safeHandler(async (req: any, res
             const result = await anyPrisma[collection].deleteMany({ where: { id, userId: String(userId) } });
 
             if (collection === 'students' && result.count > 0) {
-                import('../backend/subscriptionService.js').then(m => m.updateSubscriptionPlan(String(userId)));
+                updateSubscriptionPlan(String(userId));
                 try {
                     await prisma.systemLog.create({
                         data: {
