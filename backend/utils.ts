@@ -59,3 +59,4 @@ export const handleApiError = (res: Response, error: any, collection: string) =>
       path: collection
     });
 };
+

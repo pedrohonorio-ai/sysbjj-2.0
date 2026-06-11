@@ -110,3 +110,4 @@ export const generateFinancialReportPdf = (title: string, data: any[], academyNa
   
   doc.save(`relatorio_financeiro_${new Date().toISOString().split('T')[0]}.pdf`);
 };
+

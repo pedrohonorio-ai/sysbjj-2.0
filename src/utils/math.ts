@@ -16,3 +16,4 @@ export const safePercentage = (
     Math.max(0, number)
   );
 };
+

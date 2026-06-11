@@ -33,3 +33,4 @@ export const compressImage = (base64: string, maxWidth = 400, quality = 0.7): Pr
     img.onerror = () => resolve(base64);
   });
 };
+

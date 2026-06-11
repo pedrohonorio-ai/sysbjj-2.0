@@ -301,3 +301,4 @@ export async function seedSyncHistoryIfEmpty(): Promise<void> {
     console.error('🚨 [INDEXEDDB ERROR] Falha ao semear histórico de sincronização:', err);
   }
 }
+

@@ -9,3 +9,4 @@ try {
   console.error("❌ [MIGRATE SENSEI] Migration failed:", err.message || err);
   process.exit(1);
 }
+

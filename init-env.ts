@@ -126,3 +126,4 @@ if (finalDbUrl) {
 } else {
   console.warn("⚠️ OS SENSEI: DATABASE_URL não configurada nos Segredos.");
 }
+

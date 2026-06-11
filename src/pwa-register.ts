@@ -29,3 +29,4 @@ export function registerServiceWorker() {
     console.log('🥋 [PWA] Service Worker desativado no ambiente de desenvolvimento.');
   }
 }
+
