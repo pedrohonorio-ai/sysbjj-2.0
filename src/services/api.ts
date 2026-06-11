@@ -1,6 +1,4 @@
-﻿import { enterpriseApi } from './enterpriseApi';
-
-const API_BASE = import.meta.env.VITE_API_URL || '/api';
+﻿const API_BASE = import.meta.env.VITE_API_URL || '/api';
 
 export const api = {
   async get<T>(endpoint: string): Promise<T> {
@@ -69,4 +67,8 @@ export const api = {
   },
 };
 
-export const enterprise = enterpriseApi;
+export const enterprise = {
+  async getData() {
+    return api.get('/enterprise/data');
+  }
+};
