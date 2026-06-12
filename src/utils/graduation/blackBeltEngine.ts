@@ -155,4 +155,3 @@ export function getBlackBeltTitle(degree: number) {
       return "Faixa Preta";
   }
 }
-

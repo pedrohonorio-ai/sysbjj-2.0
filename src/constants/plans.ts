@@ -35,4 +35,3 @@ export const SYSTEM_PLANS = [
     description: "Acesso total liberado sem custos.",
   },
 ];
-

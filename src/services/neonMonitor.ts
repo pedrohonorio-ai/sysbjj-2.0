@@ -128,4 +128,3 @@ export function processNeonTelemetry(logs: Array<{ action: string; details: stri
     topEndpoints
   };
 }
-

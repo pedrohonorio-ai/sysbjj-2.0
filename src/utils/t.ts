@@ -1,4 +1,4 @@
-﻿import i18n from '../i18n/index';
+import i18n from '../i18n/index.js';
 
 // Priority fallback dict for mandatory keys in pt-BR
 const MANDATORY_DICTIONARY: Record<string, string> = {
@@ -67,6 +67,7 @@ const MANDATORY_DICTIONARY: Record<string, string> = {
   "presence": "Presença",
   "common.analytics": "Análises",
   "analytics": "Análises",
+
   "dashboard.recentActivities": "Atividades Recentes",
   "dashboard.syncStatus": "Status de Sincronização",
   "dashboard.totalStudents": "Total de Alunos",
@@ -88,6 +89,7 @@ const MANDATORY_DICTIONARY: Record<string, string> = {
   "common.shieldedIntegrity": "Segurança Blindada",
   "settings.languageSelection": "Seleção de Idioma",
   "settings.languageUpdateNote": "O sistema está configurado de forma inteligente em Português do Brasil para conformidade operacional e de acordo com as diretrizes do Sensei SYSBJJ 2.0.",
+
   // Form fields & Common labels
   "common.civilStatus": "Estado Civil",
   "common.birthDate": "Data de Nascimento",
@@ -133,6 +135,7 @@ const MANDATORY_DICTIONARY: Record<string, string> = {
   "common.medicalPlaceholder": "Ex: Hipertensão, asma, lesão crônica no joelho...",
   "common.cancel": "Voltar / Cancelar",
   "students.enrollBtn": "Matricular Guerreiro",
+
   // Tab views
   "students.overviewTab": "Visão Geral",
   "common.healthInfo": "Saúde & Restrições",
@@ -275,18 +278,18 @@ export function normalizeLabel(text: string): string {
       return clean;
     }
   }
-  
+
   // Check mandatory dictionary first
   if (MANDATORY_DICTIONARY[text]) {
     return MANDATORY_DICTIONARY[text];
   }
-  
+
   let formatted = String(text)
     .replaceAll(".", " ")
     .replaceAll("_", " ")
     .replace(/([A-Z])/g, " $1")
     .trim();
-  
+
   // Remove duplicate spaces and capitalize first letter
   formatted = formatted.replace(/\s+/g, " ");
   return formatted.charAt(0).toUpperCase() + formatted.slice(1);
@@ -317,12 +320,12 @@ export function tSafe(key: string, fallback?: string): string {
   if (!key) {
     return "OS SENSEI!";
   }
-  
+
   // Priority fallback dict for pt-BR
   if (currentLang.startsWith('pt') && MANDATORY_DICTIONARY[key]) {
     return MANDATORY_DICTIONARY[key];
   }
-  
+
   const value = i18n.t(key);
   
   // 1. If key is missing (i18n returns the key name itself or is empty)

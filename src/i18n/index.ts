@@ -1,14 +1,18 @@
 import i18n from "i18next";
 import { initReactI18next } from "react-i18next";
+
 import ptBR from "./locales/pt-BR.json" with { type: "json" };
 import enUS from "./locales/en-US.json" with { type: "json" };
 import esES from "./locales/es-ES.json" with { type: "json" };
 
+// Helper to Safely Unwrap default JSON imports under ESM/CommonJS/Vite Bundling
 const getTranslation = (mod: any) => {
   if (!mod) return {};
   return (mod.default ? mod.default : mod) || {};
 };
 
+// 🥋 SYSBJJ 2.0 - DETERMINISTIC i18n CONFIGURATION
+// Prioritiza o português do Brasil (pt-BR) de forma absoluta, desativando detecção randômica de idioma do navegador.
 i18n
   .use(initReactI18next)
   .init({
@@ -32,22 +36,41 @@ i18n
         translation: getTranslation(esES),
       },
     },
+
+    // Força português brasileiro como padrão absoluto para o dojo
     lng: "pt-BR",
     fallbackLng: "pt-BR",
-    supportedLngs: ["pt-BR", "pt", "en-US", "en", "es-ES", "es"],
+
+    supportedLngs: [
+      "pt-BR",
+      "pt",
+      "en-US",
+      "en",
+      "es-ES",
+      "es"
+    ],
+
     load: "currentOnly",
+
     nonExplicitSupportedLngs: false,
+
     debug: false,
+
     returnNull: false,
     returnEmptyString: false,
+
     saveMissing: false,
+
     interpolation: {
-      escapeValue: false,
+      escapeValue: false, // React já protege contra XSS
     },
+
     react: {
       useSuspense: false,
     },
+
     parseMissingKeyHandler: (key: string) => {
+      // Formata amigavelmente a chave faltante
       const formatFriendly = (k: string) => {
         return k
           .split(".")
@@ -59,9 +82,9 @@ i18n
 
       const map: Record<string, string> = {
         "dashboard.recentActivities": "Atividades Recentes",
-        "dashboard.syncStatus": "Status de Sincroniza��o",
+        "dashboard.syncStatus": "Status de Sincronização",
         "subscription.currentPlan": "Plano Atual",
-        "settings.security": "Seguran�a",
+        "settings.security": "Segurança",
         "settings.language": "Idioma",
         "belt": "Faixa",
         "stripes": "Graus",

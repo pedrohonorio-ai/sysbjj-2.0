@@ -39,4 +39,3 @@ export const getPlanByStudentCount = (count: number) => {
     return BLACK_BELT;
   }
 };
-

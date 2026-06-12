@@ -1,138 +1,53 @@
-﻿export interface CBJJCategory {
-  id: string;
-  name: string;
-  minAge: number;
-  maxAge: number;
-  weightClasses: WeightClass[];
-}
 
-export interface WeightClass {
-  name: string;
-  minWeight?: number;
-  maxWeight?: number;
-}
+import { CBJJCategory, Gender } from '../types.js';
 
-export enum Gender {
-  MALE = 'MALE',
-  FEMALE = 'FEMALE'
-}
+export const calculateCBJJCategory = (birthDate: string): CBJJCategory => {
+  const birthYear = new Date(birthDate).getFullYear();
+  const currentYear = new Date().getFullYear();
+  const age = currentYear - birthYear;
 
-// Categorias por idade da CBJJ/IBJJF
-export const ageCategories: CBJJCategory[] = [
-  {
-    id: 'pre-infantil',
-    name: 'Pré-Infantil',
-    minAge: 4,
-    maxAge: 7,
-    weightClasses: [
-      { name: 'Super-Leve', maxWeight: 25 },
-      { name: 'Leve', minWeight: 25, maxWeight: 30 },
-      { name: 'Pesado', minWeight: 30 }
-    ]
-  },
-  {
-    id: 'infantil',
-    name: 'Infantil',
-    minAge: 8,
-    maxAge: 11,
-    weightClasses: [
-      { name: 'Super-Leve', maxWeight: 35 },
-      { name: 'Leve', minWeight: 35, maxWeight: 40 },
-      { name: 'Médio', minWeight: 40, maxWeight: 45 },
-      { name: 'Meio-Pesado', minWeight: 45, maxWeight: 50 },
-      { name: 'Pesado', minWeight: 50 }
-    ]
-  },
-  {
-    id: 'infanto-juvenil',
-    name: 'Infanto-Juvenil',
-    minAge: 12,
-    maxAge: 15,
-    weightClasses: [
-      { name: 'Pluma', maxWeight: 44 },
-      { name: 'Leve', minWeight: 44, maxWeight: 48 },
-      { name: 'Médio', minWeight: 48, maxWeight: 52 },
-      { name: 'Meio-Pesado', minWeight: 52, maxWeight: 57 },
-      { name: 'Pesado', minWeight: 57, maxWeight: 62 },
-      { name: 'Super-Pesado', minWeight: 62 }
-    ]
-  },
-  {
-    id: 'juvenil',
-    name: 'Juvenil',
-    minAge: 16,
-    maxAge: 17,
-    weightClasses: [
-      { name: 'Pluma', maxWeight: 55.5 },
-      { name: 'Leve', minWeight: 55.5, maxWeight: 61.5 },
-      { name: 'Médio', minWeight: 61.5, maxWeight: 67.5 },
-      { name: 'Meio-Pesado', minWeight: 67.5, maxWeight: 73.5 },
-      { name: 'Pesado', minWeight: 73.5, maxWeight: 79.5 },
-      { name: 'Super-Pesado', minWeight: 79.5 }
-    ]
-  },
-  {
-    id: 'adulto',
-    name: 'Adulto',
-    minAge: 18,
-    maxAge: 29,
-    weightClasses: [
-      { name: 'Pluma', maxWeight: 57.5 },
-      { name: 'Leve', minWeight: 57.5, maxWeight: 64 },
-      { name: 'Médio', minWeight: 64, maxWeight: 70 },
-      { name: 'Meio-Pesado', minWeight: 70, maxWeight: 76 },
-      { name: 'Pesado', minWeight: 76, maxWeight: 82.3 },
-      { name: 'Super-Pesado', minWeight: 82.3, maxWeight: 88.3 },
-      { name: 'Pesadíssimo', minWeight: 88.3 }
-    ]
-  },
-  {
-    id: 'master',
-    name: 'Master',
-    minAge: 30,
-    maxAge: 35,
-    weightClasses: [
-      { name: 'Pluma', maxWeight: 57.5 },
-      { name: 'Leve', minWeight: 57.5, maxWeight: 64 },
-      { name: 'Médio', minWeight: 64, maxWeight: 70 },
-      { name: 'Meio-Pesado', minWeight: 70, maxWeight: 76 },
-      { name: 'Pesado', minWeight: 76, maxWeight: 82.3 },
-      { name: 'Super-Pesado', minWeight: 82.3 }
-    ]
-  }
-];
+  if (age <= 6) return CBJJCategory.MIRIM_1; // Simplified
+  if (age <= 9) return CBJJCategory.INFANTIL_1;
+  if (age <= 12) return CBJJCategory.INFANTO_JUVENIL_1;
+  if (age <= 15) return CBJJCategory.INFANTO_JUVENIL_3;
+  if (age === 16) return CBJJCategory.JUVENIL_1;
+  if (age === 17) return CBJJCategory.JUVENIL_2;
+  if (age >= 18 && age < 30) return CBJJCategory.ADULTO;
+  if (age >= 30 && age < 36) return CBJJCategory.MASTER_1;
+  if (age >= 36 && age < 41) return CBJJCategory.MASTER_2;
+  if (age >= 41 && age < 46) return CBJJCategory.MASTER_3;
+  if (age >= 46 && age < 51) return CBJJCategory.MASTER_4;
+  if (age >= 51 && age < 56) return CBJJCategory.MASTER_5;
+  if (age >= 56 && age < 61) return CBJJCategory.MASTER_6;
+  return CBJJCategory.MASTER_7;
+};
 
-export function getCategoryByAge(age: number): CBJJCategory | undefined {
-  return ageCategories.find(cat => age >= cat.minAge && age <= cat.maxAge);
-}
-
-export function getWeightClass(weight: number, age: number): WeightClass | undefined {
-  const category = getCategoryByAge(age);
-  if (!category) return undefined;
-  
-  return category.weightClasses.find(wc => {
-    if (wc.minWeight && wc.maxWeight) {
-      return weight >= wc.minWeight && weight <= wc.maxWeight;
-    } else if (wc.maxWeight) {
-      return weight <= wc.maxWeight;
-    } else if (wc.minWeight) {
-      return weight >= wc.minWeight;
+export const calculateWeightClass = (weight: number, gender: Gender, category: CBJJCategory): string => {
+  // Simplified Adult Male Gi Weight Classes
+  if (category === CBJJCategory.ADULTO || category.toString().startsWith('Master') || category.toString().startsWith('Juvenil')) {
+    if (gender === Gender.MALE) {
+      if (weight <= 57.5) return 'rooster';
+      if (weight <= 64.0) return 'lightFeather';
+      if (weight <= 70.0) return 'feather';
+      if (weight <= 76.0) return 'light';
+      if (weight <= 82.3) return 'middle';
+      if (weight <= 88.3) return 'mediumHeavy';
+      if (weight <= 94.3) return 'heavy';
+      if (weight <= 100.5) return 'superHeavy';
+      return 'ultraHeavy';
+    } else {
+      // Simplified Adult Female Gi Weight Classes
+      if (weight <= 48.5) return 'rooster';
+      if (weight <= 53.5) return 'lightFeather';
+      if (weight <= 58.5) return 'feather';
+      if (weight <= 64.0) return 'light';
+      if (weight <= 69.0) return 'middle';
+      if (weight <= 74.0) return 'mediumHeavy';
+      if (weight <= 79.3) return 'heavy';
+      return 'superHeavy';
     }
-    return false;
-  });
-}
-
-export function calculateCBJJCategory(age: number, weight: number, gender: Gender): string {
-  const category = getCategoryByAge(age);
-  if (!category) return 'Sem Categoria';
+  }
   
-  const weightClass = getWeightClass(weight, age);
-  const weightClassName = weightClass ? weightClass.name : 'Peso Livre';
-  
-  return `${category.name} - ${weightClassName}`;
-}
-
-export function calculateWeightClass(weight: number, age: number): string {
-  const weightClass = getWeightClass(weight, age);
-  return weightClass ? weightClass.name : 'Sem Categoria';
-}
+  // For kids, it's much more complex, returning a generic placeholder or simplified
+  return 'categoryWeight';
+};

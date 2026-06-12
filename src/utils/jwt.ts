@@ -43,4 +43,3 @@ export function isJwtExpired(token: string | null | undefined): boolean {
     return true; // Se o token estiver malformado, considera-o expirado (inválido)
   }
 }
-

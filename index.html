@@ -75,53 +75,34 @@
           }
           
           try {
-            Object.defineProperty(window, "WebSocket", {
-              value: NoOpWebSocket,
-              writable: false,
-              configurable: false
-            });
-            if (typeof globalThis !== 'undefined') {
-              Object.defineProperty(globalThis, "WebSocket", {
-                value: NoOpWebSocket,
-                writable: false,
-                configurable: false
-              });
-            }
-          } catch (_) {
             window.WebSocket = NoOpWebSocket;
             if (typeof globalThis !== 'undefined') {
               globalThis.WebSocket = NoOpWebSocket;
             }
-          }
+          } catch (_) {}
           
           try {
             const originalFetch = window.fetch;
-            const newFetch = function(input, init) {
-              let url = "";
-              if (typeof input === "string") {
-                url = input;
-              } else if (input && typeof input === "object" && "url" in input) {
-                url = String(input.url);
-              } else {
-                url = String(input);
+            if (originalFetch) {
+              const newFetch = function(input, init) {
+                let url = "";
+                if (typeof input === "string") {
+                  url = input;
+                } else if (input && typeof input === "object" && "url" in input) {
+                  url = String(input.url);
+                } else {
+                  url = String(input);
+                }
+                if (url.startsWith("ws://") || url.startsWith("wss://")) {
+                  return Promise.resolve(new Response(null, { status: 200 }));
+                }
+                return originalFetch.apply(this, arguments);
+              };
+              
+              window.fetch = newFetch;
+              if (typeof globalThis !== 'undefined') {
+                globalThis.fetch = newFetch;
               }
-              if (url.startsWith("ws://") || url.startsWith("wss://")) {
-                return Promise.resolve(new Response(null, { status: 200 }));
-              }
-              return originalFetch.apply(this, arguments);
-            };
-            
-            Object.defineProperty(window, "fetch", {
-              value: newFetch,
-              writable: false,
-              configurable: false
-            });
-            if (typeof globalThis !== 'undefined') {
-              Object.defineProperty(globalThis, "fetch", {
-                value: newFetch,
-                writable: false,
-                configurable: false
-              });
             }
           } catch (_) {
             // fallback if read-only or error

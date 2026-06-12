@@ -16,4 +16,3 @@ export const formatNumber = (
   return Number(value || 0)
     .toLocaleString("pt-BR");
 };
-

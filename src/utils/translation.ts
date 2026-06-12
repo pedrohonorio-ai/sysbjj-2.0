@@ -29,4 +29,3 @@ export const safeT = (
 
   return value;
 };
-

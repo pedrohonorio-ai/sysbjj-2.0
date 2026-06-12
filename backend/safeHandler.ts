@@ -17,4 +17,3 @@ export function safeHandler(fn: any) {
   };
 }
 export default safeHandler;
-

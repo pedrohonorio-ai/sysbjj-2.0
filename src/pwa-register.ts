@@ -2,7 +2,7 @@ import { Workbox } from 'workbox-window';
 
 export function registerServiceWorker() {
   if (typeof window !== 'undefined' && 'serviceWorker' in navigator && import.meta.env.PROD) {
-    const wb = new Workbox('/sw');
+    const wb = new Workbox('/sw.js');
     
     wb.addEventListener('installed', (event) => {
       if (event.isUpdate) {
@@ -29,4 +29,3 @@ export function registerServiceWorker() {
     console.log('🥋 [PWA] Service Worker desativado no ambiente de desenvolvimento.');
   }
 }
-
