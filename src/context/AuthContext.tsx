@@ -137,13 +137,26 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       setRole('admin');
       
       console.log(`🥋 [DIAGNOSTICO LOGIN] Salvando sessão e token em localStorage...`);
-      localStorage.setItem('oss_auth', JSON.stringify({ 
-        isLoggedIn: true, 
-        role: 'admin', 
-        email,
-        userId: loggedUser.id,
-        token: result.token
-      }));
+      try {
+  localStorage.setItem('oss_auth', JSON.stringify({ 
+    isLoggedIn: true, 
+    role: 'admin', 
+    email,
+    userId: loggedUser.id,
+    name: loggedUser.name,
+    token: result.token
+  }));
+} catch(e) {
+  console.warn('localStorage indisponível');
+  sessionStorage.setItem('oss_auth', JSON.stringify({ 
+    isLoggedIn: true, 
+    role: 'admin', 
+    email,
+    userId: loggedUser.id,
+    name: loggedUser.name,
+    token: result.token
+  }));
+}
       console.log(`🥋 [DIAGNOSTICO LOGIN] Sessão criada localmente e persistida com sucesso.`);
       
       return { data: { user: loggedUser }, error: null };
@@ -249,7 +262,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     if (user.role === 'MASTER') return true;
 
     try {
-      const saved = localStorage.getItem('oss_auth');
+      const saved = localStorage.getItem('oss_auth') || sessionStorage.getItem('oss_auth');
       if (saved) {
         const parsed = JSON.parse(saved);
         if (parsed.email === "pedro.honorio@gm.rio") return true;
