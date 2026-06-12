@@ -1,6 +1,6 @@
 {
   "version": 2,
-  "buildCommand": "prisma generate && vite build",
+  "buildCommand": "DATABASE_URL=\"postgresql://postgres:postgres@localhost:5432/sysbjj\" DIRECT_URL=\"postgresql://postgres:postgres@localhost:5432/sysbjj\" prisma generate && vite build",
   "outputDirectory": "dist",
   "functions": {
     "api/index.ts": {

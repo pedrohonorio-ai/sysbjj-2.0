@@ -7,7 +7,10 @@ import { Check, Globe } from 'lucide-react';
 const languages = [
   { code: AppLanguage.PORTUGUESE_BR, name: 'Português', native: 'Português (Brasil)', flag: '🇧🇷', active: true, reason: 'Idioma padrão e recomendado do ecossistema SYSBJJ' },
   { code: AppLanguage.ENGLISH_US, name: 'English', native: 'English (US)', flag: '🇺🇸', active: true, reason: 'English localization for international students' },
-  { code: AppLanguage.SPANISH_ES, name: 'Spanish', native: 'Español', flag: '🇪🇸', active: true, reason: 'Traducción oficial para practicantes de habla hispana' }
+  { code: AppLanguage.SPANISH_ES, name: 'Spanish', native: 'Español', flag: '🇪🇸', active: true, reason: 'Traducción oficial para practicantes de habla hispana' },
+  { code: AppLanguage.JAPANESE, name: '日本語', native: '日本語', flag: '🇯🇵', active: true, reason: '日本国内の生徒および道場向け日本語版' },
+  { code: AppLanguage.RUSSIAN, name: 'Русский', native: 'Русский', flag: '🇷🇺', active: true, reason: 'Русская локализация для додзё' },
+  { code: AppLanguage.CHINESE, name: '中文', native: '简体中文', flag: '🇨🇳', active: true, reason: '为中文武道及道场提供的汉化翻译' }
 ];
 
 const LanguageSelection: React.FC = () => {

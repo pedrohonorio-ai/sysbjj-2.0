@@ -18,6 +18,9 @@ export const LanguageProvider: React.FC<{ children: ReactNode }> = ({ children }
     const saved = localStorage.getItem('language');
     if (saved === 'en') return AppLanguage.ENGLISH_US;
     if (saved === 'es') return AppLanguage.SPANISH_ES;
+    if (saved === 'ja') return AppLanguage.JAPANESE;
+    if (saved === 'ru') return AppLanguage.RUSSIAN;
+    if (saved === 'zh') return AppLanguage.CHINESE;
     return AppLanguage.PORTUGUESE_BR;
   });
 

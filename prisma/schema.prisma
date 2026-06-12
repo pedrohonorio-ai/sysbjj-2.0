@@ -171,7 +171,7 @@ model Presence {
   userAgent String?
   deviceId  String
   createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  updatedAt DateTime @default(now()) @updatedAt
   @@unique([email, deviceId])
   @@index([userId])
 }
@@ -229,7 +229,7 @@ model ProfessorProfile {
   state       String?
   belt        String?
   createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+  updatedAt   DateTime @default(now()) @updatedAt
   @@index([userId])
 }
 

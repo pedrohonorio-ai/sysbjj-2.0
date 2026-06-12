@@ -4,6 +4,9 @@ import { initReactI18next } from "react-i18next";
 import ptBR from "./locales/pt-BR.json" with { type: "json" };
 import enUS from "./locales/en-US.json" with { type: "json" };
 import esES from "./locales/es-ES.json" with { type: "json" };
+import jaJP from "./locales/ja-JP.json" with { type: "json" };
+import ruRU from "./locales/ru-RU.json" with { type: "json" };
+import zhCN from "./locales/zh-CN.json" with { type: "json" };
 
 // Helper to Safely Unwrap default JSON imports under ESM/CommonJS/Vite Bundling
 const getTranslation = (mod: any) => {
@@ -35,6 +38,24 @@ i18n
       "es": {
         translation: getTranslation(esES),
       },
+      "ja-JP": {
+        translation: getTranslation(jaJP),
+      },
+      "ja": {
+        translation: getTranslation(jaJP),
+      },
+      "ru-RU": {
+        translation: getTranslation(ruRU),
+      },
+      "ru": {
+        translation: getTranslation(ruRU),
+      },
+      "zh-CN": {
+        translation: getTranslation(zhCN),
+      },
+      "zh": {
+        translation: getTranslation(zhCN),
+      },
     },
 
     // Força português brasileiro como padrão absoluto para o dojo
@@ -47,7 +68,13 @@ i18n
       "en-US",
       "en",
       "es-ES",
-      "es"
+      "es",
+      "ja-JP",
+      "ja",
+      "ru-RU",
+      "ru",
+      "zh-CN",
+      "zh"
     ],
 
     load: "currentOnly",

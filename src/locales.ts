@@ -3931,5 +3931,6 @@ export const translations: Record<AppLanguage, any> = {
   [AppLanguage.PORTUGUESE_BR]: pt,
   [AppLanguage.SPANISH_ES]: es,
   [AppLanguage.JAPANESE]: en,
-  [AppLanguage.RUSSIAN]: en
+  [AppLanguage.RUSSIAN]: en,
+  [AppLanguage.CHINESE]: en
 };

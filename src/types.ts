@@ -4,7 +4,8 @@ export enum AppLanguage {
   ENGLISH_US = 'en',
   SPANISH_ES = 'es',
   JAPANESE = 'ja',
-  RUSSIAN = 'ru'
+  RUSSIAN = 'ru',
+  CHINESE = 'zh'
 }
 
 export enum BeltColor {
