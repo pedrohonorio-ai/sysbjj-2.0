@@ -95,15 +95,85 @@ export const SAFE_STUDENT_SELECT = {
 ========================= */
 const ALLOWED_COLLECTIONS = [
   'students',
+  'student',
   'payments',
+  'payment',
   'schedules',
+  'schedule',
   'logs',
+  'log',
   'profile',
   'notification',
-  'presence'
+  'notifications',
+  'presence',
+  'receipts',
+  'receipt',
+  'ledger',
+  'extra_revenue',
+  'orders',
+  'order',
+  'lesson_plans',
+  'lesson_plan',
+  'techniques',
+  'technique',
+  'products',
+  'product',
+  'plans',
+  'plan',
+  'graduationhistory',
+  'graduation_history',
+  'graduationHistory'
 ] as const;
 
 type Collection = typeof ALLOWED_COLLECTIONS[number];
+
+function getPrismaModelName(coll: string): string {
+  const c = coll.toLowerCase();
+  if (c === 'students' || c === 'student') return 'student';
+  if (c === 'payments' || c === 'payment') return 'payment';
+  if (c === 'schedules' || c === 'schedule') return 'classSchedule';
+  if (c === 'logs' || c === 'log') return 'systemLog';
+  if (c === 'profile' || c === 'profiles') return 'professorProfile';
+  if (c === 'notification' || c === 'notifications') return 'notification';
+  if (c === 'presence' || c === 'presences') return 'presence';
+  if (c === 'receipts' || c === 'receipt') return 'paymentReceipt';
+  if (c === 'ledger') return 'transactionLedger';
+  if (c === 'extra_revenue') return 'extraRevenue';
+  if (c === 'orders' || c === 'order') return 'kimonoOrder';
+  if (c === 'lesson_plans' || c === 'lesson_plan') return 'lessonPlan';
+  if (c === 'techniques' || c === 'technique') return 'libraryTechnique';
+  if (c === 'products' || c === 'product') return 'product';
+  if (c === 'plans' || c === 'plan') return 'plan';
+  if (c === 'graduationhistory' || c === 'graduation_history' || c === 'graduationhistoryrecords') return 'graduationHistory';
+  return '';
+}
+
+const NUMERIC_FIELDS: Record<string, string[]> = {
+  student: ['stripes', 'degrees', 'monthlyValue', 'dueDay', 'attendanceCount', 'currentStreak', 'behaviorScore', 'rewardPoints'],
+  payment: ['amount'],
+  paymentReceipt: ['amount'],
+  classSchedule: ['duration'],
+  presence: [],
+  graduationHistory: ['previousStripes', 'newStripes'],
+  notification: [],
+  systemLog: [],
+  professorProfile: [],
+  plan: ['price'],
+  transactionLedger: ['amount'],
+  extraRevenue: ['amount'],
+  lessonPlan: ['duration'],
+  libraryTechnique: [],
+  product: ['price', 'stock'],
+  kimonoOrder: ['quantity', 'totalPrice']
+};
+
+const BIGINT_FIELDS: Record<string, string[]> = {
+  systemLog: ['timestamp'],
+  paymentReceipt: ['timestamp'],
+  presence: ['lastSeen']
+};
+
+const MODELS_WITHOUT_USERID = ['graduationHistory'];
 
 /* =========================
    MAIN HANDLER
@@ -129,72 +199,55 @@ export async function dataHandler(req: AuthRequest, res: Response) {
 
   const uid = String(userId);
 
+  // 🥋 Força erro correto se o PostgreSQL estiver offline/instável para disparar IndexedDB Fallback no cliente
   try {
     await prisma.$queryRaw`SELECT 1`;
-  } catch {
-    return res.status(200).json({ success: true, offline: true });
+  } catch (err: any) {
+    console.error("🥋 [PRISMA OFFLINE ERROR] dataHandler:", err.message || err);
+    return res.status(503).json({
+      success: false,
+      error: "O banco de dados está temporariamente indisponível. Salvando localmente de forma resiliente.",
+      offline: true
+    });
   }
 
   try {
+    const modelName = getPrismaModelName(String(collection));
+    const model = (prisma as any)[modelName];
+
+    if (!model) {
+      return res.status(404).json({
+        error: `Coleção não associada a nenhum model Prisma: ${collection}`
+      });
+    }
+
     /* =========================
        GET
     ========================= */
     if (req.method === 'GET') {
-      let data: any = [];
-
-      switch (collection) {
-        case 'students':
-          data = await prisma.student.findMany({
-            where: { userId: uid },
-            orderBy: { joinedAt: 'desc' }
-          });
-          break;
-
-        case 'payments':
-          data = await prisma.payment.findMany({
-            where: { userId: uid },
-            orderBy: { createdAt: 'desc' },
-            take: 200
-          });
-          break;
-
-        case 'schedules':
-          data = await prisma.classSchedule.findMany({
-            where: { userId: uid }
-          });
-          break;
-
-        case 'logs':
-          data = await prisma.systemLog.findMany({
-            where: { userId: uid },
-            orderBy: { timestamp: 'desc' },
-            take: 100
-          });
-          break;
-
-        case 'profile':
-          data = await prisma.professorProfile.findUnique({
-            where: { userId: uid }
-          });
-          break;
-
-        case 'notification':
-          data = await prisma.notification.findMany({
-            where: { userId: uid },
-            orderBy: { createdAt: 'desc' }
-          });
-          break;
-
-        case 'presence':
-          data = await prisma.presence.findMany({
-            where: { userId: uid },
-            orderBy: { createdAt: 'desc' }
-          });
-          break;
+      let data: any;
+      if (modelName === 'professorProfile') {
+        data = await model.findUnique({
+          where: { userId: uid }
+        });
+      } else if (modelName === 'graduationHistory') {
+        data = await model.findMany({
+          where: { student: { userId: uid } },
+          orderBy: { promotedAt: 'desc' }
+        });
+      } else {
+        const hasUserIdField = !MODELS_WITHOUT_USERID.includes(modelName);
+        data = await model.findMany({
+          ...(hasUserIdField ? { where: { userId: uid } } : {}),
+          ...(modelName === 'student' ? { orderBy: { joinedAt: 'desc' } } : {}),
+          ...(modelName === 'payment' ? { orderBy: { createdAt: 'desc' }, take: 200 } : {}),
+          ...(modelName === 'systemLog' ? { orderBy: { timestamp: 'desc' }, take: 100 } : {}),
+          ...(modelName === 'transactionLedger' ? { orderBy: { timestamp: 'desc' }, take: 100 } : {})
+        });
       }
 
       const finalData =
-        collection === 'students'
+        modelName === 'student'
           ? enrichStudentsList(data)
           : data;
 
@@ -206,91 +259,80 @@ export async function dataHandler(req: AuthRequest, res: Response) {
     ========================= */
     if (req.method === 'POST') {
       const { id, ...payload } = req.body || {};
-      let result: any;
 
-      switch (collection) {
-        case 'students': {
-          const isNew = !id || id === 'new';
-
-          const cleanPayload = {
-            ...payload,
-            belt: payload.belt || 'Branca',
-            stripes: Number(payload.stripes) || 0
-          };
-
-          result = isNew
-            ? await prisma.student.create({
-                data: {
-                  ...cleanPayload,
-                  id: `STUD-${Date.now()}`,
-                  userId: uid
-                }
-              })
-            : await prisma.student.update({
-                where: { id },
-                data: {
-                  ...cleanPayload,
-                  userId: uid,
-                  updatedAt: new Date()
-                }
-              });
-
-          break;
-        }
-
-        case 'presence': {
-          const presenceId =
-            id && id !== 'new'
-              ? id
-              : `PRES-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
-
-          result = await prisma.presence.upsert({
-            where: { id: presenceId },
-            create: {
-              ...payload,
-              id: presenceId,
-              userId: uid,
-              createdAt: new Date()
-            },
-            update: {
-              ...payload,
-              userId: uid
-            }
-          });
-
-          break;
-        }
-
-        case 'notification': {
-          const finalId =
-            id && id !== 'new'
-              ? id
-              : `NOTIF-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
-
-          result = await prisma.notification.upsert({
-            where: { id: finalId },
-            create: {
-              ...payload,
-              id: finalId,
-              userId: uid
-            },
-            update: {
-              ...payload,
-              userId: uid
-            }
-          });
-
-          break;
-        }
-
-        default:
-          return res.status(404).json({
-            error: `Operação não suportada: ${collection}`
-          });
+      // 1. Identificar se é novo registro pesquisando o ID enviado no banco
+      let exists = null;
+      if (id && id !== 'new') {
+        try {
+          exists = await model.findUnique({ where: { id } });
+        } catch (e) {}
       }
 
+      const isNew = !exists;
+
+      // 2. Sanitizar payload com base nos tipos de campos do Prisma
+      const cleanPayload: any = {};
+      
+      // Defaults e correções especiais
+      if (modelName === 'student') {
+        payload.belt = payload.belt || 'Branca';
+        payload.stripes = payload.stripes !== undefined ? payload.stripes : 0;
+      }
+
+      for (const key of Object.keys(payload)) {
+        // Ignora campos de relação Prisma para evitar quebras de validação
+        if (key === 'student' && modelName === 'graduationHistory') continue;
+        
+        const val = payload[key];
+        
+        // Ignora objetos aninhados de relação
+        if (val && typeof val === 'object' && !Array.isArray(val) && !(val instanceof Date)) {
+          continue;
+        }
+
+        if (NUMERIC_FIELDS[modelName]?.includes(key)) {
+          cleanPayload[key] = val !== null && val !== undefined ? Number(val) : undefined;
+        } else if (BIGINT_FIELDS[modelName]?.includes(key)) {
+          cleanPayload[key] = val !== null && val !== undefined ? BigInt(val) : undefined;
+        } else {
+          cleanPayload[key] = val;
+        }
+      }
+
+      // 3. Determinar ID final para gravação ou atualização
+      let finalId = id;
+      if (!finalId || finalId === 'new') {
+        if (modelName === 'student') finalId = `STUD-${Date.now()}`;
+        else if (modelName === 'presence') finalId = `PRES-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+        else if (modelName === 'notification') finalId = `NOTIF-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+        else finalId = undefined; // Deixa o cuid() padrão do Prisma resolver
+      }
+
+      const hasUserIdField = !MODELS_WITHOUT_USERID.includes(modelName);
+
+      let result: any;
+      if (isNew) {
+        result = await model.create({
+          data: {
+            ...cleanPayload,
+            ...(finalId ? { id: finalId } : {}),
+            ...(hasUserIdField ? { userId: uid } : {})
+          }
+        });
+      } else {
+        result = await model.update({
+          where: { id: finalId },
+          data: {
+            ...cleanPayload,
+            ...(hasUserIdField ? { userId: uid } : {}),
+            updatedAt: new Date()
+          }
+        });
+      }
+
+      // 4. Enriquecer retorno se for estudante
       const finalResult =
-        collection === 'students'
+        modelName === 'student'
           ? enrichStudent(result)
           : result;
 
@@ -300,6 +342,7 @@ export async function dataHandler(req: AuthRequest, res: Response) {
     return res.status(405).json({ error: 'Método não permitido' });
 
   } catch (error) {
+    console.error("🥋 [DATA HANDLER CRITICAL ERROR]:", error);
     return res.status(500).json({
       success: false,
       error: error instanceof Error ? error.message : String(error)
