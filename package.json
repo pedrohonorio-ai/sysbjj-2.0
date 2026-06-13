@@ -5,10 +5,10 @@
   "type": "module",
   "scripts": {
     "dev": "tsx server.ts",
-    "build": "DATABASE_URL=\"postgresql://postgres:postgres@localhost:5432/sysbjj\" DIRECT_URL=\"postgresql://postgres:postgres@localhost:5432/sysbjj\" prisma generate && vite build && tsx build-server.ts",
+    "build": "DATABASE_URL=\"postgresql://postgres:postgres@localhost:5432/sysbjj\" DIRECT_URL=\"postgresql://postgres:postgres@localhost:5432/sysbjj\" prisma generate && tsx scripts/download-fonts.js && node scripts/generate-icons.js && vite build && tsx build-server.ts",
     "start": "node dist/server.js",
     "postinstall": "DATABASE_URL=\"postgresql://postgres:postgres@localhost:5432/sysbjj\" DIRECT_URL=\"postgresql://postgres:postgres@localhost:5432/sysbjj\" prisma generate",
-    "vercel-build": "DATABASE_URL=\"postgresql://postgres:postgres@localhost:5432/sysbjj\" DIRECT_URL=\"postgresql://postgres:postgres@localhost:5432/sysbjj\" prisma generate && vite build",
+    "vercel-build": "DATABASE_URL=\"postgresql://postgres:postgres@localhost:5432/sysbjj\" DIRECT_URL=\"postgresql://postgres:postgres@localhost:5432/sysbjj\" prisma generate && tsx scripts/download-fonts.js && node scripts/generate-icons.js && vite build",
     "lint": "tsc --noEmit",
     "scan:i18n": "node scripts/find-hardcoded-texts.js",
     "fix:i18n": "node scripts/fix-i18n.js",
