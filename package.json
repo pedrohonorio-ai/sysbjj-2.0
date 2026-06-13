@@ -4,7 +4,7 @@
   "version": "2.0.0",
   "type": "module",
   "scripts": {
-    "dev": "vite",
+    "dev": "tsx server.ts",
     "build": "DATABASE_URL=\"postgresql://postgres:postgres@localhost:5432/sysbjj\" DIRECT_URL=\"postgresql://postgres:postgres@localhost:5432/sysbjj\" prisma generate && vite build && tsx build-server.ts",
     "start": "node dist/server.js",
     "postinstall": "DATABASE_URL=\"postgresql://postgres:postgres@localhost:5432/sysbjj\" DIRECT_URL=\"postgresql://postgres:postgres@localhost:5432/sysbjj\" prisma generate",
