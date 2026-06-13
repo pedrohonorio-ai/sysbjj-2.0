@@ -819,7 +819,7 @@ const Dashboard: React.FC = () => {
                           
                           <div className="flex flex-wrap items-center gap-x-3 gap-y-1 mt-1 text-[8.5px] font-black uppercase tracking-widest text-slate-400">
                             <span className="flex items-center gap-1">
-                              🥋 Faixa {student.belt || 'Branca'}
+                              🥋 Faixa {t(`belts.${student.belt}`, student.belt || 'Branca')}
                             </span>
                             <span>•</span>
                             <span className={student.status === 'Active' ? 'text-emerald-500' : 'text-slate-400'}>

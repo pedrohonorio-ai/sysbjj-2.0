@@ -1228,7 +1228,7 @@ const StudentPortal: React.FC = () => {
                   <div className="flex flex-wrap justify-center sm:justify-start items-center gap-3">
                     <div className="flex items-center gap-3">
                       <div className={`px-4 py-1.5 rounded-xl text-[9px] font-black uppercase tracking-widest shadow-lg ${BELT_COLORS[student.belt]}`}>
-                        {t(`belts.${student.belt}`)}
+                        {t(`belts.${t(`belts.${student.belt}`, student.belt)}`)}
                       </div>
                       <div className="flex gap-1">
                         {[...Array(student.stripes)].map((_, i) => (
@@ -2216,7 +2216,7 @@ const StudentPortal: React.FC = () => {
                     {student.belt}
                   </div>
                   <div>
-                    <h4 className="text-sm font-black text-slate-950 dark:text-white uppercase tracking-tight">Faixa Atual: {student.belt}</h4>
+                    <h4 className="text-sm font-black text-slate-950 dark:text-white uppercase tracking-tight">Faixa Atual: {t(`belts.${student.belt}`, student.belt)}</h4>
                     <p className="text-[9px] text-slate-400 uppercase font-bold tracking-widest mt-0.5">
                       Graus na Faixa: {student.stripes || student.degrees || 0}
                     </p>

@@ -856,7 +856,7 @@ const NewStudentModal = ({ onClose, defaultIsKid }: { onClose: () => void, defau
                     {(students || [])
                       .filter(s => s.isInstructor || s.isClassProfessor)
                       .map(s => (
-                        <option key={s.id} value={s.id}>{s.name} ({s.belt})</option>
+                        <option key={s.id} value={s.id}>{s.name} ({t(`belts.${s.belt}`, s.belt)})</option>
                       ))}
                   </select>
                 </div>
@@ -2003,7 +2003,7 @@ const StudentDetailsModal = ({ student, onClose }: { student: Student; onClose: 
                           .filter(s => s.isInstructor || s.isClassProfessor)
                           .map(s => (
                             <option key={s.id} value={s.id}>
-                              {s.name} ({s.belt})
+                              {s.name} ({t(`belts.${s.belt}`, s.belt)})
                             </option>
                           ))}
                       </select>
@@ -2623,8 +2623,8 @@ const StudentDetailsModal = ({ student, onClose }: { student: Student; onClose: 
                    <div className="absolute top-1/2 left-10 right-10 h-0.5 bg-slate-100 dark:bg-slate-800 -translate-y-1/2" />
                    <div className="relative flex justify-between min-w-[600px] gap-8">
                      {(student.graduationHistory && student.graduationHistory.length > 0 ? student.graduationHistory : [
-                       { belt: 'BRANCA', date: student.joinedAt || 'Jan 2024', instructor: 'Sistema' },
-                       { belt: student.belt.toUpperCase(), date: student.lastPromotionDate || 'Jan 2025', instructor: 'Sensei Master' }
+                       { belt: 'White', date: student.joinedAt || 'Jan 2024', instructor: 'Sistema' },
+                       { belt: student.belt, date: student.lastPromotionDate || 'Jan 2025', instructor: 'Sensei Master' }
                      ]).map((step, i) => (
                        <div key={i} className="flex flex-col items-center gap-4 relative z-10 group">
                          <div className={`w-14 h-14 rounded-2xl flex items-center justify-center border-4 shadow-xl transition-all ${
@@ -2634,7 +2634,7 @@ const StudentDetailsModal = ({ student, onClose }: { student: Student; onClose: 
                            <Medal size={24} />
                          </div>
                          <div className="text-center">
-                           <p className="text-[10px] font-black uppercase tracking-widest dark:text-white">{step.belt}</p>
+                           <p className="text-[10px] font-black uppercase tracking-widest dark:text-white">{t(`belts.${step.belt}`, step.belt)}</p>
                            <p className="text-[8px] font-bold text-slate-400 uppercase tracking-tighter mt-1">{step.date}</p>
                            <p className="text-[7px] text-blue-500 font-bold uppercase mt-1 opacity-0 group-hover:opacity-100 transition-opacity">Prof. {step.instructor}</p>
                          </div>
@@ -2806,7 +2806,7 @@ const StudentDetailsModal = ({ student, onClose }: { student: Student; onClose: 
                             <div>
                               <p className="text-[10px] font-black uppercase tracking-widest text-slate-400">Tempo de Carência Oficial IBJJF</p>
                               <div className="flex justify-between items-baseline mt-2">
-                                <span className="text-2xl font-black text-slate-950 dark:text-white tracking-tight">Faixa {student.belt}</span>
+                                <span className="text-2xl font-black text-slate-950 dark:text-white tracking-tight">Faixa {t(`belts.${student.belt}`, student.belt)}</span>
                                 <span className={`px-4 py-1.5 rounded-xl text-[10px] font-black uppercase tracking-widest ${beltAnalysis.isEligible ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-950/20 dark:text-emerald-400' : 'bg-amber-100 text-amber-700 dark:bg-amber-950/20 dark:text-amber-400'}`}>
                                   {beltAnalysis.isEligible ? "Elegível" : "Em carência"}
                                 </span>

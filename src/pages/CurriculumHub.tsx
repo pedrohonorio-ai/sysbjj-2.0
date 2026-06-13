@@ -918,7 +918,7 @@ const CurriculumHub: React.FC = () => {
                             <div key={student.id} className="flex items-center justify-between p-2.5 bg-white dark:bg-slate-850 rounded-xl border border-slate-250/30">
                               <div className="truncate pr-2">
                                 <p className="text-xs font-black uppercase truncate text-slate-900 dark:text-white">{student.name}</p>
-                                <p className="text-[8px] font-bold text-slate-400 uppercase">FAIXA {student.belt || 'Branca'}</p>
+                                <p className="text-[8px] font-bold text-slate-400 uppercase">FAIXA {t(`belts.${student.belt}`, student.belt || 'Branca')}</p>
                               </div>
                               <button 
                                 onClick={() => enrollStudent(student.id)}

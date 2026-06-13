@@ -412,7 +412,7 @@
       "navCommunity": "Social",
       "navWallet": "Financeiro",
       "navGallery": "Memórias",
-      "navTimer": "Timer",
+      "navTimer": "Cronômetro",
       "navRules": "Regulamento",
       "invalidCode": "CÓDIGO DE ACESSO INEXISTENTE",
       "checkinBtn": "REGISTRAR PRESENÇA AGORA",
@@ -856,7 +856,7 @@
     }
   },
   "navigation": {
-    "dashboard": "Dashboard",
+    "dashboard": "Painel Principal",
     "students": "Alunos",
     "finance": "Financeiro",
     "settings": "Configurações",

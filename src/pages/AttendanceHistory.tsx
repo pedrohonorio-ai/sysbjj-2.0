@@ -330,7 +330,7 @@ const AttendanceHistory: React.FC = () => {
       
       const rows = absentStudents.map(as => [
         as.student.name,
-        as.student.belt ? as.student.belt.toUpperCase() : 'BRANCA',
+        as.student.belt ? t(`belts.${as.student.belt}`, as.student.belt).toUpperCase() : 'BRANCA',
         as.student.lastAttendanceDate || "Nunca registrado",
         `${as.days} dias`,
         as.tier === 'critical' ? 'Risco Grave de Abandono' : as.tier === 'alert' ? 'Frequência Instável' : 'Ausência Periódica'

@@ -1576,7 +1576,7 @@ const BeltSystem: React.FC = () => {
                               <div className="flex items-center gap-2 mt-1">
                                 <div className={`w-8 h-2 rounded-full ${OFFICIAL_BELT_COLORS[student.belt] || 'bg-slate-500'} border border-black/10`} />
                                 <span className={`text-[8.5px] font-black uppercase tracking-widest ${isSelected ? 'text-blue-100' : 'text-slate-500'}`}>
-                                  {student.belt} • {student.stripes || student.degrees || 0} Graus
+                                  {t(`belts.${student.belt}`, student.belt)} • {student.stripes || student.degrees || 0} Graus
                                 </span>
                               </div>
                             </div>

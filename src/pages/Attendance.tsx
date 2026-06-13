@@ -670,7 +670,7 @@ const AttendancePage: React.FC = () => {
                           <div>
                             <p className="text-xs font-bold text-slate-900 dark:text-white uppercase tracking-tight flex items-center gap-1.5">
                               <span>{student.name}</span>
-                              <span className="text-[7px] bg-slate-200 dark:bg-slate-800 text-slate-500 px-1.5 py-0.5 rounded font-black mt-0.5">{student.belt ? student.belt.toUpperCase() : 'BRANCA'}</span>
+                              <span className="text-[7px] bg-slate-200 dark:bg-slate-800 text-slate-500 px-1.5 py-0.5 rounded font-black mt-0.5">{student.belt ? t(`belts.${student.belt}`, student.belt).toUpperCase() : 'BRANCA'}</span>
                             </p>
                             <p className="text-[8px] font-mono font-bold text-slate-400 uppercase mt-0.5">Última Presença: {student.lastAttendanceDate || 'Nenhum registro'}</p>
                           </div>

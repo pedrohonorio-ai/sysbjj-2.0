@@ -765,7 +765,7 @@
     "athleteAge": "Athlete Age",
     "selectCompetitors": "Athlete Selection",
     "addSelectedCompetitors": "Confirm Selection",
-    "selectCompetitorsSubtitle: ": "Select students from the list to register as competitors",
+    "selectCompetitorsSubtitle": "Select students from the list to register as competitors",
     "searchStudents": "Search full list...",
     "noNewCompetitors": "All students are already in the competition list.",
     "selectionSuccess": "Competitor list updated! Oss.",
