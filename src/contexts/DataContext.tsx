@@ -214,37 +214,64 @@ const DEFAULT_PLANS: Plan[] = [];
 // Helper to compress base64 images to save LocalStorage space is now imported from lib/imageUtils
 
 export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
+  const { user, role: authRole, studentCode } = useAuth();
+  
+  // Track the user whose data is currently represented in the state
+  const lastStateUserRef = React.useRef<string | null>(
+    user?.id || (authRole === 'student' && studentCode ? `student_${studentCode}` : 'anonymous')
+  );
+
+  // Auxiliary function to get the current namespace
+  const getNamespaceKey = useCallback((baseKey: string) => {
+    const userId = user?.id || (authRole === 'student' && studentCode ? `student_${studentCode}` : null);
+    if (userId) {
+      return `usr_${userId}_${baseKey}`;
+    }
+    return baseKey;
+  }, [user?.id, authRole, studentCode]);
+
   // Função auxiliar para carregar com segurança
   const loadSafely = useCallback((key: string, fallback: any) => {
+    const nsKey = getNamespaceKey(key);
     try {
-      const saved = localStorage.getItem(key);
+      const saved = localStorage.getItem(nsKey);
       if (!saved || saved === 'undefined') return fallback;
       const parsed = JSON.parse(saved);
       return Array.isArray(parsed) ? parsed : fallback;
     } catch (e) {
-      console.error(`Falha crítica ao ler ${key} do banco local:`, e);
+      console.error(`Falha crítica ao ler ${nsKey} do banco local:`, e);
       return fallback;
     }
-  }, []);
+  }, [getNamespaceKey]);
 
-  // Improved safe saving with quota management
+  // Improved safe saving with quota management & guard checks
   const saveSafely = useCallback((key: string, value: any) => {
     if (value === undefined) return;
+
+    // Guard against saving stale state of previous user to new user namespace
+    const currentUserId = user?.id || (authRole === 'student' && studentCode ? `student_${studentCode}` : 'anonymous');
+    if (currentUserId !== lastStateUserRef.current) {
+      console.warn(`🥋 [SAVE GUARD] Blocked saving stale state to new user ${currentUserId}`);
+      return;
+    }
+
+    const nsKey = getNamespaceKey(key);
     try {
-      localStorage.setItem(key, JSON.stringify(value));
+      localStorage.setItem(nsKey, JSON.stringify(value));
     } catch (e) {
       if (e instanceof Error && (e.name === 'QuotaExceededError' || e.name === 'NS_ERROR_DOM_QUOTA_REACHED')) {
-        console.warn(`Quota exceeded while saving ${key}. Primary data prioritized, clearing caches...`);
+        console.warn(`Quota exceeded while saving ${nsKey}. Primary data prioritized, clearing caches...`);
         
         // Priority order for clearing: logs -> presence -> ledger -> gallery -> receipts -> techniques
         const clearPriority = ['oss_logs', 'oss_presence', 'oss_ledger', 'oss_gallery', 'oss_receipts', 'oss_techniques'];
         
         for (const cacheKey of clearPriority) {
-          if (cacheKey !== key) {
-             localStorage.removeItem(cacheKey);
+          const nsCacheKey = getNamespaceKey(cacheKey);
+          if (nsCacheKey !== nsKey) {
+             localStorage.removeItem(nsCacheKey);
              // Try to save again after each removal
              try {
-               localStorage.setItem(key, JSON.stringify(value));
+               localStorage.setItem(nsKey, JSON.stringify(value));
                return; // Success!
              } catch (retryErr) {
                continue; // Still failing, try to remove next in priority
@@ -258,18 +285,17 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
            try {
              // Store only the 50 most recently updated students locally as a safety measure
              const subset = [...value].sort((a, b) => (b.lastSeen || 0) - (a.lastSeen || 0)).slice(0, 50);
-             localStorage.setItem(key, JSON.stringify(subset));
+             localStorage.setItem(nsKey, JSON.stringify(subset));
            } catch (subsetErr) {
              console.error("Could not even save student subset to LocalStorage.");
            }
         }
       } else {
-        console.error(`Error saving ${key} to local storage:`, e);
+        console.error(`Error saving ${nsKey} to local storage:`, e);
       }
     }
-  }, []);
+  }, [getNamespaceKey, user?.id, authRole, studentCode]);
 
-  const { user, role: authRole, studentCode } = useAuth();
   const [students, setStudents] = useState<Student[]>(() => {
     const raw = loadSafely('oss_students', []);
     return raw.map((s: any) => ({
@@ -557,6 +583,74 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       );
     });
   }, [students]);
+
+  // 🥋 SENSEI ACCOUNT SWITCH RESET AND LOAD SYSTEM
+  useEffect(() => {
+    const userId = user?.id || (authRole === 'student' && studentCode ? `student_${studentCode}` : 'anonymous');
+    
+    // Set the state ref first to prevent any auto-saves from executing with the old data under the new namespace
+    lastStateUserRef.current = userId;
+
+    // Reset fetch control refs so they are forced to run for the new user immediately
+    fetchingRef.current = false;
+    loadingRef.current = false;
+    lastBatchRunRef.current = 0;
+    scanPerformedRef.current = false;
+
+    // Clear general session storage for safety
+    try {
+      sessionStorage.removeItem("sysbjj_batch");
+      sessionStorage.removeItem("sysbjj_batch_time");
+    } catch (e) {
+      console.warn("Failed resetting session cache on user change", e);
+    }
+
+    // Helper to load user-specific cached values or reset to fallback
+    const getUserKey = (baseKey: string) => userId !== 'anonymous' ? `usr_${userId}_${baseKey}` : baseKey;
+
+    const loadUserSafely = (key: string, fallback: any) => {
+      try {
+        const saved = localStorage.getItem(getUserKey(key));
+        if (!saved || saved === 'undefined') return fallback;
+        const parsed = JSON.parse(saved);
+        return Array.isArray(parsed) ? parsed : fallback;
+      } catch (e) {
+        return fallback;
+      }
+    };
+
+    console.log(`🥋 [USER_SWITCH] Triggered accounts switch for: ${userId}. Clearing stale data and reloading separate user states.`);
+
+    // Update all user-dependent states to new namespaces or fallbacks
+    const rawSt = loadUserSafely('oss_students', []);
+    setStudents(rawSt.map((s: any) => ({
+      ...s,
+      belt: s.belt || "Branca",
+      degrees: Number(s.degrees || 0),
+      stripes: Number(s.stripes || 0)
+    })));
+    setPayments(loadUserSafely('oss_payments', []));
+    setSchedules(loadUserSafely('oss_schedules', DEFAULT_SCHEDULES));
+    setGallery(loadUserSafely('oss_gallery', []));
+    setExtraRevenue(loadUserSafely('oss_extra_revenue', []));
+    setOrders(loadUserSafely('oss_orders', []));
+    setLessonPlans(loadUserSafely('oss_lesson_plans', []));
+    setTechniques(loadUserSafely('oss_techniques', DEFAULT_TECHNIQUES));
+    setProducts(loadUserSafely('oss_products', DEFAULT_PRODUCTS));
+    setPlans(loadUserSafely('oss_plans', DEFAULT_PLANS));
+    setReceipts(loadUserSafely('oss_receipts', []));
+    setLedger(loadUserSafely('oss_ledger', []));
+    setGraduationHistory(loadUserSafely('oss_graduation_history', []));
+    setProfessorRules(loadUserSafely('oss_professor_rules', [
+      { id: 'rule-1', name: 'Presença Mensal (>12)', weight: 0.3 },
+      { id: 'rule-2', name: 'Domínio Técnico (Exame)', weight: 0.4 },
+      { id: 'rule-3', name: 'Comportamento & Disciplina', weight: 0.2 },
+      { id: 'rule-4', name: 'Conhecimento de Regras', weight: 0.1 }
+    ]));
+    setLogs([]);
+    setNotifications([]);
+    
+  }, [user?.id, authRole, studentCode]);
 
   /**
    * Sincronização Principal com o Banco de Dados (Neon/Prisma)
