@@ -336,11 +336,37 @@ export async function dataHandler(req: AuthRequest, res: Response) {
         } catch (e) {}
       }
 
+      // 🥋 Verificações adicionais baseadas em constraints de unicidade
+      if (!exists) {
+        if (modelName === 'presence') {
+          const uniqueEmail = payload.email;
+          const uniqueDevId = payload.deviceId;
+          if (uniqueEmail && uniqueDevId) {
+            try {
+              exists = await model.findFirst({
+                where: {
+                  email: uniqueEmail,
+                  deviceId: uniqueDevId
+                }
+              });
+            } catch (e) {}
+          }
+        } else if (modelName === 'professorProfile') {
+          try {
+            exists = await model.findUnique({
+              where: { userId: uid }
+            });
+          } catch (e) {}
+        }
+      }
+
       const isNew = !exists;
 
       // 2. Determinar ID final para gravação ou atualização antes da sanitização
       let finalId = id;
-      if (!finalId || finalId === 'new') {
+      if (exists) {
+        finalId = exists.id;
+      } else if (!finalId || finalId === 'new') {
         if (modelName === 'student') finalId = `STUD-${Date.now()}`;
         else if (modelName === 'presence') finalId = `PRES-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
         else if (modelName === 'notification') finalId = `NOTIF-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
