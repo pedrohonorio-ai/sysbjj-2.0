@@ -15,9 +15,9 @@ const DatabaseWarning: React.FC = () => {
     setTestStatus('testing');
     try {
       const data = await api.testDbConnection();
-      if (data.status === 'connected') {
+      if (data.status === 'ok' || data.database === 'connected') {
         setTestStatus('success');
-        setTestMessage(data.info || data.message || "OSS! Conexão restabelecida.");
+        setTestMessage(data.sensei_message || data.message || "OSS! Conexão restabelecida.");
         setTimeout(() => window.location.reload(), 2000);
       } else {
         setTestStatus('error');
