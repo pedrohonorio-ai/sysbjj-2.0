@@ -23,6 +23,13 @@ export const serializeData = (data: any) => {
 export const enrichStudent = (s: any) => {
   if (!s || typeof s !== 'object') return s;
 
+  let unpacked: any = {};
+  if (s.history && typeof s.history === 'object' && !Array.isArray(s.history)) {
+    if ((s.history as any)._packed_fields) {
+      unpacked = { ...(s.history as any)._packed_fields };
+    }
+  }
+
   const beltSinceDate =
     s.beltSince
       ? new Date(s.beltSince)
@@ -55,6 +62,7 @@ export const enrichStudent = (s: any) => {
   nextPromotion.setMonth(nextPromotion.getMonth() + minMonths);
 
   return {
+    ...unpacked,
     ...s,
     stripes: s.stripes ?? 0,
     instructorId: s.userId || '',
@@ -173,6 +181,66 @@ const BIGINT_FIELDS: Record<string, string[]> = {
   presence: ['lastSeen']
 };
 
+const VALID_MODEL_FIELDS: Record<string, string[]> = {
+  user: [
+    'id', 'email', 'password', 'name', 'role', 'active', 'deletedAt', 'createdAt', 'updatedAt', 'lastLoginAt', 'lastActivityAt'
+  ],
+  subscription: [
+    'id', 'userId', 'plan', 'studentLimit', 'maxStudents', 'currentStudents', 'monthlyPrice', 'customPrice', 'billingCycle', 'status', 'paymentStatus', 'active', 'expiresAt', 'startedAt', 'paymentDate', 'renewalEnabled', 'grantedByAdmin', 'isSocialProject', 'socialProjectName', 'socialDescription', 'approvedBy', 'nonprofit', 'pixKey', 'pixHolder', 'pixCity', 'createdAt', 'updatedAt'
+  ],
+  subscriptionPaymentHistory: [
+    'id', 'userId', 'amount', 'date', 'proofUrl', 'billingCycle', 'status', 'approvedBy', 'notes', 'createdAt'
+  ],
+  student: [
+    'id', 'userId', 'name', 'nickname', 'email', 'phone', 'birthDate', 'gender', 'cpf', 'rg', 'weight', 'height', 'category', 'belt', 'stripes', 'degrees', 'status', 'monthlyValue', 'dueDay', 'attendanceCount', 'currentStreak', 'behaviorScore', 'rewardPoints', 'active', 'isInstructor', 'isKid', 'lastSeen', 'photoUrl', 'lastAttendanceDate', 'lastPaymentDate', 'joinedAt', 'createdAt', 'updatedAt', 'attendanceHistory', 'history', 'techniques', 'goals', 'feedbacks', 'completedRuleLessons', 'milestones', 'technicalMetrics', 'performanceRatings', 'sparringLogs', 'competitions'
+  ],
+  payment: [
+    'id', 'userId', 'studentId', 'name', 'amount', 'date', 'method', 'status', 'createdAt'
+  ],
+  paymentReceipt: [
+    'id', 'userId', 'studentId', 'amount', 'date', 'method', 'notes', 'timestamp', 'createdAt'
+  ],
+  classSchedule: [
+    'id', 'userId', 'title', 'day', 'time', 'duration', 'instructor', 'level', 'createdAt', 'updatedAt'
+  ],
+  presence: [
+    'id', 'userId', 'email', 'role', 'lastSeen', 'userAgent', 'deviceId', 'createdAt', 'updatedAt'
+  ],
+  graduationHistory: [
+    'id', 'studentId', 'previousBelt', 'newBelt', 'previousStripes', 'newStripes', 'promotedAt', 'promotedBy', 'notes', 'ibjjfValidated'
+  ],
+  notification: [
+    'id', 'userId', 'title', 'message', 'type', 'priority', 'read', 'createdAt'
+  ],
+  systemLog: [
+    'id', 'userId', 'userEmail', 'action', 'details', 'category', 'deviceInfo', 'timestamp', 'createdAt'
+  ],
+  professorProfile: [
+    'id', 'userId', 'name', 'academyName', 'bio', 'photoUrl', 'phone', 'address', 'city', 'state', 'belt', 'createdAt', 'updatedAt'
+  ],
+  plan: [
+    'id', 'userId', 'name', 'price', 'description', 'features', 'active', 'createdAt', 'updatedAt'
+  ],
+  transactionLedger: [
+    'id', 'userId', 'type', 'amount', 'category', 'description', 'date', 'timestamp', 'createdAt'
+  ],
+  extraRevenue: [
+    'id', 'userId', 'description', 'amount', 'date', 'category', 'createdAt'
+  ],
+  lessonPlan: [
+    'id', 'userId', 'title', 'description', 'content', 'belt', 'duration', 'createdAt', 'updatedAt'
+  ],
+  libraryTechnique: [
+    'id', 'userId', 'title', 'description', 'category', 'belt', 'videoUrl', 'content', 'createdAt', 'updatedAt'
+  ],
+  product: [
+    'id', 'userId', 'name', 'description', 'price', 'stock', 'category', 'imageUrl', 'active', 'createdAt', 'updatedAt'
+  ],
+  kimonoOrder: [
+    'id', 'userId', 'studentId', 'productId', 'quantity', 'totalPrice', 'status', 'notes', 'createdAt', 'updatedAt'
+  ]
+};
+
 const MODELS_WITHOUT_USERID = ['graduationHistory'];
 
 /* =========================
@@ -270,14 +338,26 @@ export async function dataHandler(req: AuthRequest, res: Response) {
 
       const isNew = !exists;
 
-      // 2. Sanitizar payload com base nos tipos de campos do Prisma
+      // 2. Determinar ID final para gravação ou atualização antes da sanitização
+      let finalId = id;
+      if (!finalId || finalId === 'new') {
+        if (modelName === 'student') finalId = `STUD-${Date.now()}`;
+        else if (modelName === 'presence') finalId = `PRES-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+        else if (modelName === 'notification') finalId = `NOTIF-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+        else finalId = undefined; // Deixa o cuid() padrão do Prisma resolver
+      }
+
+      // 3. Sanitizar payload com base nos tipos de campos do Prisma
       const cleanPayload: any = {};
+      const extraFields: any = {};
       
       // Defaults e correções especiais
       if (modelName === 'student') {
         payload.belt = payload.belt || 'Branca';
         payload.stripes = payload.stripes !== undefined ? payload.stripes : 0;
       }
+
+      const validFields = VALID_MODEL_FIELDS[modelName] || [];
 
       for (const key of Object.keys(payload)) {
         // Ignora campos de relação Prisma para evitar quebras de validação
@@ -290,22 +370,54 @@ export async function dataHandler(req: AuthRequest, res: Response) {
           continue;
         }
 
-        if (NUMERIC_FIELDS[modelName]?.includes(key)) {
-          cleanPayload[key] = val !== null && val !== undefined ? Number(val) : undefined;
-        } else if (BIGINT_FIELDS[modelName]?.includes(key)) {
-          cleanPayload[key] = val !== null && val !== undefined ? BigInt(val) : undefined;
+        if (validFields.includes(key)) {
+          if (NUMERIC_FIELDS[modelName]?.includes(key)) {
+            cleanPayload[key] = val !== null && val !== undefined ? Number(val) : undefined;
+          } else if (BIGINT_FIELDS[modelName]?.includes(key)) {
+            cleanPayload[key] = val !== null && val !== undefined ? BigInt(val) : undefined;
+          } else {
+            cleanPayload[key] = val;
+          }
         } else {
-          cleanPayload[key] = val;
+          // Campo extra não persistido nas colunas nativas do banco
+          extraFields[key] = val;
         }
       }
 
-      // 3. Determinar ID final para gravação ou atualização
-      let finalId = id;
-      if (!finalId || finalId === 'new') {
-        if (modelName === 'student') finalId = `STUD-${Date.now()}`;
-        else if (modelName === 'presence') finalId = `PRES-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
-        else if (modelName === 'notification') finalId = `NOTIF-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
-        else finalId = undefined; // Deixa o cuid() padrão do Prisma resolver
+      // Se existirem campos extras, os empacotamos de forma transparente no campo JSON de fallback (como history nos estudantes)
+      if (Object.keys(extraFields).length > 0) {
+        if (modelName === 'student') {
+          let historyObj: any = {};
+          
+          // Se for atualização, recuperamos os campos empacotados anteriormente para mesclar
+          if (!isNew && finalId) {
+            try {
+              const currentRecord = await model.findUnique({ where: { id: finalId } });
+              if (currentRecord && currentRecord.history) {
+                const curHist = typeof currentRecord.history === 'string' ? JSON.parse(currentRecord.history) : currentRecord.history;
+                if (curHist && typeof curHist === 'object' && !Array.isArray(curHist)) {
+                  historyObj = { ...curHist };
+                }
+              }
+            } catch (err) {
+              console.error("🥋 [PRISMA HYDRATION MERGE FAIL]:", err);
+            }
+          }
+
+          if (payload.history && typeof payload.history === 'object') {
+            if (Array.isArray(payload.history)) {
+              historyObj.items = payload.history;
+            } else {
+              historyObj = { ...historyObj, ...payload.history };
+            }
+          }
+
+          historyObj._packed_fields = {
+            ...(historyObj._packed_fields || {}),
+            ...extraFields
+          };
+          cleanPayload.history = historyObj;
+        }
       }
 
       const hasUserIdField = !MODELS_WITHOUT_USERID.includes(modelName);

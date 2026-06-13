@@ -671,8 +671,7 @@ setDbStatus({
   }, [
     isAuthenticated,
     user?.id,
-    applyBatchResults,
-    students.length
+    applyBatchResults
   ]);
 
   // Persistência automática em cada mudança (Local Storage as fallback for UI smoothness)

@@ -295,8 +295,30 @@ protectedRouter.delete("/data/:collection/:id", safeHandler(async (req: any, res
     }
 
     try {
+        const getPrismaModelName = (coll: string): string => {
+            const c = coll.toLowerCase();
+            if (c === 'students' || c === 'student') return 'student';
+            if (c === 'payments' || c === 'payment') return 'payment';
+            if (c === 'schedules' || c === 'schedule') return 'classSchedule';
+            if (c === 'logs' || c === 'log') return 'systemLog';
+            if (c === 'profile' || c === 'profiles') return 'professorProfile';
+            if (c === 'notification' || c === 'notifications') return 'notification';
+            if (c === 'presence' || c === 'presences') return 'presence';
+            if (c === 'receipts' || c === 'receipt') return 'paymentReceipt';
+            if (c === 'ledger') return 'transactionLedger';
+            if (c === 'extra_revenue') return 'extraRevenue';
+            if (c === 'orders' || c === 'order') return 'kimonoOrder';
+            if (c === 'lesson_plans' || c === 'lesson_plan') return 'lessonPlan';
+            if (c === 'techniques' || c === 'technique') return 'libraryTechnique';
+            if (c === 'products' || c === 'product') return 'product';
+            if (c === 'plans' || c === 'plan') return 'plan';
+            if (c === 'graduationhistory' || c === 'graduation_history' || c === 'graduationhistoryrecords') return 'graduationHistory';
+            return c;
+        };
+
+        const modelName = getPrismaModelName(collection);
         const anyPrisma = prisma as any;
-        if (anyPrisma[collection]) {
+        if (anyPrisma[modelName]) {
             let studentName = id;
             if (lowerColl === 'student' || lowerColl === 'students') {
                 try {
@@ -305,9 +327,9 @@ protectedRouter.delete("/data/:collection/:id", safeHandler(async (req: any, res
                 } catch (e) {}
             }
 
-            const result = await anyPrisma[collection].deleteMany({ where: { id, userId: String(userId) } });
+            const result = await anyPrisma[modelName].deleteMany({ where: { id, userId: String(userId) } });
 
-            if (collection === 'students' && result.count > 0) {
+            if ((lowerColl === 'student' || lowerColl === 'students') && result.count > 0) {
                 updateSubscriptionPlan(String(userId));
                 try {
                     await prisma.systemLog.create({
@@ -326,7 +348,7 @@ protectedRouter.delete("/data/:collection/:id", safeHandler(async (req: any, res
 
             res.json({ success: true, count: result.count });
         } else {
-            res.status(404).json({ error: "Collection not found" });
+            res.status(404).json({ error: "Collection not found: " + collection });
         }
     } catch (error: any) {
         res.status(500).json({ error: error.message });
