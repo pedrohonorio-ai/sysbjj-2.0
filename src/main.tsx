@@ -19,6 +19,35 @@ document.documentElement.lang = savedLanguage;
 
 // 🥋 OSS SENSEI: Global Premium Custom Dialog & Interceptor System
 if (typeof window !== "undefined") {
+  // Global handler for chunk loading or dynamic import failures
+  const handleChunkError = (error: any) => {
+    const errorMsg = error?.message || (typeof error === 'string' ? error : '');
+    const isChunkError = 
+      errorMsg.includes("Failed to fetch dynamically imported module") || 
+      errorMsg.includes("ChunkLoadError") ||
+      errorMsg.includes("dynamically imported module") ||
+      errorMsg.includes("Load chunk") ||
+      (error && error.name === "ChunkLoadError");
+
+    if (isChunkError) {
+      console.warn("🥋 [DYNAMIC IMPORT RECOVERY] Chunk error detected! Reloading page to fetch updated application bundle...");
+      const lastRetry = sessionStorage.getItem('chunk_retry_time');
+      const now = Date.now();
+      if (!lastRetry || now - parseInt(lastRetry, 10) > 8000) {
+        sessionStorage.setItem('chunk_retry_time', String(now));
+        window.location.reload();
+      }
+    }
+  };
+
+  window.addEventListener('error', (event) => {
+    handleChunkError(event.error || event.message);
+  });
+
+  window.addEventListener('unhandledrejection', (event) => {
+    handleChunkError(event.reason);
+  });
+
   window.alert = (message: string) => {
     const container = document.getElementById('sovereign-dialog-container') || (() => {
       const el = document.createElement('div');
@@ -210,6 +239,24 @@ class ErrorBoundary extends React.Component<{ children: React.ReactNode }, { has
 
   componentDidCatch(error: Error, errorInfo: React.ErrorInfo) {
     console.error("ErrorBoundary caught an error", error, errorInfo);
+    
+    const errorMsg = error?.message || '';
+    const isChunkError = 
+      errorMsg.includes("Failed to fetch dynamically imported module") || 
+      errorMsg.includes("ChunkLoadError") ||
+      errorMsg.includes("dynamically imported module") ||
+      errorMsg.includes("Load chunk") ||
+      (error && error.name === "ChunkLoadError");
+
+    if (isChunkError) {
+      console.warn("🥋 [DYNAMIC IMPORT RECOVERY] Chunk error detected in ErrorBoundary! Reloading page...");
+      const lastRetry = sessionStorage.getItem('chunk_retry_time');
+      const now = Date.now();
+      if (!lastRetry || now - parseInt(lastRetry, 10) > 8000) {
+        sessionStorage.setItem('chunk_retry_time', String(now));
+        window.location.reload();
+      }
+    }
   }
 
   render() {

@@ -450,13 +450,55 @@ export async function dataHandler(req: AuthRequest, res: Response) {
 
       let result: any;
       if (isNew) {
-        result = await model.create({
-          data: {
-            ...cleanPayload,
-            ...(finalId ? { id: finalId } : {}),
-            ...(hasUserIdField ? { userId: uid } : {})
+        try {
+          result = await model.create({
+            data: {
+              ...cleanPayload,
+              ...(finalId ? { id: finalId } : {}),
+              ...(hasUserIdField ? { userId: uid } : {})
+            }
+          });
+        } catch (err: any) {
+          // 🥋 FALLBACK DE CONCORRÊNCIA SENSEI
+          // Se houver conflito de chave única (ex: inserções simultâneas de presence ou profile), tentamos atualizar o registro existente
+          const isUniqueError = err.code === 'P2002' || String(err.message || '').includes('Unique constraint failed');
+          if (isUniqueError) {
+            console.warn(`🥋 [CONCURRENCY GUARD] Conflito de chave única (P2002) para '${modelName}'. Convertendo para UPDATE.`);
+            let existingRecord = null;
+            
+            if (modelName === 'presence') {
+              const uniqueEmail = cleanPayload.email;
+              const uniqueDevId = cleanPayload.deviceId;
+              if (uniqueEmail && uniqueDevId) {
+                existingRecord = await model.findFirst({
+                  where: {
+                    email: uniqueEmail,
+                    deviceId: uniqueDevId
+                  }
+                });
+              }
+            } else if (modelName === 'professorProfile') {
+              existingRecord = await model.findUnique({
+                where: { userId: uid }
+              });
+            }
+
+            if (existingRecord) {
+              result = await model.update({
+                where: { id: existingRecord.id },
+                data: {
+                  ...cleanPayload,
+                  ...(hasUserIdField ? { userId: uid } : {}),
+                  updatedAt: new Date()
+                }
+              });
+            } else {
+              throw err;
+            }
+          } else {
+            throw err;
           }
-        });
+        }
       } else {
         result = await model.update({
           where: { id: finalId },
