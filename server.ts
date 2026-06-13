@@ -406,6 +406,13 @@ async function startServer() {
     // SPA Fallback: Use a middleware that serves index.html for non-API requests
     app.all('/{*path}', (req, res, next) => {
       if (req.path.startsWith('/api')) return next();
+      
+      // If requesting a static file extension that wasn't served by express.static, return a proper 404
+      const hasExtension = /\.[a-zA-Z0-9]{2,5}$/.exec(req.path);
+      if (hasExtension) {
+        return res.status(404).send('Not Found');
+      }
+      
       res.sendFile(path.join(distPath, 'index.html'));
     });
   }

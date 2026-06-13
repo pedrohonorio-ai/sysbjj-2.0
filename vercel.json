@@ -14,7 +14,7 @@
       "destination": "/api/index.ts"
     },
     {
-      "source": "/(.*)",
+      "source": "/((?!.*\\.[a-z0-9]+$).*)",
       "destination": "/index.html"
     }
   ]
