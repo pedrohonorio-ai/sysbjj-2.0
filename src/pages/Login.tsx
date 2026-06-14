@@ -35,6 +35,33 @@ const Login: React.FC = () => {
     }
   }, [isRecovering]);
 
+  useEffect(() => {
+    const path = window.location.pathname;
+    if (path.startsWith('/portal/')) {
+      const code = path.substring(8).toUpperCase().trim();
+      if (code && code.length >= 4) {
+        setActiveTab('student');
+        setStudentCodeInput(code);
+        
+        // Auto sign-in!
+        const autoLogin = async () => {
+          setLoading(true);
+          setError('');
+          try {
+            await setStudentAuth(code);
+            toast.success("OSS! Acesso concedido.");
+          } catch (err: any) {
+            console.error("Auto student login failed:", err);
+            setError(err.message || 'Código de acesso inválido.');
+          } finally {
+            setLoading(false);
+          }
+        };
+        autoLogin();
+      }
+    }
+  }, []);
+
   const [currentTime, setCurrentTime] = useState(new Date());
 
   useEffect(() => {
@@ -206,10 +233,21 @@ const Login: React.FC = () => {
     }
   };
 
-  const handleStudentLogin = (e: React.FormEvent) => {
+  const handleStudentLogin = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (studentCodeInput.length >= 4) {
-      setStudentAuth(studentCodeInput);
+    if (studentCodeInput.trim().length >= 4) {
+      setLoading(true);
+      setError('');
+      try {
+        await setStudentAuth(studentCodeInput.trim().toUpperCase());
+        toast.success("OSS! Acesso concedido.");
+      } catch (err: any) {
+        const msg = err.message || 'Código de acesso inválido.';
+        setError(msg);
+        toast.error(msg);
+      } finally {
+        setLoading(false);
+      }
     } else {
       setError(t('login.studentNotFound'));
       setTimeout(() => setError(''), 3000);

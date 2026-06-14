@@ -517,3 +517,78 @@ export const resetPasswordHandler = async (req: Request, res: Response) => {
     return res.status(500).json({ success: false, error: 'Erro de banco de dados ao salvar nova senha. Tente novamente.' });
   }
 };
+
+export const studentLoginHandler = async (req: Request, res: Response) => {
+  const { code } = req.body;
+  if (!code) {
+    return res.status(400).json({ success: false, error: 'Código de acesso é obrigatório.' });
+  }
+
+  try {
+    // 🥋 Buscar todos os alunos no banco para localizar pelo campo dinâmico de história
+    const allStudents = await prisma.student.findMany({
+      select: {
+        id: true,
+        userId: true,
+        name: true,
+        email: true,
+        history: true,
+        status: true
+      }
+    });
+
+    const targetCode = String(code).trim().toUpperCase();
+
+    // Encontrar o aluno matches por portalAccessCode
+    const matchedStudent = allStudents.find(s => {
+      let portalAccessCode = '';
+      if (s.history && typeof s.history === 'object' && !Array.isArray(s.history)) {
+        const hist: any = s.history;
+        if (hist._packed_fields && hist._packed_fields.portalAccessCode) {
+          portalAccessCode = String(hist._packed_fields.portalAccessCode).trim().toUpperCase();
+        }
+      }
+      return portalAccessCode === targetCode;
+    });
+
+    if (!matchedStudent) {
+      console.warn(`🥋 [STUDENT LOGIN] Código de acesso inválido: ${targetCode}`);
+      return res.status(404).json({ success: false, error: 'Código de acesso inexistente (Invalid Code).' });
+    }
+
+    // Gerar token de estudante referenciando o ID do professor para carregar de forma transparente
+    const token = jwt.sign(
+      {
+        id: matchedStudent.userId,
+        studentId: matchedStudent.id,
+        email: matchedStudent.email || `student_${matchedStudent.id}@sysbjj.dev`,
+        role: 'student',
+        studentCode: targetCode
+      },
+      JWT_SECRET,
+      { expiresIn: '30d' }
+    );
+
+    console.log(`✅ [STUDENT LOGIN SUCCESS] Aluno autenticado: ${matchedStudent.name}, Professor ID: ${matchedStudent.userId}`);
+    return res.json({
+      success: true,
+      token,
+      role: 'student',
+      studentCode: targetCode,
+      studentId: matchedStudent.id,
+      userId: matchedStudent.userId,
+      user: {
+        id: matchedStudent.userId,
+        studentId: matchedStudent.id,
+        email: matchedStudent.email || `student_${matchedStudent.id}@sysbjj.dev`,
+        name: matchedStudent.name,
+        role: 'student'
+      }
+    });
+
+  } catch (error: any) {
+    console.error(`❌ [STUDENT LOGIN ERRO] Falha ao autenticar o aluno:`, error);
+    return res.status(500).json({ success: false, error: 'Erro interno ao validar código de acesso do aluno.' });
+  }
+};
+

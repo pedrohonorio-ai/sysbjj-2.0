@@ -5,7 +5,7 @@ import healthHandler from "../backend/handlers/health.js";
 import healthDbHandler from "../backend/handlers/health-db.js";
 import healthDbRlsHandler from "../backend/handlers/health-db-rls.js";
 import biHandler from "../backend/handlers/bi.js";
-import { loginHandler, registerHandler, forgotPasswordHandler, resetPasswordHandler } from "../backend/handlers/auth.js";
+import { loginHandler, registerHandler, forgotPasswordHandler, resetPasswordHandler, studentLoginHandler } from "../backend/handlers/auth.js";
 import { authenticate, AuthRequest } from "../backend/authMiddleware.js";
 import batchHandler from "../backend/handlers/batch.js";
 import { dataHandler } from "../backend/handlers/data.js";
@@ -82,6 +82,7 @@ app.post("/api/auth/login", safeHandler(loginHandler));
 app.post("/api/auth/register", safeHandler(registerHandler));
 app.post("/api/auth/forgot-password", safeHandler(forgotPasswordHandler));
 app.post("/api/auth/reset-password", safeHandler(resetPasswordHandler));
+app.post("/api/auth/student-login", safeHandler(studentLoginHandler));
 
 app.post("/api/auth/admin/reset-password", authenticate as any, async (req: any, res: any) => {
   const isMaster = req.user?.email?.toLowerCase() === "pedro.honorio@gm.rio" || req.user?.role === "MASTER";

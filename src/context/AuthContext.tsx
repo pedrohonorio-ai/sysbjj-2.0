@@ -23,7 +23,7 @@ interface AuthContextType extends AuthState {
   register: (email: string, pass: string, name?: string) => Promise<any>;
   logout: () => Promise<void>;
   resetPassword: (email: string) => Promise<void>;
-  setStudentAuth: (code: string) => void;
+  setStudentAuth: (code: string) => Promise<any>;
   isRecovering: boolean;
 }
 
@@ -237,10 +237,43 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   };
 
-  const setStudentAuth = (code: string) => {
-    setRole('student');
-    setStudentCode(code);
-    localStorage.setItem('oss_auth', JSON.stringify({ isLoggedIn: true, role: 'student', studentCode: code }));
+  const setStudentAuth = async (code: string) => {
+    setLoading(true);
+    try {
+      const response = await fetch('/api/auth/student-login', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ code })
+      });
+
+      const result = await response.json();
+      if (!response.ok) {
+        throw new Error(result.error || 'Código de acesso inexistente (Invalid Code).');
+      }
+
+      const loggedUser = result.user;
+      setUser(loggedUser);
+      setRole('student');
+      setStudentCode(result.studentCode);
+
+      localStorage.setItem('oss_auth', JSON.stringify({
+        isLoggedIn: true,
+        role: 'student',
+        studentCode: result.studentCode,
+        userId: result.userId,
+        studentId: result.studentId,
+        token: result.token,
+        email: loggedUser.email,
+        name: loggedUser.name
+      }));
+
+      return { success: true, student: loggedUser };
+    } catch (error: any) {
+      console.error('🥋 [STUDENT AUTH SENSEI FAIL]:', error);
+      throw error;
+    } finally {
+      setLoading(false);
+    }
   };
 
   const isMasterAdmin = React.useMemo(() => {
