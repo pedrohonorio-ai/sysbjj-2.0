@@ -153,7 +153,7 @@ interface DataContextType {
     lastAuditTime: string | null;
     isValid: boolean;
   };
-  addStudent: (student: Omit<Student, 'id'>) => Promise<void>;
+  addStudent: (student: Omit<Student, 'id'>) => Promise<Student>;
   updateStudent: (id: string, updates: Partial<Student>) => Promise<void>;
   deleteStudent: (id: string) => void;
   addPayment: (payment: Omit<Payment, 'id'>) => void;
@@ -993,6 +993,7 @@ setDbStatus({
       }
       
       logAction('Novo Cadastro', `Alunos ${student.name} cadastrado`, 'User');
+      return newStudent;
     } catch (err) {
       console.error("Critical error adding student:", err);
       throw err; // Re-throw to be caught by UI

@@ -1149,7 +1149,7 @@ const BusinessHub: React.FC<BusinessHubProps> = ({ defaultTab }) => {
                     <div>
                       <p className="text-[8px] font-black text-slate-500 uppercase tracking-widest">Sua Chave de Licença Ativa</p>
                       <h3 className="text-xl font-black text-white uppercase italic leading-none flex items-center gap-2 mt-0.5">
-                        {currentPlanId}
+                        {currentPlanId === 'FREE' ? 'GRATUITO' : currentPlanId === 'SOCIAL PROJECT' ? 'PROJETO SOCIAL' : currentPlanId}
                         <span className={`text-[8px] font-black px-2 py-0.5 rounded border ${
                           sub?.active ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20' : 'bg-red-500/10 text-red-400 border-red-500/20'
                         }`}>

@@ -144,7 +144,10 @@ const Dashboard: React.FC = () => {
 
   const formattedPlan = useMemo(() => {
     const safePlan = typeof safeSubscription?.plan === 'string' ? safeSubscription.plan : 'FREE';
-    return safePlan.replaceAll("_", " ").toUpperCase();
+    const upPlan = safePlan.toUpperCase();
+    if (upPlan === 'FREE') return 'GRATUITO';
+    if (upPlan === 'SOCIAL_PROJECT') return 'PROJETO SOCIAL';
+    return upPlan.replaceAll("_", " ");
   }, [safeSubscription]);
 
   useEffect(() => {

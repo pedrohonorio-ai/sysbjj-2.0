@@ -40,7 +40,9 @@ import {
   Filter,
   ArrowRight,
   LayoutList,
-  UserCheck
+  UserCheck,
+  Pencil,
+  Edit3
 } from 'lucide-react';
 import { Student, StudentStatus, BeltColor, KidsBeltColor, Gender, CBJJCategory } from '../types.js';
 import { BELT_COLORS, IBJJF_BELT_RULES, MASTER_ADMINS } from '../constants/index.js';
@@ -233,7 +235,7 @@ const getIBJJFRealTimeCategoryString = (birthDate: string): string => {
   return 'Master 5';
 };
 
-const NewStudentModal = ({ onClose, defaultIsKid }: { onClose: () => void, defaultIsKid: boolean }) => {
+const NewStudentModal = ({ onClose, defaultIsKid }: { onClose: (createdStudent?: Student) => void, defaultIsKid: boolean }) => {
   const { t } = useTranslation();
   const { addStudent, schedules, students } = useData();
   const [error, setError] = useState<string | null>(null);
@@ -387,7 +389,7 @@ const NewStudentModal = ({ onClose, defaultIsKid }: { onClose: () => void, defau
     }
 
     try {
-      await addStudent({
+      const createdStudent = await addStudent({
         ...formData,
         stripes: Number(formData.stripes || 0),
         degrees: Number(formData.degrees || 0),
@@ -402,7 +404,7 @@ const NewStudentModal = ({ onClose, defaultIsKid }: { onClose: () => void, defau
         behaviorScore: 100,
         portalAccessCode: formData.portalAccessCode || `SYS-${formData.name.substring(0, 3).toUpperCase()}-${Math.floor(Math.random()*1000)}`,
       });
-      onClose();
+      onClose(createdStudent);
     } catch (err: any) {
       console.error("Error submitting student form:", err);
       // Sensei: Tratamento Amigável para Limite de Plano
@@ -427,7 +429,7 @@ const NewStudentModal = ({ onClose, defaultIsKid }: { onClose: () => void, defau
                 {activeTab.toUpperCase()} | {formData.isKid ? 'Kids' : 'Adult'}
               </p>
             </div>
-            <button onClick={onClose} className="p-2 text-slate-400 hover:text-red-600 transition-colors">
+            <button onClick={() => onClose()} className="p-2 text-slate-400 hover:text-red-600 transition-colors">
               <X size={28} />
             </button>
           </div>
@@ -1175,7 +1177,7 @@ const NewStudentModal = ({ onClose, defaultIsKid }: { onClose: () => void, defau
             <div className="flex gap-4 pt-6 border-t border-slate-100 dark:border-slate-800 sticky bottom-0 bg-white dark:bg-slate-900 mt-auto">
               <button 
                 type="button"
-                onClick={onClose}
+                onClick={() => onClose()}
                 className="flex-1 py-5 text-slate-400 rounded-[1.5rem] font-black uppercase tracking-[0.2em] text-[10px] transition-all hover:bg-slate-100 dark:hover:bg-slate-800"
               >
                 {t('common.cancel')}
@@ -1273,11 +1275,11 @@ const calculateBlackBeltGraduation = (blackBeltDateStr: any) => {
   };
 };
 
-const StudentDetailsModal = ({ student, onClose }: { student: Student; onClose: () => void }) => {
+const StudentDetailsModal = ({ student, onClose, initialTab = 'overview' }: { student: Student; onClose: () => void; initialTab?: 'overview' | 'analysis' | 'progress' | 'edit' | 'admin' | 'videos' | 'financial' | 'security' | 'contract' | 'health' | 'documents' }) => {
   const { profile } = useProfile();
   const { user } = useAuth();
   const isMasterAdmin = MASTER_ADMINS.includes(user?.email || '');
-  const [activeTab, setActiveTab] = useState<'overview' | 'analysis' | 'progress' | 'edit' | 'admin' | 'videos' | 'financial' | 'security' | 'contract' | 'health' | 'documents'>('overview');
+  const [activeTab, setActiveTab] = useState<'overview' | 'analysis' | 'progress' | 'edit' | 'admin' | 'videos' | 'financial' | 'security' | 'contract' | 'health' | 'documents'>(initialTab);
   const [editTab, setEditTab] = useState<'basics' | 'legal' | 'technical' | 'health'>('basics');
   const { t } = useTranslation();
   const { deleteStudent, updateStudent, schedules, ledger, students } = useData();
@@ -3408,6 +3410,7 @@ const Students: React.FC = () => {
   const [singleStudentToDelete, setSingleStudentToDelete] = useState<Student | null>(null);
   const [showBulkDeletionConfirm, setShowBulkDeletionConfirm] = useState(false);
   const [selectedStudent, setSelectedStudent] = useState<Student | null>(null);
+  const [selectedStudentInitialTab, setSelectedStudentInitialTab] = useState<'overview' | 'analysis' | 'progress' | 'edit' | 'admin' | 'videos' | 'financial' | 'security' | 'contract' | 'health' | 'documents'>('overview');
   const currentSelectedStudent = useMemo(() => {
     if (!selectedStudent) return null;
     return students.find(s => s.id === selectedStudent.id) || selectedStudent;
@@ -3933,6 +3936,17 @@ const Students: React.FC = () => {
                           <button 
                             onClick={(e) => {
                               e.stopPropagation();
+                              setSelectedStudent(student);
+                              setSelectedStudentInitialTab('edit');
+                            }}
+                            className="p-2 text-slate-400 hover:text-blue-600 transition-colors"
+                            title={t('common.editAction') || "Editar"}
+                          >
+                            <Pencil size={16} />
+                          </button>
+                          <button 
+                            onClick={(e) => {
+                              e.stopPropagation();
                               setConfirmModal({
                                 message: t('students.deleteConfirm') || "Sensei, deseja realmente excluir o cadastro deste atleta permanentemente?",
                                 onConfirm: () => deleteStudent(student.id)
@@ -4125,7 +4139,32 @@ const Students: React.FC = () => {
                           {student.nickname && <p className="text-[9px] text-slate-400 dark:text-slate-500 uppercase font-black mt-1 italic">"{student.nickname}"</p>}
                         </div>
                       </div>
-                      <MoreVertical size={18} className="text-slate-300" />
+                      <div className="flex items-center gap-1" onClick={(e) => e.stopPropagation()}>
+                        <button 
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setSelectedStudent(student);
+                            setSelectedStudentInitialTab('edit');
+                          }}
+                          className="p-1.5 text-slate-400 hover:text-blue-500 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg transition-all"
+                          title={t('common.editAction') || "Editar"}
+                        >
+                          <Pencil size={14} />
+                        </button>
+                        <button 
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setConfirmModal({
+                              message: t('students.deleteConfirm') || "Sensei, deseja realmente excluir o cadastro deste atleta permanentemente?",
+                              onConfirm: () => deleteStudent(student.id)
+                            });
+                          }}
+                          className="p-1.5 text-slate-400 hover:text-red-500 hover:bg-red-500/10 rounded-lg transition-all"
+                          title={t('students.deleteTitle')}
+                        >
+                          <Trash2 size={14} />
+                        </button>
+                      </div>
                     </div>
 
                     <div className="flex flex-wrap items-center gap-2">
@@ -4168,8 +4207,28 @@ const Students: React.FC = () => {
           </AnimatePresence>
         </div>
       
-      {selectedStudent && currentSelectedStudent && <StudentDetailsModal student={currentSelectedStudent} onClose={() => setSelectedStudent(null)} />}
-      {isAddingStudent && <NewStudentModal defaultIsKid={activeView === 'kids'} onClose={() => setIsAddingStudent(false)} />}
+      {selectedStudent && currentSelectedStudent && (
+        <StudentDetailsModal 
+          student={currentSelectedStudent} 
+          initialTab={selectedStudentInitialTab} 
+          onClose={() => {
+            setSelectedStudent(null);
+            setSelectedStudentInitialTab('overview');
+          }} 
+        />
+      )}
+      {isAddingStudent && (
+        <NewStudentModal 
+          defaultIsKid={activeView === 'kids'} 
+          onClose={(newStudent) => {
+            setIsAddingStudent(false);
+            if (newStudent) {
+              setSelectedStudent(newStudent);
+              setSelectedStudentInitialTab('edit');
+            }
+          }} 
+        />
+      )}
       {isSelectingCompetitors && <CompetitorSelectorModal onClose={() => setIsSelectingCompetitors(false)} />}
       {showBulkDeletionConfirm && (
         <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-slate-950/85 backdrop-blur-sm animate-in fade-in duration-300">

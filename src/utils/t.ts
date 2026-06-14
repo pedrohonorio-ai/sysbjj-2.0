@@ -232,7 +232,65 @@ const MANDATORY_DICTIONARY: Record<string, string> = {
   "common.update": "Atualizar",
   "common.success": "Sucesso",
   "common.error": "Erro",
-  "common.warning": "Aviso"
+  "common.warning": "Aviso",
+
+  // Belts mapping definitions for absolute compliance
+  "belts.White": "Branca",
+  "belts.Blue": "Azul",
+  "belts.Purple": "Roxa",
+  "belts.Brown": "Marrom",
+  "belts.Black": "Preta",
+  "belts.Red-Black": "Coral Vermelha e Preta",
+  "belts.Red-White": "Coral Vermelha e Branca",
+  "belts.Red": "Vermelha",
+  "belts.White-Gray": "Cinza e Branca",
+  "belts.Gray": "Cinza",
+  "belts.Gray-Black": "Cinza e Preta",
+  "belts.White-Yellow": "Amarela e Branca",
+  "belts.Yellow": "Amarela",
+  "belts.Black-Yellow": "Amarela e Preta",
+  "belts.White-Orange": "Laranja e Branca",
+  "belts.Orange": "Laranja",
+  "belts.Black-Orange": "Laranja e Preta",
+  "belts.White-Green": "Verde e Branca",
+  "belts.Green": "Verde",
+  "belts.Black-Green": "Verde e Preta",
+
+  "common.belts.White": "Branca",
+  "common.belts.Blue": "Azul",
+  "common.belts.Purple": "Roxa",
+  "common.belts.Brown": "Marrom",
+  "common.belts.Black": "Preta",
+  "common.belts.Red-Black": "Coral Vermelha e Preta",
+  "common.belts.Red-White": "Coral Vermelha e Branca",
+  "common.belts.Red": "Vermelha",
+  "common.belts.White-Gray": "Cinza e Branca",
+  "common.belts.Gray": "Cinza",
+  "common.belts.Gray-Black": "Cinza e Preta",
+  "common.belts.White-Yellow": "Amarela e Branca",
+  "common.belts.Yellow": "Amarela",
+  "common.belts.Black-Yellow": "Amarela e Preta",
+  "common.belts.White-Orange": "Laranja e Branca",
+  "common.belts.Orange": "Laranja",
+  "common.belts.Black-Orange": "Laranja e Preta",
+  "common.belts.White-Green": "Verde e Branca",
+  "common.belts.Green": "Verde",
+  "common.belts.Black-Green": "Verde e Preta",
+
+  "status.Waitlist": "Lista de Espera",
+  "students.statusWaitlist": "Fila de Espera",
+  "common.waitlistRank": "Posição na Fila",
+  "waitlist": "Lista de Espera",
+  "attendance.attendance": "Frequência",
+  "common.granted": "Concedido",
+  "granted": "Concedido",
+  "analysis.technicalArchetype": "Arquétipo Técnico",
+  "analysis.proAthlete": "Competidor / Atleta",
+  "analysis.standardPractitioner": "Praticante Padrão",
+  "audit.technicalIndex": "Índice Técnico",
+  "technicalIndex": "Índice Técnico",
+  "common.feedbackPlaceholder": "Digite observações técnicas gerais ou feedbacks do tatame...",
+  "feedbackPlaceholder": "Digite observações técnicas gerais ou feedbacks do tatame..."
 };
 
 // Technical terminology replacement map
@@ -326,9 +384,20 @@ export function tSafe(key: string, fallback?: string): string {
     return MANDATORY_DICTIONARY[key];
   }
 
-  const value = i18n.t(key);
-  
-  // 1. If key is missing (i18n returns the key name itself or is empty)
+  let value = i18n.t(key);
+  const keyLastPart = key.split('.').pop() || '';
+
+  // 1. If key is missing or is falling back to English because it's only nested under "common." in locales
+  if (!value || value === key || value === keyLastPart) {
+    if (!key.startsWith("common.")) {
+      const commonVal = i18n.t("common." + key);
+      if (commonVal && commonVal !== "common." + key && commonVal !== keyLastPart) {
+        value = commonVal;
+      }
+    }
+  }
+
+  // 2. If key is still missing (i18n returns the key name itself or is empty)
   if (!value || value === key) {
     if (fallback && fallback !== key) {
       return sanitizeText(fallback);
@@ -339,7 +408,7 @@ export function tSafe(key: string, fallback?: string): string {
     return normalizeLabel(key);
   }
   
-  // 2. If retrieved value is suspicious (contains underscore, dot, or camelCase without space)
+  // 3. If retrieved value is suspicious (contains underscore, dot, or camelCase without space)
   const isInternalKey = 
     value.includes('_') || 
     (value.includes('.') && !value.includes(' ')) || 
