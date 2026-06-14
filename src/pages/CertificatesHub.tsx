@@ -1585,7 +1585,7 @@ const CertificatesHub: React.FC = () => {
 
                 {/* 10 Professional Presets */}
                 <div className="space-y-2">
-                  <span className="text-[9px] font-black uppercase text-[#F59E0B] tracking-wider block">Escolha o Modelo Profissional (Requirement 12)</span>
+                  <span className="text-[9px] font-black uppercase text-[#F59E0B] tracking-wider block">Escolha o Modelo Profissional (Requisito 12)</span>
                   <div className="grid grid-cols-2 gap-1.5 max-h-48 overflow-y-auto pr-1">
                     {PROFESSIONAL_THEMES.map(theme => (
                       <button
@@ -1984,7 +1984,7 @@ const CertificatesHub: React.FC = () => {
             {selectedStudent && (
               <div className="p-6 bg-slate-900 border border-slate-800 rounded-[2rem] space-y-4">
                 <h3 className="text-xs font-black uppercase text-slate-400 tracking-widest flex items-center gap-1.5">
-                  <BookOpen size={13} className="text-blue-500" /> Linhagem Marcial (Requirement 4)
+                  <BookOpen size={13} className="text-blue-500" /> Linhagem Marcial (Requisito 4)
                 </h3>
 
                 <div className="grid grid-cols-2 gap-3.5">
@@ -2248,7 +2248,7 @@ const CertificatesHub: React.FC = () => {
                 </h3>
 
                 <div className="space-y-1.5">
-                  <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest">Selecione o Miolo d'Água (Behind-Text)</span>
+                  <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest">Selecione a Marca d'Água de Fundo (Atrás do Texto)</span>
                   <select 
                     value={watermarkOption}
                     onChange={(e) => {
@@ -2259,7 +2259,7 @@ const CertificatesHub: React.FC = () => {
                     <option value="academy">Logo do CT de Treino</option>
                     <option value="team">Logo da Equipe</option>
                     <option value="shield">Brasão da Academia</option>
-                    <option value="custom">Upload Imagem Custom</option>
+                    <option value="custom">Enviar Imagem Personalizada</option>
                     <option value="none">Nenhuma</option>
                   </select>
                 </div>
@@ -2305,7 +2305,7 @@ const CertificatesHub: React.FC = () => {
             {selectedStudent && (
               <div className="p-6 bg-slate-900 border border-slate-800 rounded-[2rem] space-y-4">
                 <h3 className="text-xs font-black uppercase text-slate-400 tracking-widest flex items-center gap-1.5">
-                  <Sparkles size={13} className="text-yellow-500" /> Biblioteca de Modelos Custom
+                  <Sparkles size={13} className="text-yellow-500" /> Biblioteca de Modelos Personalizados
                 </h3>
 
                 <div className="flex gap-2">

@@ -184,7 +184,7 @@ const Sidebar = ({ isOpen, toggle, onLogout, isMasterAdmin }: { isOpen: boolean,
                     <span className="text-[6.5px] font-black tracking-widest text-white uppercase italic whitespace-nowrap leading-none">Sensei Master</span>
                   </div>
                 ) : (
-                  <p className="text-[10px] text-blue-600 dark:text-blue-400 uppercase tracking-[0.3em] font-black leading-none">Academy Suite</p>
+                  <p className="text-[10px] text-blue-600 dark:text-blue-400 uppercase tracking-[0.3em] font-black leading-none">Gestão da Academia</p>
                 )}
               </motion.div>
             )}

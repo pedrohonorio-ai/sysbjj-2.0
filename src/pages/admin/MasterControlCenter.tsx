@@ -496,7 +496,7 @@ const MasterControlCenter: React.FC = () => {
             <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
               {[
                 { label: 'Academias Ativas', value: saasStats.activeAcademies, desc: 'Dojos independentes', icon: <Layers size={18} />, color: 'text-blue-500' },
-                { label: 'Usuários Registrados', value: saasStats.activeUsers, desc: 'Senseis administratos', icon: <Users size={18} />, color: 'text-indigo-500' },
+                { label: 'Usuários Registrados', value: saasStats.activeUsers, desc: 'Senseis administradores', icon: <Users size={18} />, color: 'text-indigo-500' },
                 { label: 'Clientes Online (3m)', value: saasStats.onlineCounter, desc: 'Sessões ativas no browser', icon: <Zap size={18} />, color: 'text-yellow-500' },
                 { label: 'Recorrência SaaS (MRR)', value: `R$ ${saasStats.mrr.toFixed(2)}`, desc: 'LTV em evolução', icon: <TrendingUp size={18} />, color: 'text-emerald-500' }
               ].map((card, i) => (
@@ -523,7 +523,7 @@ const MasterControlCenter: React.FC = () => {
 
                 <div className="space-y-4">
                   {[
-                    { plan: 'Plano FREE', qty: saasStats.plansCounts.FREE, details: 'Até 20 Alunos', color: 'bg-slate-500' },
+                    { plan: 'Plano GRATUITO', qty: saasStats.plansCounts.FREE, details: 'Até 20 Alunos', color: 'bg-slate-500' },
                     { plan: 'Plano BRONZE', qty: saasStats.plansCounts.BRONZE, details: 'Até 50 Alunos', color: 'bg-amber-600' },
                     { plan: 'Plano SILVER', qty: saasStats.plansCounts.SILVER, details: 'Até 150 Alunos', color: 'bg-emerald-600' },
                     { plan: 'Plano BLACK_BELT', qty: saasStats.plansCounts.BLACK_BELT, details: 'Acesso Ilimitado', color: 'bg-rose-600 animate-pulse' }

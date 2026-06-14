@@ -607,9 +607,9 @@ const AttendancePage: React.FC = () => {
                     onChange={e => setSelectedInstructor(e.target.value)}
                     className="w-full px-3 py-2 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl text-xs font-bold outline-none text-slate-900 dark:text-white"
                   >
-                    <option value="all">Todos os Sanseis</option>
+                    <option value="all">Todos os Senseis</option>
                     {instructors.map(inst => (
-                      <option key={inst} value={inst}>{inst}</option>
+                      <option key={inst} value={inst}>{inst.replace(/Sansei/gi, 'Sensei')}</option>
                     ))}
                   </select>
                 </div>

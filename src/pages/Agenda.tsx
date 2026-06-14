@@ -170,7 +170,7 @@ const Agenda: React.FC = () => {
                 : 'text-slate-400 hover:text-slate-600 dark:hover:text-white'
             }`}
           >
-            <Grid size={11} /> Grid
+            <Grid size={11} /> Grade
           </button>
           <button
             onClick={() => setViewMode('list')}

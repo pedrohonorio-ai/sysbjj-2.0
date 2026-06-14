@@ -555,7 +555,7 @@ export const SaaSControlCenter: React.FC = () => {
             <Award size={20} />
           </div>
           <div>
-            <p className="text-[9px] font-black text-slate-500 uppercase tracking-widest">Dojos PREMIUM / FREE</p>
+            <p className="text-[9px] font-black text-slate-500 uppercase tracking-widest">Dojos PREMIUM / GRATUITOS</p>
             <p className="text-2xl font-black text-white font-mono leading-none mt-1">
               {analytics.premiumCount} <span className="text-slate-500 text-sm">/ {analytics.freeCount}</span>
             </p>
@@ -798,7 +798,12 @@ export const SaaSControlCenter: React.FC = () => {
                           a.plan === 'SOCIAL_PROJECT' ? 'bg-emerald-950 text-emerald-400 border-emerald-500/25' :
                           'bg-slate-950 text-slate-500 border-slate-900'
                         }`}>
-                          {String(a.plan || 'FREE').replaceAll('_', ' ')}
+                          {(() => {
+                            const pStr = String(a.plan || 'FREE').toUpperCase();
+                            if (pStr === 'FREE') return 'GRATUITO';
+                            if (pStr === 'SOCIAL_PROJECT') return 'PROJETO SOCIAL';
+                            return pStr.replaceAll('_', ' ');
+                          })()}
                         </span>
                         {a.nonprofit && (
                           <div className="text-[9px] font-black text-emerald-400 uppercase tracking-widest mt-1.5 block">

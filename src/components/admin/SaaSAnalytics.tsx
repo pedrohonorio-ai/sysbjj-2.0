@@ -135,7 +135,7 @@ export const SaaSAnalytics: React.FC<SaaSAnalyticsProps> = ({ studentsCount, pay
                   <div className="text-right">
                     <p className="text-xs font-black text-slate-100">{plan.value} {plan.value === 1 ? 'academia' : 'academias'}</p>
                     <p className="text-[9px] font-bold text-slate-400">
-                      {Math.round((plan.value / saasStats.totalAcademies) * 100)}% de penetração
+                      {saasStats.totalAcademies > 0 ? Math.round((plan.value / saasStats.totalAcademies) * 100) : 0}% de penetração
                     </p>
                   </div>
                 </div>
