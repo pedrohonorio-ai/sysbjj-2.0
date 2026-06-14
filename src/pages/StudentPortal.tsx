@@ -1156,7 +1156,7 @@ const StudentPortal: React.FC = () => {
 
   return (
     <div className="min-h-screen bg-slate-50 dark:bg-slate-950 pb-24 transition-colors">
-      <main className="max-w-md mx-auto p-4 space-y-6">
+      <main className="max-w-7xl mx-auto p-4 md:p-8 space-y-8">
         {activeTab === 'home' && (
           <motion.div 
             initial={{ opacity: 0, y: 10 }}
@@ -1299,7 +1299,10 @@ const StudentPortal: React.FC = () => {
               </div>
             </div>
 
-            {/* CARD DE CLASSIFICAÇÃO AUTOMÁTICA IBJJF/CBJJ */}
+            {/* 🥋 Bento Columns of the Student Portal Dashboard */}
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 items-start">
+
+                {/* CARD DE CLASSIFICAÇÃO AUTOMÁTICA IBJJF/CBJJ */}
             {(() => {
               const ibjjfInfo = getIBJJFRealTimeCategory(student.birthDate);
               const badgeStyle = getCategoryBadgeStyle(ibjjfInfo.category);
@@ -1352,7 +1355,7 @@ const StudentPortal: React.FC = () => {
             <div className="bg-white dark:bg-slate-900 rounded-[2.5rem] p-6 border border-slate-200 dark:border-slate-800 shadow-sm space-y-4">
               <div className="flex justify-between items-center">
                 <div>
-                  <span className="text-[8px] font-black text-blue-600 dark:text-blue-400 uppercase tracking-widest block">Combat Core</span>
+                  <span className="text-[8px] font-black text-blue-600 dark:text-blue-400 uppercase tracking-widest block">{t('portal.combatCore', 'Núcleo de Combate')}</span>
                   <h4 className="text-sm font-black uppercase text-slate-900 dark:text-white">Modalidades Unificadas</h4>
                 </div>
                 <span className="text-[7.5px] bg-blue-600/10 text-blue-600 dark:text-blue-400 px-2.5 py-1 rounded-full font-black uppercase tracking-wider animate-pulse">Multidisciplinar</span>
@@ -1548,7 +1551,7 @@ const StudentPortal: React.FC = () => {
                       tick={{ fill: '#94a3b8', fontSize: 8, fontWeight: 900 }}
                     />
                     <Radar
-                      name="Student"
+                      name={t('common.student', 'Aluno')}
                       dataKey="A"
                       stroke="#2563eb"
                       fill="#2563eb"
@@ -2177,6 +2180,7 @@ const StudentPortal: React.FC = () => {
                   />
                 </div>
                 <p className="text-[8px] font-bold text-slate-400 uppercase tracking-widest italic text-center">Nível de mestre em andamento... Oss!</p>
+            </div>
             </div>
           </motion.div>
         )}

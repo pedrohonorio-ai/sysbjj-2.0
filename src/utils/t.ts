@@ -290,7 +290,28 @@ const MANDATORY_DICTIONARY: Record<string, string> = {
   "audit.technicalIndex": "Índice Técnico",
   "technicalIndex": "Índice Técnico",
   "common.feedbackPlaceholder": "Digite observações técnicas gerais ou feedbacks do tatame...",
-  "feedbackPlaceholder": "Digite observações técnicas gerais ou feedbacks do tatame..."
+  "feedbackPlaceholder": "Digite observações técnicas gerais ou feedbacks do tatame...",
+  
+  // 🥋 Portal do Aluno Translations
+  "portal.blockchainTitle": "Autenticidade Criptográfica",
+  "portal.blockchainDesc": "Sua graduação e histórico são selados de forma descentralizada.",
+  "portal.viewOnChain": "Verificar no Ledger",
+  "portal.combatCore": "Núcleo de Combate",
+  "portal.trainingRadar": "Radar de Competências",
+  "portal.tacticalIntelligence": "Inteligência Tática",
+  "portal.consistencyHeatmap": "Consistência de Presença",
+  "portal.attendanceTitle": "Minha Frequência",
+  "portal.student": "Aluno",
+  "portal.studentPortal": "Portal do Aluno",
+  "portal.navHome": "Portal",
+  "portal.navTraining": "Treinos",
+  "portal.navHomeTraining": "Home Treino",
+  "portal.navKnowledge": "Dojo",
+  "portal.navCommunity": "Social",
+  "portal.navWallet": "Financeiro",
+  "portal.navGallery": "Memórias",
+  "portal.navTimer": "Cronômetro",
+  "portal.navRules": "Regulamento"
 };
 
 // Technical terminology replacement map
