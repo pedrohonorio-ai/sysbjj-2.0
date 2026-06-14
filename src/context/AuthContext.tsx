@@ -7,6 +7,7 @@ export interface User {
   email: string;
   name?: string;
   role: 'admin' | 'student' | 'MASTER';
+  studentId?: string;
 }
 
 interface AuthState {
@@ -77,6 +78,13 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           });
           setRole('admin');
         } else if (parsed.role === 'student') {
+          setUser({
+            id: parsed.userId,
+            studentId: parsed.studentId,
+            email: parsed.email || `student_${parsed.studentId}@sysbjj.dev`,
+            name: parsed.name || 'Estudante',
+            role: 'student'
+          });
           setRole('student');
           setStudentCode(parsed.studentCode);
         }
