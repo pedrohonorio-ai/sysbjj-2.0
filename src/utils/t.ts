@@ -326,7 +326,31 @@ const MANDATORY_DICTIONARY: Record<string, string> = {
   "portal.offense": "Ataques de Guarda",
   "portal.physicalCondition": "Condicionamento Físico",
   "portal.technicalGrade": "Precisão Técnica",
-  "portal.schoolAverage": "Média do Dojo"
+  "portal.schoolAverage": "Média do Dojo",
+  "portal.myCategory": "Minha Categoria",
+  "portal.currentAge": "Idade Atual",
+  "portal.nextCategory": "Próxima Categoria",
+  "portal.whenChanges": "Quando Muda?",
+  "portal.automatic": "Automática",
+  "portal.years": "Anos",
+  "portal.year": "Ano",
+  "portal.streakLabel": "Sequência",
+  "portal.category.preMirimKids": "Pré-Mirim (Menor de 4)",
+  "portal.category.preMirim": "Pré-Mirim",
+  "portal.category.mirimI": "Mirim I",
+  "portal.category.mirimII": "Mirim II",
+  "portal.category.infantilI": "Infantil I",
+  "portal.category.infantilII": "Infantil II",
+  "portal.category.juvenil": "Juvenil",
+  "portal.category.juvenilAdult": "Juvenil (Adulto)",
+  "portal.category.adult": "Adulto",
+  "portal.category.master1": "Master 1",
+  "portal.category.master2": "Master 2",
+  "portal.category.master3": "Master 3",
+  "portal.category.master4": "Master 4",
+  "portal.category.master5": "Master 5",
+  "portal.category.maxLevel": "Nível Máximo",
+  "portal.maxMasterReached": "Categoria Master máxima atingida"
 };
 
 // Technical terminology replacement map

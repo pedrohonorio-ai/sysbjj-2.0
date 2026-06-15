@@ -1910,7 +1910,7 @@ const StudentPortal: React.FC = () => {
                   </div>
 
                   <div className="flex items-center justify-between mt-6 pt-5 border-t border-white/10 text-[9px] font-mono text-slate-400">
-                    <span className="flex items-center gap-1"><Flame size={12} className="text-orange-500 animate-bounce" /> Streak: {student.currentStreak || 0} dias ativos</span>
+                    <span className="flex items-center gap-1"><Flame size={12} className="text-orange-500 animate-bounce" /> {t('portal.streakLabel', 'Sequência')}: {student.currentStreak || 0} dias ativos</span>
                     <span>Total Acumulado: {xpValue} XP</span>
                   </div>
                 </div>
