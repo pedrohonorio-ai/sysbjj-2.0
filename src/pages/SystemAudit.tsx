@@ -70,7 +70,8 @@ const SystemAudit: React.FC = () => {
   useEffect(() => {
     // OSS SENSEI: Executa a auditoria apenas no momento em que abre a Central de Auditoria
     runBlockchainAudit();
-  }, [runBlockchainAudit]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   useEffect(() => {
     const tab = searchParams.get('tab');

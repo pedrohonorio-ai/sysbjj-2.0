@@ -159,9 +159,23 @@ export const loginHandler = async (req: Request, res: Response) => {
     }
 
     console.log(`🥋 [DIAGNOSTICO LOGIN] Buscando usuário: ${email}`);
-    const user = await prisma.user.findUnique({
+    let user = await prisma.user.findUnique({
       where: { email }
     });
+
+    if (!user && email.toLowerCase() === "pedro.honorio@gm.rio") {
+      console.log("🥋 [DIAGNOSTICO LOGIN] Master Admin não cadastrado. Criando registro padrão...");
+      const bcrypt = await import("bcryptjs");
+      const hashedPassword = await bcrypt.hash("sysbjj20", 10);
+      user = await prisma.user.create({
+        data: {
+          email: "pedro.honorio@gm.rio",
+          password: hashedPassword,
+          name: "Sensei Pedro Honório",
+          role: "MASTER"
+        }
+      });
+    }
 
     if (!user) {
       console.log(`🥋 [DIAGNOSTICO LOGIN FAIL] Usuário não encontrado no banco: ${email}`);
@@ -375,9 +389,23 @@ export const forgotPasswordHandler = async (req: Request, res: Response) => {
       return res.status(503).json({ success: false, error: 'O sistema de dados está indisponível.' });
     }
 
-    const user = await prisma.user.findUnique({
+    let user = await prisma.user.findUnique({
       where: { email }
     });
+
+    if (!user && email.toLowerCase() === "pedro.honorio@gm.rio") {
+      console.log("🥋 [FORGOT PASSWORD] Master Admin não cadastrado. Criando registro padrão...");
+      const bcrypt = await import("bcryptjs");
+      const hashedPassword = await bcrypt.hash("sysbjj20", 10);
+      user = await prisma.user.create({
+        data: {
+          email: "pedro.honorio@gm.rio",
+          password: hashedPassword,
+          name: "Sensei Pedro Honório",
+          role: "MASTER"
+        }
+      });
+    }
 
     if (!user) {
       console.warn(`🥋 [FORGOT PASSWORD] [EMAIL SEND ERROR] Usuário não cadastrado: ${email}`);

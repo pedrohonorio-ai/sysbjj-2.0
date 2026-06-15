@@ -535,6 +535,31 @@ const App: React.FC = () => {
     }
   }, [location.pathname]);
 
+  // 🥋 Track Page Visits safely for SaaS analytics and visitor counter
+  useEffect(() => {
+    const registerPageVisit = async () => {
+      try {
+        let savedId = localStorage.getItem('oss_device_id');
+        if (!savedId) {
+          savedId = 'dev_' + Math.random().toString(36).substring(2, 11);
+          localStorage.setItem('oss_device_id', savedId);
+        }
+        await fetch('/api/public/visit', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            path: location.pathname,
+            userAgent: navigator.userAgent,
+            deviceId: savedId
+          })
+        });
+      } catch (err) {
+        // Fail silently during initial server setup or offline mode
+      }
+    };
+    registerPageVisit();
+  }, [location.pathname]);
+
   // Dynamic favicon and apple-touch-icon update based on custom account branding
   useEffect(() => {
     if (profile?.logoUrl) {

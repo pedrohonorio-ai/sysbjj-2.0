@@ -91,6 +91,9 @@ export default async function systemMetricsHandler(req: AuthRequest, res: Respon
     const neonLatency = Date.now() - queryStart;
 
     // 🥋 Fetch real data using strict activity and deletion boundaries
+    const startOfToday = new Date();
+    startOfToday.setHours(0, 0, 0, 0);
+
     const [
       usersActive,
       usersInactive,
@@ -101,7 +104,9 @@ export default async function systemMetricsHandler(req: AuthRequest, res: Respon
       totalPayments,
       onlineUsersCount,
       activeSessionsCount,
-      recentLogs
+      recentLogs,
+      totalVisitsCount,
+      visitsTodayCount
     ] = await Promise.all([
       prisma.user.count({ where: { active: true, deletedAt: null } }),
       prisma.user.count({ where: { active: false, deletedAt: null } }),
@@ -127,9 +132,23 @@ export default async function systemMetricsHandler(req: AuthRequest, res: Respon
         }
       }),
       prisma.systemLog.findMany({
+        where: {
+          NOT: {
+            action: 'PAGE_VISIT'
+          }
+        },
         take: 15,
         orderBy: {
           timestamp: 'desc'
+        }
+      }),
+      prisma.systemLog.count({
+        where: { action: 'PAGE_VISIT' }
+      }),
+      prisma.systemLog.count({
+        where: {
+          action: 'PAGE_VISIT',
+          createdAt: { gte: startOfToday }
         }
       })
     ]);
@@ -201,6 +220,8 @@ export default async function systemMetricsHandler(req: AuthRequest, res: Respon
       neonLatency,
       prismaHealth: 'connected',
       dbSize,
+      totalVisits: totalVisitsCount,
+      visitsToday: visitsTodayCount,
       uptime: Math.round(process.uptime()),
       env: process.env.NODE_ENV || 'production',
       version: '2.0.0'

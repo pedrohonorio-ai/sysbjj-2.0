@@ -226,7 +226,7 @@ export const SystemObservability: React.FC = () => {
       </div>
 
       {/* Primary Executive Stats Metrics Grid */}
-      <div className="grid grid-cols-2 lg:grid-cols-6 gap-4">
+      <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-8 gap-4">
         {/* Neon Status */}
         <div className="bg-slate-900 border border-slate-800 p-5 rounded-3xl relative overflow-hidden">
           <p className="text-[9px] font-bold text-slate-500 uppercase tracking-widest">Banco PostgreSQL</p>
@@ -262,6 +262,24 @@ export const SystemObservability: React.FC = () => {
             {students.length} matriculados
           </p>
           <span className="text-slate-500 text-[9px] font-bold uppercase mt-2.5 block leading-none">Carga cadastrada</span>
+        </div>
+
+        {/* Auditoria / Acessos Totais */}
+        <div className="bg-slate-900 border border-slate-800 p-5 rounded-3xl relative overflow-hidden ring-1 ring-blue-500/10">
+          <p className="text-[9px] font-bold text-indigo-400 uppercase tracking-widest">Acessos Totais</p>
+          <p className="text-lg font-black text-white mt-1.5">
+            {metrics?.totalVisits || 0}
+          </p>
+          <span className="text-blue-400 text-[9px] font-bold uppercase mt-2.5 block leading-none">Contador Geral</span>
+        </div>
+
+        {/* Auditoria / Acessos Hoje */}
+        <div className="bg-slate-900 border border-slate-800 p-5 rounded-3xl relative overflow-hidden ring-1 ring-emerald-500/10">
+          <p className="text-[9px] font-bold text-emerald-400 uppercase tracking-widest">Acessos Hoje</p>
+          <p className="text-lg font-black text-white mt-1.5">
+            {metrics?.visitsToday || 0}
+          </p>
+          <span className="text-emerald-400 text-[9px] font-bold uppercase mt-2.5 block leading-none">Visitas Hoje</span>
         </div>
 
         {/* CPU usage */}

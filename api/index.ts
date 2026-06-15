@@ -84,6 +84,34 @@ app.post("/api/auth/forgot-password", safeHandler(forgotPasswordHandler));
 app.post("/api/auth/reset-password", safeHandler(resetPasswordHandler));
 app.post("/api/auth/student-login", safeHandler(studentLoginHandler));
 
+app.post("/api/public/visit", safeHandler(async (req, res) => {
+  const { path, userAgent, deviceId } = req.body;
+  if (!prisma) {
+    return res.status(503).json({ success: false, error: "Database not ready." });
+  }
+  try {
+    const formattedAgent = (userAgent || req.headers['user-agent'] || 'Desconhecido').substring(0, 255);
+    const formattedPath = (path || '/').substring(0, 100);
+    const cleanDeviceId = (deviceId || 'anonymous').substring(0, 100);
+
+    await prisma.systemLog.create({
+      data: {
+        userId: "VISITOR",
+        userEmail: "anonymous@sysbjj.visitor",
+        action: "PAGE_VISIT",
+        details: `SaaS Visit on path: ${formattedPath}. DeviceID: ${cleanDeviceId}`,
+        category: "Analytics",
+        deviceInfo: formattedAgent,
+        timestamp: BigInt(Date.now())
+      }
+    });
+    return res.json({ success: true, message: "Acesso registrado com sucesso." });
+  } catch (error: any) {
+    console.warn("🥋 [VISIT LOGGING EXCEPTION]:", error.message);
+    return res.status(500).json({ success: false, error: error.message });
+  }
+}));
+
 app.post("/api/auth/admin/reset-password", authenticate as any, async (req: any, res: any) => {
   const isMaster = req.user?.email?.toLowerCase() === "pedro.honorio@gm.rio" || req.user?.role === "MASTER";
   if (!isMaster) return res.status(403).json({ success: false, error: "Acesso exclusivo ao Master." });
