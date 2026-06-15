@@ -311,7 +311,22 @@ const MANDATORY_DICTIONARY: Record<string, string> = {
   "portal.navWallet": "Financeiro",
   "portal.navGallery": "Memórias",
   "portal.navTimer": "Cronômetro",
-  "portal.navRules": "Regulamento"
+  "portal.navRules": "Regulamento",
+  "portal.officialRegulation": "Regulamento Oficial",
+  "portal.ibjjfClassification": "Classificação IBJJF/CBJJ",
+  "portal.attendanceSystem": "Sistema de Presença",
+  "portal.multiModes": "Multi-Modos",
+  "portal.dailyCheckin": "Check-in Diário",
+  "portal.rulesKnowledge": "Domínio das Regras",
+  "portal.trainingCategory": "Categoria de Treino",
+  "portal.noActivity": "Sem atividade registrada.",
+  "portal.noDataHeatmap": "Treine para gerar dados de consistência.",
+  "portal.biomechanics": "Biomecânica",
+  "portal.defense": "Defesa de Passagem",
+  "portal.offense": "Ataques de Guarda",
+  "portal.physicalCondition": "Condicionamento Físico",
+  "portal.technicalGrade": "Precisão Técnica",
+  "portal.schoolAverage": "Média do Dojo"
 };
 
 // Technical terminology replacement map
