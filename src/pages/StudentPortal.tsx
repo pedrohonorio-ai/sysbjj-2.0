@@ -16,6 +16,7 @@ import { Html5QrcodeScanner } from 'html5-qrcode';
 import { useTranslation } from '../contexts/LanguageContext.js';
 import { useData } from '../contexts/DataContext.js';
 import { useProfile } from '../contexts/ProfileContext.js';
+import { useAuth } from '../context/AuthContext.js';
 import { StudentStatus, GalleryImage, BeltColor, KidsBeltColor } from '../types.js';
 import { BELT_COLORS, IBJJF_BELT_RULES } from '../constants/index.js';
 import { IBJJF_LESSONS, RuleLesson, RuleScenario, IBJJF_REFERENCE } from '../constants/rulesData.js';
@@ -27,89 +28,90 @@ import {
 } from 'recharts';
 import CryptoJS from 'crypto-js';
 
-const getIBJJFRealTimeCategory = (birthDate: string): {
+const getIBJJFRealTimeCategory = (birthDate: string, t: any): {
   category: string;
   age: number;
   nextCategory: string;
   whenChanges: string;
 } => {
-  if (!birthDate) return { category: 'Não informada', age: 0, nextCategory: '--', whenChanges: '--' };
+  if (!birthDate) return { category: t('common.notInformed', 'Não informada'), age: 0, nextCategory: '--', whenChanges: '--' };
   const birthYear = new Date(birthDate).getUTCFullYear();
   const currentYear = new Date().getUTCFullYear();
   const age = currentYear - birthYear; // IBJJF is based on birth year
   
-  let category = 'Pré-Mirim';
-  let nextCategory = 'Mirim I';
+  let categoryLabel = 'Pré-Mirim';
+  let nextCategoryLabel = 'Mirim I';
   let changeAge = 6;
   
   if (age < 4) {
-    category = 'Pré-Mirim (Menor de 4)';
-    nextCategory = 'Pré-Mirim';
+    categoryLabel = t('portal.category.preMirimKids', 'Pré-Mirim (Menor de 4)');
+    nextCategoryLabel = t('portal.category.preMirim', 'Pré-Mirim');
     changeAge = 4;
   } else if (age >= 4 && age <= 5) {
-    category = 'Pré-Mirim';
-    nextCategory = 'Mirim I';
+    categoryLabel = t('portal.category.preMirim', 'Pré-Mirim');
+    nextCategoryLabel = t('portal.category.mirimI', 'Mirim I');
     changeAge = 6;
   } else if (age >= 6 && age <= 7) {
-    category = 'Mirim I';
-    nextCategory = 'Mirim II';
+    categoryLabel = t('portal.category.mirimI', 'Mirim I');
+    nextCategoryLabel = t('portal.category.mirimII', 'Mirim II');
     changeAge = 8;
   } else if (age >= 8 && age <= 9) {
-    category = 'Mirim II';
-    nextCategory = 'Infantil I';
+    categoryLabel = t('portal.category.mirimII', 'Mirim II');
+    nextCategoryLabel = t('portal.category.infantilI', 'Infantil I');
     changeAge = 10;
   } else if (age >= 10 && age <= 11) {
-    category = 'Infantil I';
-    nextCategory = 'Infantil II';
+    categoryLabel = t('portal.category.infantilI', 'Infantil I');
+    nextCategoryLabel = t('portal.category.infantilII', 'Infantil II');
     changeAge = 12;
   } else if (age >= 12 && age <= 13) {
-    category = 'Infantil II';
-    nextCategory = 'Juvenil';
+    categoryLabel = t('portal.category.infantilII', 'Infantil II');
+    nextCategoryLabel = t('portal.category.juvenil', 'Juvenil');
     changeAge = 14;
   } else if (age >= 14 && age <= 15) {
-    category = 'Juvenil';
-    nextCategory = 'Juvenil (Adulto)';
+    categoryLabel = t('portal.category.juvenil', 'Juvenil');
+    nextCategoryLabel = t('portal.category.juvenilAdult', 'Juvenil (Adulto)');
     changeAge = 16;
   } else if (age >= 16 && age <= 17) {
-    category = 'Juvenil (Adulto)';
-    nextCategory = 'Adulto';
+    categoryLabel = t('portal.category.juvenilAdult', 'Juvenil (Adulto)');
+    nextCategoryLabel = t('portal.category.adult', 'Adulto');
     changeAge = 18;
   } else if (age >= 18 && age <= 29) {
-    category = 'Adulto';
-    nextCategory = 'Master 1';
+    categoryLabel = t('portal.category.adult', 'Adulto');
+    nextCategoryLabel = t('portal.category.master1', 'Master 1');
     changeAge = 30;
   } else if (age >= 30 && age <= 35) {
-    category = 'Master 1';
-    nextCategory = 'Master 2';
+    categoryLabel = t('portal.category.master1', 'Master 1');
+    nextCategoryLabel = t('portal.category.master2', 'Master 2');
     changeAge = 36;
   } else if (age >= 36 && age <= 40) {
-    category = 'Master 2';
-    nextCategory = 'Master 3';
+    categoryLabel = t('portal.category.master2', 'Master 2');
+    nextCategoryLabel = t('portal.category.master3', 'Master 3');
     changeAge = 41;
   } else if (age >= 41 && age <= 45) {
-    category = 'Master 3';
-    nextCategory = 'Master 4';
+    categoryLabel = t('portal.category.master3', 'Master 3');
+    nextCategoryLabel = t('portal.category.master4', 'Master 4');
     changeAge = 46;
   } else if (age >= 46 && age <= 50) {
-    category = 'Master 4';
-    nextCategory = 'Master 5';
+    categoryLabel = t('portal.category.master4', 'Master 4');
+    nextCategoryLabel = t('portal.category.master5', 'Master 5');
     changeAge = 51;
   } else {
-    category = 'Master 5';
-    nextCategory = 'Nível Máximo';
+    categoryLabel = t('portal.category.master5', 'Master 5');
+    nextCategoryLabel = t('portal.category.maxLevel', 'Nível Máximo');
     changeAge = 999;
   }
 
   const yearsLeft = changeAge - age;
   let whenChanges = '';
   if (changeAge === 999) {
-    whenChanges = 'Categoria Master máxima atingida';
+    whenChanges = t('portal.maxMasterReached', 'Categoria Master máxima atingida');
   } else {
     const changeYear = birthYear + changeAge;
-    whenChanges = `Em ${changeYear} (em ${yearsLeft} ${yearsLeft === 1 ? 'ano' : 'anos'})`;
+    const yearWord = yearsLeft === 1 ? t('common.year', 'ano') : t('common.years', 'anos');
+    whenChanges = t('portal.changesInYear', `Em ${changeYear} (em ${yearsLeft} ${yearWord})`);
   }
 
-  return { category, age, nextCategory, whenChanges };
+  return { category: categoryLabel, age, nextCategory: nextCategoryLabel, whenChanges };
 };
 
 const getCategoryBadgeStyle = (category: string) => {
@@ -196,12 +198,41 @@ const getMonthlyPresenceStats = (history: { date: string }[]) => {
   };
 };
 
+const getYoutubeEmbedUrl = (url: string): string => {
+  if (!url) return '';
+  try {
+    let videoId = '';
+    if (url.includes('youtube.com/watch')) {
+      const urlObj = new URL(url);
+      videoId = urlObj.searchParams.get('v') || '';
+    } else if (url.includes('youtu.be/')) {
+      videoId = url.split('youtu.be/')[1]?.split('?')[0] || '';
+    } else if (url.includes('youtube.com/shorts/')) {
+      videoId = url.split('youtube.com/shorts/')[1]?.split('?')[0] || '';
+    } else if (url.includes('youtube.com/embed/')) {
+      return url;
+    } else {
+      return url.replace('watch?v=', 'embed/').replace('youtu.be/', 'youtube.com/embed/');
+    }
+
+    if (videoId) {
+      return `https://www.youtube.com/embed/${videoId}`;
+    }
+  } catch (e) {
+    console.error('Error parsing youtube URL', e);
+  }
+  return url;
+};
+
 const StudentPortal: React.FC = () => {
-  const { code } = useParams();
+  const { code: routeCode } = useParams();
+  const { loading: authLoading, studentCode } = useAuth();
+  const code = routeCode || studentCode;
   const navigate = useNavigate();
   const { t, tObj } = useTranslation();
   const { students, recordAttendance, gallery, payments, addGalleryImage, addReceipt, completeRuleLesson, logs, graduationHistory, schedules } = useData();
   const { profile } = useProfile();
+  const student = useMemo(() => students.find(s => s.portalAccessCode?.toUpperCase() === code?.toUpperCase()), [students, code]);
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState<'home' | 'training' | 'knowledge' | 'community' | 'wallet' | 'gallery' | 'homeTraining' | 'timer' | 'rules'>('home');
   const [selectedModality, setSelectedModality] = useState<'bjj' | 'capoeira' | 'muay_thai' | 'mma' | 'judo' | 'kickboxing'>('bjj');
@@ -263,6 +294,76 @@ const StudentPortal: React.FC = () => {
   const [manualCode, setManualCode] = useState('');
   const [manualError, setManualError] = useState<string | null>(null);
   const [manualSuccess, setManualSuccess] = useState(false);
+
+  const [selectedCheckinClassId, setSelectedCheckinClassId] = useState<string>('');
+
+  const todayStr = useMemo(() => new Date().toISOString().split('T')[0], []);
+  
+  const hasCheckedInToday = useMemo(() => {
+    return student?.attendanceHistory?.some((a: any) => a.date === todayStr);
+  }, [student, todayStr]);
+
+  const todayCheckinRecord = useMemo(() => {
+    return student?.attendanceHistory?.find((a: any) => a.date === todayStr);
+  }, [student, todayStr]);
+
+  const todayCheckinClass = useMemo(() => {
+    if (!todayCheckinRecord || !schedules) return null;
+    return schedules.find((s: any) => s.id === todayCheckinRecord.classId);
+  }, [todayCheckinRecord, schedules]);
+
+  const todayClasses = useMemo(() => {
+    if (!schedules) return [];
+    const daysMap = ['Dom', 'Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sab'];
+    const currentDayName = daysMap[new Date().getDay()];
+    return schedules.filter((s: any) => s.days && s.days.includes(currentDayName));
+  }, [schedules]);
+
+  // Set initial selected checkin class based on active schedule or first class of today
+  useEffect(() => {
+    if (todayClasses.length > 0 && !selectedCheckinClassId) {
+      const activeSched = checkActiveSchedule();
+      if (activeSched.active && activeSched.matchingClassId) {
+        setSelectedCheckinClassId(activeSched.matchingClassId);
+      } else {
+        setSelectedCheckinClassId(todayClasses[0].id);
+      }
+    }
+  }, [todayClasses, selectedCheckinClassId]);
+
+  const handleQuickCheckinSubmit = (classId: string) => {
+    if (!student) return;
+    const sched = schedules?.find((sc: any) => sc.id === classId);
+    const className = sched ? sched.title : 'Treino Livre';
+    
+    const audit = getAuditInfo();
+    recordAttendance(
+      [student.id],
+      undefined,
+      classId,
+      `Check-In Rápido Confirmado (${className})`,
+      {
+        origin: 'PORTAL_ALUNO',
+        checkinMethod: 'portal',
+        deviceInfo: {
+          device: `${audit.os} / ${audit.browser}`,
+          browser: audit.browser,
+          os: audit.os,
+          deviceId: audit.deviceId,
+          ip: "186.230.12.98"
+        }
+      }
+    );
+    
+    setCheckinSuccess(true);
+    
+    const audio = new Audio('https://assets.mixkit.co/active_storage/sfx/2571/2571-preview.mp3');
+    audio.play().catch(() => {});
+    
+    setTimeout(() => {
+      setCheckinSuccess(false);
+    }, 4000);
+  };
 
   const getAuditInfo = () => {
     const ua = navigator.userAgent;
@@ -532,8 +633,6 @@ const StudentPortal: React.FC = () => {
     }
     return age;
   };
-
-  const student = useMemo(() => students.find(s => s.portalAccessCode === code), [students, code]);
 
   // Rotary secure QR token generator
   useEffect(() => {
@@ -875,9 +974,29 @@ const StudentPortal: React.FC = () => {
   }, [payments, student]);
 
   useEffect(() => {
-    const timer = setTimeout(() => setLoading(false), 500);
-    return () => clearTimeout(timer);
-  }, [code]);
+    if (authLoading) {
+      setLoading(true);
+      return;
+    }
+    
+    if (student) {
+      setLoading(false);
+    } else if (students.length > 0) {
+      // If we have loaded some students, but this specific code still doesn't match any student,
+      // let's wait a tiny bit (say, 800ms) for any final updates, then set loading to false.
+      const timer = setTimeout(() => {
+        setLoading(false);
+      }, 800);
+      return () => clearTimeout(timer);
+    } else {
+      // If students.length === 0, it means we are still awaiting the first hydration of students.
+      // Let's set a timeout of 3000ms before we give up and set loading to false.
+      const timer = setTimeout(() => {
+        setLoading(false);
+      }, 3000);
+      return () => clearTimeout(timer);
+    }
+  }, [students, student, code, authLoading]);
 
   const handleScanSimulation = () => {
     if (student) {
@@ -1299,57 +1418,196 @@ const StudentPortal: React.FC = () => {
               </div>
             </div>
 
+            {/* 🥋 [NOVO] CHECK-IN DA AULA DO DIA - MÓDULO PRINCIPAL COMPLEMENTAR */}
+            <div className="bg-white dark:bg-slate-900 rounded-[2.5rem] p-6 border-2 border-slate-200 dark:border-slate-800 shadow-md relative overflow-hidden">
+              <div className="absolute top-0 right-0 w-48 h-48 bg-blue-500/5 rounded-full blur-3xl -translate-y-12 translate-x-12 pointer-events-none" />
+              
+              <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 pb-4 border-b border-slate-100 dark:border-slate-800 relative z-10">
+                <div className="flex items-center gap-3">
+                  <div className={`p-2.5 rounded-2xl ${hasCheckedInToday ? 'bg-emerald-500/10 text-emerald-500' : 'bg-blue-500/10 text-blue-500'}`}>
+                    {hasCheckedInToday ? <CheckCircle2 size={22} className="animate-pulse" /> : <ClipboardCheck size={22} />}
+                  </div>
+                  <div>
+                    <span className="text-[8px] font-black uppercase tracking-widest text-slate-400 block">Módulo de Presença</span>
+                    <h3 className="text-base font-black uppercase tracking-tight text-slate-900 dark:text-white">
+                      Check-in da Aula do Dia
+                    </h3>
+                  </div>
+                </div>
+                <div>
+                  <span className={`px-3 py-1 rounded-full text-[8px] font-black uppercase tracking-widest ${
+                    hasCheckedInToday 
+                      ? 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20' 
+                      : 'bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-500/20 animate-pulse'
+                  }`}>
+                    {hasCheckedInToday ? 'Presença Confirmada' : 'Aguardando Luta'}
+                  </span>
+                </div>
+              </div>
+
+              {hasCheckedInToday ? (
+                <div className="pt-4 space-y-3 relative z-10">
+                  <div className="p-4 bg-emerald-50 dark:bg-emerald-950/10 border border-emerald-100 dark:border-emerald-900/30 rounded-2xl">
+                    <p className="text-xs font-bold text-emerald-800 dark:text-emerald-300">
+                      OSS! Sua presença foi registrada hoje com sucesso. Tenha um excelente treino e continue focado na evolução!
+                    </p>
+                    <div className="mt-3 flex flex-wrap gap-4 text-[10px] font-mono text-emerald-700 dark:text-emerald-400">
+                      <div>
+                        <span className="font-bold uppercase">Treino:</span> {(todayCheckinRecord as any)?.classTitle || todayCheckinClass?.title || 'Treino Livre / Geral'}
+                      </div>
+                      {todayCheckinClass?.time && (
+                        <div>
+                          <span className="font-bold uppercase">Horário:</span> {todayCheckinClass.time}
+                        </div>
+                      )}
+                      <div>
+                        <span className="font-bold uppercase">Registro:</span> {todayCheckinRecord?.notes ? todayCheckinRecord.notes.split('(')[0].trim() : 'Manual via Portal'}
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              ) : (
+                <div className="pt-4 space-y-4 relative z-10">
+                  <p className="text-xs font-medium text-slate-500 dark:text-slate-400 leading-relaxed">
+                    Mantenha sua consistência em dia para acelerar sua jornada rumo à próxima faixa. Veja as turmas de hoje e realize o check-in:
+                  </p>
+
+                  {/* Lista de Aulas de Hoje */}
+                  <div className="space-y-2">
+                    {todayClasses.length > 0 ? (
+                      todayClasses.map((sched: any) => {
+                        const isStudentClass = student?.classId === sched.id;
+                        return (
+                          <div 
+                            key={sched.id} 
+                            className={`p-3.5 rounded-2xl border flex flex-col sm:flex-row sm:items-center justify-between gap-3 transition-colors ${
+                              isStudentClass 
+                                ? 'bg-blue-50/40 dark:bg-blue-950/10 border-blue-200/50 dark:border-blue-800/30' 
+                                : 'bg-slate-50 dark:bg-slate-850/30 border-slate-100 dark:border-slate-800/30'
+                            }`}
+                          >
+                            <div className="flex items-center gap-3">
+                              <div className={`w-8 h-8 rounded-xl flex items-center justify-center shrink-0 ${
+                                isStudentClass ? 'bg-blue-100 text-blue-600 dark:bg-blue-900/30 dark:text-blue-400' : 'bg-slate-200 text-slate-600 dark:bg-slate-800 dark:text-slate-400'
+                              }`}>
+                                <Clock size={16} />
+                              </div>
+                              <div>
+                                <div className="flex items-center gap-1.5 flex-wrap">
+                                  <span className="text-xs font-black text-slate-850 dark:text-white uppercase leading-tight">{sched.title}</span>
+                                  {isStudentClass && (
+                                    <span className="px-1.5 py-0.5 bg-blue-600 text-white text-[6.5px] font-black uppercase tracking-wider rounded">Minha Turma</span>
+                                  )}
+                                </div>
+                                <span className="text-[10px] font-mono text-slate-400 leading-none">{sched.time} • {sched.modality?.toUpperCase() || 'GI BJJ'}</span>
+                              </div>
+                            </div>
+                            <div className="text-[10px] font-medium text-slate-500 dark:text-slate-400">
+                              Capacidade: <span className="font-bold tabular-nums">{sched.capacity || 30} alunos</span>
+                            </div>
+                          </div>
+                        );
+                      })
+                    ) : (
+                      <div className="p-4 bg-slate-50 dark:bg-slate-850/20 rounded-2xl border border-slate-150 dark:border-slate-850 text-center">
+                        <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wide block">Nenhuma aula regular agendada para hoje</span>
+                        <p className="text-[10px] text-slate-500 mt-1">Mas você pode fazer check-in como Treino Livre Geral ou registrar no painel de presença abaixo!</p>
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Ações Rápidas de Check-In */}
+                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 pt-2 border-t border-slate-100 dark:border-slate-850">
+                    <button 
+                      onClick={handleGeoCheckin}
+                      disabled={geoChecking}
+                      className="py-3 bg-blue-600 hover:bg-blue-500 text-white rounded-xl font-black uppercase text-[8.5px] tracking-wider transition-all flex items-center justify-center gap-2 active:scale-95 cursor-pointer text-center"
+                    >
+                      {geoChecking ? (
+                        <div className="w-3 h-3 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                      ) : (
+                        <MapPin size={13} className="text-white" />
+                      )}
+                      <span>{geoChecking ? 'Obtendo GPS...' : 'Check-in por GPS'}</span>
+                    </button>
+
+                    <button 
+                      onClick={() => {
+                        setShowMyQR(true);
+                        setGeoError(null);
+                      }}
+                      className="py-3 bg-slate-900 hover:bg-black text-white dark:bg-slate-800 dark:hover:bg-slate-700 rounded-xl font-black uppercase text-[8.5px] tracking-wider transition-all flex items-center justify-center gap-2 active:scale-95 cursor-pointer text-center"
+                    >
+                      <QrCode size={13} className="text-blue-400" />
+                      <span>Meu QR Code</span>
+                    </button>
+
+                    <button 
+                      onClick={() => {
+                        setShowManualInput(true);
+                        setGeoError(null);
+                      }}
+                      className="py-3 bg-slate-100 hover:bg-slate-205 dark:bg-slate-850 dark:hover:bg-slate-800 text-slate-900 dark:text-white rounded-xl font-black uppercase text-[8.5px] tracking-wider transition-all flex items-center justify-center gap-2 active:scale-95 cursor-pointer text-center"
+                    >
+                      <Shield size={13} className="text-amber-500" />
+                      <span>Código Manual</span>
+                    </button>
+                  </div>
+                </div>
+              )}
+            </div>
+
             {/* 🥋 Bento Columns of the Student Portal Dashboard */}
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 items-start">
 
                 {/* CARD DE CLASSIFICAÇÃO AUTOMÁTICA IBJJF/CBJJ */}
             {(() => {
-              const ibjjfInfo = getIBJJFRealTimeCategory(student.birthDate);
+              const ibjjfInfo = getIBJJFRealTimeCategory(student.birthDate, t);
               const badgeStyle = getCategoryBadgeStyle(ibjjfInfo.category);
               return (
                 <div className="bg-white dark:bg-slate-900 rounded-[2.5rem] p-6 border border-slate-200 dark:border-slate-800 shadow-sm space-y-4">
-                  <div className="flex justify-between items-center">
-                    <div>
-                      <p className="text-[9px] font-black text-blue-650 dark:text-blue-400 uppercase tracking-widest leading-none mb-1">Regulamento Oficial</p>
-                      <h4 className="text-sm font-black uppercase text-slate-900 dark:text-white">Classificação IBJJF/CBJJ</h4>
-                    </div>
-                    <span className="text-[8px] bg-blue-50 dark:bg-blue-900/20 text-blue-600 dark:text-blue-400 px-2 py-1 rounded-full font-black uppercase">Automática</span>
-                  </div>
-
-                  <div className="flex flex-col gap-4">
-                    <div className="flex items-center justify-between p-4 bg-slate-50 dark:bg-gradient-to-br dark:from-slate-850 dark:to-slate-900 rounded-2xl border border-slate-100 dark:border-slate-800">
-                      <div>
-                        <span className="text-[8px] font-black text-slate-400 uppercase tracking-widest block mb-1">Minha Categoria</span>
-                        <span className={`px-2.5 py-1 rounded-lg text-xs font-black uppercase tracking-wider inline-block ${badgeStyle}`}>
-                          🥋 {ibjjfInfo.category}
-                        </span>
-                      </div>
-                      <div className="text-right">
-                        <span className="text-[8px] font-black text-slate-400 uppercase tracking-widest block mb-1">Idade Atual</span>
-                        <span className="text-base font-black text-slate-900 dark:text-white tabular-nums">
-                          {ibjjfInfo.age} <span className="text-[10px] font-bold text-slate-400 uppercase">Anos</span>
-                        </span>
-                      </div>
-                    </div>
-
-                    <div className="grid grid-cols-2 gap-3.5 pt-2 border-t border-slate-100 dark:border-slate-850">
-                      <div>
-                        <span className="text-[8px] font-black text-slate-400 uppercase tracking-widest block mb-0.5">Próxima Categoria</span>
-                        <span className="text-[10.5px] font-black text-slate-800 dark:text-slate-200 uppercase tracking-tight">
-                          {ibjjfInfo.nextCategory}
-                        </span>
-                      </div>
-                      <div className="text-right">
-                        <span className="text-[8px] font-black text-slate-400 uppercase tracking-widest block mb-0.5">Quando Muda?</span>
-                        <span className="text-[10.5px] font-black text-blue-600 dark:text-blue-400 uppercase tracking-tight">
-                          {ibjjfInfo.whenChanges}
-                        </span>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              );
-            })()}
+                   <div className="flex justify-between items-center">
+                     <div>
+                       <p className="text-[9px] font-black text-blue-650 dark:text-blue-400 uppercase tracking-widest leading-none mb-1">{t('portal.officialRegulation', 'Regulamento Oficial')}</p>
+                       <h4 className="text-sm font-black uppercase text-slate-900 dark:text-white">{t('portal.ibjjfClassification', 'Classificação IBJJF/CBJJ')}</h4>
+                     </div>
+                     <span className="text-[8px] bg-blue-50 dark:bg-blue-900/20 text-blue-600 dark:text-blue-400 px-2 py-1 rounded-full font-black uppercase">{t('portal.automatic', 'Automática')}</span>
+                   </div>
+ 
+                   <div className="flex flex-col gap-4">
+                     <div className="flex items-center justify-between p-4 bg-slate-50 dark:bg-gradient-to-br dark:from-slate-850 dark:to-slate-900 rounded-2xl border border-slate-100 dark:border-slate-800">
+                       <div>
+                         <span className="text-[8px] font-black text-slate-400 uppercase tracking-widest block mb-1">{t('portal.myCategory', 'Minha Categoria')}</span>
+                         <span className={`px-2.5 py-1 rounded-lg text-xs font-black uppercase tracking-wider inline-block ${badgeStyle}`}>
+                           🥋 {ibjjfInfo.category}
+                         </span>
+                       </div>
+                       <div className="text-right">
+                         <span className="text-[8px] font-black text-slate-400 uppercase tracking-widest block mb-1">{t('portal.currentAge', 'Idade Atual')}</span>
+                         <span className="text-base font-black text-slate-900 dark:text-white tabular-nums">
+                           {ibjjfInfo.age} <span className="text-[10px] font-bold text-slate-400 uppercase">{t('portal.years', 'Anos')}</span>
+                         </span>
+                       </div>
+                     </div>
+ 
+                     <div className="grid grid-cols-2 gap-3.5 pt-2 border-t border-slate-100 dark:border-slate-850">
+                       <div>
+                         <span className="text-[8px] font-black text-slate-400 uppercase tracking-widest block mb-0.5">{t('portal.nextCategory', 'Próxima Categoria')}</span>
+                         <span className="text-[10.5px] font-black text-slate-800 dark:text-slate-200 uppercase tracking-tight">
+                           {ibjjfInfo.nextCategory}
+                         </span>
+                       </div>
+                       <div className="text-right">
+                         <span className="text-[8px] font-black text-slate-400 uppercase tracking-widest block mb-0.5">{t('portal.whenChanges', 'Quando Muda?')}</span>
+                         <span className="text-[10.5px] font-black text-blue-600 dark:text-blue-400 uppercase tracking-tight">
+                           {ibjjfInfo.whenChanges}
+                         </span>
+                       </div>
+                     </div>
+                   </div>
+                 </div>
+               );
+             })()}
 
             {/* Multi-Modality Segment Control Card */}
             <div className="bg-white dark:bg-slate-900 rounded-[2.5rem] p-6 border border-slate-200 dark:border-slate-800 shadow-sm space-y-4">
@@ -1688,11 +1946,72 @@ const StudentPortal: React.FC = () => {
             <div className="bg-white dark:bg-slate-900 rounded-[2.5rem] p-6 border border-slate-200 dark:border-slate-800 shadow-sm space-y-4">
               <div className="flex justify-between items-center">
                 <h4 className="text-[10px] font-black text-slate-900 dark:text-white uppercase tracking-widest flex items-center gap-2">
-                  <QrCode size={14} className="text-blue-500" /> Sistema de Presença
+                  <QrCode size={14} className="text-blue-500" /> {t('portal.attendanceSystem', 'Sistema de Presença')}
                 </h4>
-                <span className="text-[8px] bg-blue-500/10 text-blue-600 dark:text-blue-400 px-2 py-0.5 rounded font-black uppercase tracking-wider">Multi-Modos</span>
+                <span className="text-[8px] bg-blue-500/10 text-blue-600 dark:text-blue-400 px-2 py-0.5 rounded font-black uppercase tracking-wider">{t('portal.multiModes', 'Multi-Modos')}</span>
               </div>
               
+              {/* Daily Class Check-In Block */}
+              <div className="bg-slate-50 dark:bg-slate-950/60 p-4.5 rounded-[1.8rem] border border-slate-100 dark:border-white/5 space-y-4">
+                <div className="flex justify-between items-center">
+                  <span className="text-[9px] font-black uppercase text-blue-600 dark:text-blue-400 tracking-wider">
+                    {t('portal.dailyCheckin', 'Check-In Rápido da Aula do Dia')}
+                  </span>
+                  <span className="text-[7.5px] font-bold text-slate-400 uppercase tracking-widest">{todayStr}</span>
+                </div>
+
+                {hasCheckedInToday ? (
+                  <div className="p-4 bg-emerald-500/10 border border-emerald-500/20 text-emerald-600 dark:text-emerald-400 rounded-2xl space-y-2 text-left">
+                    <div className="flex items-center gap-2">
+                      <CheckCircle2 size={16} className="shrink-0 animate-bounce" />
+                      <span className="text-xs font-black uppercase tracking-tight">Presença Confirmada Hoje!</span>
+                    </div>
+                    <p className="text-[9.5px] font-medium leading-relaxed uppercase opacity-90">
+                      OSS! Sua presença na aula <strong className="font-extrabold">{todayCheckinClass?.title ?? 'Geral / Treino Livre'}</strong> às <strong className="font-extrabold">{todayCheckinClass?.time ?? ''}</strong> foi devidamente registrada e criptografada no ledger do Dojo.
+                    </p>
+                  </div>
+                ) : (
+                  <div className="space-y-4 text-left">
+                    {todayClasses.length > 0 ? (
+                      <div className="space-y-3">
+                        <label className="text-[8px] font-black text-slate-400 uppercase tracking-widest block ml-1">Selecione a Turma de Hoje:</label>
+                        <select
+                          value={selectedCheckinClassId}
+                          onChange={(e) => setSelectedCheckinClassId(e.target.value)}
+                          className="w-full p-3.5 bg-white dark:bg-slate-850 border border-slate-200 dark:border-white/5 rounded-xl text-xs font-black uppercase text-slate-950 dark:text-white dark:[color-scheme:dark] cursor-pointer"
+                        >
+                          {todayClasses.map(sc => (
+                            <option key={sc.id} value={sc.id}>
+                              {sc.title} ({sc.time})
+                            </option>
+                          ))}
+                        </select>
+
+                        <button
+                          onClick={() => handleQuickCheckinSubmit(selectedCheckinClassId)}
+                          disabled={!selectedCheckinClassId}
+                          className="w-full py-4 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white rounded-2xl font-black uppercase text-[10px] tracking-widest shadow-xl shadow-blue-600/15 hover:shadow-blue-600/25 active:scale-98 transition-all cursor-pointer flex items-center justify-center gap-2"
+                        >
+                          <Zap size={14} className="text-white animate-pulse" />
+                          <span>Confirmar Check-in de Hoje</span>
+                        </button>
+                      </div>
+                    ) : (
+                      <div className="space-y-3 text-center py-2">
+                        <p className="text-[9.5px] font-bold text-slate-400 uppercase tracking-wide leading-relaxed">Nenhuma turma com horário agendado para hoje. Deseja registrar check-in geral de treino?</p>
+                        <button
+                          onClick={() => handleQuickCheckinSubmit('')}
+                          className="w-full py-4 bg-slate-900 hover:bg-black text-white rounded-2xl font-black uppercase text-[10px] tracking-widest shadow-md active:scale-98 transition-all cursor-pointer flex items-center justify-center gap-2 border border-white/5"
+                        >
+                          <Zap size={14} className="text-emerald-400" />
+                          <span>Check-in Geral / Livre</span>
+                        </button>
+                      </div>
+                    )}
+                  </div>
+                )}
+              </div>
+
               <div className="grid grid-cols-2 gap-3">
                 {/* [1] Escanear QR Dojo */}
                 <button 
@@ -2483,7 +2802,7 @@ const StudentPortal: React.FC = () => {
                 <div key={video.id} className="bg-white dark:bg-slate-900 rounded-[2.5rem] border border-slate-200 dark:border-slate-800 shadow-sm overflow-hidden flex flex-col group">
                   <div className="aspect-video bg-slate-100 dark:bg-slate-800 relative">
                     <iframe 
-                      src={video.videoUrl.replace('watch?v=', 'embed/').replace('youtu.be/', 'youtube.com/embed/')} 
+                      src={getYoutubeEmbedUrl(video.videoUrl)} 
                       className="w-full h-full border-none"
                       allowFullScreen
                       loading="lazy"
@@ -3592,6 +3911,68 @@ const StudentPortal: React.FC = () => {
                   className={`w-full py-4 rounded-2xl font-black uppercase text-xs tracking-widest transition-all ${medicalFile ? 'bg-rose-600 text-white shadow-xl shadow-rose-600/20 active:scale-95' : 'bg-slate-100 text-slate-400 cursor-not-allowed'}`}
                 >
                   {t('common.confirm')}
+                </button>
+              </div>
+            </div>
+          </motion.div>
+        </div>
+      )}
+
+      {showAddVideo && (
+        <div className="fixed inset-0 bg-slate-950/90 backdrop-blur-xl z-[300] flex items-center justify-center p-6">
+          <motion.div 
+            initial={{ scale: 0.9, opacity: 0 }}
+            animate={{ scale: 1, opacity: 1 }}
+            className="bg-white dark:bg-slate-900 rounded-[3rem] p-10 max-w-sm w-full space-y-6 relative overflow-hidden text-left"
+          >
+            <button onClick={() => setShowAddVideo(false)} className="absolute top-8 right-8 text-slate-400 group">
+              <X className="group-hover:rotate-90 transition-transform" />
+            </button>
+            <div className="space-y-6">
+              <div className="text-center">
+                <h3 className="text-xl font-black text-slate-900 dark:text-white uppercase tracking-tighter">{t('portal.addVideoTitle', 'Adicionar Vídeo')}</h3>
+                <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mt-2">{t('portal.addVideoDesc', 'Compartilhe um vídeo do YouTube de estudos de posição')}</p>
+              </div>
+
+              <div className="space-y-4">
+                <div className="space-y-2 text-left">
+                  <label className="text-[8px] font-black text-slate-400 uppercase tracking-[0.2em] ml-2">{t('portal.videoTitle', 'Título da Posição')}</label>
+                  <input 
+                    type="text" 
+                    placeholder="EX: Raspagem de Meia Guarda Profunda"
+                    value={newVideo.title}
+                    onChange={(e) => setNewVideo(prev => ({ ...prev, title: e.target.value }))}
+                    className="w-full p-4 bg-slate-50 dark:bg-slate-800 border border-slate-100 dark:border-white/5 rounded-2xl text-xs font-black uppercase dark:text-white"
+                  />
+                </div>
+
+                <div className="space-y-2 text-left">
+                  <label className="text-[8px] font-black text-slate-400 uppercase tracking-[0.2em] ml-2">{t('portal.videoUrl', 'URL do Vídeo (YouTube)')}</label>
+                  <input 
+                    type="text" 
+                    placeholder="https://www.youtube.com/watch?v=..."
+                    value={newVideo.videoUrl}
+                    onChange={(e) => setNewVideo(prev => ({ ...prev, videoUrl: e.target.value }))}
+                    className="w-full p-4 bg-slate-50 dark:bg-slate-800 border border-slate-100 dark:border-white/5 rounded-2xl text-xs font-bold dark:text-white"
+                  />
+                </div>
+
+                <div className="space-y-2 text-left">
+                  <label className="text-[8px] font-black text-slate-400 uppercase tracking-[0.2em] ml-2">{t('portal.videoNotes', 'Descrição / Notas de Estudo')}</label>
+                  <textarea 
+                    placeholder="Detalhes sobre a passagem de guarda, esgrima, finta, etc..."
+                    value={newVideo.description}
+                    onChange={(e) => setNewVideo(prev => ({ ...prev, description: e.target.value }))}
+                    className="w-full p-4 bg-slate-50 dark:bg-slate-800 border border-slate-100 dark:border-white/5 rounded-2xl text-[10px] font-medium dark:text-white min-h-[100px] resize-none"
+                  />
+                </div>
+
+                <button 
+                  onClick={handleAddVideo}
+                  disabled={!newVideo.title || !newVideo.videoUrl}
+                  className={`w-full py-4 rounded-2xl font-black uppercase text-xs tracking-widest transition-all ${newVideo.title && newVideo.videoUrl ? 'bg-blue-600 text-white shadow-xl shadow-blue-600/20 active:scale-95 hover:bg-blue-500' : 'bg-slate-100 dark:bg-slate-800 text-slate-400 cursor-not-allowed'}`}
+                >
+                  {t('portal.addVideoBtn', 'Confirmar Envio')}
                 </button>
               </div>
             </div>
