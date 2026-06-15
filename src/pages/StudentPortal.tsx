@@ -2317,7 +2317,7 @@ const StudentPortal: React.FC = () => {
                         }}
                         className="px-4 py-2.5 bg-rose-600 hover:bg-rose-500 text-white font-black uppercase text-[9px] tracking-widest rounded-xl transition-all cursor-pointer shadow-md active:scale-95"
                       >
-                        {student.medicalCertificateUrl ? 'Atualizar' : 'Upload'}
+                        {student.medicalCertificateUrl ? 'Atualizar' : 'Enviar'}
                       </button>
                     </div>
                   )}
@@ -3216,7 +3216,7 @@ const StudentPortal: React.FC = () => {
                               <span className="text-[8px] font-black text-blue-500 uppercase tracking-[0.15em]">{t(`portal.categories.${lesson.category.toLowerCase()}`)}</span>
                               {isCompleted && (
                                 <span className="flex items-center gap-1 text-[8px] font-black text-green-500 uppercase tracking-widest bg-green-500/10 px-2 py-0.5 rounded-full">
-                                  <CheckCircle2 size={8} /> MASTERED
+                                  <CheckCircle2 size={8} /> DOMINADO
                                 </span>
                               )}
                             </div>
@@ -3719,7 +3719,7 @@ const StudentPortal: React.FC = () => {
                         <div className="absolute inset-0 bg-gradient-to-t from-black/80 to-transparent z-10" />
                         <div className="absolute top-4 left-4 z-25 flex items-center gap-2">
                           <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
-                          <span className="text-[8px] font-mono font-bold text-slate-200 uppercase">STREAM HD READY</span>
+                          <span className="text-[8px] font-mono font-bold text-slate-200 uppercase">TRANSMISSÃO HD</span>
                         </div>
                         <div className="w-12 h-12 bg-blue-600 rounded-full flex items-center justify-center text-white cursor-pointer active:scale-90 hover:bg-blue-500 transition-all z-20 shadow-xl shadow-blue-600/30">
                           <Play size={20} className="translate-x-0.5" />
@@ -3789,7 +3789,7 @@ const StudentPortal: React.FC = () => {
               <div className="space-y-6">
                 <label className="block border-4 border-dashed border-slate-100 rounded-[2.5rem] p-12 flex flex-col items-center justify-center gap-4 cursor-pointer hover:bg-slate-50 transition-colors">
                   {receiptFile ? (
-                    <img src={receiptFile} className="w-full h-32 object-contain rounded-xl" alt="Receipt preview" />
+                    <img src={receiptFile} className="w-full h-32 object-contain rounded-xl" alt="Visualização do comprovante" />
                   ) : (
                     <>
                       <ImageIcon size={48} className="text-slate-200" />
@@ -3887,7 +3887,7 @@ const StudentPortal: React.FC = () => {
                 <label className="block border-4 border-dashed border-slate-100 rounded-[2.5rem] p-10 flex flex-col items-center justify-center gap-4 cursor-pointer hover:bg-slate-50 transition-colors">
                   {medicalFile ? (
                     <div className="relative">
-                      <img src={medicalFile} className="w-full h-32 object-contain rounded-xl" alt="Certificate preview" />
+                      <img src={medicalFile} className="w-full h-32 object-contain rounded-xl" alt="Visualização do atestado" />
                       <div className="absolute inset-0 bg-black/40 rounded-xl flex items-center justify-center opacity-0 hover:opacity-100 transition-opacity">
                         <RefreshCw className="text-white animate-spin-slow" />
                       </div>

@@ -2208,7 +2208,7 @@ const pt = {
     totalPoints: "Total de Pontos",
     modules: "Módulos",
     masteryProgress: "Progresso de Maestria",
-    mastered: "MASTERED",
+    mastered: "DOMINADO",
     caseMode: "MODO CASO",
     howToLearn: "Como você quer aprender?",
     theoryQuiz: "QUIZ TEÓRICO",
