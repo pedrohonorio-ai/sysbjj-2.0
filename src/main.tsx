@@ -11,6 +11,7 @@ import { AuthProvider } from './context/AuthContext.js';
 import i18n from './i18n/index.js';
 import { registerServiceWorker } from './pwa-register.js';
 import { DiagnosticSensei } from './components/DiagnosticSensei.js';
+import { Analytics } from '@vercel/analytics/react';
 
 const savedLanguage = localStorage.getItem("SYSBJJ_LANG") || "pt-BR";
 i18n.changeLanguage(savedLanguage);
@@ -278,6 +279,7 @@ createRoot(document.getElementById('root')!).render(
             <DataProvider>
               <ProfileProvider>
                 <App />
+                <Analytics />
               </ProfileProvider>
             </DataProvider>
           </AuthProvider>
