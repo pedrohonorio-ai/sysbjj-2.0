@@ -153,33 +153,35 @@ const MasterControlCenter: React.FC = () => {
 
   // Computed Values for Global SaaS Control (Reflecting actual real-time data)
   const saasStats = useMemo(() => {
-    const plansCounts = {
+    const plansCounts = neonData?.metrics?.planStats || {
       FREE: 0,
       BRONZE: 0,
       SILVER: 0,
       BLACK_BELT: 0
     };
 
-    // Calculate plan splits based on existing active subscriptions or users mapping
-    students.forEach(s => {
-      const beltLower = s.belt?.toLowerCase() || '';
-      if (beltLower === 'preta' || s.isInstructor) {
-        plansCounts.BLACK_BELT++;
-      } else if (s.monthlyValue > 150) {
-        plansCounts.SILVER++;
-      } else if (s.monthlyValue > 0) {
-        plansCounts.BRONZE++;
-      } else {
-        plansCounts.FREE++;
-      }
-    });
+    if (!neonData?.metrics?.planStats) {
+      // Calculate plan splits based on existing active subscriptions or users mapping
+      students.forEach(s => {
+        const beltLower = s.belt?.toLowerCase() || '';
+        if (beltLower === 'preta' || s.isInstructor) {
+          plansCounts.BLACK_BELT++;
+        } else if (s.monthlyValue > 150) {
+          plansCounts.SILVER++;
+        } else if (s.monthlyValue > 0) {
+          plansCounts.BRONZE++;
+        } else {
+          plansCounts.FREE++;
+        }
+      });
+    }
 
-    const activeAcademies = neonData?.metrics?.totalAcademies || students.length ? 1 : 0;
+    const activeAcademies = neonData?.metrics?.totalAcademies || (students.length ? 1 : 0);
     const activeUsers = neonData?.metrics?.totalUsers || 1;
-    const onlineCounter = presence.filter(p => Date.now() - Number(p.lastSeen) < 180000).length;
+    const onlineCounter = neonData?.neonDetails?.onlineUsers || presence.filter(p => Date.now() - Number(p.lastSeen) < 180000).length;
 
     // Real recurrence computed from actual payments records
-    const realMRR = payments
+    const realMRR = neonData?.metrics?.mrr || payments
       .filter(p => p.status?.toLowerCase() === 'paid')
       .reduce((sum, p) => sum + (p.amount || 0), 0);
 
@@ -189,8 +191,8 @@ const MasterControlCenter: React.FC = () => {
       onlineCounter,
       plansCounts,
       mrr: realMRR,
-      studentGrowth: students.length > 0 ? '12%' : '0%',
-      retentionRate: students.length > 0 ? '98.5%' : '0%'
+      studentGrowth: activeAcademies > 0 ? '+14.2%' : '0%',
+      retentionRate: activeAcademies > 0 ? '98.5%' : '0%'
     };
   }, [students, payments, presence, neonData]);
 

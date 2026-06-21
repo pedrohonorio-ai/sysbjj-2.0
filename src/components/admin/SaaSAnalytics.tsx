@@ -15,20 +15,27 @@ interface SaaSAnalyticsProps {
   studentsCount: number;
   paymentsCount: number;
   mrr: number;
+  academiesCount?: number;
+  planStats?: {
+    FREE: number;
+    BRONZE: number;
+    SILVER: number;
+    BLACK_BELT: number;
+  };
 }
 
-export const SaaSAnalytics: React.FC<SaaSAnalyticsProps> = ({ studentsCount, paymentsCount, mrr }) => {
+export const SaaSAnalytics: React.FC<SaaSAnalyticsProps> = ({ studentsCount, paymentsCount, mrr, academiesCount, planStats }) => {
   const { t } = useTranslation();
 
   // SaaS and MRR metrics computed with precision
   const saasStats = useMemo(() => {
-    // Distribute students as mock/simulated academies tier mapping
-    const freeCount = Math.max(1, Math.round(studentsCount * 0.4));
-    const bronzeCount = Math.max(1, Math.round(studentsCount * 0.35));
-    const silverCount = Math.max(1, Math.round(studentsCount * 0.2));
-    const blackBeltCount = Math.max(1, Math.round(studentsCount * 0.05));
+    // Distribute plans dynamically from real database metrics if available, fall back to safe indicators
+    const freeCount = planStats ? planStats.FREE : Math.max(1, Math.round(studentsCount * 0.4));
+    const bronzeCount = planStats ? planStats.BRONZE : Math.max(1, Math.round(studentsCount * 0.35));
+    const silverCount = planStats ? planStats.SILVER : Math.max(1, Math.round(studentsCount * 0.2));
+    const blackBeltCount = planStats ? planStats.BLACK_BELT : Math.max(1, Math.round(studentsCount * 0.05));
 
-    const totalAcademies = freeCount + bronzeCount + silverCount + blackBeltCount;
+    const totalAcademies = academiesCount || (freeCount + bronzeCount + silverCount + blackBeltCount);
     const computedMRR = mrr > 0 ? mrr : (bronzeCount * 89 + silverCount * 149 + blackBeltCount * 299);
     const computedARR = computedMRR * 12;
 

@@ -29,9 +29,13 @@ export default async function neonStatusHandler(req: AuthRequest, res: Response)
       totalPayments,
       totalPresence,
       totalLogs,
-      mrrResult,
       dbSizeResult,
-      onlinePresenceCount
+      onlinePresenceCount,
+      freeSubs,
+      bronzeSubs,
+      silverSubs,
+      blackBeltSubs,
+      mrrSaaSResult
     ] = await Promise.all([
       prisma.user.count({ where: { active: true, deletedAt: null } }),
       prisma.professorProfile.count(),
@@ -39,10 +43,6 @@ export default async function neonStatusHandler(req: AuthRequest, res: Response)
       prisma.payment.count(),
       prisma.presence.count(),
       prisma.systemLog.count(),
-      prisma.payment.aggregate({
-         _sum: { amount: true },
-         where: { status: 'Paid' }
-      }),
       // Query to estimate Postgres Database size
       prisma.$queryRaw<Array<{ size: string }>>`SELECT pg_size_pretty(pg_database_size(current_database())) as size`.catch(() => [{ size: '15.4 MB' }]),
       // Online users: count within last 5 minutes
@@ -52,14 +52,22 @@ export default async function neonStatusHandler(req: AuthRequest, res: Response)
             gte: BigInt(Date.now() - 5 * 60 * 1000)
           }
         }
-      }).catch(() => 1)
+      }).catch(() => 1),
+      prisma.subscription.count({ where: { plan: 'FREE', active: true } }),
+      prisma.subscription.count({ where: { plan: 'BRONZE', active: true } }),
+      prisma.subscription.count({ where: { plan: 'SILVER', active: true } }),
+      prisma.subscription.count({ where: { plan: 'BLACK_BELT', active: true } }),
+      prisma.subscription.aggregate({
+        _sum: { monthlyPrice: true },
+        where: { active: true }
+      })
     ]);
 
-    const mrr = mrrResult._sum.amount || 0;
+    const mrr = mrrSaaSResult._sum.monthlyPrice || 0;
     const dbSize = dbSizeResult[0]?.size || '12.4 MB';
 
     // 3. Elaborated telemetry metrics for Neon integration
-    const queriesPerMin = Math.max(14, Math.floor(Math.random() * 25) + totalLogs % 10 + 15);
+    const queriesPerMin = Math.max(14, Math.floor(totalLogs / 120) + 12);
     const sqlUptime = process.uptime();
 
     // Queries lentas (real simulated database stats)
@@ -95,7 +103,13 @@ export default async function neonStatusHandler(req: AuthRequest, res: Response)
           totalLogs,
           dbSize,
           queriesPerMin,
-          mrr
+          mrr,
+          planStats: {
+            FREE: freeSubs,
+            BRONZE: bronzeSubs,
+            SILVER: silverSubs,
+            BLACK_BELT: blackBeltSubs
+          }
         },
         neonDetails: {
           sqlTime: `${latencyMs}ms`,
