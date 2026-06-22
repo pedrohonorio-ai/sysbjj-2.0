@@ -16,6 +16,7 @@ import { Html5QrcodeScanner } from 'html5-qrcode';
 import { useTranslation } from '../contexts/LanguageContext.js';
 import { useData } from '../contexts/DataContext.js';
 import { useProfile } from '../contexts/ProfileContext.js';
+import { generateRafflePdf } from '../services/pdfService.js';
 import { useAuth } from '../context/AuthContext.js';
 import { StudentStatus, GalleryImage, BeltColor, KidsBeltColor } from '../types.js';
 import { BELT_COLORS, IBJJF_BELT_RULES } from '../constants/index.js';
@@ -226,7 +227,7 @@ const getYoutubeEmbedUrl = (url: string): string => {
 
 const StudentPortal: React.FC = () => {
   const { code: routeCode } = useParams();
-  const { loading: authLoading, studentCode } = useAuth();
+  const { loading: authLoading, studentCode, role } = useAuth();
   const code = routeCode || studentCode;
   const navigate = useNavigate();
   const { t, tObj } = useTranslation();
@@ -3774,7 +3775,7 @@ const StudentPortal: React.FC = () => {
             {/* List of passive/active campaigns */}
             {(() => {
               const studentRaffles = products
-                .filter((p: any) => p.category === 'RAFFLE')
+                .filter((p: any) => p.category === 'RAFFLE' || p.category === 'Rifa Beneficente')
                 .map((p: any) => {
                   let meta: any = {
                     descriptionText: p.description || '',
@@ -3890,7 +3891,7 @@ const StudentPortal: React.FC = () => {
                         </div>
 
                         {/* PROFESSOR SUB-TABS SELECTOR */}
-                        {(student?.isInstructor || student?.isClassProfessor) && (
+                        {(student?.isInstructor || student?.isClassProfessor || role === 'admin') && (
                           <div className="flex border-b border-slate-100 dark:border-slate-800 pb-0.5 gap-2 pt-1" id={`student-raffle-tabs-${r.id}`}>
                             <button
                               type="button"
@@ -3917,7 +3918,7 @@ const StudentPortal: React.FC = () => {
                           </div>
                         )}
 
-                        {raffleSubTab === 'cartela' && (student?.isInstructor || student?.isClassProfessor) ? (
+                        {raffleSubTab === 'cartela' && (student?.isInstructor || student?.isClassProfessor || role === 'admin') ? (
                           /* TAB 2: PRINTER AND DOJO RAFFLE SHEET PREVIEW (CARTELA) */
                           <div className="space-y-6 pt-2" id={`student-raffle-cartela-view-${r.id}`}>
                             {/* ADMINISTRATIVE ACTION BAR */}
@@ -3941,11 +3942,23 @@ const StudentPortal: React.FC = () => {
                                 </button>
                                 <button
                                   type="button"
-                                  onClick={() => window.print()}
+                                  onClick={() => {
+                                    generateRafflePdf({
+                                      id: r.id,
+                                      name: r.name,
+                                      descriptionText: r.descriptionText,
+                                      ticketPrice: r.ticketPrice,
+                                      totalNumbers: r.totalNumbers,
+                                      winnerNumber: r.winnerNumber,
+                                      winnerStudentName: r.winnerStudentName,
+                                      tickets: r.tickets || {},
+                                      academyName: profile?.academyName || 'SYSBJJ 2.0 DOJO'
+                                    });
+                                  }}
                                   className="flex items-center gap-1.5 px-3 py-1.5 bg-blue-600 hover:bg-blue-707 text-white rounded-xl text-xs font-bold shadow-sm transition-all"
                                 >
                                   <Printer className="w-3.5 h-3.5" />
-                                  Imprimir Cartela
+                                  Gerar PDF da Cartela
                                 </button>
                               </div>
                             </div>
@@ -4417,7 +4430,7 @@ const StudentPortal: React.FC = () => {
         <button onClick={() => setActiveTab('knowledge')} className={`flex flex-col items-center gap-1 shrink-0 ${activeTab === 'knowledge' ? 'text-blue-600' : 'text-slate-400'}`}><BookOpen size={22} /><span className="text-[7px] font-black uppercase whitespace-nowrap">{t('portal.navKnowledge')}</span></button>
         <button onClick={() => setActiveTab('community')} className={`flex flex-col items-center gap-1 shrink-0 ${activeTab === 'community' ? 'text-blue-600' : 'text-slate-400'}`}><Users size={22} /><span className="text-[7px] font-black uppercase whitespace-nowrap">{t('portal.navCommunity')}</span></button>
         <button onClick={() => setActiveTab('wallet')} className={`flex flex-col items-center gap-1 shrink-0 ${activeTab === 'wallet' ? 'text-blue-600' : 'text-slate-400'}`}><CreditCard size={22} /><span className="text-[7px] font-black uppercase whitespace-nowrap">{t('portal.navWallet')}</span></button>
-        <button onClick={() => setActiveTab('raffle')} className={`flex flex-col items-center gap-1 shrink-0 ${activeTab === 'raffle' ? 'text-blue-600' : 'text-slate-400'}`}><Ticket size={22} /><span className="text-[7px] font-black uppercase whitespace-nowrap">Rifas</span></button>
+        <button onClick={() => setActiveTab('raffle')} className={`flex flex-col items-center gap-1 shrink-0 ${activeTab === 'raffle' ? 'text-blue-600' : 'text-slate-400'}`}><Ticket size={22} /><span className="text-[7px] font-black uppercase whitespace-nowrap">{t('common.raffle', 'Rifas')}</span></button>
         <button onClick={() => setActiveTab('gallery')} className={`flex flex-col items-center gap-1 shrink-0 ${activeTab === 'gallery' ? 'text-blue-600' : 'text-slate-400'}`}><ImageIcon size={22} /><span className="text-[7px] font-black uppercase whitespace-nowrap">{t('portal.navGallery')}</span></button>
         <button onClick={() => setActiveTab('timer')} className={`flex flex-col items-center gap-1 shrink-0 ${activeTab === 'timer' ? 'text-blue-600' : 'text-slate-400'}`}><Timer size={22} /><span className="text-[7px] font-black uppercase whitespace-nowrap">{t('portal.navTimer')}</span></button>
         <button onClick={() => setActiveTab('rules')} className={`flex flex-col items-center gap-1 shrink-0 ${activeTab === 'rules' ? 'text-blue-600' : 'text-slate-400'}`}><Shield size={22} /><span className="text-[7px] font-black uppercase whitespace-nowrap">{t('portal.navRules')}</span></button>

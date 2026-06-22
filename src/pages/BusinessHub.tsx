@@ -416,7 +416,7 @@ const BusinessHub: React.FC<BusinessHubProps> = ({ defaultTab }) => {
             className={`flex-shrink-0 px-5 py-2.5 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all whitespace-nowrap flex items-center gap-1.5 ${activeTab === 'raffle' ? 'bg-white dark:bg-slate-800 text-blue-600 shadow-sm' : 'text-slate-400 hover:text-slate-900 dark:hover:text-white'}`}
           >
             <Ticket size={12} />
-            Rifas & Arrecadações
+            {t('common.raffle', 'Rifas & Apoio')}
           </button>
           <button 
             onClick={() => setActiveTab('saas-plans')}

@@ -3,10 +3,12 @@ import { motion, AnimatePresence } from 'motion/react';
 import { 
   Trophy, Ticket, Coins, Users, Plus, Trash2, Eye, Play, Sparkles, Check, X, 
   ShieldCheck, RefreshCw, AlertCircle, ShoppingBag, Award, Users2, Search, ArrowRight, UserCheck,
-  Copy, Printer, RotateCcw, Info
+  Copy, Printer, RotateCcw, Info, Edit
 } from 'lucide-react';
 import { useTranslation } from '../contexts/LanguageContext.js';
 import { useData } from '../contexts/DataContext.js';
+import { useProfile } from '../contexts/ProfileContext.js';
+import { generateRafflePdf } from '../services/pdfService.js';
 import { ExtraRevenueCategory } from '../types.js';
 
 // Types definition for Raffle Metadata stored as JSON inside Product.description
@@ -19,17 +21,18 @@ export interface RaffleMetadata {
   winnerStudentId: string | null;
   winnerStudentName: string | null;
   drawnAt: string | null;
-  tickets: Record<string, { studentId: string; studentName: string; soldAt: string }>;
+  tickets: Record<string, { studentId: string; studentName: string; soldAt: string; phone?: string }>;
 }
 
 const RaffleModule: React.FC = () => {
   const { t } = useTranslation();
   const { students, products, addProduct, updateProduct, deleteProduct } = useData();
+  const { profile } = useProfile();
 
   // Active Raffles State
   const raffles = useMemo(() => {
     return products
-      .filter((p: any) => p.category === 'RAFFLE')
+      .filter((p: any) => p.category === 'RAFFLE' || p.category === 'Rifa Beneficente')
       .map((p: any) => {
         let meta: RaffleMetadata = {
           descriptionText: p.description || '',
@@ -83,6 +86,15 @@ const RaffleModule: React.FC = () => {
   const [newTotalNumbers, setNewTotalNumbers] = useState<number>(50);
   const [newImageUrl, setNewImageUrl] = useState('');
 
+  // Form States for Editing Raffle
+  const [showEditModal, setShowEditModal] = useState(false);
+  const [editRaffleId, setEditRaffleId] = useState<string | null>(null);
+  const [editName, setEditName] = useState('');
+  const [editDescText, setEditDescText] = useState('');
+  const [editTicketPrice, setEditTicketPrice] = useState<string>('10');
+  const [editTotalNumbers, setEditTotalNumbers] = useState<number>(50);
+  const [editImageUrl, setEditImageUrl] = useState('');
+
   // Sorteio/Drawing Animation States
   const [isDrawing, setIsDrawing] = useState(false);
   const [currentDrawnNumber, setCurrentDrawnNumber] = useState<number | null>(null);
@@ -92,6 +104,9 @@ const RaffleModule: React.FC = () => {
   // Selector for assigning student to ticket
   const [selectedTicketToAssign, setSelectedTicketToAssign] = useState<string | null>(null);
   const [studentSearchTerm, setStudentSearchTerm] = useState('');
+  const [assignMode, setAssignMode] = useState<'student' | 'external'>('student');
+  const [externalBuyerName, setExternalBuyerName] = useState('');
+  const [externalBuyerPhone, setExternalBuyerPhone] = useState('');
 
   // Sub tab style choice: 'board' (interactive attribution grid) or 'cartela' (traditional print preview)
   const [raffleSubTab, setRaffleSubTab] = useState<'board' | 'cartela'>('board');
@@ -203,6 +218,64 @@ const RaffleModule: React.FC = () => {
     setShowCreateModal(false);
   };
 
+  // Populate and open edit modal
+  const openEditModal = (r: any) => {
+    setEditRaffleId(r.id);
+    setEditName(r.name);
+    setEditDescText(r.descriptionText || '');
+    setEditTicketPrice(r.ticketPrice.toString());
+    setEditTotalNumbers(r.totalNumbers);
+    setEditImageUrl(r.imageUrl || '');
+    setShowEditModal(true);
+  };
+
+  // Edit Raffle Function
+  const handleEditRaffle = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!editRaffleId || !editName.trim()) return;
+
+    const originalProduct = products.find((p: any) => p.id === editRaffleId);
+    if (!originalProduct) return;
+
+    let originalMeta: RaffleMetadata;
+    try {
+      originalMeta = JSON.parse(originalProduct.description || '{}');
+    } catch {
+      originalMeta = {
+        descriptionText: originalProduct.description || '',
+        status: 'OPEN',
+        totalNumbers: 50,
+        ticketPrice: originalProduct.price || 10,
+        winnerNumber: null,
+        winnerStudentId: null,
+        winnerStudentName: null,
+        drawnAt: null,
+        tickets: {}
+      };
+    }
+
+    const price = parseFloat(editTicketPrice) || 10;
+    const updatedMeta: RaffleMetadata = {
+      ...originalMeta,
+      descriptionText: editDescText || 'Rifa beneficente do Dojo.',
+      totalNumbers: editTotalNumbers,
+      ticketPrice: price,
+    };
+
+    updateProduct(editRaffleId, {
+      name: editName,
+      price: price,
+      stock: editTotalNumbers,
+      category: originalProduct.category || ExtraRevenueCategory.RAFFLE,
+      imageUrl: editImageUrl.trim() || 'https://images.unsplash.com/photo-1511512578047-dfb367046420?auto=format&fit=crop&q=80&w=400',
+      description: JSON.stringify(updatedMeta),
+      active: true
+    });
+
+    setShowEditModal(false);
+    setEditRaffleId(null);
+  };
+
   // Assign Ticket to Student
   const handleAssignTicket = (ticketNumStr: string, studentId: string, studentName: string) => {
     if (!selectedRaffleId || !activeRaffle) return;
@@ -232,6 +305,39 @@ const RaffleModule: React.FC = () => {
 
     setSelectedTicketToAssign(null);
     setStudentSearchTerm('');
+  };
+
+  // Assign Ticket to External Person
+  const handleAssignExternal = (ticketNumStr: string) => {
+    if (!selectedRaffleId || !activeRaffle || !externalBuyerName.trim()) return;
+
+    const currentTickets = { ...activeRaffle.tickets };
+    currentTickets[ticketNumStr] = {
+      studentId: 'external',
+      studentName: externalBuyerName.trim(),
+      phone: externalBuyerPhone.trim(),
+      soldAt: new Date().toISOString()
+    };
+
+    const updatedMeta: RaffleMetadata = {
+      descriptionText: activeRaffle.descriptionText,
+      status: activeRaffle.status,
+      totalNumbers: activeRaffle.totalNumbers,
+      ticketPrice: activeRaffle.ticketPrice,
+      winnerNumber: activeRaffle.winnerNumber,
+      winnerStudentId: activeRaffle.winnerStudentId,
+      winnerStudentName: activeRaffle.winnerStudentName,
+      drawnAt: activeRaffle.drawnAt,
+      tickets: currentTickets
+    };
+
+    updateProduct(selectedRaffleId, {
+      description: JSON.stringify(updatedMeta)
+    });
+
+    setSelectedTicketToAssign(null);
+    setExternalBuyerName('');
+    setExternalBuyerPhone('');
   };
 
   // Deassign/Release Ticket Number
@@ -558,11 +664,21 @@ const RaffleModule: React.FC = () => {
                     )}
                     
                     <button
-                      onClick={() => handleDeleteRaffle(activeRaffle.id)}
-                      className="p-2 py-2.5 bg-red-50 hover:bg-red-100 text-red-600 dark:bg-red-950/20 dark:hover:bg-red-950/40 dark:text-red-400 rounded-xl transition-all border border-red-100/40"
-                      title="Deletar Rifa"
+                      onClick={() => openEditModal(activeRaffle)}
+                      className="flex items-center gap-1.5 px-3 py-2 bg-slate-50 hover:bg-slate-100 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 rounded-xl text-xs font-bold transition-all border border-slate-200 dark:border-slate-800"
+                      title="Editar Rifa"
                     >
-                      <Trash2 className="w-4 h-4" />
+                      <Edit className="w-3.5 h-3.5" />
+                      Editar Rifa
+                    </button>
+
+                    <button
+                      onClick={() => handleDeleteRaffle(activeRaffle.id)}
+                      className="flex items-center gap-1.5 px-3 py-2 bg-red-55 hover:bg-red-100 dark:bg-red-950/20 dark:hover:bg-red-950/40 text-red-650 dark:text-red-400 rounded-xl text-xs font-bold transition-all border border-red-100/40"
+                      title="Excluir Rifa"
+                    >
+                      <Trash2 className="w-3.5 h-3.5" />
+                      Excluir
                     </button>
                   </div>
                 </div>
@@ -739,19 +855,24 @@ const RaffleModule: React.FC = () => {
                               <div
                                 onClick={() => {
                                   if (activeRaffle.status === 'DRAWN') return; // lockout changes after draw
-                                  if (confirm(`🥋 Deseja desassociar o número ${numStr} do aluno ${ticketBuyer.studentName}?`)) {
+                                  const isExternal = ticketBuyer.studentId === 'external';
+                                  const label = isExternal ? `comprador externo ${ticketBuyer.studentName}` : `aluno ${ticketBuyer.studentName}`;
+                                  if (confirm(`🥋 Deseja desassociar o número ${numStr} do ${label}?`)) {
                                     handleReleaseTicket(numStr);
                                   }
                                 }}
                                 className={`p-3 py-4 rounded-xl border text-center transition-all cursor-pointer group ${
                                   isDrawnWinner 
                                     ? 'bg-emerald-500 border-emerald-600 text-white font-mono shadow' 
+                                    : ticketBuyer.studentId === 'external'
+                                    ? 'bg-teal-50 border-teal-200 hover:border-red-400 hover:bg-red-50 text-teal-800 hover:text-red-800 dark:bg-teal-950/15 dark:border-teal-900/60 dark:text-teal-400'
                                     : 'bg-blue-50 border-blue-200 hover:border-red-400 hover:bg-red-50 text-blue-800 hover:text-red-800 dark:bg-blue-950/15 dark:border-blue-900/60 dark:text-blue-450'
                                 }`}
-                                title={`Vendido para: ${ticketBuyer.studentName}`}
+                                title={`Vendido para: ${ticketBuyer.studentName}${ticketBuyer.phone ? ` (Tel: ${ticketBuyer.phone})` : ''}`}
                               >
                                 <p className="text-sm font-black font-mono">{numStr}</p>
-                                <p className="text-[8.5px] font-medium tracking-tighter truncate mt-0.5 max-w-[50px] group-hover:hidden text-slate-600 dark:text-slate-400">
+                                <p className="text-[8.5px] font-medium tracking-tighter truncate mt-0.5 max-w-[50px] group-hover:hidden text-slate-650 dark:text-slate-400 flex items-center justify-center gap-0.5">
+                                  {ticketBuyer.studentId === 'external' ? '👤 ' : ''}
                                   {ticketBuyer.studentName.split(' ')[0]}
                                 </p>
                                 <p className="text-[8.5px] font-bold tracking-tighter text-red-500 mt-0.5 hidden group-hover:block uppercase">
@@ -763,8 +884,12 @@ const RaffleModule: React.FC = () => {
                                 type="button"
                                 disabled={activeRaffle.status === 'DRAWN'}
                                 onClick={() => {
-                                  setSelectedTicketToAssign(isBeingAssigned ? null : numStr);
+                                  const willBeAssigned = !isBeingAssigned;
+                                  setSelectedTicketToAssign(willBeAssigned ? numStr : null);
                                   setStudentSearchTerm('');
+                                  setAssignMode('student');
+                                  setExternalBuyerName('');
+                                  setExternalBuyerPhone('');
                                 }}
                                 className={`w-full p-3 py-4 rounded-xl border text-center font-mono text-sm transition-all focus:outline-none ${
                                   isBeingAssigned
@@ -775,7 +900,7 @@ const RaffleModule: React.FC = () => {
                                 {numStr}
                               </button>
                             )}
-
+ 
                             {/* Float Assign Dropdown if clicked */}
                             <AnimatePresence>
                               {isBeingAssigned && (
@@ -786,49 +911,117 @@ const RaffleModule: React.FC = () => {
                                   className="absolute z-30 left-1/2 -translate-x-1/2 mt-2 w-64 bg-white dark:bg-slate-900 border border-slate-250 dark:border-slate-850 p-4 rounded-2xl shadow-xl space-y-3"
                                 >
                                   <div className="flex items-center justify-between">
-                                    <h4 className="text-xs font-black text-slate-800 dark:text-slate-150">
-                                      Associar Cota Nº {numStr}
+                                    <h4 className="text-xs font-black text-slate-800 dark:text-slate-150 flex items-center gap-1">
+                                      <span>Associar Cota Nº {numStr}</span>
                                     </h4>
                                     <button
                                       type="button"
                                       onClick={() => setSelectedTicketToAssign(null)}
-                                      className="p-1 rounded bg-slate-50 hover:bg-slate-100 text-slate-400"
+                                      className="p-1 rounded bg-slate-50 hover:bg-slate-100 dark:bg-slate-850 text-slate-400"
                                     >
                                       <X className="w-3.5 h-3.5" />
                                     </button>
                                   </div>
 
-                                  {/* Student Search box */}
-                                  <div className="relative">
-                                    <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-slate-400" />
-                                    <input
-                                      type="text"
-                                      placeholder="Pesquisar aluno ativo..."
-                                      value={studentSearchTerm}
-                                      onChange={(e) => setStudentSearchTerm(e.target.value)}
-                                      className="w-full text-[11px] pl-8 pr-3 py-1.5 rounded-lg border border-slate-200 focus:outline-none focus:border-blue-500 bg-slate-50 dark:bg-slate-800 text-slate-800 dark:text-slate-150 dark:border-slate-700"
-                                    />
+                                  {/* Segmented control for buyer type */}
+                                  <div className="grid grid-cols-2 gap-1 p-0.5 bg-slate-100 dark:bg-slate-800 rounded-lg text-[10px] font-bold">
+                                    <button
+                                      type="button"
+                                      onClick={() => setAssignMode('student')}
+                                      className={`py-1 rounded text-center transition-all ${
+                                        assignMode === 'student'
+                                          ? 'bg-white dark:bg-slate-900 shadow-xs text-blue-600 dark:text-blue-400'
+                                          : 'text-slate-500 hover:text-slate-800 dark:hover:text-slate-200'
+                                      }`}
+                                    >
+                                      🥋 Aluno Ativo
+                                    </button>
+                                    <button
+                                      type="button"
+                                      onClick={() => setAssignMode('external')}
+                                      className={`py-1 rounded text-center transition-all ${
+                                        assignMode === 'external'
+                                          ? 'bg-white dark:bg-slate-900 shadow-xs text-teal-600 dark:text-teal-400'
+                                          : 'text-slate-500 hover:text-slate-800 dark:hover:text-slate-200'
+                                      }`}
+                                    >
+                                      👤 Pessoa Externa
+                                    </button>
                                   </div>
 
-                                  <div className="max-h-40 overflow-y-auto space-y-1 pr-1 border-t border-slate-50 pt-2">
-                                    {activeStudents.length === 0 ? (
-                                      <p className="text-[10px] text-center text-slate-400 py-4">
-                                        Nenhum aluno encontrado
-                                      </p>
-                                    ) : (
-                                      activeStudents.map((s: any) => (
-                                        <button
-                                          type="button"
-                                          key={s.id}
-                                          onClick={() => handleAssignTicket(numStr, s.id, s.name)}
-                                          className="w-full text-left p-2 rounded hover:bg-slate-50 dark:hover:bg-slate-800 text-[11px] font-medium border border-transparent hover:border-slate-105 flex items-center justify-between text-slate-700 dark:text-slate-350"
-                                        >
-                                          <span>{s.nickname ? `${s.name} (${s.nickname})` : s.name}</span>
-                                          <ArrowRight className="w-3 h-3 text-slate-300" />
-                                        </button>
-                                      ))
-                                    )}
-                                  </div>
+                                  {assignMode === 'student' ? (
+                                    <>
+                                      {/* Student Search box */}
+                                      <div className="relative">
+                                        <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-slate-400" />
+                                        <input
+                                          type="text"
+                                          placeholder="Pesquisar aluno ativo..."
+                                          value={studentSearchTerm}
+                                          onChange={(e) => setStudentSearchTerm(e.target.value)}
+                                          className="w-full text-[11px] pl-8 pr-3 py-1.5 rounded-lg border border-slate-200 focus:outline-none focus:border-blue-500 bg-slate-50 dark:bg-slate-800 text-slate-800 dark:text-slate-150 dark:border-slate-700"
+                                        />
+                                      </div>
+
+                                      <div className="max-h-40 overflow-y-auto space-y-1 pr-1 border-t border-slate-50 dark:border-slate-800 pt-2 text-left">
+                                        {activeStudents.length === 0 ? (
+                                          <p className="text-[10px] text-center text-slate-400 py-4">
+                                            Nenhum aluno encontrado
+                                          </p>
+                                        ) : (
+                                          activeStudents.map((s: any) => (
+                                            <button
+                                              type="button"
+                                              key={s.id}
+                                              onClick={() => handleAssignTicket(numStr, s.id, s.name)}
+                                              className="w-full text-left p-2 rounded hover:bg-slate-50 dark:hover:bg-slate-800 text-[11px] font-medium border border-transparent hover:border-slate-105 flex items-center justify-between text-slate-700 dark:text-slate-350"
+                                            >
+                                              <span>{s.nickname ? `${s.name} (${s.nickname})` : s.name}</span>
+                                              <ArrowRight className="w-3 h-3 text-slate-300" />
+                                            </button>
+                                          ))
+                                        )}
+                                      </div>
+                                    </>
+                                  ) : (
+                                    <div className="space-y-2 pt-1 text-left">
+                                      <div className="space-y-0.5">
+                                        <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest">
+                                          Nome do Comprador
+                                        </label>
+                                        <input
+                                          type="text"
+                                          required
+                                          placeholder="Ex: João Silva"
+                                          value={externalBuyerName}
+                                          onChange={(e) => setExternalBuyerName(e.target.value)}
+                                          className="w-full text-[11px] px-2.5 py-1.5 rounded-lg border border-slate-200 dark:border-slate-705 focus:outline-none focus:border-teal-500 bg-slate-50 dark:bg-slate-800 text-slate-800 dark:text-slate-150"
+                                        />
+                                      </div>
+
+                                      <div className="space-y-0.5">
+                                        <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest">
+                                          Telefone de Contato
+                                        </label>
+                                        <input
+                                          type="text"
+                                          placeholder="Ex: (21) 98888-7777"
+                                          value={externalBuyerPhone}
+                                          onChange={(e) => setExternalBuyerPhone(e.target.value)}
+                                          className="w-full text-[11px] px-2.5 py-1.5 rounded-lg border border-slate-200 dark:border-slate-705 focus:outline-none focus:border-teal-500 bg-slate-50 dark:bg-slate-800 text-slate-800 dark:text-slate-150"
+                                        />
+                                      </div>
+
+                                      <button
+                                        type="button"
+                                        disabled={!externalBuyerName.trim()}
+                                        onClick={() => handleAssignExternal(numStr)}
+                                        className="w-full mt-1.5 py-2 bg-teal-600 hover:bg-teal-700 disabled:bg-slate-100 disabled:dark:bg-slate-800 disabled:text-slate-400 text-white rounded-lg text-[10px] font-bold transition-all uppercase tracking-wider"
+                                      >
+                                        Confirmar Venda Cota Nº {numStr}
+                                      </button>
+                                    </div>
+                                  )}
                                 </motion.div>
                               )}
                             </AnimatePresence>
@@ -858,11 +1051,24 @@ const RaffleModule: React.FC = () => {
                         </button>
                         <button
                           type="button"
-                          onClick={() => window.print()}
+                          onClick={() => {
+                            if (!activeRaffle) return;
+                            generateRafflePdf({
+                              id: activeRaffle.id,
+                              name: activeRaffle.name,
+                              descriptionText: activeRaffle.descriptionText,
+                              ticketPrice: activeRaffle.ticketPrice,
+                              totalNumbers: activeRaffle.totalNumbers,
+                              winnerNumber: activeRaffle.winnerNumber,
+                              winnerStudentName: activeRaffle.winnerStudentName,
+                              tickets: activeRaffle.tickets || {},
+                              academyName: profile?.academyName || 'SYSBJJ 2.0 DOJO'
+                            });
+                          }}
                           className="flex items-center gap-1.5 px-3 py-1.5 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-xs font-bold shadow-sm transition-all"
                         >
                           <Printer className="w-3.5 h-3.5" />
-                          Imprimir Cartela
+                          Gerar PDF da Cartela
                         </button>
                       </div>
                     </div>
@@ -902,10 +1108,20 @@ const RaffleModule: React.FC = () => {
                             ) : (
                               Object.keys(activeRaffle.tickets).sort().map((numStr) => {
                                 const buyer = activeRaffle.tickets[numStr];
+                                const isExternal = buyer.studentId === 'external';
                                 return (
-                                  <div key={numStr} className="flex justify-between items-center bg-slate-100/50 dark:bg-slate-950/40 p-1 px-1.5 rounded border border-slate-100/30">
-                                    <span className="font-bold text-slate-800 dark:text-slate-300">Nº {numStr}</span>
-                                    <span className="truncate max-w-[85px] font-semibold text-slate-500">{buyer.studentName.split(' ')[0]}</span>
+                                  <div key={numStr} className="flex flex-col bg-slate-100/50 dark:bg-slate-950/40 p-1 px-1.5 rounded border border-slate-105/30 gap-0.5">
+                                    <div className="flex justify-between items-center">
+                                      <span className="font-bold text-slate-800 dark:text-slate-300">Nº {numStr}</span>
+                                      <span className="truncate max-w-[100px] font-semibold text-slate-600 dark:text-slate-400" title={buyer.studentName}>
+                                        {buyer.studentName.split(' ')[0]} {isExternal ? '👤' : '🥋'}
+                                      </span>
+                                    </div>
+                                    {buyer.phone && (
+                                      <div className="text-[7.5px] text-emerald-600 dark:text-emerald-400 font-bold font-mono text-right leading-none">
+                                        📞 {buyer.phone}
+                                      </div>
+                                    )}
                                   </div>
                                 );
                               })
@@ -1206,6 +1422,128 @@ const RaffleModule: React.FC = () => {
                     className="flex-1 px-4 py-3 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-xs font-bold"
                   >
                     Salvar Rifa Beneficente
+                  </button>
+                </div>
+              </form>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
+
+      {/* EDIT RAFFLE INPUT MODAL */}
+      <AnimatePresence>
+        {showEditModal && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/40 backdrop-blur-xs">
+            <motion.div
+              initial={{ scale: 0.95, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              exit={{ scale: 0.95, opacity: 0 }}
+              className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 w-full max-w-lg rounded-2xl shadow-2xl overflow-hidden"
+            >
+              <div className="flex items-center justify-between p-5 border-b border-slate-100 dark:border-slate-800">
+                <div className="flex items-center gap-2">
+                  <Edit className="w-5 h-5 text-blue-600 dark:text-blue-400" />
+                  <h3 className="font-bold text-sm text-slate-800 dark:text-slate-100">
+                    Editar Dados da Rifa / Campanha Beneficente
+                  </h3>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setShowEditModal(false)}
+                  className="p-1 rounded hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-400 hover:text-slate-600"
+                >
+                  <X className="w-5 h-5" />
+                </button>
+              </div>
+
+              <form onSubmit={handleEditRaffle} className="p-5 space-y-4">
+                <div className="space-y-1">
+                  <label className="text-[10px] font-bold text-slate-450 dark:text-slate-400 uppercase tracking-widest">
+                    Nome da Campanha / Produto
+                  </label>
+                  <input
+                    type="text"
+                    required
+                    placeholder="Ex: Rifa de Kimono Shoyoroll para subsidiar passagem de atletas"
+                    value={editName}
+                    onChange={(e) => setEditName(e.target.value)}
+                    className="w-full text-xs p-3 rounded-xl border border-slate-250 dark:border-slate-800 bg-slate-50 dark:bg-slate-900 text-slate-800 dark:text-slate-100 focus:outline-none focus:border-blue-500"
+                  />
+                </div>
+
+                <div className="space-y-1">
+                  <label className="text-[10px] font-bold text-slate-450 dark:text-slate-400 uppercase tracking-widest">
+                    Descrição do Objetivo
+                  </label>
+                  <textarea
+                    placeholder="Explicação da arrecadação técnica"
+                    value={editDescText}
+                    onChange={(e) => setEditDescText(e.target.value)}
+                    rows={3}
+                    className="w-full text-xs p-3 rounded-xl border border-slate-250 dark:border-slate-800 bg-slate-50 dark:bg-slate-900 text-slate-800 dark:text-slate-100 focus:outline-none focus:border-blue-500"
+                  />
+                </div>
+
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-1">
+                    <label className="text-[10px] font-bold text-slate-450 dark:text-slate-400 uppercase tracking-widest">
+                      Preço da Cota (R$)
+                    </label>
+                    <input
+                      type="number"
+                      required
+                      min="1"
+                      placeholder="10"
+                      value={editTicketPrice}
+                      onChange={(e) => setEditTicketPrice(e.target.value)}
+                      className="w-full text-xs p-3 rounded-xl border border-slate-250 dark:border-slate-800 bg-slate-50 dark:bg-slate-900 text-slate-800 dark:text-slate-100 focus:outline-none focus:border-blue-500"
+                    />
+                  </div>
+
+                  <div className="space-y-1">
+                    <label className="text-[10px] font-bold text-slate-450 dark:text-slate-400 uppercase tracking-widest">
+                      Variação de Números
+                    </label>
+                    <select
+                      value={editTotalNumbers}
+                      onChange={(e) => setEditTotalNumbers(parseInt(e.target.value))}
+                      className="w-full text-xs p-3 rounded-xl border border-slate-250 dark:border-slate-800 bg-slate-50 dark:bg-slate-900 text-slate-800 dark:text-slate-100 focus:outline-none focus:border-blue-500"
+                    >
+                      <option value={25}>25 números</option>
+                      <option value={50}>50 números</option>
+                      <option value={100}>100 números</option>
+                      <option value={200}>200 números</option>
+                      <option value={500}>500 números</option>
+                    </select>
+                  </div>
+                </div>
+
+                <div className="space-y-1">
+                  <label className="text-[10px] font-bold text-slate-450 dark:text-slate-400 uppercase tracking-widest">
+                    URL da Imagem do Produto/Prêmio (Opcional)
+                  </label>
+                  <input
+                    type="url"
+                    placeholder="Ex: https://images.unsplash.com/photo-..."
+                    value={editImageUrl}
+                    onChange={(e) => setEditImageUrl(e.target.value)}
+                    className="w-full text-xs p-3 rounded-xl border border-slate-250 dark:border-slate-800 bg-slate-50 dark:bg-slate-900 text-slate-800 dark:text-slate-100 focus:outline-none focus:border-blue-500"
+                  />
+                </div>
+
+                <div className="pt-3 flex gap-3">
+                  <button
+                    type="button"
+                    onClick={() => setShowEditModal(false)}
+                    className="flex-1 px-4 py-3 bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 rounded-xl text-xs font-semibold"
+                  >
+                    Cancelar
+                  </button>
+                  <button
+                    type="submit"
+                    className="flex-1 px-4 py-3 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-xs font-bold"
+                  >
+                    Salvar Alterações
                   </button>
                 </div>
               </form>
