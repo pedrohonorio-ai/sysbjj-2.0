@@ -61,7 +61,8 @@ export enum ExtraRevenueCategory {
   PRIVATE_LESSON = 'Aula Particular',
   PRODUCT = 'Loja/Produtos',
   SEMINAR = 'Seminário/Workshop',
-  OTHER = 'Outros'
+  OTHER = 'Outros',
+  RAFFLE = 'Rifa Beneficente'
 }
 
 export interface ExtraRevenue {
@@ -273,6 +274,9 @@ export interface Product {
   name: string;
   price: number;
   category: ExtraRevenueCategory;
+  description?: string;
+  imageUrl?: string;
+  active?: boolean;
   stock?: number;
 }
 

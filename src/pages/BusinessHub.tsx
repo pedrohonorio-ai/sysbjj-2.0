@@ -24,6 +24,7 @@ import {
   QrCode, 
   Award, 
   Trophy, 
+  Ticket, 
   Clock, 
   Lock, 
   Unlock, 
@@ -51,9 +52,10 @@ import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContai
 import VerificationBadge from '../components/ui/VerificationBadge.js';
 import { SUBSCRIPTION_PLANS } from '../constants/index.js';
 import { enterpriseApi } from '../services/enterpriseApi.js';
+import RaffleModule from '../components/RaffleModule.js';
 
 interface BusinessHubProps {
-  defaultTab?: 'shop' | 'orders' | 'plans' | 'finances' | 'saas-plans' | 'reports';
+  defaultTab?: 'shop' | 'orders' | 'raffle' | 'plans' | 'finances' | 'saas-plans' | 'reports';
 }
 
 const BusinessHub: React.FC<BusinessHubProps> = ({ defaultTab }) => {
@@ -81,10 +83,10 @@ const BusinessHub: React.FC<BusinessHubProps> = ({ defaultTab }) => {
   } = useData();
 
   // Detect initial tab based on search param, prop path, or router. Default to 'shop'
-  const getInitialTab = (): 'shop' | 'orders' | 'plans' | 'finances' | 'saas-plans' | 'reports' => {
+  const getInitialTab = (): 'shop' | 'orders' | 'raffle' | 'plans' | 'finances' | 'saas-plans' | 'reports' => {
     const params = new URLSearchParams(location.search);
     const tabParam = params.get('tab');
-    if (tabParam && ['shop', 'orders', 'plans', 'finances', 'saas-plans', 'reports'].includes(tabParam)) {
+    if (tabParam && ['shop', 'orders', 'raffle', 'plans', 'finances', 'saas-plans', 'reports'].includes(tabParam)) {
       return tabParam as any;
     }
     if (defaultTab) return defaultTab;
@@ -93,7 +95,7 @@ const BusinessHub: React.FC<BusinessHubProps> = ({ defaultTab }) => {
     return 'shop';
   };
 
-  const [activeTab, setActiveTab] = useState<'shop' | 'orders' | 'plans' | 'finances' | 'saas-plans' | 'reports'>(getInitialTab());
+  const [activeTab, setActiveTab] = useState<'shop' | 'orders' | 'raffle' | 'plans' | 'finances' | 'saas-plans' | 'reports'>(getInitialTab());
   const [searchTerm, setSearchTerm] = useState('');
   
   // Shop states
@@ -408,6 +410,13 @@ const BusinessHub: React.FC<BusinessHubProps> = ({ defaultTab }) => {
           >
             <DollarSign size={12} />
             Fluxo de Caixa
+          </button>
+          <button 
+            onClick={() => setActiveTab('raffle')}
+            className={`flex-shrink-0 px-5 py-2.5 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all whitespace-nowrap flex items-center gap-1.5 ${activeTab === 'raffle' ? 'bg-white dark:bg-slate-800 text-blue-600 shadow-sm' : 'text-slate-400 hover:text-slate-900 dark:hover:text-white'}`}
+          >
+            <Ticket size={12} />
+            Rifas & Arrecadações
           </button>
           <button 
             onClick={() => setActiveTab('saas-plans')}
@@ -1510,6 +1519,18 @@ const BusinessHub: React.FC<BusinessHubProps> = ({ defaultTab }) => {
                 <p className="mt-1 text-slate-405 max-w-xs mx-auto text-xs font-medium">Insira pagamentos e realize vendas de balcão para iniciar os relatórios.</p>
               </div>
             )}
+          </motion.div>
+        )}
+
+        {/* CAMPANHA DE RIFAS TAB */}
+        {activeTab === 'raffle' && (
+          <motion.div
+            key="raffle"
+            initial={{ opacity: 0, y: 15 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -15 }}
+          >
+            <RaffleModule />
           </motion.div>
         )}
       </AnimatePresence>

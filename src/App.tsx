@@ -82,7 +82,7 @@ const Sidebar = ({ isOpen, toggle, onLogout, isMasterAdmin }: { isOpen: boolean,
     return true;
   });
 
-  const coreItems = filteredItems.filter(item => ['dashboard', 'students', 'promotions', 'dojo', 'finances', 'agenda', 'reports', 'certificates'].includes(item.id));
+  const coreItems = filteredItems.filter(item => ['dashboard', 'students', 'promotions', 'dojo', 'finances', 'raffle', 'agenda', 'reports', 'certificates'].includes(item.id));
   const footerItems = filteredItems.filter(item => ['settings'].includes(item.id));
 
   const masterLinksList = [
@@ -776,6 +776,7 @@ const App: React.FC = () => {
                     <Route path="/promotions" element={<BeltSystem />} />
                     <Route path="/dojo" element={<DojoHub />} />
                     <Route path="/finances" element={<Finances />} />
+                    <Route path="/raffle" element={<BusinessHub defaultTab="raffle" />} />
                     <Route path="/agenda" element={<Agenda />} />
                     <Route path="/reports" element={<Reports />} />
                     <Route path="/competitions" element={<Competitions />} />

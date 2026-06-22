@@ -3,7 +3,7 @@ import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { 
-  Trophy, Flame, Calendar, BookOpen, 
+  Trophy, Flame, Calendar, BookOpen, Ticket,
   ArrowRight, Shield, Zap, Plus, LogOut, Scale, Gamepad2, Award, Play,
   QrCode, Clock, Info, Camera, CheckCircle2, AlertTriangle, X, Copy, Image as ImageIcon, Download, Maximize2,
   RefreshCw, FileText, Upload, ShieldCheck, AlertCircle, ShieldAlert, ChevronRight,
@@ -230,11 +230,11 @@ const StudentPortal: React.FC = () => {
   const code = routeCode || studentCode;
   const navigate = useNavigate();
   const { t, tObj } = useTranslation();
-  const { students, recordAttendance, gallery, payments, addGalleryImage, addReceipt, completeRuleLesson, logs, graduationHistory, schedules } = useData();
+  const { students, recordAttendance, gallery, payments, addGalleryImage, addReceipt, completeRuleLesson, logs, graduationHistory, schedules, products = [], updateProduct } = useData();
   const { profile } = useProfile();
   const student = useMemo(() => students.find(s => s.portalAccessCode?.toUpperCase() === code?.toUpperCase()), [students, code]);
   const [loading, setLoading] = useState(true);
-  const [activeTab, setActiveTab] = useState<'home' | 'training' | 'knowledge' | 'community' | 'wallet' | 'gallery' | 'homeTraining' | 'timer' | 'rules'>('home');
+  const [activeTab, setActiveTab] = useState<'home' | 'training' | 'knowledge' | 'community' | 'wallet' | 'gallery' | 'homeTraining' | 'timer' | 'rules' | 'raffle'>('home');
   const [selectedModality, setSelectedModality] = useState<'bjj' | 'capoeira' | 'muay_thai' | 'mma' | 'judo' | 'kickboxing'>('bjj');
   const [qrRotaryToken, setQrRotaryToken] = useState('SYSBJJ-SECURE-INIT-HASH');
   const [qrCountdown, setQrCountdown] = useState(30);
@@ -3749,6 +3749,251 @@ const StudentPortal: React.FC = () => {
             )}
           </motion.div>
         )}
+
+        {activeTab === 'raffle' && (
+          <motion.div
+            initial={{ opacity: 0, scale: 0.95 }}
+            animate={{ opacity: 1, scale: 1 }}
+            className="space-y-6 text-left pb-24"
+          >
+            <div className="flex items-center gap-3">
+              <div className="w-12 h-12 bg-blue-500/10 dark:bg-blue-400/10 rounded-full flex items-center justify-center text-blue-500 text-xl">
+                🎟️
+              </div>
+              <div>
+                <h1 className="text-xl font-bold text-slate-900 dark:text-white tracking-tight leading-tight">
+                  Campanhas de Rifas & Arrecadações
+                </h1>
+                <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
+                  Apoie os atletas, projetos e viagens do Dojo comprando números de rifa. OSS!
+                </p>
+              </div>
+            </div>
+
+            {/* List of passive/active campaigns */}
+            {(() => {
+              const studentRaffles = products
+                .filter((p: any) => p.category === 'RAFFLE')
+                .map((p: any) => {
+                  let meta: any = {
+                    descriptionText: p.description || '',
+                    status: 'OPEN',
+                    totalNumbers: p.stock || 100,
+                    ticketPrice: p.price || 10,
+                    winnerNumber: null,
+                    winnerStudentId: null,
+                    winnerStudentName: null,
+                    drawnAt: null,
+                    tickets: {}
+                  };
+
+                  if (p.description && p.description.startsWith('{')) {
+                    try {
+                      meta = { ...meta, ...JSON.parse(p.description) };
+                    } catch (e) {
+                      console.error('[STUDENT PORTAL RAFFLE DECODE ERROR]', e);
+                    }
+                  }
+
+                  return {
+                    id: p.id,
+                    name: p.name,
+                    imageUrl: p.imageUrl,
+                    active: p.active,
+                    createdAt: p.createdAt,
+                    ...meta
+                  };
+                });
+
+              if (studentRaffles.length === 0) {
+                return (
+                  <div className="text-center py-12 bg-slate-50 dark:bg-slate-900/40 border border-slate-200 dark:border-slate-800 rounded-3xl p-6">
+                    <span className="text-3xl">🎫</span>
+                    <h3 className="text-sm font-bold text-slate-850 dark:text-slate-150 mt-2">Nenhuma Campanha no Momento</h3>
+                    <p className="text-xs text-slate-500 dark:text-slate-400 max-w-xs mx-auto mt-1">
+                      O Sensei ainda não cadastrou nenhuma campanha de rifa ativa. Fique atento às novidades no tatame! OSS!
+                    </p>
+                  </div>
+                );
+              }
+
+              return (
+                <div className="space-y-6">
+                  {studentRaffles.map((r) => {
+                    const totalSold = Object.keys(r.tickets).length;
+                    const soldPct = Math.round((totalSold / r.totalNumbers) * 100);
+                    
+                    // Filter tickets purchased by this student
+                    const myTickets = Object.entries(r.tickets)
+                      .filter(([_, ticketInfo]: [string, any]) => ticketInfo.studentId === student?.id)
+                      .map(([numStr]) => numStr)
+                      .sort();
+
+                    const myCost = myTickets.length * r.ticketPrice;
+
+                    return (
+                      <div key={r.id} className="bg-white dark:bg-slate-900 border border-slate-250 dark:border-slate-800 rounded-3xl p-5 space-y-4 shadow-sm">
+                        
+                        {/* Title and Badge */}
+                        <div className="flex items-start justify-between gap-3 border-b border-slate-100 dark:border-slate-855/80 pb-4">
+                          <div className="space-y-1">
+                            <h4 className="text-sm font-extrabold text-slate-850 dark:text-slate-100 leading-tight">
+                              {r.name}
+                            </h4>
+                            <p className="subtitle text-xs text-slate-500 dark:text-slate-400">
+                              {r.descriptionText}
+                            </p>
+                          </div>
+                          <span className={`text-[9px] font-black uppercase tracking-widest px-2.5 py-1 rounded-full whitespace-nowrap ${
+                            r.status === 'DRAWN'
+                              ? 'bg-emerald-100 text-emerald-800 dark:bg-emerald-950/40 dark:text-emerald-400 border border-emerald-200/40'
+                              : 'bg-blue-100 text-blue-800 dark:bg-blue-950/40 dark:text-blue-400 border border-blue-200/40'
+                          }`}>
+                            {r.status === 'DRAWN' ? 'Sorteado' : 'Em Aberto'}
+                          </span>
+                        </div>
+
+                        {/* WINNER SHOWCASE */}
+                        {r.status === 'DRAWN' && (
+                          <div className="p-4 bg-gradient-to-r from-yellow-500/10 to-amber-500/10 border border-yellow-200 dark:border-yellow-905/40 rounded-2xl flex items-center gap-3">
+                            <span className="text-3xl text-yellow-500">🏆</span>
+                            <div>
+                              <p className="text-[9px] font-black uppercase tracking-widest text-amber-800 dark:text-amber-400 leading-none">
+                                Ganhador Sorteado!
+                              </p>
+                              <p className="text-xs font-bold text-slate-855 dark:text-slate-100 mt-1 uppercase">
+                                {r.winnerStudentId === student?.id ? 'Parabéns! Você foi o ganhador!' : `Ganhador: ${r.winnerStudentName}`}
+                              </p>
+                              <p className="text-[10px] text-slate-500">
+                                Cota Contemplada: <span className="font-mono font-black text-xs text-amber-700 dark:text-amber-400">Nº {r.winnerNumber}</span>
+                              </p>
+                            </div>
+                          </div>
+                        )}
+
+                        {/* PROGRESS BLOCK */}
+                        <div className="grid grid-cols-2 gap-4 text-xs font-mono bg-slate-50 dark:bg-slate-950/30 p-3 rounded-2xl border border-slate-100 dark:border-slate-850">
+                          <div>
+                            <span className="text-[9px] font-bold uppercase tracking-wider text-slate-400 block pb-0.5">Preço da Cota</span>
+                            <span className="font-bold text-slate-800 dark:text-slate-100 text-xs">R$ {r.ticketPrice.toFixed(2)}</span>
+                          </div>
+                          <div>
+                            <span className="text-[9px] font-bold uppercase tracking-wider text-slate-400 block pb-0.5">Cotas Vendidas</span>
+                            <span className="font-bold text-slate-705 dark:text-slate-350 text-xs">{totalSold} / {r.totalNumbers} vendidos ({soldPct}%)</span>
+                          </div>
+                        </div>
+
+                        {/* PROGRESS BAR */}
+                        <div className="w-full h-1.5 bg-slate-100 dark:bg-slate-800 rounded-full overflow-hidden">
+                          <div className="h-full bg-blue-500 rounded-full transition-all" style={{ width: `${soldPct}%` }} />
+                        </div>
+
+                        {/* MY RESERVED NUMBERS BOX */}
+                        {myTickets.length > 0 && (
+                          <div className="bg-blue-50/70 dark:bg-blue-950/15 border border-blue-100 dark:border-blue-900/40 p-3.5 rounded-2xl space-y-1 rounded-xl">
+                            <p className="text-[10px] font-bold text-blue-800 dark:text-blue-400 uppercase tracking-widest flex items-center gap-1.5 leading-none">
+                              <span>🎟️ Minhas Cotas Reservadas ({myTickets.length})</span>
+                            </p>
+                            <p className="text-xs font-extrabold text-blue-900 dark:text-blue-105 font-mono">
+                              {myTickets.join(', ')}
+                            </p>
+                            <p className="text-[9px] text-slate-550 leading-tight">
+                              Valor total de apoio ao Dojo: <span className="font-bold font-mono text-xs">R$ {myCost.toFixed(2)}</span>
+                            </p>
+                          </div>
+                        )}
+
+                        {/* NUMBERS BOARD GRID */}
+                        <div className="space-y-2 pt-1">
+                          <div className="flex items-center justify-between text-[10px] font-bold uppercase tracking-wider text-slate-450 dark:text-slate-500">
+                            <span>Selecione uma cota de apoio</span>
+                            <span>{r.totalNumbers - totalSold} livres</span>
+                          </div>
+
+                          <div className="grid grid-cols-5 sm:grid-cols-10 gap-1.5">
+                            {Array.from({ length: r.totalNumbers }, (_, idx) => {
+                              const numStr = (idx + 1).toString().padStart(2, '0');
+                              const ticket = r.tickets[numStr];
+                              const isReserved = !!ticket;
+                              const isMine = isReserved && ticket.studentId === student?.id;
+                              const isDrawnWinner = r.winnerNumber === (idx + 1);
+
+                              return (
+                                <button
+                                  key={idx}
+                                  disabled={isReserved || r.status === 'DRAWN'}
+                                  onClick={() => {
+                                    if (!student) {
+                                      alert("Erro de autenticação: Aluno inválido.");
+                                      return;
+                                    }
+                                    if (confirm(`🥋 Deseja reservar a Cota Nº ${numStr} no seu nome na rifa?\n\nValor: R$ ${r.ticketPrice.toFixed(2)}`)) {
+                                      // Assign ticket on server
+                                      const newTickets = { ...r.tickets };
+                                      newTickets[numStr] = {
+                                        studentId: student.id,
+                                        studentName: student.name,
+                                        soldAt: new Date().toISOString()
+                                      };
+
+                                      const updatedMeta: any = {
+                                        descriptionText: r.descriptionText,
+                                        status: r.status,
+                                        totalNumbers: r.totalNumbers,
+                                        ticketPrice: r.ticketPrice,
+                                        winnerNumber: r.winnerNumber,
+                                        winnerStudentId: r.winnerStudentId,
+                                        winnerStudentName: r.winnerStudentName,
+                                        drawnAt: r.drawnAt,
+                                        tickets: newTickets
+                                      };
+
+                                      updateProduct(r.id, {
+                                        description: JSON.stringify(updatedMeta)
+                                      });
+                                    }
+                                  }}
+                                  className={`p-2 py-3 text-xs font-bold font-mono rounded-xl border text-center transition-all ${
+                                    isDrawnWinner
+                                      ? 'bg-emerald-500 border-emerald-600 text-white font-black'
+                                      : isMine
+                                      ? 'bg-blue-600 border-blue-600 text-white font-black'
+                                      : isReserved
+                                      ? 'bg-slate-100 border-slate-150 text-slate-400 cursor-not-allowed dark:bg-slate-900/60 dark:border-slate-800 dark:text-slate-650'
+                                      : 'bg-slate-50 border-slate-200 hover:border-blue-500 hover:bg-blue-50/40 text-slate-700 dark:bg-slate-950 dark:border-slate-800 dark:text-slate-350'
+                                  }`}
+                                >
+                                  {numStr}
+                                </button>
+                              );
+                            })}
+                          </div>
+                          
+                          {/* Legend explanation */}
+                          <div className="flex items-center gap-4 text-[9px] font-semibold text-slate-450 pt-1.5 justify-start">
+                            <div className="flex items-center gap-1">
+                              <span className="w-2.5 h-2.5 rounded bg-slate-50 border border-slate-200 dark:bg-slate-950 dark:border-slate-800" />
+                              Livre
+                            </div>
+                            <div className="flex items-center gap-1">
+                              <span className="w-2.5 h-2.5 rounded bg-slate-100 border border-slate-150 dark:bg-slate-900 dark:border-slate-800" />
+                              Ocupado
+                            </div>
+                            <div className="flex items-center gap-1 text-blue-600">
+                              <span className="w-2.5 h-2.5 rounded bg-blue-600 border border-blue-600" />
+                              Sua Cota
+                            </div>
+                          </div>
+                        </div>
+
+                      </div>
+                    );
+                  })}
+                </div>
+              );
+            })()}
+          </motion.div>
+        )}
       </main>
 
       {showScanner && (
@@ -3987,6 +4232,7 @@ const StudentPortal: React.FC = () => {
         <button onClick={() => setActiveTab('knowledge')} className={`flex flex-col items-center gap-1 shrink-0 ${activeTab === 'knowledge' ? 'text-blue-600' : 'text-slate-400'}`}><BookOpen size={22} /><span className="text-[7px] font-black uppercase whitespace-nowrap">{t('portal.navKnowledge')}</span></button>
         <button onClick={() => setActiveTab('community')} className={`flex flex-col items-center gap-1 shrink-0 ${activeTab === 'community' ? 'text-blue-600' : 'text-slate-400'}`}><Users size={22} /><span className="text-[7px] font-black uppercase whitespace-nowrap">{t('portal.navCommunity')}</span></button>
         <button onClick={() => setActiveTab('wallet')} className={`flex flex-col items-center gap-1 shrink-0 ${activeTab === 'wallet' ? 'text-blue-600' : 'text-slate-400'}`}><CreditCard size={22} /><span className="text-[7px] font-black uppercase whitespace-nowrap">{t('portal.navWallet')}</span></button>
+        <button onClick={() => setActiveTab('raffle')} className={`flex flex-col items-center gap-1 shrink-0 ${activeTab === 'raffle' ? 'text-blue-600' : 'text-slate-400'}`}><Ticket size={22} /><span className="text-[7px] font-black uppercase whitespace-nowrap">Rifas</span></button>
         <button onClick={() => setActiveTab('gallery')} className={`flex flex-col items-center gap-1 shrink-0 ${activeTab === 'gallery' ? 'text-blue-600' : 'text-slate-400'}`}><ImageIcon size={22} /><span className="text-[7px] font-black uppercase whitespace-nowrap">{t('portal.navGallery')}</span></button>
         <button onClick={() => setActiveTab('timer')} className={`flex flex-col items-center gap-1 shrink-0 ${activeTab === 'timer' ? 'text-blue-600' : 'text-slate-400'}`}><Timer size={22} /><span className="text-[7px] font-black uppercase whitespace-nowrap">{t('portal.navTimer')}</span></button>
         <button onClick={() => setActiveTab('rules')} className={`flex flex-col items-center gap-1 shrink-0 ${activeTab === 'rules' ? 'text-blue-600' : 'text-slate-400'}`}><Shield size={22} /><span className="text-[7px] font-black uppercase whitespace-nowrap">{t('portal.navRules')}</span></button>

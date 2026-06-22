@@ -6,7 +6,7 @@ import {
   Users, Calendar, TrendingUp, DollarSign, Award, ArrowUpRight, ArrowDownRight, 
   Clock, ShieldCheck, Activity, Cake, History, CloudSun, Timer, 
   RefreshCw, Wifi, WifiOff, Database, CheckCircle2, AlertTriangle, ChevronRight, ClipboardCheck,
-  QrCode
+  QrCode, Ticket
 } from 'lucide-react';
 import { useTranslation } from '../contexts/LanguageContext.js';
 import { useData } from '../contexts/DataContext.js';
@@ -720,6 +720,32 @@ const Dashboard: React.FC = () => {
                   </div>
                 </div>
                 <div className="w-10 h-10 bg-slate-200/50 dark:bg-white/5 rounded-xl flex items-center justify-center group-hover:bg-emerald-600 group-hover:text-white transition-all text-slate-450 dark:text-slate-350">
+                  <ChevronRight size={18} />
+                </div>
+              </Link>
+
+              {/* Central de Rifas & Arrecadações (Atalho na Dashboard) */}
+              <Link 
+                to="/raffle"
+                className="group flex items-center justify-between p-5 bg-slate-50 hover:bg-pink-500/10 dark:bg-white/5 dark:hover:bg-pink-900/20 border border-slate-100 dark:border-white/5 hover:border-pink-550 dark:hover:border-pink-500/30 rounded-[2rem] transition-all cursor-pointer relative"
+              >
+                <div className="flex items-center gap-4.5">
+                  <div className="w-12 h-12 bg-pink-650 dark:bg-pink-600 text-white rounded-2xl flex items-center justify-center shadow-lg shadow-pink-500/20 group-hover:scale-105 transition-transform">
+                    <Ticket size={22} />
+                  </div>
+                  <div className="text-left">
+                    <h4 className="text-sm font-black text-slate-900 dark:text-white uppercase tracking-tight flex items-center gap-2">
+                      Rifas & Arrecadações
+                      <span className="px-2 py-0.5 bg-pink-500 text-white font-black text-[8px] uppercase tracking-wider rounded-lg">
+                        SENSEI
+                      </span>
+                    </h4>
+                    <p className="subtitle text-[10px] font-medium text-slate-500 dark:text-slate-400 uppercase tracking-widest mt-1">
+                      Gerencie campanhas de rifas, sorteios e arrecadações do Dojo
+                    </p>
+                  </div>
+                </div>
+                <div className="w-10 h-10 bg-slate-200/50 dark:bg-white/5 rounded-xl flex items-center justify-center group-hover:bg-pink-600 group-hover:text-white transition-all text-slate-450 dark:text-slate-350">
                   <ChevronRight size={18} />
                 </div>
               </Link>
