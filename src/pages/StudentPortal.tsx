@@ -3,7 +3,7 @@ import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { 
-  Trophy, Flame, Calendar, BookOpen, Ticket,
+  Trophy, Flame, Calendar, BookOpen, Ticket, Printer,
   ArrowRight, Shield, Zap, Plus, LogOut, Scale, Gamepad2, Award, Play,
   QrCode, Clock, Info, Camera, CheckCircle2, AlertTriangle, X, Copy, Image as ImageIcon, Download, Maximize2,
   RefreshCw, FileText, Upload, ShieldCheck, AlertCircle, ShieldAlert, ChevronRight,
@@ -284,6 +284,7 @@ const StudentPortal: React.FC = () => {
   const [paymentProcessing, setPaymentProcessing] = useState(false);
   const [checkinSuccess, setCheckinSuccess] = useState(false);
   const [copied, setCopied] = useState(false);
+  const [raffleSubTab, setRaffleSubTab] = useState<'board' | 'cartela'>('board');
 
   // Requirement 5 - Geolocation and Manuel Check-In States
   const [geoChecking, setGeoChecking] = useState(false);
@@ -3884,107 +3885,291 @@ const StudentPortal: React.FC = () => {
                         </div>
 
                         {/* PROGRESS BAR */}
-                        <div className="w-full h-1.5 bg-slate-100 dark:bg-slate-800 rounded-full overflow-hidden">
+                        <div className="w-full h-1.5 bg-slate-105 dark:bg-slate-800 rounded-full overflow-hidden">
                           <div className="h-full bg-blue-500 rounded-full transition-all" style={{ width: `${soldPct}%` }} />
                         </div>
 
-                        {/* MY RESERVED NUMBERS BOX */}
-                        {myTickets.length > 0 && (
-                          <div className="bg-blue-50/70 dark:bg-blue-950/15 border border-blue-100 dark:border-blue-900/40 p-3.5 rounded-2xl space-y-1 rounded-xl">
-                            <p className="text-[10px] font-bold text-blue-800 dark:text-blue-400 uppercase tracking-widest flex items-center gap-1.5 leading-none">
-                              <span>🎟️ Minhas Cotas Reservadas ({myTickets.length})</span>
-                            </p>
-                            <p className="text-xs font-extrabold text-blue-900 dark:text-blue-105 font-mono">
-                              {myTickets.join(', ')}
-                            </p>
-                            <p className="text-[9px] text-slate-550 leading-tight">
-                              Valor total de apoio ao Dojo: <span className="font-bold font-mono text-xs">R$ {myCost.toFixed(2)}</span>
-                            </p>
+                        {/* PROFESSOR SUB-TABS SELECTOR */}
+                        {(student?.isInstructor || student?.isClassProfessor) && (
+                          <div className="flex border-b border-slate-100 dark:border-slate-800 pb-0.5 gap-2 pt-1" id={`student-raffle-tabs-${r.id}`}>
+                            <button
+                              type="button"
+                              onClick={() => setRaffleSubTab('board')}
+                              className={`pb-2 px-2 text-xs font-black uppercase tracking-wider relative transition-all ${
+                                raffleSubTab === 'board'
+                                  ? 'text-blue-605 dark:text-blue-400 border-b-2 border-blue-605 dark:border-blue-400'
+                                  : 'text-slate-400 hover:text-slate-705 dark:hover:text-slate-350'
+                              }`}
+                            >
+                              📋 Quadro Interativo
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => setRaffleSubTab('cartela')}
+                              className={`pb-2 px-3 text-xs font-black uppercase tracking-wider relative transition-all ${
+                                raffleSubTab === 'cartela'
+                                  ? 'text-blue-605 dark:text-blue-400 border-b-2 border-blue-650 dark:border-blue-400'
+                                  : 'text-slate-400 hover:text-slate-705 dark:hover:text-slate-350'
+                              }`}
+                            >
+                              🎟️ Prévia da Cartela Oficial
+                            </button>
                           </div>
                         )}
 
-                        {/* NUMBERS BOARD GRID */}
-                        <div className="space-y-2 pt-1">
-                          <div className="flex items-center justify-between text-[10px] font-bold uppercase tracking-wider text-slate-450 dark:text-slate-500">
-                            <span>Selecione uma cota de apoio</span>
-                            <span>{r.totalNumbers - totalSold} livres</span>
-                          </div>
-
-                          <div className="grid grid-cols-5 sm:grid-cols-10 gap-1.5">
-                            {Array.from({ length: r.totalNumbers }, (_, idx) => {
-                              const numStr = (idx + 1).toString().padStart(2, '0');
-                              const ticket = r.tickets[numStr];
-                              const isReserved = !!ticket;
-                              const isMine = isReserved && ticket.studentId === student?.id;
-                              const isDrawnWinner = r.winnerNumber === (idx + 1);
-
-                              return (
+                        {raffleSubTab === 'cartela' && (student?.isInstructor || student?.isClassProfessor) ? (
+                          /* TAB 2: PRINTER AND DOJO RAFFLE SHEET PREVIEW (CARTELA) */
+                          <div className="space-y-6 pt-2" id={`student-raffle-cartela-view-${r.id}`}>
+                            {/* ADMINISTRATIVE ACTION BAR */}
+                            <div className="flex flex-wrap items-center justify-between gap-3 bg-blue-500/10 dark:bg-blue-400/5 p-4 rounded-2xl border border-blue-500/20">
+                              <div className="flex items-center gap-2 text-blue-800 dark:text-blue-300 text-xs font-semibold">
+                                <Info className="w-4 h-4 shrink-0 text-blue-500" />
+                                <span>Sensei, use esta visualização física para imprimir e afixar no dojo se desejar!</span>
+                              </div>
+                              <div className="flex items-center gap-2">
                                 <button
-                                  key={idx}
-                                  disabled={isReserved || r.status === 'DRAWN'}
+                                  type="button"
                                   onClick={() => {
-                                    if (!student) {
-                                      alert("Erro de autenticação: Aluno inválido.");
-                                      return;
-                                    }
-                                    if (confirm(`🥋 Deseja reservar a Cota Nº ${numStr} no seu nome na rifa?\n\nValor: R$ ${r.ticketPrice.toFixed(2)}`)) {
-                                      // Assign ticket on server
-                                      const newTickets = { ...r.tickets };
-                                      newTickets[numStr] = {
-                                        studentId: student.id,
-                                        studentName: student.name,
-                                        soldAt: new Date().toISOString()
-                                      };
-
-                                      const updatedMeta: any = {
-                                        descriptionText: r.descriptionText,
-                                        status: r.status,
-                                        totalNumbers: r.totalNumbers,
-                                        ticketPrice: r.ticketPrice,
-                                        winnerNumber: r.winnerNumber,
-                                        winnerStudentId: r.winnerStudentId,
-                                        winnerStudentName: r.winnerStudentName,
-                                        drawnAt: r.drawnAt,
-                                        tickets: newTickets
-                                      };
-
-                                      updateProduct(r.id, {
-                                        description: JSON.stringify(updatedMeta)
-                                      });
-                                    }
+                                    const shareUrl = `${window.location.origin}/student-portal/${code}`;
+                                    navigator.clipboard.writeText(shareUrl);
+                                    alert("Link do Portal do Aluno copiado com sucesso para compartilhar!");
                                   }}
-                                  className={`p-2 py-3 text-xs font-bold font-mono rounded-xl border text-center transition-all ${
-                                    isDrawnWinner
-                                      ? 'bg-emerald-500 border-emerald-600 text-white font-black'
-                                      : isMine
-                                      ? 'bg-blue-600 border-blue-600 text-white font-black'
-                                      : isReserved
-                                      ? 'bg-slate-100 border-slate-150 text-slate-400 cursor-not-allowed dark:bg-slate-900/60 dark:border-slate-800 dark:text-slate-650'
-                                      : 'bg-slate-50 border-slate-200 hover:border-blue-500 hover:bg-blue-50/40 text-slate-700 dark:bg-slate-950 dark:border-slate-800 dark:text-slate-350'
-                                  }`}
+                                  className="flex items-center gap-1.5 px-3 py-1.5 bg-white dark:bg-slate-800 hover:bg-slate-50 dark:hover:bg-slate-705 border border-slate-205 dark:border-slate-700 rounded-xl text-xs font-bold text-slate-700 dark:text-slate-300 shadow-sm transition-all"
                                 >
-                                  {numStr}
+                                  <Copy className="w-3.5 h-3.5" />
+                                  Copiar Link
                                 </button>
-                              );
-                            })}
+                                <button
+                                  type="button"
+                                  onClick={() => window.print()}
+                                  className="flex items-center gap-1.5 px-3 py-1.5 bg-blue-600 hover:bg-blue-707 text-white rounded-xl text-xs font-bold shadow-sm transition-all"
+                                >
+                                  <Printer className="w-3.5 h-3.5" />
+                                  Imprimir Cartela
+                                </button>
+                              </div>
+                            </div>
+
+                            {/* PHYSICAL CONTAINER TO MOCK TICKET SHEET */}
+                            <div className="border-4 border-double border-slate-300 dark:border-slate-700 bg-amber-50/15 dark:bg-slate-900/40 p-5 rounded-3xl grid grid-cols-1 md:grid-cols-4 gap-6 relative overflow-hidden print:bg-white print:text-black print:p-0 print:border-none print:shadow-none">
+                              
+                              {/* Substantial left stub / Canhoto de Apoio */}
+                              <div className="md:col-span-1 border-r border-dashed border-slate-300 dark:border-slate-750 pr-4 space-y-4 print:border-r">
+                                <div className="space-y-1 text-center border-b border-slate-200/50 pb-2">
+                                  <p className="text-[9px] font-black tracking-widest text-slate-400 dark:text-slate-550 uppercase">CANHOTO OFICIAL</p>
+                                  <p className="text-xs font-black text-slate-800 dark:text-slate-100">SYSBJJ 2.0 DOJO</p>
+                                  <p className="text-[8px] font-mono text-slate-500 truncate max-w-full">Reg: {r.id.slice(0, 8).toUpperCase()}</p>
+                                </div>
+                                
+                                <div className="space-y-2 text-left">
+                                  <div>
+                                    <span className="text-[8px] text-slate-400 block font-bold uppercase">CAMPANHA</span>
+                                    <span className="text-[11px] font-extrabold text-slate-800 dark:text-slate-200 line-clamp-2">{r.name}</span>
+                                  </div>
+                                  <div>
+                                    <span className="text-[8px] text-slate-400 block font-bold uppercase">VALOR UNITÁRIO</span>
+                                    <span className="text-[11px] font-bold text-emerald-600 dark:text-emerald-400 font-mono">R$ {r.ticketPrice.toFixed(2)}</span>
+                                  </div>
+                                  <div>
+                                    <span className="text-[8px] text-slate-400 block font-bold uppercase">COTAS RESERVADAS</span>
+                                    <span className="text-xs font-black text-blue-600 dark:text-blue-400">{totalSold} / {r.totalNumbers}</span>
+                                  </div>
+                                </div>
+
+                                {/* Stamped List of Reservas */}
+                                <div className="space-y-1 border-t border-slate-200/50 pt-2 text-left">
+                                  <p className="text-[8px] font-black text-slate-400 uppercase tracking-widest mb-1.5 font-mono">RELAÇÃO DE COTAS</p>
+                                  <div className="max-h-[160px] overflow-y-auto space-y-1 pr-1 font-mono text-[9px] text-slate-600 dark:text-slate-400">
+                                    {Object.keys(r.tickets).length === 0 ? (
+                                      <p className="text-[8px] italic text-slate-450">Nenhuma cota reservada ainda.</p>
+                                    ) : (
+                                      Object.keys(r.tickets).sort().map((numStr) => {
+                                        const buyer = r.tickets[numStr];
+                                        return (
+                                          <div key={numStr} className="flex justify-between items-center bg-slate-100/50 dark:bg-slate-950/40 p-1 px-1.5 rounded border border-slate-100/30">
+                                            <span className="font-bold text-slate-800 dark:text-slate-300">Nº {numStr}</span>
+                                            <span className="truncate max-w-[85px] font-semibold text-slate-550">{buyer.studentName.split(' ')[0]}</span>
+                                          </div>
+                                        );
+                                      })
+                                    )}
+                                  </div>
+                                </div>
+
+                                {/* Watermark */}
+                                <div className="pt-3 border-t border-dashed border-slate-200 dark:border-slate-800 flex justify-center">
+                                  <div className="w-14 h-14 rounded-full border-2 border-double border-red-500/40 flex flex-col items-center justify-center rotate-[-12deg] text-red-500/55 p-1 text-center select-none">
+                                    <span className="text-[6px] font-bold leading-none uppercase">PROFESSOR</span>
+                                    <span className="text-[7px] font-black leading-none my-0.5">SENSEI</span>
+                                    <span className="text-[5px] font-bold uppercase leading-none">SYSBJJ 2.0</span>
+                                  </div>
+                                </div>
+                              </div>
+
+                              {/* Main raffle body */}
+                              <div className="md:col-span-3 space-y-4 text-left">
+                                <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2 border-b border-double border-slate-300/60 pb-3">
+                                  <div>
+                                    <span className="px-2 py-0.5 bg-blue-600 text-white font-black text-[8px] rounded uppercase tracking-wider">AÇÃO ENTRE AMIGOS</span>
+                                    <h4 className="text-md font-extrabold text-slate-800 dark:text-white mt-1 uppercase tracking-tight">CAMPANHA COOPERATIVA DO TATAME</h4>
+                                    <p className="text-[10px] text-slate-500 dark:text-slate-400">Arrecadação tecnológica integrada do Dojo beneficente</p>
+                                  </div>
+                                  <div className="bg-slate-50 dark:bg-slate-950 p-2 rounded-xl text-center border border-slate-200 dark:border-slate-800">
+                                    <p className="text-[8px] font-black text-slate-405 uppercase tracking-widest">Apoiador</p>
+                                    <p className="text-sm font-black text-emerald-600 dark:text-emerald-400 font-mono">R$ {r.ticketPrice.toFixed(2)}</p>
+                                  </div>
+                                </div>
+
+                                <div className="p-3 bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-2xl">
+                                  <span className="text-[8px] text-slate-400 font-bold uppercase tracking-widest block">PRÊMIO DA RIFA</span>
+                                  <span className="text-xs font-black text-slate-850 dark:text-white block uppercase mt-0.5">{r.name}</span>
+                                  <span className="text-[10px] text-slate-500 dark:text-slate-400 block mt-0.5">{r.descriptionText}</span>
+                                </div>
+
+                                <div className="space-y-2">
+                                  <p className="text-[9px] font-bold text-slate-400 uppercase tracking-wider">MAPA DE DISPONIBILIDADE DA CARTELA</p>
+                                  <div className="grid grid-cols-5 sm:grid-cols-10 gap-1.5 pt-1">
+                                    {Array.from({ length: r.totalNumbers }, (_, i) => {
+                                      const numStr = (i + 1).toString().padStart(2, '0');
+                                      const buyer = r.tickets[numStr];
+                                      const isSold = !!buyer;
+                                      const isDrawnWinner = r.winnerNumber === (i + 1);
+
+                                      return (
+                                        <div
+                                          key={i}
+                                          className={`p-2 py-3 border rounded-xl flex flex-col items-center justify-center font-mono transition-all text-center ${
+                                            isDrawnWinner
+                                              ? 'bg-emerald-500 border-emerald-600 text-white font-black'
+                                              : isSold
+                                              ? 'bg-blue-100/55 border-blue-200 text-blue-800 dark:bg-blue-950/20 dark:border-blue-900 dark:text-blue-350'
+                                              : 'bg-white border-slate-200 text-slate-400 dark:bg-slate-900 dark:border-slate-800'
+                                          }`}
+                                        >
+                                          <span className="text-xs font-bold">{numStr}</span>
+                                          {isDrawnWinner ? (
+                                            <span className="text-[7px] font-black uppercase tracking-tight mt-0.5 truncate max-w-full">GANHADOR</span>
+                                          ) : isSold ? (
+                                            <span className="text-[7px] font-bold text-blue-900/60 dark:text-blue-400/80 uppercase tracking-tighter truncate max-w-full mt-0.5">
+                                              {buyer.studentName.split(' ')[0].slice(0, 6)}
+                                            </span>
+                                          ) : (
+                                            <span className="text-[7px] font-bold text-slate-300 dark:text-slate-600 uppercase tracking-tighter mt-0.5">LIVRE</span>
+                                          )}
+                                        </div>
+                                      );
+                                    })}
+                                  </div>
+                                </div>
+
+                                <div className="border-t border-slate-200 dark:border-slate-800 pt-3 text-[9px] text-slate-500 leading-tight">
+                                  <p className="font-semibold uppercase tracking-widest text-[8px] mb-1">REGULAMENTO DO TATAME</p>
+                                  <p>O sorteio será efetuado pelo Sensei na presença de todos os interessados de forma 100% digital e auditável, eliminando cotas sem proprietário para que o prêmio seja entregue na primeira rodada. Todo valor é transferido para subsidiar despesas esportivas e operacionais. OSS!</p>
+                                </div>
+                              </div>
+                            </div>
                           </div>
-                          
-                          {/* Legend explanation */}
-                          <div className="flex items-center gap-4 text-[9px] font-semibold text-slate-450 pt-1.5 justify-start">
-                            <div className="flex items-center gap-1">
-                              <span className="w-2.5 h-2.5 rounded bg-slate-50 border border-slate-200 dark:bg-slate-950 dark:border-slate-800" />
-                              Livre
-                            </div>
-                            <div className="flex items-center gap-1">
-                              <span className="w-2.5 h-2.5 rounded bg-slate-100 border border-slate-150 dark:bg-slate-900 dark:border-slate-800" />
-                              Ocupado
-                            </div>
-                            <div className="flex items-center gap-1 text-blue-600">
-                              <span className="w-2.5 h-2.5 rounded bg-blue-600 border border-blue-600" />
-                              Sua Cota
+                        ) : (
+                          <div className="space-y-4">
+                            {/* MY RESERVED NUMBERS BOX */}
+                            {myTickets.length > 0 && (
+                              <div className="bg-blue-50/70 dark:bg-blue-950/15 border border-blue-100 dark:border-blue-900/40 p-3.5 rounded-2xl space-y-1 rounded-xl">
+                                <p className="text-[10px] font-bold text-blue-800 dark:text-blue-400 uppercase tracking-widest flex items-center gap-1.5 leading-none">
+                                  <span>🎟️ Minhas Cotas Reservadas ({myTickets.length})</span>
+                                </p>
+                                <p className="text-xs font-extrabold text-blue-900 dark:text-blue-105 font-mono">
+                                  {myTickets.join(', ')}
+                                </p>
+                                <p className="text-[9px] text-slate-550 leading-tight">
+                                  Valor total de apoio ao Dojo: <span className="font-bold font-mono text-xs">R$ {myCost.toFixed(2)}</span>
+                                </p>
+                              </div>
+                            )}
+
+                            {/* NUMBERS BOARD GRID */}
+                            <div className="space-y-2 pt-1">
+                              <div className="flex items-center justify-between text-[10px] font-bold uppercase tracking-wider text-slate-450 dark:text-slate-500">
+                                <span>Selecione uma cota de apoio</span>
+                                <span>{r.totalNumbers - totalSold} livres</span>
+                              </div>
+
+                              <div className="grid grid-cols-5 sm:grid-cols-10 gap-1.5">
+                                {Array.from({ length: r.totalNumbers }, (_, idx) => {
+                                  const numStr = (idx + 1).toString().padStart(2, '0');
+                                  const ticket = r.tickets[numStr];
+                                  const isReserved = !!ticket;
+                                  const isMine = isReserved && ticket.studentId === student?.id;
+                                  const isDrawnWinner = r.winnerNumber === (idx + 1);
+
+                                  return (
+                                    <button
+                                      key={idx}
+                                      disabled={isReserved || r.status === 'DRAWN'}
+                                      onClick={() => {
+                                        if (!student) {
+                                          alert("Erro de autenticação: Aluno inválido.");
+                                          return;
+                                        }
+                                        if (confirm(`🥋 Deseja reservar a Cota Nº ${numStr} no seu nome na rifa?\n\nValor: R$ ${r.ticketPrice.toFixed(2)}`)) {
+                                          // Assign ticket on server
+                                          const newTickets = { ...r.tickets };
+                                          newTickets[numStr] = {
+                                            studentId: student.id,
+                                            studentName: student.name,
+                                            soldAt: new Date().toISOString()
+                                          };
+
+                                          const updatedMeta: any = {
+                                            descriptionText: r.descriptionText,
+                                            status: r.status,
+                                            totalNumbers: r.totalNumbers,
+                                            ticketPrice: r.ticketPrice,
+                                            winnerNumber: r.winnerNumber,
+                                            winnerStudentId: r.winnerStudentId,
+                                            winnerStudentName: r.winnerStudentName,
+                                            drawnAt: r.drawnAt,
+                                            tickets: newTickets
+                                          };
+
+                                          updateProduct(r.id, {
+                                            description: JSON.stringify(updatedMeta)
+                                          });
+                                        }
+                                      }}
+                                      className={`p-2 py-3 text-xs font-bold font-mono rounded-xl border text-center transition-all ${
+                                        isDrawnWinner
+                                          ? 'bg-emerald-500 border-emerald-600 text-white font-black'
+                                          : isMine
+                                          ? 'bg-blue-600 border-blue-600 text-white font-black'
+                                          : isReserved
+                                          ? 'bg-slate-100 border-slate-150 text-slate-400 cursor-not-allowed dark:bg-slate-900/60 dark:border-slate-800 dark:text-slate-650'
+                                          : 'bg-slate-50 border-slate-200 hover:border-blue-500 hover:bg-blue-50/40 text-slate-700 dark:bg-slate-950 dark:border-slate-800 dark:text-slate-350'
+                                      }`}
+                                    >
+                                      {numStr}
+                                    </button>
+                                  );
+                                })}
+                              </div>
+                              
+                              {/* Legend explanation */}
+                              <div className="flex items-center gap-4 text-[9px] font-semibold text-slate-450 pt-1.5 justify-start">
+                                <div className="flex items-center gap-1">
+                                  <span className="w-2.5 h-2.5 rounded bg-slate-55 border border-slate-200 dark:bg-slate-950 dark:border-slate-800" />
+                                  Livre
+                                </div>
+                                <div className="flex items-center gap-1">
+                                  <span className="w-2.5 h-2.5 rounded bg-slate-100 border border-slate-150 dark:bg-slate-900 dark:border-slate-800" />
+                                  Ocupado
+                                </div>
+                                <div className="flex items-center gap-1 text-blue-600">
+                                  <span className="w-2.5 h-2.5 rounded bg-blue-600 border border-blue-600" />
+                                  Sua Cota
+                                </div>
+                              </div>
                             </div>
                           </div>
-                        </div>
+                        )}
 
                       </div>
                     );

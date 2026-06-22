@@ -102,6 +102,17 @@ const RaffleModule: React.FC = () => {
   const [isSimulating, setIsSimulating] = useState(false);
   const [copySuccess, setCopySuccess] = useState(false);
 
+  const handleCopyLink = () => {
+    try {
+      const shareUrl = `${window.location.origin}/student-portal`;
+      navigator.clipboard.writeText(shareUrl);
+      setCopySuccess(true);
+      setTimeout(() => setCopySuccess(false), 2005);
+    } catch (e) {
+      console.error(e);
+    }
+  };
+
   // Audio Synthesizer for Sorteio (Pure Web Audio - No external resources)
   const playSynthesizerSound = (type: 'tick' | 'victory') => {
     try {
