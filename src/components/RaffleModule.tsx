@@ -22,6 +22,12 @@ export interface RaffleMetadata {
   winnerStudentName: string | null;
   drawnAt: string | null;
   tickets: Record<string, { studentId: string; studentName: string; soldAt: string; phone?: string }>;
+  winners?: Array<{
+    number: number;
+    studentId: string;
+    studentName: string;
+    prizeIndex: number;
+  }>;
 }
 
 const RaffleModule: React.FC = () => {
@@ -99,7 +105,10 @@ const RaffleModule: React.FC = () => {
   const [isDrawing, setIsDrawing] = useState(false);
   const [currentDrawnNumber, setCurrentDrawnNumber] = useState<number | null>(null);
   const [showWinnerOverlay, setShowWinnerOverlay] = useState(false);
-  const [winnerAnimDetails, setWinnerAnimDetails] = useState<{ number: number; name: string } | null>(null);
+  const [winnerAnimDetails, setWinnerAnimDetails] = useState<{ number: number; name: string; winnersList?: Array<{ number: number; studentName: string }> } | null>(null);
+  const [drawWinnerCount, setDrawWinnerCount] = useState<number>(1);
+  const [drawingWinnerIndex, setDrawingWinnerIndex] = useState<number>(0);
+  const [tempWinnersList, setTempWinnersList] = useState<Array<{ number: number; studentId: string; studentName: string; prizeIndex: number }>>([]);
 
   // Selector for assigning student to ticket
   const [selectedTicketToAssign, setSelectedTicketToAssign] = useState<string | null>(null);
@@ -367,7 +376,7 @@ const RaffleModule: React.FC = () => {
   // Reset Draw back to OPEN status to allow testing re-runs or additional sales
   const handleResetDraw = () => {
     if (!selectedRaffleId || !activeRaffle) return;
-    if (confirm("🥋 Sensei, deseja realmente redefinir o sorteio desta rifa?\n\nO ganhador atual será removido, mas todas as cotas vendidas serão mantidas intactas para novos sorteios ou mais vendas.")) {
+    if (confirm("🥋 Sensei, deseja realmente redefinir o sorteio desta rifa?\n\nTodos os ganhadores atuais serão removidos, mas todas as cotas vendidas serão mantidas intactas para novos sorteios ou mais vendas.")) {
       const updatedMeta: RaffleMetadata = {
         descriptionText: activeRaffle.descriptionText,
         status: 'OPEN',
@@ -377,7 +386,8 @@ const RaffleModule: React.FC = () => {
         winnerStudentId: null,
         winnerStudentName: null,
         drawnAt: null,
-        tickets: activeRaffle.tickets
+        tickets: activeRaffle.tickets,
+        winners: []
       };
 
       updateProduct(selectedRaffleId, {
@@ -385,6 +395,7 @@ const RaffleModule: React.FC = () => {
       });
       setCurrentDrawnNumber(null);
       setSimulatedResults(null);
+      setTempWinnersList([]);
     }
   };
 
@@ -430,7 +441,7 @@ const RaffleModule: React.FC = () => {
     }, 300);
   };
 
-  // Simulates Drawing Loop/Wheel and Picks Winner
+  // Simulates Drawing Loop/Wheel with high suspense and multi-winner support
   const handleDrawWinner = () => {
     if (!selectedRaffleId || !activeRaffle) return;
 
@@ -441,56 +452,107 @@ const RaffleModule: React.FC = () => {
       return;
     }
 
+    const numToDraw = Math.min(drawWinnerCount, boughtNumbers.length);
+    if (numToDraw > 1) {
+      alert(`🥋 OSS! Vamos realizar um Sorteio Sequencial para ${numToDraw} prêmios com detecção de fraude e suspense de desaceleração!`);
+    }
+
     setIsDrawing(true);
-    let counter = 0;
-    const totalTicks = 35;
-    const tickInterval = 80; // duration between ticks in ms
+    setTempWinnersList([]);
+    setDrawingWinnerIndex(0);
 
-    const drawInterval = setInterval(() => {
-      // Pick random bought number to flash
-      const randomIdx = Math.floor(Math.random() * boughtNumbers.length);
-      const flashingNumStr = boughtNumbers[randomIdx];
-      setCurrentDrawnNumber(parseInt(flashingNumStr));
-      playSynthesizerSound('tick');
+    // Shuffle and pick unique winners in advance for standard fairness
+    const shuffled = [...boughtNumbers].sort(() => Math.random() - 0.5);
+    const chosenWinningNumbersStr = shuffled.slice(0, numToDraw);
 
-      counter++;
-      if (counter >= totalTicks) {
-        clearInterval(drawInterval);
-        
-        // Final pick
-        const finalIdx = Math.floor(Math.random() * boughtNumbers.length);
-        const winningNumStr = boughtNumbers[finalIdx];
-        const buyerInfo = activeRaffle.tickets[winningNumStr];
+    // Recursive function to animate drawing a single winner
+    const drawSingleWinnerSequence = (winnerIndex: number, currentWinnersSoFar: any[]) => {
+      setDrawingWinnerIndex(winnerIndex);
+      let ticks = 0;
+      const totalTicks = 32 + Math.floor(Math.random() * 8); // randomized slightly for extra unexpected suspense
+      let delay = 40; // start super fast
 
-        const winningNum = parseInt(winningNumStr);
-        const updatedMeta: RaffleMetadata = {
-          descriptionText: activeRaffle.descriptionText,
-          status: 'DRAWN',
-          totalNumbers: activeRaffle.totalNumbers,
-          ticketPrice: activeRaffle.ticketPrice,
-          winnerNumber: winningNum,
-          winnerStudentId: buyerInfo.studentId,
-          winnerStudentName: buyerInfo.studentName,
-          drawnAt: new Date().toISOString(),
-          tickets: activeRaffle.tickets
-        };
+      const runTick = () => {
+        // Pick a random sold number to flash on the console
+        const randomIdx = Math.floor(Math.random() * boughtNumbers.length);
+        const flashingNumStr = boughtNumbers[randomIdx];
+        setCurrentDrawnNumber(parseInt(flashingNumStr));
+        playSynthesizerSound('tick');
 
-        // Update database
-        updateProduct(selectedRaffleId, {
-          description: JSON.stringify(updatedMeta)
-        });
+        ticks++;
+        if (ticks < totalTicks) {
+          // Slow down smoothly: add a dynamic slowdown delay to give a physical slowdown effect
+          if (ticks > 24) {
+            delay += 60; // slow down heavily at the end
+          } else if (ticks > 12) {
+            delay += 20; // medium slow down
+          } else {
+            delay += 5; // starting to slow down
+          }
+          setTimeout(runTick, delay);
+        } else {
+          // We reached the end! Lock the pre-selected winner
+          const winningNumStr = chosenWinningNumbersStr[winnerIndex];
+          const buyerInfo = activeRaffle.tickets[winningNumStr];
+          const winningNum = parseInt(winningNumStr);
 
-        // Trigger gorgeous winner overlay
-        setWinnerAnimDetails({
-          number: winningNum,
-          name: buyerInfo.studentName
-        });
-        setIsDrawing(false);
-        setCurrentDrawnNumber(winningNum);
-        setShowWinnerOverlay(true);
-        playSynthesizerSound('victory');
-      }
-    }, tickInterval);
+          const newWinnerRecord = {
+            number: winningNum,
+            studentId: buyerInfo.studentId,
+            studentName: buyerInfo.studentName,
+            prizeIndex: winnerIndex + 1
+          };
+
+          const nextWinnersList = [...currentWinnersSoFar, newWinnerRecord];
+          setTempWinnersList(nextWinnersList);
+          setCurrentDrawnNumber(winningNum);
+
+          // If there are more winners to draw, schedule next winner's draw after a brief celebration phase
+          if (winnerIndex + 1 < numToDraw) {
+            playSynthesizerSound('tick'); // chime
+            setTimeout(() => {
+              drawSingleWinnerSequence(winnerIndex + 1, nextWinnersList);
+            }, 1800); // 1.8 seconds gap for celebration
+          } else {
+            // Draw completed for all winners!
+            const firstWinner = nextWinnersList[0];
+            const updatedMeta: RaffleMetadata = {
+              descriptionText: activeRaffle.descriptionText,
+              status: 'DRAWN',
+              totalNumbers: activeRaffle.totalNumbers,
+              ticketPrice: activeRaffle.ticketPrice,
+              winnerNumber: firstWinner.number,
+              winnerStudentId: firstWinner.studentId,
+              winnerStudentName: firstWinner.studentName,
+              drawnAt: new Date().toISOString(),
+              tickets: activeRaffle.tickets,
+              winners: nextWinnersList
+            };
+
+            // Update database
+            updateProduct(selectedRaffleId, {
+              description: JSON.stringify(updatedMeta)
+            });
+
+            // Trigger gorgeous winner overlay showing all results
+            setWinnerAnimDetails({
+              number: firstWinner.number,
+              name: firstWinner.studentName,
+              winnersList: nextWinnersList.map(w => ({ number: w.number, studentName: w.studentName }))
+            });
+
+            setIsDrawing(false);
+            setShowWinnerOverlay(true);
+            playSynthesizerSound('victory');
+          }
+        }
+      };
+
+      runTick();
+    };
+
+    // Begin drawing the first winner
+    drawSingleWinnerSequence(0, []);
   };
 
   // Delete Raffle campaign
@@ -636,16 +698,38 @@ const RaffleModule: React.FC = () => {
                   </div>
                   
                   {/* Action row */}
-                  <div className="flex items-center gap-2 self-start md:self-center">
+                  <div className="flex items-center gap-2 self-start md:self-center flex-wrap">
                     {activeRaffle.status !== 'DRAWN' ? (
-                      <button
-                        onClick={handleDrawWinner}
-                        disabled={isDrawing || Object.keys(activeRaffle.tickets).length === 0}
-                        className={`flex items-center gap-2 px-4 py-2 bg-emerald-600 hover:bg-emerald-700 disabled:opacity-50 text-white rounded-xl text-xs font-bold shadow transition-all`}
-                      >
-                        <Play className="w-4 h-4 fill-white" />
-                        Sortear Produto Real-Time
-                      </button>
+                      <div className="flex items-center gap-2.5 flex-wrap">
+                        {/* SELECT WINNER COUNT FIELD */}
+                        <div className="flex items-center gap-1.5 bg-slate-50 dark:bg-slate-850 border border-slate-200 dark:border-slate-800 px-3 py-2 rounded-xl text-xs">
+                          <Trophy className="w-3.5 h-3.5 text-amber-500 fill-amber-500/20" />
+                          <label className="font-extrabold text-slate-500 dark:text-slate-400 text-[11px]">Prêmios/Ganhadores:</label>
+                          <select
+                            value={drawWinnerCount}
+                            onChange={(e) => setDrawWinnerCount(Math.max(1, parseInt(e.target.value) || 1))}
+                            disabled={isDrawing}
+                            className="bg-transparent font-black text-slate-800 dark:text-slate-100 border-none outline-none cursor-pointer focus:ring-0 text-[11px]"
+                          >
+                            <option value={1} className="dark:bg-slate-900">1 Ganhador</option>
+                            <option value={2} className="dark:bg-slate-900">2 Ganhadores</option>
+                            <option value={3} className="dark:bg-slate-900">3 Ganhadores</option>
+                            <option value={4} className="dark:bg-slate-900">4 Ganhadores</option>
+                            <option value={5} className="dark:bg-slate-900">5 Ganhadores</option>
+                            <option value={8} className="dark:bg-slate-900">8 Ganhadores</option>
+                            <option value={10} className="dark:bg-slate-900">10 Ganhadores</option>
+                          </select>
+                        </div>
+
+                        <button
+                          onClick={handleDrawWinner}
+                          disabled={isDrawing || Object.keys(activeRaffle.tickets).length === 0}
+                          className={`flex items-center gap-2 px-4 py-2 bg-emerald-600 hover:bg-emerald-700 disabled:opacity-50 text-white rounded-xl text-xs font-bold shadow hover:shadow-md transition-all cursor-pointer`}
+                        >
+                          <Play className="w-4 h-4 fill-white" />
+                          Sortear Produto Real-Time
+                        </button>
+                      </div>
                     ) : (
                       <div className="flex items-center gap-2">
                         <div className="flex items-center gap-1 bg-emerald-50 dark:bg-emerald-950/30 text-emerald-700 dark:text-emerald-400 p-2 border border-emerald-100 dark:border-emerald-950/60 rounded-xl text-xs font-bold px-3">
@@ -747,45 +831,125 @@ const RaffleModule: React.FC = () => {
                   <motion.div 
                     initial={{ opacity: 0, scale: 0.98 }}
                     animate={{ opacity: 1, scale: 1 }}
-                    className="p-5 bg-emerald-50 dark:bg-emerald-950/30 border border-emerald-200/50 dark:border-emerald-800/40 rounded-2xl flex flex-col md:flex-row md:items-center justify-between gap-4"
+                    className="p-6 bg-emerald-50 dark:bg-emerald-950/35 border border-emerald-200/60 dark:border-emerald-800/40 rounded-3xl space-y-4"
                   >
-                    <div className="flex items-center gap-4">
+                    <div className="flex items-center gap-3">
                       <div className="w-12 h-12 rounded-full bg-emerald-100 dark:bg-emerald-900/50 flex items-center justify-center text-emerald-600 dark:text-emerald-400 text-2xl shadow-sm">
                         🎉
                       </div>
                       <div>
-                        <h4 className="text-xs font-bold text-emerald-800 dark:text-emerald-300">
-                          Temos um Campeão do Sorteio!
+                        <h4 className="text-sm font-black text-emerald-800 dark:text-emerald-300">
+                          {activeRaffle.winners && activeRaffle.winners.length > 1 
+                            ? `${activeRaffle.winners.length} Sorteados do Tatame!` 
+                            : 'Temos um Campeão do Sorteio!'}
                         </h4>
-                        <p className="text-[11px] text-emerald-700/80 dark:text-emerald-400/80 mt-0.5">
-                          O número sorteado no tatame foi o <span className="font-mono font-black text-xs">Nº {activeRaffle.winnerNumber}</span>.
-                        </p>
-                        <p className="text-xs font-extrabold text-emerald-900 dark:text-emerald-100 mt-1">
-                          Ganhador: {activeRaffle.winnerStudentName} (Cota Nº {activeRaffle.winnerNumber})
+                        <p className="text-xs text-emerald-700/80 dark:text-emerald-400/80">
+                          OSS! Parabéns aos contemplados que apoiaram nossa jornada esportiva.
                         </p>
                       </div>
                     </div>
-                    <div className="text-left md:text-right font-mono text-[10px] text-emerald-700 dark:text-emerald-400">
-                      Sorteado em: {activeRaffle.drawnAt ? new Date(activeRaffle.drawnAt).toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' }) : '--'}
-                    </div>
+
+                    {!activeRaffle.winners || activeRaffle.winners.length <= 1 ? (
+                      <div className="p-4 bg-white dark:bg-slate-900/80 border border-emerald-100 dark:border-emerald-950/50 rounded-2xl flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2">
+                        <div>
+                          <p className="text-[11px] text-emerald-700/80 dark:text-emerald-400/80">
+                            Número da Cota: <span className="font-mono font-bold text-xs bg-emerald-100 dark:bg-emerald-950 rounded px-1.5 py-0.5">Nº {activeRaffle.winnerNumber !== null ? activeRaffle.winnerNumber.toString().padStart(2, '0') : '--'}</span>
+                          </p>
+                          <p className="text-sm font-black text-emerald-900 dark:text-emerald-50 mt-1">
+                            👤 {activeRaffle.winnerStudentName}
+                          </p>
+                        </div>
+                        <div className="text-left sm:text-right font-mono text-[10px] text-emerald-600 dark:text-emerald-400">
+                          Sorteado em: {activeRaffle.drawnAt ? new Date(activeRaffle.drawnAt).toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' }) : '--'}
+                        </div>
+                      </div>
+                    ) : (
+                      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3">
+                        {activeRaffle.winners.map((winner, idx) => (
+                          <div 
+                            key={idx}
+                            className="p-3.5 bg-white dark:bg-slate-900/80 border border-emerald-100 dark:border-emerald-950/50 rounded-2xl relative overflow-hidden flex flex-col justify-between hover:border-emerald-200 transition-all shadow-xs"
+                          >
+                            <span className="absolute top-1.5 right-1.5 text-[9px] bg-emerald-100 dark:bg-emerald-900/60 text-emerald-800 dark:text-emerald-300 font-bold px-1.5 py-0.5 rounded-md">
+                              {idx + 1}º Sorteado
+                            </span>
+                            <div className="pt-2">
+                              <p className="text-[10px] text-slate-400 dark:text-slate-500 font-mono">COTA</p>
+                              <p className="text-2xl font-black text-blue-600 dark:text-blue-400 font-mono">
+                                Nº {winner.number.toString().padStart(2, '0')}
+                              </p>
+                            </div>
+                            <div className="border-t border-slate-100 dark:border-slate-800 pt-2 mt-2">
+                              <p className="text-[11px] font-black text-slate-800 dark:text-slate-100 truncate">
+                                🥋 {winner.studentName}
+                              </p>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    )}
                   </motion.div>
                 )}
 
                 {/* DRAWING WHEEL PANEL ACTIVE */}
                 {isDrawing && (
-                  <div className="p-8 bg-slate-900 text-white rounded-2xl border border-slate-800 flex flex-col items-center justify-center space-y-4 animate-pulse">
-                    <RefreshCw className="w-8 h-8 text-blue-500 animate-spin" />
-                    <div className="space-y-1 text-center">
-                      <p className="text-sm font-black uppercase tracking-wider text-blue-450">
-                        ROLANDO O SORTEADOR DIGITAL 🎲
+                  <div className="p-8 bg-slate-900 text-white rounded-3xl border border-slate-800/80 flex flex-col items-center justify-center space-y-6 shadow-xl relative overflow-hidden">
+                    <div className="absolute top-0 inset-x-0 h-1 bg-gradient-to-r from-blue-500 via-purple-500 to-pink-500 animate-pulse" />
+                    
+                    <div className="flex items-center gap-3 bg-slate-950/60 p-2.5 px-4 rounded-full border border-slate-800/40">
+                      <RefreshCw className="w-4 h-4 text-blue-500 animate-spin" />
+                      <span className="text-[10px] font-black uppercase tracking-widest text-slate-300">
+                        Sorteio em Progresso
+                      </span>
+                    </div>
+
+                    <div className="space-y-2 text-center">
+                      <p className="text-lg font-black uppercase tracking-tight text-yellow-400 font-sans flex items-center justify-center gap-1">
+                        <span>Sorteando {drawingWinnerIndex + 1}º Ganhador</span>
+                        {drawWinnerCount > 1 && (
+                          <span className="text-xs text-slate-400 lowercase font-medium">de {drawWinnerCount}</span>
+                        )}
                       </p>
-                      <p className="text-xs text-slate-400 max-w-xs">
-                        Analisando contratos do ledger e alternando entre cotas compradas para o sorteio imparcial...
+                      <p className="text-xs text-slate-400 max-w-xs mx-auto font-medium">
+                        Misturando as cotas vendidas para garantir total integridade... OSS!
                       </p>
                     </div>
-                    <div className="text-6xl font-black font-mono tracking-tighter text-yellow-400 bg-slate-950 p-4 px-10 rounded-xl border border-slate-800 shadow-inner">
-                      {currentDrawnNumber !== null ? currentDrawnNumber.toString().padStart(2, '0') : '--'}
+
+                    {/* Massive scrolling display container with custom neon shadow and deceleration feedback */}
+                    <div className="relative flex items-center justify-center">
+                      {/* Ring outline */}
+                      <div className="absolute -inset-4 rounded-full bg-blue-500/10 blur-xl animate-pulse" />
+                      
+                      <motion.div 
+                        key={currentDrawnNumber} 
+                        initial={{ scale: 0.85, opacity: 0.4 }}
+                        animate={{ scale: 1, opacity: 1 }}
+                        className="text-7xl font-black font-mono tracking-tighter text-yellow-400 bg-slate-950 p-6 px-12 rounded-2xl border border-slate-800 shadow-2xl flex items-center justify-center min-w-[140px] z-10"
+                      >
+                        {currentDrawnNumber !== null ? currentDrawnNumber.toString().padStart(2, '0') : '--'}
+                      </motion.div>
                     </div>
+
+                    {/* Show already drawn winners during the sequential process if any */}
+                    {tempWinnersList.length > 0 && (
+                      <div className="w-full max-w-sm pt-4 border-t border-slate-800/60 space-y-2 text-left">
+                        <p className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">
+                          Sorteados nesta rodada:
+                        </p>
+                        <div className="grid grid-cols-1 gap-1.5 max-h-32 overflow-y-auto pr-1">
+                          {tempWinnersList.map((winner, idx) => (
+                            <div key={idx} className="flex items-center justify-between bg-slate-950/40 p-2 rounded-xl border border-slate-800/40 text-[11px]">
+                              <span className="font-semibold text-slate-300 truncate max-w-[200px]">
+                                🏆 {idx + 1}º prêmio: {winner.studentName}
+                              </span>
+                              <span className="font-mono font-black text-emerald-400 bg-emerald-950/50 px-2 py-0.5 rounded">
+                                Nº {winner.number.toString().padStart(2, '0')}
+                              </span>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    )}
                   </div>
                 )}
 
@@ -1577,7 +1741,7 @@ const RaffleModule: React.FC = () => {
               initial={{ scale: 0.8, opacity: 0 }}
               animate={{ scale: 1, opacity: 1 }}
               exit={{ scale: 0.8, opacity: 0 }}
-              className="bg-white dark:bg-slate-900 border border-slate-250 dark:border-slate-800 w-full max-w-md rounded-3xl p-8 text-center space-y-6 shadow-2xl relative overflow-hidden"
+              className="bg-white dark:bg-slate-900 border border-slate-250 dark:border-slate-800 w-full max-w-lg rounded-3xl p-8 text-center space-y-6 shadow-2xl relative overflow-hidden"
             >
               {/* Confetti decoration */}
               <div className="absolute top-0 inset-x-0 h-1 bg-gradient-to-r from-yellow-400 via-orange-500 to-red-500 animate-pulse" />
@@ -1588,40 +1752,73 @@ const RaffleModule: React.FC = () => {
                   Sorteio Efetuado Com Sucesso!
                 </span>
                 <h2 className="text-2xl font-black text-slate-800 dark:text-slate-100 tracking-tight mt-3">
-                  Temos um Vencedor!
+                  {winnerAnimDetails.winnersList && winnerAnimDetails.winnersList.length > 1
+                    ? 'Sorteados Revelados!'
+                    : 'Temos um Vencedor!'}
                 </h2>
                 <p className="text-xs text-slate-500 dark:text-slate-400">
-                  OSS! Parabéns ao aluno contemplado que ajudou o dojo!
+                  OSS! Parabéns aos alunos contemplados que ajudaram o dojo!
                 </p>
               </div>
 
-              <div className="p-6 bg-slate-50 dark:bg-slate-950/60 border border-slate-150 dark:border-slate-850/80 rounded-2xl space-y-4">
-                <div>
-                  <p className="text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-widest">
-                    Cota Sorteada
-                  </p>
-                  <p className="text-5xl font-black text-blue-600 dark:text-blue-400 font-mono tracking-tight animate-pulse">
-                    Nº {winnerAnimDetails.number.toString().padStart(2, '0')}
-                  </p>
-                </div>
+              {!winnerAnimDetails.winnersList || winnerAnimDetails.winnersList.length <= 1 ? (
+                <div className="p-6 bg-slate-50 dark:bg-slate-950/60 border border-slate-150 dark:border-slate-850/80 rounded-2xl space-y-4">
+                  <div>
+                    <p className="text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-widest">
+                      Cota Sorteada
+                    </p>
+                    <p className="text-5xl font-black text-blue-600 dark:text-blue-400 font-mono tracking-tight animate-pulse">
+                      Nº {winnerAnimDetails.number.toString().padStart(2, '0')}
+                    </p>
+                  </div>
 
-                <div className="border-t border-slate-200/40 pt-3">
-                  <p className="text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-widest">
-                    Aluno Contemplador
-                  </p>
-                  <p className="text-md font-bold text-slate-800 dark:text-slate-100 flex items-center justify-center gap-1.5 mt-0.5">
-                    <UserCheck className="w-4 h-4 text-emerald-500" />
-                    {winnerAnimDetails.name}
-                  </p>
+                  <div className="border-t border-slate-200/40 pt-3">
+                    <p className="text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-widest">
+                      Aluno Contemplador
+                    </p>
+                    <p className="text-md font-bold text-slate-805 dark:text-slate-100 flex items-center justify-center gap-1.5 mt-0.5">
+                      <UserCheck className="w-4 h-4 text-emerald-500" />
+                      {winnerAnimDetails.name}
+                    </p>
+                  </div>
                 </div>
-              </div>
+              ) : (
+                <div className="max-h-60 overflow-y-auto space-y-3 pr-2 text-left">
+                  {winnerAnimDetails.winnersList.map((item, idx) => (
+                    <div 
+                      key={idx}
+                      className="p-3.5 bg-slate-50 dark:bg-slate-950/60 border border-slate-150 dark:border-slate-850/80 rounded-2xl flex items-center justify-between gap-4"
+                    >
+                      <div className="flex items-center gap-3">
+                        <span className="text-lg">🥇</span>
+                        <div>
+                          <p className="text-[10px] font-bold text-emerald-600 dark:text-emerald-400 uppercase tracking-wider">
+                            {idx + 1}º Sorteado
+                          </p>
+                          <p className="text-xs font-bold text-slate-800 dark:text-slate-100">
+                            {item.studentName}
+                          </p>
+                        </div>
+                      </div>
+                      <div className="text-right">
+                        <p className="text-[9px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-widest">
+                          COTA
+                        </p>
+                        <p className="text-xl font-mono font-black text-blue-600 dark:text-blue-400">
+                          Nº {item.number.toString().padStart(2, '0')}
+                        </p>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
 
               <button
                 onClick={() => {
                   setShowWinnerOverlay(false);
                   setWinnerAnimDetails(null);
                 }}
-                className="w-full py-3.5 bg-blue-600 hover:bg-blue-700 text-white rounded-2xl text-xs font-bold shadow hover:shadow-md transition-all uppercase tracking-wide"
+                className="w-full py-3.5 bg-blue-600 hover:bg-blue-700 text-white rounded-2xl text-xs font-bold shadow hover:shadow-md transition-all uppercase tracking-wide cursor-pointer"
               >
                 Continuar no Tatame (OSS!)
               </button>
