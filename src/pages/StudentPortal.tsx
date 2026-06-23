@@ -1549,7 +1549,7 @@ const StudentPortal: React.FC = () => {
                         setShowManualInput(true);
                         setGeoError(null);
                       }}
-                      className="py-3 bg-slate-100 hover:bg-slate-205 dark:bg-slate-850 dark:hover:bg-slate-800 text-slate-900 dark:text-white rounded-xl font-black uppercase text-[8.5px] tracking-wider transition-all flex items-center justify-center gap-2 active:scale-95 cursor-pointer text-center"
+                      className="py-3 bg-slate-100 hover:bg-slate-200 dark:bg-slate-850 dark:hover:bg-slate-800 text-slate-900 dark:text-white rounded-xl font-black uppercase text-[8.5px] tracking-wider transition-all flex items-center justify-center gap-2 active:scale-95 cursor-pointer text-center"
                     >
                       <Shield size={13} className="text-amber-500" />
                       <span>Código Manual</span>
@@ -2064,7 +2064,7 @@ const StudentPortal: React.FC = () => {
                   className={`py-4 rounded-2xl font-black uppercase text-[9px] tracking-widest shadow-sm flex flex-col items-center justify-center gap-2 active:scale-95 transition-all cursor-pointer text-center ${
                     showManualInput 
                       ? 'bg-amber-500 text-slate-950' 
-                      : 'bg-slate-100 dark:bg-slate-800 hover:bg-slate-205 dark:hover:bg-slate-700/80 text-slate-950 dark:text-white'
+                      : 'bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700/80 text-slate-950 dark:text-white'
                   }`}
                 >
                   <Shield size={18} className={showManualInput ? 'text-slate-950' : 'text-amber-500'} />
@@ -2257,7 +2257,7 @@ const StudentPortal: React.FC = () => {
                             const input = (e.currentTarget.previousSibling as HTMLInputElement);
                             updateStudent(student.id, { medicalConditions: input.value });
                           }}
-                          className="px-4 py-2 bg-slate-900 hover:bg-black dark:bg-slate-805 dark:hover:bg-slate-700 text-white border border-slate-200 dark:border-slate-700 rounded-xl text-[9px] font-black uppercase tracking-widest cursor-pointer transition-colors"
+                          className="px-4 py-2 bg-slate-900 hover:bg-black dark:bg-slate-800 dark:hover:bg-slate-700 text-white border border-slate-200 dark:border-slate-700 rounded-xl text-[9px] font-black uppercase tracking-widest cursor-pointer transition-colors"
                         >
                           Salvar
                         </button>
@@ -3874,19 +3874,19 @@ const StudentPortal: React.FC = () => {
                         )}
 
                         {/* PROGRESS BLOCK */}
-                        <div className="grid grid-cols-2 gap-4 text-xs font-mono bg-slate-50 dark:bg-slate-950/30 p-3 rounded-2xl border border-slate-100 dark:border-slate-850">
+                        <div className="grid grid-cols-2 gap-4 text-xs font-mono bg-slate-50 dark:bg-slate-950/30 p-3 rounded-2xl border border-slate-100 dark:border-slate-800">
                           <div>
                             <span className="text-[9px] font-bold uppercase tracking-wider text-slate-400 block pb-0.5">Preço da Cota</span>
                             <span className="font-bold text-slate-800 dark:text-slate-100 text-xs">R$ {r.ticketPrice.toFixed(2)}</span>
                           </div>
                           <div>
                             <span className="text-[9px] font-bold uppercase tracking-wider text-slate-400 block pb-0.5">Cotas Vendidas</span>
-                            <span className="font-bold text-slate-705 dark:text-slate-350 text-xs">{totalSold} / {r.totalNumbers} vendidos ({soldPct}%)</span>
+                            <span className="font-bold text-slate-700 dark:text-slate-350 text-xs">{totalSold} / {r.totalNumbers} vendidos ({soldPct}%)</span>
                           </div>
                         </div>
 
                         {/* PROGRESS BAR */}
-                        <div className="w-full h-1.5 bg-slate-105 dark:bg-slate-800 rounded-full overflow-hidden">
+                        <div className="w-full h-1.5 bg-slate-100 dark:bg-slate-800 rounded-full overflow-hidden">
                           <div className="h-full bg-blue-500 rounded-full transition-all" style={{ width: `${soldPct}%` }} />
                         </div>
 
@@ -3898,8 +3898,8 @@ const StudentPortal: React.FC = () => {
                               onClick={() => setRaffleSubTab('board')}
                               className={`pb-2 px-2 text-xs font-black uppercase tracking-wider relative transition-all ${
                                 raffleSubTab === 'board'
-                                  ? 'text-blue-605 dark:text-blue-400 border-b-2 border-blue-605 dark:border-blue-400'
-                                  : 'text-slate-400 hover:text-slate-705 dark:hover:text-slate-350'
+                                  ? 'text-blue-600 dark:text-blue-400 border-b-2 border-blue-600 dark:border-blue-400'
+                                  : 'text-slate-400 hover:text-slate-700 dark:hover:text-slate-350'
                               }`}
                             >
                               📋 Quadro Interativo
@@ -3909,8 +3909,8 @@ const StudentPortal: React.FC = () => {
                               onClick={() => setRaffleSubTab('cartela')}
                               className={`pb-2 px-3 text-xs font-black uppercase tracking-wider relative transition-all ${
                                 raffleSubTab === 'cartela'
-                                  ? 'text-blue-605 dark:text-blue-400 border-b-2 border-blue-650 dark:border-blue-400'
-                                  : 'text-slate-400 hover:text-slate-705 dark:hover:text-slate-350'
+                                  ? 'text-blue-600 dark:text-blue-400 border-b-2 border-blue-600 dark:border-blue-400'
+                                  : 'text-slate-400 hover:text-slate-700 dark:hover:text-slate-350'
                               }`}
                             >
                               🎟️ Prévia da Cartela Oficial
@@ -3935,7 +3935,7 @@ const StudentPortal: React.FC = () => {
                                     navigator.clipboard.writeText(shareUrl);
                                     alert("Link do Portal do Aluno copiado com sucesso para compartilhar!");
                                   }}
-                                  className="flex items-center gap-1.5 px-3 py-1.5 bg-white dark:bg-slate-800 hover:bg-slate-50 dark:hover:bg-slate-705 border border-slate-205 dark:border-slate-700 rounded-xl text-xs font-bold text-slate-700 dark:text-slate-300 shadow-sm transition-all"
+                                  className="flex items-center gap-1.5 px-3 py-1.5 bg-white dark:bg-slate-800 hover:bg-slate-50 dark:hover:bg-slate-700 border border-slate-200 dark:border-slate-700 rounded-xl text-xs font-bold text-slate-700 dark:text-slate-300 shadow-sm transition-all"
                                 >
                                   <Copy className="w-3.5 h-3.5" />
                                   Copiar Link
@@ -3994,14 +3994,28 @@ const StudentPortal: React.FC = () => {
                                   <p className="text-[8px] font-black text-slate-400 uppercase tracking-widest mb-1.5 font-mono">RELAÇÃO DE COTAS</p>
                                   <div className="max-h-[160px] overflow-y-auto space-y-1 pr-1 font-mono text-[9px] text-slate-600 dark:text-slate-400">
                                     {Object.keys(r.tickets).length === 0 ? (
-                                      <p className="text-[8px] italic text-slate-450">Nenhuma cota reservada ainda.</p>
+                                      <p className="text-[8px] italic text-slate-455">Nenhuma cota reservada ainda.</p>
                                     ) : (
                                       Object.keys(r.tickets).sort().map((numStr) => {
                                         const buyer = r.tickets[numStr];
+                                        const isExternal = buyer.studentId === 'external';
                                         return (
-                                          <div key={numStr} className="flex justify-between items-center bg-slate-100/50 dark:bg-slate-950/40 p-1 px-1.5 rounded border border-slate-100/30">
-                                            <span className="font-bold text-slate-800 dark:text-slate-300">Nº {numStr}</span>
-                                            <span className="truncate max-w-[85px] font-semibold text-slate-550">{buyer.studentName.split(' ')[0]}</span>
+                                          <div key={numStr} className={`flex flex-col p-1 px-1.5 rounded border gap-0.5 ${
+                                            isExternal 
+                                              ? 'bg-amber-100/40 border-amber-200 dark:bg-amber-955/20 dark:border-amber-900/40' 
+                                              : 'bg-indigo-100/40 border-indigo-200 dark:bg-indigo-955/20 dark:border-indigo-900/40'
+                                          }`}>
+                                            <div className="flex justify-between items-center">
+                                              <span className="font-bold text-slate-800 dark:text-slate-300">Nº {numStr}</span>
+                                              <span className="truncate max-w-[85px] font-semibold text-slate-600 dark:text-slate-405" title={buyer.studentName}>
+                                                {buyer.studentName.split(' ')[0]} {isExternal ? '👤' : '🥋'}
+                                              </span>
+                                            </div>
+                                            {buyer.phone && (
+                                              <div className="text-[7.5px] text-emerald-600 dark:text-emerald-400 font-bold font-mono text-right leading-none">
+                                                📞 {buyer.phone}
+                                              </div>
+                                            )}
                                           </div>
                                         );
                                       })
@@ -4047,27 +4061,32 @@ const StudentPortal: React.FC = () => {
                                       const buyer = r.tickets[numStr];
                                       const isSold = !!buyer;
                                       const isDrawnWinner = r.winnerNumber === (i + 1);
+                                      const isExternal = buyer?.studentId === 'external';
 
                                       return (
                                         <div
                                           key={i}
                                           className={`p-2 py-3 border rounded-xl flex flex-col items-center justify-center font-mono transition-all text-center ${
                                             isDrawnWinner
-                                              ? 'bg-emerald-500 border-emerald-600 text-white font-black'
+                                              ? 'bg-emerald-500 border-emerald-600 text-white font-black scale-105 shadow-md'
                                               : isSold
-                                              ? 'bg-blue-100/55 border-blue-200 text-blue-800 dark:bg-blue-950/20 dark:border-blue-900 dark:text-blue-350'
-                                              : 'bg-white border-slate-200 text-slate-400 dark:bg-slate-900 dark:border-slate-800'
+                                              ? isExternal
+                                                ? 'bg-rose-50 border-rose-200 text-rose-700 dark:bg-rose-950/40 dark:border-rose-900/60 dark:text-rose-300'
+                                                : 'bg-indigo-50 border-indigo-200 text-indigo-700 dark:bg-indigo-950/40 dark:border-indigo-900/60 dark:text-indigo-300'
+                                              : 'bg-emerald-50/30 border-emerald-200 text-emerald-700 hover:border-emerald-300 dark:bg-emerald-950/10 dark:border-emerald-900/30 dark:text-emerald-400'
                                           }`}
                                         >
                                           <span className="text-xs font-bold">{numStr}</span>
                                           {isDrawnWinner ? (
                                             <span className="text-[7px] font-black uppercase tracking-tight mt-0.5 truncate max-w-full">GANHADOR</span>
                                           ) : isSold ? (
-                                            <span className="text-[7px] font-bold text-blue-900/60 dark:text-blue-400/80 uppercase tracking-tighter truncate max-w-full mt-0.5">
+                                            <span className={`text-[7px] font-bold uppercase tracking-tighter truncate max-w-full mt-0.5 ${
+                                              isExternal ? 'text-rose-800/80 dark:text-rose-300/80' : 'text-indigo-800/80 dark:text-indigo-300/80'
+                                            }`}>
                                               {buyer.studentName.split(' ')[0].slice(0, 6)}
                                             </span>
                                           ) : (
-                                            <span className="text-[7px] font-bold text-slate-300 dark:text-slate-600 uppercase tracking-tighter mt-0.5">LIVRE</span>
+                                            <span className="text-[7px] font-bold text-emerald-600/70 dark:text-emerald-400/60 uppercase tracking-tighter mt-0.5">LIVRE</span>
                                           )}
                                         </div>
                                       );
@@ -4090,7 +4109,7 @@ const StudentPortal: React.FC = () => {
                                 <p className="text-[10px] font-bold text-blue-800 dark:text-blue-400 uppercase tracking-widest flex items-center gap-1.5 leading-none">
                                   <span>🎟️ Minhas Cotas Reservadas ({myTickets.length})</span>
                                 </p>
-                                <p className="text-xs font-extrabold text-blue-900 dark:text-blue-105 font-mono">
+                                <p className="text-xs font-extrabold text-blue-900 dark:text-blue-200 font-mono">
                                   {myTickets.join(', ')}
                                 </p>
                                 <p className="text-[9px] text-slate-550 leading-tight">
@@ -4168,11 +4187,11 @@ const StudentPortal: React.FC = () => {
                               {/* Legend explanation */}
                               <div className="flex items-center gap-4 text-[9px] font-semibold text-slate-450 pt-1.5 justify-start">
                                 <div className="flex items-center gap-1">
-                                  <span className="w-2.5 h-2.5 rounded bg-slate-55 border border-slate-200 dark:bg-slate-950 dark:border-slate-800" />
+                                  <span className="w-2.5 h-2.5 rounded bg-slate-50 border border-slate-200 dark:bg-slate-950 dark:border-slate-800" />
                                   Livre
                                 </div>
                                 <div className="flex items-center gap-1">
-                                  <span className="w-2.5 h-2.5 rounded bg-slate-100 border border-slate-150 dark:bg-slate-900 dark:border-slate-800" />
+                                  <span className="w-2.5 h-2.5 rounded bg-slate-100 border border-slate-200 dark:bg-slate-900 dark:border-slate-800" />
                                   Ocupado
                                 </div>
                                 <div className="flex items-center gap-1 text-blue-600">

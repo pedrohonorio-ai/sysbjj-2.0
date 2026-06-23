@@ -900,135 +900,144 @@ const RaffleModule: React.FC = () => {
                                 {numStr}
                               </button>
                             )}
- 
-                            {/* Float Assign Dropdown if clicked */}
-                            <AnimatePresence>
-                              {isBeingAssigned && (
-                                <motion.div
-                                  initial={{ opacity: 0, y: 10 }}
-                                  animate={{ opacity: 1, y: 0 }}
-                                  exit={{ opacity: 0, y: 10 }}
-                                  className="absolute z-30 left-1/2 -translate-x-1/2 mt-2 w-64 bg-white dark:bg-slate-900 border border-slate-250 dark:border-slate-850 p-4 rounded-2xl shadow-xl space-y-3"
-                                >
-                                  <div className="flex items-center justify-between">
-                                    <h4 className="text-xs font-black text-slate-800 dark:text-slate-150 flex items-center gap-1">
-                                      <span>Associar Cota Nº {numStr}</span>
-                                    </h4>
-                                    <button
-                                      type="button"
-                                      onClick={() => setSelectedTicketToAssign(null)}
-                                      className="p-1 rounded bg-slate-50 hover:bg-slate-100 dark:bg-slate-850 text-slate-400"
-                                    >
-                                      <X className="w-3.5 h-3.5" />
-                                    </button>
-                                  </div>
-
-                                  {/* Segmented control for buyer type */}
-                                  <div className="grid grid-cols-2 gap-1 p-0.5 bg-slate-100 dark:bg-slate-800 rounded-lg text-[10px] font-bold">
-                                    <button
-                                      type="button"
-                                      onClick={() => setAssignMode('student')}
-                                      className={`py-1 rounded text-center transition-all ${
-                                        assignMode === 'student'
-                                          ? 'bg-white dark:bg-slate-900 shadow-xs text-blue-600 dark:text-blue-400'
-                                          : 'text-slate-500 hover:text-slate-800 dark:hover:text-slate-200'
-                                      }`}
-                                    >
-                                      🥋 Aluno Ativo
-                                    </button>
-                                    <button
-                                      type="button"
-                                      onClick={() => setAssignMode('external')}
-                                      className={`py-1 rounded text-center transition-all ${
-                                        assignMode === 'external'
-                                          ? 'bg-white dark:bg-slate-900 shadow-xs text-teal-600 dark:text-teal-400'
-                                          : 'text-slate-500 hover:text-slate-800 dark:hover:text-slate-200'
-                                      }`}
-                                    >
-                                      👤 Pessoa Externa
-                                    </button>
-                                  </div>
-
-                                  {assignMode === 'student' ? (
-                                    <>
-                                      {/* Student Search box */}
-                                      <div className="relative">
-                                        <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-slate-400" />
-                                        <input
-                                          type="text"
-                                          placeholder="Pesquisar aluno ativo..."
-                                          value={studentSearchTerm}
-                                          onChange={(e) => setStudentSearchTerm(e.target.value)}
-                                          className="w-full text-[11px] pl-8 pr-3 py-1.5 rounded-lg border border-slate-200 focus:outline-none focus:border-blue-500 bg-slate-50 dark:bg-slate-800 text-slate-800 dark:text-slate-150 dark:border-slate-700"
-                                        />
-                                      </div>
-
-                                      <div className="max-h-40 overflow-y-auto space-y-1 pr-1 border-t border-slate-50 dark:border-slate-800 pt-2 text-left">
-                                        {activeStudents.length === 0 ? (
-                                          <p className="text-[10px] text-center text-slate-400 py-4">
-                                            Nenhum aluno encontrado
-                                          </p>
-                                        ) : (
-                                          activeStudents.map((s: any) => (
-                                            <button
-                                              type="button"
-                                              key={s.id}
-                                              onClick={() => handleAssignTicket(numStr, s.id, s.name)}
-                                              className="w-full text-left p-2 rounded hover:bg-slate-50 dark:hover:bg-slate-800 text-[11px] font-medium border border-transparent hover:border-slate-105 flex items-center justify-between text-slate-700 dark:text-slate-350"
-                                            >
-                                              <span>{s.nickname ? `${s.name} (${s.nickname})` : s.name}</span>
-                                              <ArrowRight className="w-3 h-3 text-slate-300" />
-                                            </button>
-                                          ))
-                                        )}
-                                      </div>
-                                    </>
-                                  ) : (
-                                    <div className="space-y-2 pt-1 text-left">
-                                      <div className="space-y-0.5">
-                                        <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest">
-                                          Nome do Comprador
-                                        </label>
-                                        <input
-                                          type="text"
-                                          required
-                                          placeholder="Ex: João Silva"
-                                          value={externalBuyerName}
-                                          onChange={(e) => setExternalBuyerName(e.target.value)}
-                                          className="w-full text-[11px] px-2.5 py-1.5 rounded-lg border border-slate-200 dark:border-slate-705 focus:outline-none focus:border-teal-500 bg-slate-50 dark:bg-slate-800 text-slate-800 dark:text-slate-150"
-                                        />
-                                      </div>
-
-                                      <div className="space-y-0.5">
-                                        <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest">
-                                          Telefone de Contato
-                                        </label>
-                                        <input
-                                          type="text"
-                                          placeholder="Ex: (21) 98888-7777"
-                                          value={externalBuyerPhone}
-                                          onChange={(e) => setExternalBuyerPhone(e.target.value)}
-                                          className="w-full text-[11px] px-2.5 py-1.5 rounded-lg border border-slate-200 dark:border-slate-705 focus:outline-none focus:border-teal-500 bg-slate-50 dark:bg-slate-800 text-slate-800 dark:text-slate-150"
-                                        />
-                                      </div>
-
-                                      <button
-                                        type="button"
-                                        disabled={!externalBuyerName.trim()}
-                                        onClick={() => handleAssignExternal(numStr)}
-                                        className="w-full mt-1.5 py-2 bg-teal-600 hover:bg-teal-700 disabled:bg-slate-100 disabled:dark:bg-slate-800 disabled:text-slate-400 text-white rounded-lg text-[10px] font-bold transition-all uppercase tracking-wider"
-                                      >
-                                        Confirmar Venda Cota Nº {numStr}
-                                      </button>
-                                    </div>
-                                  )}
-                                </motion.div>
-                              )}
-                            </AnimatePresence>
                           </div>
                         );
                       })}
                     </div>
+
+                    {/* REGISTRATION MODAL FOR ASSIGNING TICKETS */}
+                    <AnimatePresence>
+                      {selectedTicketToAssign !== null && (
+                        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-xs">
+                          <motion.div
+                            initial={{ scale: 0.95, opacity: 0 }}
+                            animate={{ scale: 1, opacity: 1 }}
+                            exit={{ scale: 0.95, opacity: 0 }}
+                            className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 w-full max-w-sm rounded-[24px] shadow-2xl overflow-hidden text-slate-800 dark:text-slate-100"
+                          >
+                            <div className="flex items-center justify-between p-5 border-b border-slate-100 dark:border-slate-800">
+                              <div className="flex items-center gap-2">
+                                <span className="text-xl">🎟️</span>
+                                <h3 className="font-bold text-sm text-slate-800 dark:text-slate-100">
+                                  Associar Cota Nº {selectedTicketToAssign}
+                                </h3>
+                              </div>
+                              <button
+                                type="button"
+                                onClick={() => setSelectedTicketToAssign(null)}
+                                className="p-1.5 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-400 hover:text-slate-600 dark:hover:text-slate-300 transition-colors"
+                              >
+                                <X className="w-5 h-5" />
+                              </button>
+                            </div>
+
+                            <div className="p-5 space-y-4">
+                              {/* Segmented control for buyer type */}
+                              <div className="grid grid-cols-2 gap-1 p-1 bg-slate-100 dark:bg-slate-800 rounded-xl text-xs font-bold">
+                                <button
+                                  type="button"
+                                  onClick={() => setAssignMode('student')}
+                                  className={`py-2 rounded-lg text-center transition-all ${
+                                    assignMode === 'student'
+                                      ? 'bg-white dark:bg-slate-900 shadow-xs text-blue-600 dark:text-blue-400'
+                                      : 'text-slate-500 hover:text-slate-800 dark:hover:text-slate-200'
+                                  }`}
+                                >
+                                  🥋 Aluno Ativo
+                                </button>
+                                <button
+                                  type="button"
+                                  onClick={() => setAssignMode('external')}
+                                  className={`py-2 rounded-lg text-center transition-all ${
+                                    assignMode === 'external'
+                                      ? 'bg-white dark:bg-slate-900 shadow-xs text-teal-600 dark:text-teal-400'
+                                      : 'text-slate-500 hover:text-slate-800 dark:hover:text-slate-200'
+                                  }`}
+                                >
+                                  👤 Pessoa Externa
+                                </button>
+                              </div>
+
+                              {assignMode === 'student' ? (
+                                <div className="space-y-3">
+                                  {/* Student Search box */}
+                                  <div className="relative">
+                                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+                                    <input
+                                      type="text"
+                                      placeholder="Pesquisar aluno ativo por nome..."
+                                      value={studentSearchTerm}
+                                      onChange={(e) => setStudentSearchTerm(e.target.value)}
+                                      className="w-full text-xs pl-9 pr-3 py-2.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-900 text-slate-800 dark:text-slate-100 focus:outline-none focus:border-blue-500"
+                                    />
+                                  </div>
+
+                                  <div className="max-h-60 overflow-y-auto space-y-1.5 pr-1 border-t border-slate-100 dark:border-slate-800 pt-3 text-left">
+                                    {activeStudents.length === 0 ? (
+                                      <p className="text-xs text-center text-slate-400 py-6">
+                                        Nenhum aluno encontrado
+                                      </p>
+                                    ) : (
+                                      activeStudents.map((s: any) => (
+                                        <button
+                                          type="button"
+                                          key={s.id}
+                                          onClick={() => handleAssignTicket(selectedTicketToAssign, s.id, s.name)}
+                                          className="w-full text-left p-2.5 rounded-xl hover:bg-slate-50 dark:hover:bg-slate-800 text-xs font-semibold border border-transparent hover:border-slate-200 dark:hover:border-slate-700 flex items-center justify-between text-slate-700 dark:text-slate-350 transition-all active:scale-98"
+                                        >
+                                          <span>{s.nickname ? `${s.name} (${s.nickname})` : s.name}</span>
+                                          <ArrowRight className="w-3.5 h-3.5 text-slate-400" />
+                                        </button>
+                                      ))
+                                    )}
+                                  </div>
+                                </div>
+                              ) : (
+                                <div className="space-y-3 text-left">
+                                  <div className="space-y-1">
+                                    <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest pl-1">
+                                      Nome do Comprador
+                                    </label>
+                                    <input
+                                      type="text"
+                                      required
+                                      placeholder="Ex: João Silva"
+                                      value={externalBuyerName}
+                                      onChange={(e) => setExternalBuyerName(e.target.value)}
+                                      className="w-full text-xs px-3 py-2.5 rounded-xl border border-slate-200 dark:border-slate-700 focus:outline-none focus:border-teal-500 bg-slate-50 dark:bg-slate-900 text-slate-800 dark:text-slate-150"
+                                    />
+                                  </div>
+
+                                  <div className="space-y-1">
+                                    <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest pl-1">
+                                      Telefone de Contato
+                                    </label>
+                                    <input
+                                      type="text"
+                                      placeholder="Ex: (21) 98888-7777"
+                                      value={externalBuyerPhone}
+                                      onChange={(e) => setExternalBuyerPhone(e.target.value)}
+                                      className="w-full text-xs px-3 py-2.5 rounded-xl border border-slate-200 dark:border-slate-700 focus:outline-none focus:border-teal-500 bg-slate-50 dark:bg-slate-905 text-slate-800 dark:text-slate-150"
+                                    />
+                                  </div>
+
+                                  <div className="pt-2">
+                                    <button
+                                      type="button"
+                                      disabled={!externalBuyerName.trim()}
+                                      onClick={() => handleAssignExternal(selectedTicketToAssign)}
+                                      className="w-full py-3 bg-teal-600 hover:bg-teal-700 disabled:bg-slate-100 disabled:dark:bg-slate-800 disabled:text-slate-400 text-white rounded-xl text-xs font-bold transition-all uppercase tracking-wider active:scale-95 cursor-pointer"
+                                    >
+                                      Confirmar Venda Cota Nº {selectedTicketToAssign}
+                                    </button>
+                                  </div>
+                                </div>
+                              )}
+                            </div>
+                          </motion.div>
+                        </div>
+                      )}
+                    </AnimatePresence>
                   </div>
                 ) : (
                   /* TAB 2: PRINTER AND DOJO RAFFLE SHEET PREVIEW (CARTELA) */
@@ -1044,7 +1053,7 @@ const RaffleModule: React.FC = () => {
                         <button
                           type="button"
                           onClick={handleCopyLink}
-                          className="flex items-center gap-1.5 px-3 py-1.5 bg-white dark:bg-slate-805 hover:bg-slate-50 dark:hover:bg-slate-800 border border-slate-205 dark:border-slate-750 rounded-xl text-xs font-bold text-slate-700 dark:text-slate-300 shadow-sm transition-all"
+                          className="flex items-center gap-1.5 px-3 py-1.5 bg-white dark:bg-slate-800 hover:bg-slate-50 dark:hover:bg-slate-700 border border-slate-200 dark:border-slate-700 rounded-xl text-xs font-bold text-slate-700 dark:text-slate-300 shadow-sm transition-all"
                         >
                           <Copy className="w-3.5 h-3.5" />
                           {copySuccess ? 'Copiado!' : 'Copiar Link (WhatsApp)'}
@@ -1072,15 +1081,14 @@ const RaffleModule: React.FC = () => {
                         </button>
                       </div>
                     </div>
-
-                    {/* PHYSICAL CONTAINER TO MOCK TICKET SHEET (WITH CUT OFF DIVIDER) */}
+                                   {/* PHYSICAL CONTAINER TO MOCK TICKET SHEET (WITH CUT OFF DIVIDER) */}
                     <div className="border-4 border-double border-slate-300 dark:border-slate-700 bg-amber-50/15 dark:bg-slate-900 p-6 rounded-3xl grid grid-cols-1 md:grid-cols-4 gap-6 relative overflow-hidden print:bg-white print:text-black print:p-0 print:border-none print:shadow-none">
                       
                       {/* Substantial left stub / Canhoto de Apoio */}
-                      <div className="md:col-span-1 border-r border-dashed border-slate-350 dark:border-slate-750 pr-4 space-y-4 print:border-r">
+                      <div className="md:col-span-1 border-r border-dashed border-slate-300 dark:border-slate-700 pr-4 space-y-4 print:border-r">
                         <div className="space-y-1 text-center border-b border-slate-200/50 pb-2">
                           <p className="text-[9px] font-black tracking-widest text-slate-400 dark:text-slate-550 uppercase">CANHOTO OFICIAL</p>
-                          <p className="text-xs font-black text-slate-805 dark:text-slate-100">SYSBJJ 2.0 DOJO</p>
+                          <p className="text-xs font-black text-slate-800 dark:text-slate-100">SYSBJJ 2.0 DOJO</p>
                           <p className="text-[8px] font-mono text-slate-500 truncate max-w-full">Reg: {selectedRaffleId?.slice(0, 8).toUpperCase()}</p>
                         </div>
                         
@@ -1110,7 +1118,11 @@ const RaffleModule: React.FC = () => {
                                 const buyer = activeRaffle.tickets[numStr];
                                 const isExternal = buyer.studentId === 'external';
                                 return (
-                                  <div key={numStr} className="flex flex-col bg-slate-100/50 dark:bg-slate-950/40 p-1 px-1.5 rounded border border-slate-105/30 gap-0.5">
+                                  <div key={numStr} className={`flex flex-col p-1 px-1.5 rounded border gap-0.5 ${
+                                    isExternal 
+                                      ? 'bg-amber-100/40 border-amber-200 dark:bg-amber-950/20 dark:border-amber-900/40' 
+                                      : 'bg-indigo-100/40 border-indigo-200 dark:bg-indigo-950/20 dark:border-indigo-900/40'
+                                  }`}>
                                     <div className="flex justify-between items-center">
                                       <span className="font-bold text-slate-800 dark:text-slate-300">Nº {numStr}</span>
                                       <span className="truncate max-w-[100px] font-semibold text-slate-600 dark:text-slate-400" title={buyer.studentName}>
@@ -1171,26 +1183,31 @@ const RaffleModule: React.FC = () => {
                               const isSold = !!buyer;
                               const isDrawnWinner = activeRaffle.winnerNumber === (i + 1);
 
+                              const isExternal = buyer?.studentId === 'external';
                               return (
                                 <div
                                   key={i}
                                   className={`p-2 py-3.5 border rounded-xl flex flex-col items-center justify-center font-mono transition-all text-center ${
                                     isDrawnWinner
-                                      ? 'bg-emerald-500 border-emerald-600 text-white font-black'
+                                      ? 'bg-emerald-500 border-emerald-600 text-white font-black scale-105 shadow-md'
                                       : isSold
-                                      ? 'bg-blue-100/50 border-blue-200 text-blue-800 dark:bg-blue-950/20 dark:border-blue-900/60 dark:text-blue-350'
-                                      : 'bg-white border-slate-200 text-slate-400 dark:bg-slate-900 dark:border-slate-800'
+                                      ? isExternal
+                                        ? 'bg-rose-50 border-rose-200 text-rose-700 dark:bg-rose-950/40 dark:border-rose-900/60 dark:text-rose-300'
+                                        : 'bg-indigo-50 border-indigo-200 text-indigo-700 dark:bg-indigo-950/40 dark:border-indigo-900/60 dark:text-indigo-300'
+                                      : 'bg-emerald-50/30 border-emerald-200 text-emerald-700 hover:border-emerald-300 dark:bg-emerald-950/10 dark:border-emerald-900/30 dark:text-emerald-400'
                                   }`}
                                 >
                                   <span className="text-xs font-bold">{numStr}</span>
                                   {isDrawnWinner ? (
                                     <span className="text-[7px] font-black uppercase tracking-tight mt-0.5 truncate max-w-full">GANHADOR</span>
                                   ) : isSold ? (
-                                    <span className="text-[7.5px] font-bold text-blue-900/60 dark:text-blue-400/80 uppercase tracking-tighter truncate max-w-full mt-0.5">
+                                    <span className={`text-[7.5px] font-bold uppercase tracking-tighter truncate max-w-full mt-0.5 ${
+                                      isExternal ? 'text-rose-800/80 dark:text-rose-300/80' : 'text-indigo-800/80 dark:text-indigo-300/80'
+                                    }`}>
                                       {buyer.studentName.split(' ')[0].slice(0, 6)}
                                     </span>
                                   ) : (
-                                    <span className="text-[7.5px] font-bold text-slate-350 dark:text-slate-600 uppercase tracking-tighter mt-0.5">LIVRE</span>
+                                    <span className="text-[7.5px] font-bold text-emerald-600/70 dark:text-emerald-400/60 uppercase tracking-tighter mt-0.5">LIVRE</span>
                                   )}
                                 </div>
                               );
@@ -1199,7 +1216,7 @@ const RaffleModule: React.FC = () => {
                         </div>
 
                         {/* Footer regulation */}
-                        <div className="border-t border-slate-205/60 pt-3 text-[9px] text-slate-450 dark:text-slate-500 leading-tight">
+                        <div className="border-t border-slate-200/60 pt-3 text-[9px] text-slate-450 dark:text-slate-500 leading-tight">
                           <p className="font-semibold uppercase tracking-widest text-[8px] mb-1">REGULAMENTO DO TATAME</p>
                           <p>O sorteio será efetuado pelo Sensei na presença de todos os interessados de forma 100% digital e auditável, eliminando cotas sem proprietário para que o prêmio seja entregue na primeira rodada. Todo valor é transferido para subsidiar despesas esportivas e operacionais. OSS!</p>
                         </div>
